@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using AjayIndustriesERP.Web.Models;
+
 using Microsoft.AspNetCore.Mvc;
 
 namespace AjayIndustriesERP.Web.Controllers
@@ -23,10 +23,8 @@ namespace AjayIndustriesERP.Web.Controllers
             return View();
         }
 
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }
     }
 }
+
+    
+

@@ -19,7 +19,6 @@
     <Folder Include="Middlewares\" />
     <Folder Include="Configurations\" />
     <Folder Include="Services\" />
-    <Folder Include="ViewModels\" />
     <Folder Include="wwwroot\fonts\" />
     <Folder Include="wwwroot\icons\" />
     <Folder Include="wwwroot\images\icons\" />
