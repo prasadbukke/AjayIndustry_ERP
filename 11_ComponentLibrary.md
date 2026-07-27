@@ -55,3 +55,22 @@ Reusable navigation group.
 Status
 
 Planned.
+
+### Menu Group
+
+Purpose
+
+Represents one expandable navigation group.
+
+Contains
+
+- Header
+- Submenu
+
+---
+
+### Sub Menu
+
+Purpose
+
+Contains child navigation items.
