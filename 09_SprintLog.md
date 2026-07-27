@@ -76,3 +76,21 @@ Next
 
 ERP-003
 Sidebar Collapse
+
+# Sprint 1 Completed
+
+## Completed
+
+- Professional Layout
+- Navbar
+- Sidebar
+- Dashboard
+- Component Based Sidebar
+- Scrollbar
+- Dashboard Widgets
+- Notifications
+- Recent Activities
+
+## Status
+
+Sprint 1 Completed

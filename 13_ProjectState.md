@@ -28,3 +28,31 @@ Future
 Authentication
 
 Masters Module
+
+# AjayIndustriesERP
+
+## Current Sprint
+
+Sprint 2
+
+Authentication UI
+
+## Completed
+
+✔ Foundation
+
+✔ Dashboard
+
+✔ Sidebar
+
+## Next
+
+Login UI
+
+## Future
+
+Company Master
+
+Customer Master
+
+Supplier Master

@@ -35,3 +35,29 @@ Reason
 
 Single Responsibility Principle.
 Easy maintenance.
+
+## D-005
+
+Sidebar architecture will be component-based using Razor Partial Views.
+
+Reason:
+Reusable and easy maintenance.
+
+---
+
+## D-006
+
+React migration postponed.
+
+Current version will use ASP.NET Core MVC.
+
+Reason:
+Faster delivery and aligns with current expertise.
+
+---
+
+## D-007
+
+Dashboard UI frozen.
+
+Only live data binding and charts will be added later.
