@@ -1,0 +1,78 @@
+# Sprint Log
+
+---
+
+## Sprint 0
+
+Status : Completed
+
+### Story 1
+
+Solution Created
+
+### Story 2
+
+Clean Architecture
+
+### Story 3
+
+Folder Structure
+
+### Story 4
+
+Theme
+
+### Story 5
+
+Master Layout
+
+### Story 6
+
+Top Navbar
+
+---
+
+## Sprint 0.4
+
+Status : In Progress
+
+### ERP-001
+
+Sidebar Refactoring
+
+Completed
+
+Files
+
+- _Sidebar.cshtml
+- _SidebarHeader.cshtml
+- _SidebarMenu.cshtml
+- _SidebarFooter.cshtml
+
+---
+
+### ERP-002
+
+Sidebar Footer
+
+Completed
+
+Files
+
+- _SidebarFooter.cshtml
+- sidebar.css
+
+Added
+
+- User Card
+- Role
+- Version
+
+Review Score
+
+9.6/10
+
+Next
+
+ERP-003
+Sidebar Collapse

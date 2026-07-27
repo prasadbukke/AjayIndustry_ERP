@@ -126,3 +126,40 @@
     font-size: 12px;
     opacity: .7;
 }
+/* ==========================================
+   Sidebar Footer
+========================================== */
+
+.erp-sidebar-footer {
+    margin-top: auto;
+    padding: 20px;
+    border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.erp-user-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.erp-user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.erp-user-name {
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.erp-user-role {
+    color: #94A3B8;
+    font-size: 12px;
+}
+
+.erp-version {
+    margin-top: 16px;
+    font-size: 11px;
+    color: #64748B;
+}

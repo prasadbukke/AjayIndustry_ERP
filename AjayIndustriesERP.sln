@@ -19,6 +19,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{645EC466-0
 		06_UIStandards.md = 06_UIStandards.md
 		07_CodingStandards.md = 07_CodingStandards.md
 		08_Deployment.md = 08_Deployment.md
+		09_SprintLog.md = 09_SprintLog.md
+		10_Architecture.md = 10_Architecture.md
+		11_ComponentLibrary.md = 11_ComponentLibrary.md
+		12_DecisionLog.md = 12_DecisionLog.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "database", "database", "{B6C27EBA-F15C-421A-AC77-F7F361689BCF}"
