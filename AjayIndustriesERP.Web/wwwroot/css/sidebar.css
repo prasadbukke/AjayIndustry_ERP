@@ -209,3 +209,19 @@
             background: var(--sidebar-hover);
             color: white;
         }
+
+.erp-submenu {
+    display: none;
+}
+
+    .erp-submenu.show {
+        display: block;
+    }
+
+.menu-arrow {
+    transition: transform .3s ease;
+}
+
+    .menu-arrow.rotate {
+        transform: rotate(180deg);
+    }

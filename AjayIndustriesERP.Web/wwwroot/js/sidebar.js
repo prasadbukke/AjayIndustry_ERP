@@ -1,4 +1,21 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+﻿document.addEventListener("DOMContentLoaded", function () {
 
-// Write your JavaScript code.
+    const menuHeaders = document.querySelectorAll(".erp-menu-header");
+
+    menuHeaders.forEach(header => {
+
+        header.addEventListener("click", function () {
+
+            const submenu = this.nextElementSibling;
+
+            submenu.classList.toggle("show");
+
+            const arrow = this.querySelector(".menu-arrow");
+
+            arrow.classList.toggle("rotate");
+
+        });
+
+    });
+
+});

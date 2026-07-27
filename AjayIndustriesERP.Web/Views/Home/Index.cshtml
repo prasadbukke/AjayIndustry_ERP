@@ -1,16 +1,218 @@
-﻿<div class="container mt-5">
-    <h1>Ajay Industries ERP</h1>
-    <p>ERP Development Started Successfully 🚀</p>
+﻿@{
+    ViewData["Title"] = "Dashboard";
+}
 
+<div class="erp-container">
 
-    <i class="bi bi-house-door-fill"></i>
+    <div class="dashboard-header">
 
-    <i class="bi bi-speedometer2"></i>
+        <div>
 
-    <i class="bi bi-box-seam"></i>
+            <h2 class="dashboard-title">
+                Good Morning, Prasad 👋
+            </h2>
 
-    <i class="bi bi-person-circle"></i>
+            <p class="dashboard-subtitle">
+                Welcome to Ajay Industries ERP
+            </p>
 
-    <i class="bi bi-bell-fill"></i>
+        </div>
+
+        <div class="dashboard-date">
+
+            @DateTime.Now.ToString("dddd, dd MMMM yyyy")
+
+        </div>
+
+    </div>
+
 </div>
 
+<div class="dashboard-cards">
+
+    <div class="dashboard-card">
+        <h6>Today's Sales</h6>
+        <h3>₹0</h3>
+    </div>
+
+    <div class="dashboard-card">
+        <h6>Purchase Orders</h6>
+        <h3>0</h3>
+    </div>
+
+    <div class="dashboard-card">
+        <h6>Low Stock Items</h6>
+        <h3>0</h3>
+    </div>
+
+    <div class="dashboard-card">
+        <h6>Production Orders</h6>
+        <h3>0</h3>
+    </div>
+
+</div>
+
+<div class="row mt-4">
+
+    <div class="col-lg-8">
+
+        <div class="dashboard-panel">
+
+            <h4 class="panel-title">
+
+                Quick Actions
+
+            </h4>
+
+            <div class="quick-actions">
+
+                <button class="erp-btn-primary">
+                    <i class="bi bi-cart-plus"></i>
+                    Purchase Order
+                </button>
+
+                <button class="erp-btn-primary">
+                    <i class="bi bi-receipt"></i>
+                    Sales Order
+                </button>
+
+                <button class="erp-btn-primary">
+                    <i class="bi bi-people"></i>
+                    Customer
+                </button>
+
+                <button class="erp-btn-primary">
+                    <i class="bi bi-box-seam"></i>
+                    Item
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+
+        <div class="dashboard-panel">
+
+            <h4 class="panel-title">
+
+                Notifications
+
+            </h4>
+
+            <ul class="notification-list">
+
+                <li>
+                    <i class="bi bi-exclamation-circle-fill text-danger"></i>
+                    Low Stock Alert
+                </li>
+
+                <li>
+                    <i class="bi bi-clock-fill text-warning"></i>
+                    Pending Purchase Approval
+                </li>
+
+                <li>
+                    <i class="bi bi-gear-fill text-primary"></i>
+                    Production Started
+                </li>
+
+                <li>
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                    Payment Received
+                </li>
+
+            </ul>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="row mt-4">
+
+    <div class="col-lg-7">
+
+        <div class="dashboard-panel">
+
+            <h4 class="panel-title">
+                Recent Purchase Orders
+            </h4>
+
+            <table class="table table-hover">
+
+                <thead>
+
+                    <tr>
+
+                        <th>PO No</th>
+                        <th>Supplier</th>
+                        <th>Status</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    <tr>
+                        <td>PO-1001</td>
+                        <td>SKF Bearings</td>
+                        <td><span class="badge bg-success">Approved</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>PO-1002</td>
+                        <td>Tata Steel</td>
+                        <td><span class="badge bg-warning text-dark">Pending</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>PO-1003</td>
+                        <td>Precision Tools</td>
+                        <td><span class="badge bg-success">Approved</span></td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <div class="col-lg-5">
+
+        <div class="dashboard-panel">
+
+            <h4 class="panel-title">
+                Today's Production
+            </h4>
+
+            <ul class="notification-list">
+
+                <li>
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                    Machine A - Running
+                </li>
+
+                <li>
+                    <i class="bi bi-pause-circle-fill text-warning"></i>
+                    Machine B - Idle
+                </li>
+
+                <li>
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                    Machine C - Running
+                </li>
+
+            </ul>
+
+        </div>
+
+    </div>
+
+</div>
