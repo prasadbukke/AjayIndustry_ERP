@@ -1,8 +1,62 @@
-﻿html,
+﻿/* ==========================================================
+   ERP Master Layout
+   Ajay Industries ERP
+========================================================== */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+}
+
 body {
     margin: 0;
     padding: 0;
     background: var(--body-bg);
-    font-family: 'Segoe UI',sans-serif;
     color: var(--text-primary);
+    font-family: "Segoe UI", sans-serif;
+    overflow: hidden;
+}
+
+/* ==========================================
+   Layout
+========================================== */
+
+.erp-layout {
+    display: flex;
+    height: calc(100vh - var(--navbar-height));
+    margin-top: var(--navbar-height);
+}
+
+/* ==========================================
+   Main Content
+========================================== */
+
+.erp-main {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--body-bg);
+}
+
+/* ==========================================
+   Page Container
+========================================== */
+
+.erp-page {
+    padding: 24px;
+    min-height: 100%;
+}
+
+/* ==========================================
+   Common Container
+========================================== */
+
+.erp-container {
+    max-width: 1600px;
+    margin: 0 auto;
 }
