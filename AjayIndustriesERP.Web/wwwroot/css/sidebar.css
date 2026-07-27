@@ -225,3 +225,32 @@
     .menu-arrow.rotate {
         transform: rotate(180deg);
     }
+
+/* ==========================================
+   Sidebar Scrollbar
+========================================== */
+
+.erp-sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.erp-sidebar::-webkit-scrollbar-track {
+    background: #1E293B;
+}
+
+.erp-sidebar::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 20px;
+    border: 2px solid #1E293B;
+}
+
+    .erp-sidebar::-webkit-scrollbar-thumb:hover {
+        background: #64748B;
+    }
+
+/* Firefox */
+
+.erp-sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: #475569 #1E293B;
+}
