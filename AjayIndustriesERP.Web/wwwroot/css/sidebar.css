@@ -8,9 +8,13 @@
     color: var(--text-light);
     display: flex;
     flex-direction: column;
+    height: calc(100vh - var(--navbar-height));
+    position: sticky;
+    top: var(--navbar-height);
+    overflow-y: auto;
+    flex-shrink: 0;
     border-right: 1px solid rgba(255,255,255,.08);
 }
-
 /* ==========================================
    Header
 ========================================== */
@@ -70,4 +74,54 @@
 .sidebar-coming-soon {
     color: #94A3B8;
     font-size: 13px;
+}
+/* ==========================================
+   Navigation Menu
+========================================== */
+
+.erp-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.erp-menu-item {
+    margin-bottom: 6px;
+}
+
+    .erp-menu-item a {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: #CBD5E1;
+        padding: 12px 14px;
+        border-radius: var(--radius-md);
+        transition: all .2s ease;
+    }
+
+        .erp-menu-item a:hover {
+            background: var(--sidebar-hover);
+            color: white;
+        }
+
+    .erp-menu-item.active a {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .erp-menu-item i:first-child {
+        font-size: 18px;
+        width: 20px;
+    }
+
+    .erp-menu-item span {
+        flex: 1;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+.menu-arrow {
+    font-size: 12px;
+    opacity: .7;
 }
