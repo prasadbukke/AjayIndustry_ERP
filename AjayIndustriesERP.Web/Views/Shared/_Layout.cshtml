@@ -1,52 +1,46 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="utf-8" />
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>@ViewData["Title"] - Ajay Industries ERP</title>
 
+    <!-- Bootstrap -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
 
-    <link rel="stylesheet" href="~/css/theme.css" />
-
-    <link rel="stylesheet" href="~/css/layout.css" />
-
-    <link rel="stylesheet" href="~/css/sidebar.css" />
-
-    <link rel="stylesheet" href="~/css/navbar.css" />
-
-    <link rel="stylesheet" href="~/css/dashboard.css" />
-
-    <link rel="stylesheet" href="~/css/buttons.css" />
-
-    <link rel="stylesheet" href="~/css/forms.css" />
-
-    <link rel="stylesheet" href="~/css/tables.css" />
-
-    <link rel="stylesheet" href="~/css/login.css" />
-
-    <link rel="stylesheet" href="~/css/responsive.css" />
-
+    <!-- Bootstrap Icons -->
     <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
 
+    <!-- ERP Styles -->
+    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/sidebar.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/navbar.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/buttons.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/forms.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tables.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/responsive.css" asp-append-version="true" />
 </head>
 
 <body>
 
     @await Html.PartialAsync("_TopNavbar")
 
-    <div class="erp-container">
+    <div class="erp-layout">
 
         @await Html.PartialAsync("_Sidebar")
 
-        <main class="erp-content">
+        <main class="erp-main">
 
-            @RenderBody()
+            <div class="erp-page">
+
+                @RenderBody()
+
+            </div>
 
         </main>
 
@@ -58,7 +52,7 @@
 
     <script src="~/js/common.js"></script>
 
-    @await RenderSectionAsync("Scripts", required: false)
+    @RenderSection("Scripts", required: false)
 
 </body>
 
