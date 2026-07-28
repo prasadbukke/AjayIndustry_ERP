@@ -200,3 +200,31 @@ Completed
 ERP-008.1
 
 Implemented Route-based Active Menu
+
+Sprint 2 Completed
+
+Authentication UI completed.
+
+Next Sprint
+
+Sprint 2.1
+
+Forgot Password
+Reset Password
+
+ERP-008.1
+
+Forgot Password UI
+
+Status:
+Completed
+
+Review:
+Approved
+
+ERP-008.2
+
+Completed Reset Password UI
+
+Status:
+Completed

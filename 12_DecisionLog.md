@@ -87,12 +87,18 @@ Allows business module development without waiting for authentication implementa
 
 ## D-011
 
-Authentication UI will be completed before starting business modules.
+Authentication implementation is split into two phases.
 
-Scope:
-- Login
+Phase 1
+- Login UI
+- Dummy Navigation
+
+Phase 2
 - Forgot Password
 - Reset Password
+- ASP.NET Core Identity
+- Cookie Authentication
 
-Reason:
-The authentication flow should be visually complete before business module development begins.
+Reason
+
+Complete the user experience first, then integrate production authentication.

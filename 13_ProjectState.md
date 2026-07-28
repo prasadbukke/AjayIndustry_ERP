@@ -135,3 +135,29 @@ Current Story
 ERP-008.2
 
 Active Submenu
+
+Current Sprint
+
+Sprint 2.1
+
+Current Story
+
+ERP-008.1
+
+Forgot Password UI
+
+Status
+
+Ready To Start
+
+Current Story
+
+ERP-008.2
+
+Reset Password UI
+
+Current Story
+
+ERP-008.3
+
+Password Reset Success Screen
