@@ -161,3 +161,25 @@ Current Story
 ERP-008.3
 
 Password Reset Success Screen
+
+Current Story
+
+ERP-008.4
+
+Authentication Module Freeze
+
+Current Sprint
+
+Sprint 3
+
+Current Story
+
+ERP-009.1
+
+Company Master
+
+Current Story
+
+ERP-009.2
+
+Company List UI

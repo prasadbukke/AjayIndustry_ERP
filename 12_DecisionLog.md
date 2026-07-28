@@ -102,3 +102,10 @@ Phase 2
 Reason
 
 Complete the user experience first, then integrate production authentication.
+
+## D-012
+
+Authentication pages must use shared partial views for common UI.
+
+Reason:
+Reduce duplicate code and improve maintainability.

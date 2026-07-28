@@ -228,3 +228,31 @@ Completed Reset Password UI
 
 Status:
 Completed
+
+ERP-008.3
+
+Completed Password Reset Success Screen
+
+Status:
+Completed
+
+ERP-008.4
+
+Authentication Module Refactoring
+
+Completed
+
+- Created Authentication Branding Partial
+- Removed Duplicate Branding HTML
+- Reused Branding Panel across all Authentication pages
+
+Status:
+Completed
+
+ERP-009.1
+
+Created Company Module Structure
+
+- CompanyController
+- Company Views
+- Sidebar Navigation

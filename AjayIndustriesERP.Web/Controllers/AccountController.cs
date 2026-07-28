@@ -27,5 +27,9 @@ namespace AjayIndustriesERP.Web.Controllers
         {
             return View();
         }
+        public IActionResult PasswordResetSuccess()
+        {
+            return View();
+        }
     }
 }

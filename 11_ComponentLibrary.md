@@ -113,3 +113,17 @@ HtmlExtensions.IsActive()
 Purpose
 
 Highlight active menu.
+
+Authentication Components
+
+Component:
+_AuthBrandingPanel
+
+Purpose:
+Reusable branding panel for authentication pages.
+
+Used In:
+- Login
+- Forgot Password
+- Reset Password
+- Password Reset Success
