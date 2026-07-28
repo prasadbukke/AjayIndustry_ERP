@@ -121,3 +121,12 @@ ERP-007.3
 Created Authentication Page Layout
 
 Implemented Split Screen Login Structure
+
+### ERP-007.4
+
+Completed Branding Panel
+
+- Company Logo
+- ERP Branding
+- Manufacturing Description
+- Version Information
