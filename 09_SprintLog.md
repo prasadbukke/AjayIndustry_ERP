@@ -107,3 +107,11 @@ Sprint 1 Completed
 
 ### Status
 Completed
+
+ERP-007.2
+
+Created Authentication Layout
+
+Created Login CSS
+
+Configured Login Page to use Authentication Layout

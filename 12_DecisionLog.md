@@ -61,3 +61,13 @@ Faster delivery and aligns with current expertise.
 Dashboard UI frozen.
 
 Only live data binding and charts will be added later.
+
+## D-008
+
+Authentication pages use a dedicated layout (_AuthLayout.cshtml).
+
+Reason
+
+Authentication pages should not display application navigation
+(Navbar and Sidebar). This provides a cleaner login experience
+and separates authentication from the main application shell.
