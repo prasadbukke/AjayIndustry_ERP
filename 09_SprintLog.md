@@ -94,3 +94,16 @@ Sidebar Collapse
 ## Status
 
 Sprint 1 Completed
+
+# Sprint 2 - Authentication
+
+## ERP-007.1 - Authentication Structure
+
+### Completed
+- Created AccountController
+- Created Login.cshtml
+- Created ForgotPassword.cshtml
+- Created ResetPassword.cshtml
+
+### Status
+Completed

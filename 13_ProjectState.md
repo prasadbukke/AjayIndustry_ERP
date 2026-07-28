@@ -56,3 +56,15 @@ Company Master
 Customer Master
 
 Supplier Master
+
+Current Sprint : Sprint 2
+
+Current Story : ERP-007.2
+
+Completed
+
+✔ ERP-007.1 Authentication Structure
+
+Next
+
+Authentication Login UI
