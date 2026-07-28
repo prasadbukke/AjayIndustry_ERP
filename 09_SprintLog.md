@@ -115,3 +115,9 @@ Created Authentication Layout
 Created Login CSS
 
 Configured Login Page to use Authentication Layout
+
+ERP-007.3
+
+Created Authentication Page Layout
+
+Implemented Split Screen Login Structure

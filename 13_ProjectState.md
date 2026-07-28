@@ -74,3 +74,9 @@ Current Story
 ERP-007.3
 
 Professional Login UI
+
+Current Story
+
+ERP-007.4
+
+Branding Panel

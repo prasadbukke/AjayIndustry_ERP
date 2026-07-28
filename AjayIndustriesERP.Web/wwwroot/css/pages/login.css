@@ -1,1 +1,14 @@
-﻿
+﻿.login-page {
+    display: flex;
+    min-height: 100vh;
+}
+
+.login-left {
+    width: 55%;
+    background: #1E293B;
+}
+
+.login-right {
+    width: 45%;
+    background: #F8FAFC;
+}
