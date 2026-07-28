@@ -195,3 +195,9 @@ Current Story
 ERP-009.4
 
 Company ViewModel
+
+Current Story
+
+ERP-009.5
+
+Company Details UI

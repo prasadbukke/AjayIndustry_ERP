@@ -273,3 +273,12 @@ Completed Create Company UI
 
 Status:
 Completed
+
+ERP-009.4
+
+Created reusable _CompanyForm partial.
+
+Implemented Edit Company UI.
+
+Status:
+Completed
