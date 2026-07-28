@@ -127,3 +127,13 @@ Used In:
 - Forgot Password
 - Reset Password
 - Password Reset Success
+
+Page Header
+
+Search Card
+
+Master Table
+
+Status Badge
+
+Action Buttons
