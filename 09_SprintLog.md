@@ -130,3 +130,19 @@ Completed Branding Panel
 - ERP Branding
 - Manufacturing Description
 - Version Information
+
+ERP-007.4
+
+Completed Branding Panel
+
+Status : Completed
+
+ERP-007.5
+
+Completed Login Form UI
+
+- Email
+- Password
+- Remember Me
+- Forgot Password
+- Login Button
