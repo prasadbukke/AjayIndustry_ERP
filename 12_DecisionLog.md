@@ -71,3 +71,28 @@ Reason
 Authentication pages should not display application navigation
 (Navbar and Sidebar). This provides a cleaner login experience
 and separates authentication from the main application shell.
+
+## D-010
+
+Authentication is being developed in two phases.
+
+Phase 1:
+Professional UI + Dummy Navigation
+
+Phase 2:
+ASP.NET Core Identity + Authorization + Cookies
+
+Reason:
+Allows business module development without waiting for authentication implementation.
+
+## D-011
+
+Authentication UI will be completed before starting business modules.
+
+Scope:
+- Login
+- Forgot Password
+- Reset Password
+
+Reason:
+The authentication flow should be visually complete before business module development begins.

@@ -1,12 +1,21 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AjayIndustriesERP.Web.ViewModels;
+using Microsoft.AspNetCore.Mvc;
 
 namespace AjayIndustriesERP.Web.Controllers
 {
     public class AccountController : Controller
     {
+        [HttpGet]
         public IActionResult Login()
         {
-            return View();
+            return View(new LoginViewModel());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Login(LoginViewModel model)
+        {
+            return View("~/Views/Home/Index.cshtml");
         }
 
         public IActionResult ForgotPassword()

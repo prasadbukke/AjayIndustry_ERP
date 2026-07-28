@@ -146,3 +146,57 @@ Completed Login Form UI
 - Remember Me
 - Forgot Password
 - Login Button
+
+- ERP-007.5
+
+Completed Professional Login UI
+
+Status : Completed
+
+### ERP-007.6
+
+Completed Login UI Polish
+
+Status : Completed
+
+Highlights
+
+- Split Login Screen
+
+- Branding Panel
+
+- Login Card
+
+- Enterprise Theme
+
+### ERP-007.7
+
+Completed Login Interaction
+
+- Show / Hide Password
+- JavaScript interaction added
+- Authentication layout supports page scripts
+
+ERP-007.8
+
+Completed Dummy Login Flow
+
+Status : Completed
+## Sprint 2 - Authentication UI
+
+### ERP-007.8 - Dummy Login Flow
+
+Completed
+
+- Created LoginViewModel
+- Implemented GET Login
+- Implemented POST Login
+- Configured Dummy Login Flow
+- Successfully navigated from Login to Dashboard
+
+Status:
+Completed
+
+ERP-008.1
+
+Implemented Route-based Active Menu

@@ -254,3 +254,13 @@
     scrollbar-width: thin;
     scrollbar-color: #475569 #1E293B;
 }
+
+.erp-menu-item.active {
+    background: #2563EB;
+    color: #FFFFFF;
+    border-radius: 10px;
+}
+
+    .erp-menu-item.active a {
+        color: #FFFFFF;
+    }

@@ -74,3 +74,42 @@ Contains
 Purpose
 
 Contains child navigation items.
+
+Authentication Card
+
+Purpose
+
+Reusable card for
+
+Login
+
+Forgot Password
+
+Reset Password
+
+CSS
+
+login-card
+
+Password Toggle
+
+Purpose:
+Reusable password visibility component.
+
+Used In:
+- Login
+- Reset Password
+
+Authentication Components
+
+- Login Card
+- Branding Panel
+- Authentication Layout
+
+Navigation Helper
+
+HtmlExtensions.IsActive()
+
+Purpose
+
+Highlight active menu.
