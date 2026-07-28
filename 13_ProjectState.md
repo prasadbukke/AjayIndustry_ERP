@@ -189,3 +189,9 @@ Current Story
 ERP-009.3
 
 Create Company UI
+
+Current Story
+
+ERP-009.4
+
+Company ViewModel

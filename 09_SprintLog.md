@@ -266,3 +266,10 @@ Completed Company List UI
 - Data Table
 - Action Buttons
 - Status Badge
+
+ERP-009.3
+
+Completed Create Company UI
+
+Status:
+Completed
