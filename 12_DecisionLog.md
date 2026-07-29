@@ -109,3 +109,10 @@ Authentication pages must use shared partial views for common UI.
 
 Reason:
 Reduce duplicate code and improve maintainability.
+
+D-014
+
+Each business module will have its own ViewModel folder.
+
+Reason:
+Keeps the solution modular and scalable.

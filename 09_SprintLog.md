@@ -282,3 +282,18 @@ Implemented Edit Company UI.
 
 Status:
 Completed
+
+ERP-009.5
+
+Created CompanyViewModel
+
+Status:
+Completed
+
+ERP-009.6
+
+Bound Company Form with CompanyViewModel
+
+Status
+
+Completed
