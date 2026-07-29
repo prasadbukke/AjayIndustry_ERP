@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AjayIndustriesERP.Web.ViewModels.Company;
+using Microsoft.AspNetCore.Mvc;
 
 namespace AjayIndustriesERP.Web.Controllers
 {
@@ -14,6 +15,16 @@ namespace AjayIndustriesERP.Web.Controllers
             return View();
         }
 
+        [HttpPost]
+        public IActionResult Create(CompanyViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
         public IActionResult Edit(int id)
         {
             return View();

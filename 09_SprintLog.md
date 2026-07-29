@@ -297,3 +297,9 @@ Bound Company Form with CompanyViewModel
 Status
 
 Completed
+
+ERP-009.7
+
+Implemented Client Side Validation
+
+Completed

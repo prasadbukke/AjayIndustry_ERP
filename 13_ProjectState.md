@@ -213,3 +213,9 @@ Current Story
 ERP-009.7
 
 Company Validation
+
+Current Story
+
+ERP-009.8
+
+Company Entity
