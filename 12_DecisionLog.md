@@ -116,3 +116,25 @@ Each business module will have its own ViewModel folder.
 
 Reason:
 Keeps the solution modular and scalable.
+
+D-015
+
+All ERP Forms must use strongly typed ViewModels with Data Annotation Validation.
+
+Reason
+
+Consistent Validation
+Model Binding
+Production Standard
+
+D-016
+
+All business entities must inherit from BaseEntity.
+
+Reason
+
+Avoid duplicate audit fields.
+
+Maintain consistent architecture.
+
+Support soft delete across ERP.

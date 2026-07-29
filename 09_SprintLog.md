@@ -303,3 +303,24 @@ ERP-009.7
 Implemented Client Side Validation
 
 Completed
+
+ERP-009.7
+
+Completed Validation
+
+Status
+
+Approved
+
+Company Module UI is now Production Ready.
+
+ERP-009.8
+
+Created BaseEntity
+
+ERP-009.9
+
+Created Company Entity
+
+Status:
+Completed
