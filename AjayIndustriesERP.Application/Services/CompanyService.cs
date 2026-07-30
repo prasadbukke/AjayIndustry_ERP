@@ -67,7 +67,7 @@ namespace AjayIndustriesERP.Application.Services
             company.CreatedOn = DateTime.UtcNow;
             company.CreatedBy = "System";
 
-            company.CompanyCode = $"CMP{DateTime.Now:yyyyMMddHHmmss}";
+            company.CompanyCode = await GenerateCompanyCodeAsync();
 
             await _companyRepository.AddAsync(company);
 
@@ -129,7 +129,55 @@ namespace AjayIndustriesERP.Application.Services
 
             await _companyRepository.DeleteAsync(company);
 
+
+
+
+
             await _companyRepository.SaveChangesAsync();
         }
+
+        /// <summary>
+        /// Searches companies.
+        /// </summary>
+        public async Task<List<Company>> SearchAsync(string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+                return await _companyRepository.GetAllAsync();
+
+            return await _companyRepository.SearchAsync(searchText);
+        }
+
+
+        /// <summary>
+        /// Returns paginated company list.
+        /// </summary>
+        public async Task<List<Company>> GetPagedAsync(int pageNumber, int pageSize)
+        {
+            return await _companyRepository.GetPagedAsync(pageNumber, pageSize);
+        }
+
+        #region Private Methods
+
+        /// <summary>
+        /// Generates next company code.
+        /// Example:
+        /// CMP00001
+        /// CMP00002
+        /// </summary>
+        private async Task<string> GenerateCompanyCodeAsync()
+        {
+            var lastCode = await _companyRepository.GetLastCompanyCodeAsync();
+
+            if (string.IsNullOrWhiteSpace(lastCode))
+                return "CMP00001";
+
+            int number = int.Parse(lastCode.Replace("CMP", ""));
+
+            number++;
+
+            return $"CMP{number:D5}";
+        }
+
+        #endregion
     }
 }

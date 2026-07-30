@@ -65,6 +65,51 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 !x.IsDeleted);
         }
 
+        /// <summary>
+        /// Searches companies by Company Code, Company Name or GST Number.
+        /// </summary>
+        public async Task<List<Company>> SearchAsync(string searchText)
+        {
+            searchText = searchText.Trim().ToLower();
+
+            return await _context.Companies
+                .Where(x =>
+                    !x.IsDeleted &&
+                    (
+                        x.CompanyCode.ToLower().Contains(searchText) ||
+                        x.CompanyName.ToLower().Contains(searchText) ||
+                        x.GstNumber.ToLower().Contains(searchText)
+                    ))
+                .OrderBy(x => x.CompanyName)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Returns paginated company list.
+        /// </summary>
+        public async Task<List<Company>> GetPagedAsync(int pageNumber, int pageSize)
+        {
+            return await _context.Companies
+                .Where(x => !x.IsDeleted)
+                .OrderBy(x => x.CompanyName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+
+
+        /// <summary>
+        /// Returns last generated company code.
+        /// </summary>
+        public async Task<string?> GetLastCompanyCodeAsync()
+        {
+            return await _context.Companies
+                .Where(x => !x.IsDeleted)
+                .OrderByDescending(x => x.CompanyId)
+                .Select(x => x.CompanyCode)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();

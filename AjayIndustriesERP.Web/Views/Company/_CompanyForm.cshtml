@@ -8,7 +8,11 @@
 
     <div class="col-md-6 mb-3">
         <label asp-for="CompanyCode" class="form-label"></label>
-        <input asp-for="CompanyCode" class="form-control" readonly />
+        <input asp-for="CompanyId" type="hidden" />
+
+        <input asp-for="CompanyCode"
+               class="form-control"
+               readonly />
         <span asp-validation-for="CompanyCode" class="text-danger"></span>
     </div>
 
@@ -118,7 +122,7 @@
 
                 <i class="fa-solid fa-floppy-disk"></i>
 
-                Save Company
+                @(Model.CompanyId == 0 ? "Save Company" : "Update Company")
 
             </button>
 

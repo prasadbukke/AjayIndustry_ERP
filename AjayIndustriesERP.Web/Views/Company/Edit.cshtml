@@ -1,7 +1,9 @@
 ﻿@model AjayIndustriesERP.Web.ViewModels.Company.CompanyViewModel
+
 @{
     ViewData["Title"] = "Edit Company";
 }
+
 @section Scripts {
 
     <partial name="_ValidationScriptsPartial" />
@@ -40,8 +42,7 @@
             <form asp-action="Edit"
                   method="post">
 
-                <input asp-for="CompanyId"
-                       type="hidden" />
+                <input asp-for="CompanyId" type="hidden" />
 
                 <partial name="_CompanyForm"
                          model="Model" />

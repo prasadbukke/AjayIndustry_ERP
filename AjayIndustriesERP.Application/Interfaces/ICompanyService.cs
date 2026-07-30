@@ -13,5 +13,15 @@ namespace AjayIndustriesERP.Application.Interfaces
         Task UpdateAsync(Company company);
 
         Task DeleteAsync(int companyId);
+
+        /// <summary>
+        /// Searches companies.
+        /// </summary>
+        Task<List<Company>> SearchAsync(string searchText);
+
+        /// <summary>
+        /// Returns paginated company list.
+        /// </summary>
+        Task<List<Company>> GetPagedAsync(int pageNumber, int pageSize);
     }
 }

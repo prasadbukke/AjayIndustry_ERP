@@ -22,6 +22,20 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         Task<bool> ExistsByGstAsync(string gstNumber, int companyId);
 
+        /// <summary>
+        /// Searches companies by Company Code, Company Name or GST Number.
+        /// </summary>
+        Task<List<Company>> SearchAsync(string searchText);
+
+        /// <summary>
+        /// Returns paginated company list.
+        /// </summary>
+        Task<List<Company>> GetPagedAsync(int pageNumber, int pageSize);
+
+        /// <summary>
+        /// Returns last generated company code.
+        /// </summary>
+        Task<string?> GetLastCompanyCodeAsync();
         Task SaveChangesAsync();
     }
 }
