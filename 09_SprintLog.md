@@ -324,3 +324,21 @@ Created Company Entity
 
 Status:
 Completed
+
+## ERP-010
+
+### Infrastructure Foundation
+
+Status : Completed
+
+Completed
+
+- BaseEntity
+- Company Entity
+- Fluent Configuration
+- ApplicationDbContext
+- Dependency Injection
+- SQL Server Migration
+- Repository Layer
+
+Architecture Frozen

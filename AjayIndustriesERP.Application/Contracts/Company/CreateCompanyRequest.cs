@@ -1,11 +1,27 @@
-﻿using AjayIndustriesERP.Domain.Common;
+﻿/*
+==============================================================
 
-namespace AjayIndustriesERP.Domain.Entities
+File : CreateCompanyRequest.cs
+
+Purpose :
+Used to create a new Company.
+
+Flow :
+MVC Controller
+        ↓
+Application Service
+        ↓
+Repository
+        ↓
+Database
+
+==============================================================
+*/
+
+namespace AjayIndustriesERP.Application.Contracts.Company
 {
-    public class Company : BaseEntity
+    public class CreateCompanyRequest
     {
-        public int CompanyId { get; set; }
-
         public string CompanyCode { get; set; } = string.Empty;
 
         public string CompanyName { get; set; } = string.Empty;
@@ -31,5 +47,7 @@ namespace AjayIndustriesERP.Domain.Entities
         public string Country { get; set; } = "India";
 
         public string? PostalCode { get; set; }
+
+        public bool IsActive { get; set; } = true;
     }
 }

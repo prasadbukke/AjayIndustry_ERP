@@ -1,8 +1,17 @@
-﻿using AjayIndustriesERP.Domain.Common;
+﻿/*
+==============================================================
 
-namespace AjayIndustriesERP.Domain.Entities
+File : CompanyResponse.cs
+
+Purpose :
+Returns Company data from Service layer.
+
+==============================================================
+*/
+
+namespace AjayIndustriesERP.Application.Contracts.Company
 {
-    public class Company : BaseEntity
+    public class CompanyResponse
     {
         public int CompanyId { get; set; }
 
@@ -28,8 +37,10 @@ namespace AjayIndustriesERP.Domain.Entities
 
         public string? State { get; set; }
 
-        public string Country { get; set; } = "India";
+        public string Country { get; set; } = string.Empty;
 
         public string? PostalCode { get; set; }
+
+        public bool IsActive { get; set; }
     }
 }

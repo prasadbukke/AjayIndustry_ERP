@@ -231,3 +231,41 @@ Current Story
 ERP-010.0
 
 ApplicationDbContext
+
+Current Story
+
+ERP-010.3
+
+Company Repository
+
+Current Sprint
+
+Sprint 3
+
+Current Module
+
+Company
+
+Completed
+
+UI
+
+Validation
+
+Entity
+
+Database
+
+Repository
+
+Current Story
+
+Application Contracts
+
+Next
+
+Company Service
+
+Progress
+
+Approximately 70%

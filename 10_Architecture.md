@@ -64,3 +64,48 @@ Future
 - Dynamic Menu
 - Role Based Menu
 - Permission Based Menu
+
+
+# ERP Architecture V1
+
+Updated on 30 July 2026
+
+Presentation
+
+MVC
+
+↓
+
+Application
+
+↓
+
+Repository Interface
+
+↓
+
+Infrastructure
+
+↓
+
+SQL Server
+
+Future
+
+MVC
+
+↓
+
+Web API
+
+↓
+
+Same Application Services
+
+↓
+
+Same Repository
+
+↓
+
+Database

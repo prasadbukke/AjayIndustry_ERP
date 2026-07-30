@@ -138,3 +138,65 @@ Avoid duplicate audit fields.
 Maintain consistent architecture.
 
 Support soft delete across ERP.
+
+D-017
+
+Domain entities must not contain persistence attributes.
+
+All EF Core mapping will be handled using Fluent API configuration classes.
+
+Reason:
+- Clean Architecture
+- Better maintainability
+- Easier testing
+- Separation of concerns
+
+Decision No : D-018
+
+Title
+
+ERP Architecture Freeze
+
+Decision
+
+ERP V1 will use ASP.NET Core MVC.
+
+Application layer will contain all business logic.
+
+Repository Pattern will be used.
+
+Infrastructure will contain EF Core.
+
+Future Web API will reuse the same Application Services.
+
+React is intentionally excluded from Version 1.
+
+Status
+
+Approved
+
+Date
+
+Today's Date
+
+Decision No : D-019
+
+Title:
+ERP V1 Architecture Freeze
+
+Decision:
+
+Version 1 of Ajay Industries ERP will be developed using ASP.NET Core MVC.
+
+Business Logic will be implemented in the Application layer.
+
+MVC Controllers will communicate with Application Services using ViewModels.
+
+Repository Pattern will be used for data access.
+
+EF Core will remain inside Infrastructure.
+
+Web API will be introduced only in Version 2 for learning and code reuse.
+
+Status:
+Approved
