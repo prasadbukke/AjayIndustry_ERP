@@ -1,10 +1,15 @@
-﻿@{
+﻿@model List<AjayIndustriesERP.Domain.Entities.Company>
+
+@{
     ViewData["Title"] = "Company Management";
 }
 
 <div class="container-fluid">
 
+    <!-- ========================================================= -->
     <!-- Page Header -->
+    <!-- ========================================================= -->
+
     <div class="d-flex justify-content-between align-items-center mb-4">
 
         <div>
@@ -25,7 +30,9 @@
 
     </div>
 
+    <!-- ========================================================= -->
     <!-- Search -->
+    <!-- ========================================================= -->
 
     <div class="card shadow-sm border-0 mb-4">
 
@@ -37,7 +44,7 @@
 
                     <input type="text"
                            class="form-control"
-                           placeholder="Search company..." />
+                           placeholder="Search Company..." />
 
                 </div>
 
@@ -47,7 +54,9 @@
 
     </div>
 
-    <!-- Table -->
+    <!-- ========================================================= -->
+    <!-- Company List -->
+    <!-- ========================================================= -->
 
     <div class="card shadow-sm border-0">
 
@@ -59,6 +68,8 @@
 
                     <tr>
 
+                        <th width="70">#</th>
+
                         <th>Code</th>
 
                         <th>Company Name</th>
@@ -69,7 +80,7 @@
 
                         <th>Status</th>
 
-                        <th width="150">Action</th>
+                        <th width="160">Action</th>
 
                     </tr>
 
@@ -77,53 +88,76 @@
 
                 <tbody>
 
-                    <tr>
+                    @if (Model != null && Model.Any())
+                    {
+                        int srNo = 1;
 
-                        <td>CMP001</td>
+                        foreach (var company in Model)
+                        {
+                            <tr>
 
-                        <td>Ajay Industries Pvt. Ltd.</td>
+                                <td>@srNo</td>
 
-                        <td>27ABCDE1234F1Z5</td>
+                                <td>@company.CompanyCode</td>
 
-                        <td>9876543210</td>
+                                <td>@company.CompanyName</td>
 
-                        <td>
+                                <td>@company.GstNumber</td>
 
-                            <span class="badge bg-success">
+                                <td>@company.PhoneNumber</td>
 
-                                Active
+                                <td>
 
-                            </span>
+                                    @if (company.IsActive)
+                                    {
+                                        <span class="badge bg-success">
+                                            Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">
+                                            Inactive
+                                        </span>
+                                    }
 
-                        </td>
+                                </td>
 
-                        <td>
+                                <td>
 
-                            <a asp-action="Details"
-                               asp-route-id="1"
-                               class="btn btn-sm btn-outline-info">
+                                    <a asp-action="Edit"
+                                       asp-route-id="@company.CompanyId"
+                                       class="btn btn-sm btn-outline-warning">
 
-                                <i class="fa-solid fa-eye"></i>
+                                        <i class="fa-solid fa-pen"></i>
 
-                            </a>
+                                    </a>
 
-                            <a asp-action="Edit"
-                               asp-route-id="1"
-                               class="btn btn-sm btn-outline-warning">
+                                    <button class="btn btn-sm btn-outline-danger">
 
-                                <i class="fa-solid fa-pen"></i>
+                                        <i class="fa-solid fa-trash"></i>
 
-                            </a>
+                                    </button>
 
-                            <button class="btn btn-sm btn-outline-danger">
+                                </td>
 
-                                <i class="fa-solid fa-trash"></i>
+                            </tr>
 
-                            </button>
+                            srNo++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
 
-                        </td>
+                            <td colspan="7" class="text-center py-4">
 
-                    </tr>
+                                No Company Found.
+
+                            </td>
+
+                        </tr>
+                    }
 
                 </tbody>
 
