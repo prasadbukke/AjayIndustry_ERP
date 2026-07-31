@@ -21,6 +21,7 @@ Database
 ==============================================================
 */
 
+using AjayIndustriesERP.Application.Exceptions;
 using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Domain.Entities;
 using AjayIndustriesERP.Web.ViewModels.Employee;
@@ -43,10 +44,7 @@ namespace AjayIndustriesERP.Web.Controllers
         /// Displays Employee List.
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> Index(
-    string searchText = "",
-    int pageNumber = 1,
-    int pageSize = 10)
+        public async Task<IActionResult> Index(string searchText = "", int pageNumber = 1, int pageSize = 10)
         {
             if (!string.IsNullOrWhiteSpace(searchText))
             {
@@ -55,6 +53,11 @@ namespace AjayIndustriesERP.Web.Controllers
                 ViewBag.SearchText = searchText;
                 ViewBag.PageNumber = 1;
                 ViewBag.PageSize = pageSize;
+
+                ViewBag.TotalRecords = employees.Count;
+                ViewBag.TotalPages = 1;
+                ViewBag.HasPrevious = false;
+                ViewBag.HasNext = false;
 
                 return View(employees);
             }
@@ -117,9 +120,15 @@ namespace AjayIndustriesERP.Web.Controllers
 
                 return RedirectToAction(nameof(Index));
             }
-            catch (Exception ex)
+            catch (BusinessException ex)
             {
                 TempData["Error"] = ex.Message;
+
+                return View(model);
+            }
+            catch (Exception)
+            {
+                TempData["Error"] = "Something went wrong. Please try again.";
 
                 return View(model);
             }
@@ -221,9 +230,15 @@ namespace AjayIndustriesERP.Web.Controllers
 
                 return RedirectToAction(nameof(Index));
             }
-            catch (Exception ex)
+            catch (BusinessException ex)
             {
                 TempData["Error"] = ex.Message;
+
+                return View(model);
+            }
+            catch (Exception)
+            {
+                TempData["Error"] = "Something went wrong. Please try again.";
 
                 return View(model);
             }
@@ -246,9 +261,13 @@ namespace AjayIndustriesERP.Web.Controllers
 
                 TempData["Success"] = "Employee deleted successfully.";
             }
-            catch (Exception ex)
+            catch (BusinessException ex)
             {
                 TempData["Error"] = ex.Message;
+            }
+            catch (Exception)
+            {
+                TempData["Error"] = "Something went wrong. Please try again.";
             }
 
             return RedirectToAction(nameof(Index));

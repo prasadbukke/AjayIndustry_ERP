@@ -1,4 +1,5 @@
-﻿using AjayIndustriesERP.Application.Interfaces;
+﻿using AjayIndustriesERP.Application.Exceptions;
+using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Domain.Entities;
 using AjayIndustriesERP.Web.ViewModels.Company;
 using Azure.Core;
@@ -30,6 +31,11 @@ namespace AjayIndustriesERP.Web.Controllers
                 ViewBag.SearchText = searchText;
                 ViewBag.PageNumber = 1;
                 ViewBag.PageSize = pageSize;
+
+                ViewBag.TotalRecords = companies.Count;
+                ViewBag.TotalPages = 1;
+                ViewBag.HasPrevious = false;
+                ViewBag.HasNext = false;
 
                 return View(companies);
             }
@@ -100,9 +106,15 @@ namespace AjayIndustriesERP.Web.Controllers
 
                 return RedirectToAction(nameof(Index));
             }
-            catch (Exception ex)
+            catch (BusinessException ex)
             {
                 TempData["Error"] = ex.Message;
+
+                return View(model);
+            }
+            catch (Exception)
+            {
+                TempData["Error"] = "Something went wrong. Please try again.";
 
                 return View(model);
             }
@@ -184,9 +196,15 @@ namespace AjayIndustriesERP.Web.Controllers
 
                 return RedirectToAction(nameof(Index));
             }
-            catch (Exception ex)
+            catch (BusinessException ex)
             {
                 TempData["Error"] = ex.Message;
+
+                return View(model);
+            }
+            catch (Exception)
+            {
+                TempData["Error"] = "Something went wrong. Please try again.";
 
                 return View(model);
             }
@@ -221,9 +239,20 @@ namespace AjayIndustriesERP.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            await _companyService.DeleteAsync(id);
+            try
+            {
+                await _companyService.DeleteAsync(id);
 
-            TempData["Success"] = "Company deleted successfully.";
+                TempData["Success"] = "Company deleted successfully.";
+            }
+            catch (BusinessException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+            catch (Exception)
+            {
+                TempData["Error"] = "Something went wrong. Please try again.";
+            }
 
             return RedirectToAction(nameof(Index));
         }

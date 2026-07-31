@@ -20,6 +20,7 @@ Database
 */
 
 using AjayIndustriesERP.Application.Common;
+using AjayIndustriesERP.Application.Exceptions;
 using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Domain.Entities;
 
@@ -47,13 +48,13 @@ namespace AjayIndustriesERP.Application.Services
         public async Task CreateAsync(Employee employee)
         {
             if (await _employeeRepository.ExistsByCodeAsync(employee.EmployeeCode))
-                throw new Exception("Employee Code already exists.");
+                throw new BusinessException("Employee Code already exists.");
 
             if (await _employeeRepository.ExistsByEmailAsync(employee.Email))
-                throw new Exception("Email already exists.");
+                throw new BusinessException("Email already exists.");
 
             if (await _employeeRepository.ExistsByMobileAsync(employee.MobileNumber))
-                throw new Exception("Mobile Number already exists.");
+                throw new BusinessException("Mobile Number already exists.");
 
             employee.EmployeeCode = await GenerateEmployeeCodeAsync();
 
@@ -68,16 +69,16 @@ namespace AjayIndustriesERP.Application.Services
                 await _employeeRepository.GetByIdAsync(employee.EmployeeId);
 
             if (existingEmployee == null)
-                throw new Exception("Employee not found.");
+                throw new BusinessException("Employee not found.");
 
             if (await _employeeRepository.ExistsByCodeAsync(employee.EmployeeCode, employee.EmployeeId))
-                throw new Exception("Employee Code already exists.");
+                throw new BusinessException("Employee Code already exists.");
 
             if (await _employeeRepository.ExistsByEmailAsync(employee.Email, employee.EmployeeId))
-                throw new Exception("Email already exists.");
+                throw new BusinessException("Email already exists.");
 
             if (await _employeeRepository.ExistsByMobileAsync(employee.MobileNumber, employee.EmployeeId))
-                throw new Exception("Mobile Number already exists.");
+                throw new BusinessException("Mobile Number already exists.");
 
             existingEmployee.FirstName = employee.FirstName;
             existingEmployee.LastName = employee.LastName;
@@ -104,7 +105,7 @@ namespace AjayIndustriesERP.Application.Services
                 await _employeeRepository.GetByIdAsync(employeeId);
 
             if (employee == null)
-                throw new Exception("Employee not found.");
+                throw new BusinessException("Employee not found.");
 
             employee.ModifiedOn = DateTime.UtcNow;
             employee.ModifiedBy = "System";

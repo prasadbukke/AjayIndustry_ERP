@@ -27,6 +27,7 @@ Project     : Ajay Industries ERP
 using AjayIndustriesERP.Application.Common;
 using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Domain.Entities;
+using AjayIndustriesERP.Application.Exceptions;
 
 namespace AjayIndustriesERP.Application.Services
 {
@@ -94,33 +95,33 @@ namespace AjayIndustriesERP.Application.Services
                 company.PostalCode = company.PostalCode.Trim();
 
             if (await _companyRepository.ExistsByCompanyNameAsync(company.CompanyName))
-                throw new Exception("Company Name already exists.");
+                throw new BusinessException("Company Name already exists.");
 
             if (!string.IsNullOrWhiteSpace(company.PanNumber) &&
                 await _companyRepository.ExistsByPanAsync(company.PanNumber))
             {
-                throw new Exception("PAN Number already exists.");
+                throw new BusinessException("PAN Number already exists.");
             }
 
             if (!string.IsNullOrWhiteSpace(company.Website) &&
                 await _companyRepository.ExistsByWebsiteAsync(company.Website))
             {
-                throw new Exception("Website already exists.");
+                throw new BusinessException("Website already exists.");
             }
 
             if (await _companyRepository.ExistsByGstAsync(company.GstNumber))
-                throw new Exception("GST Number already exists.");
+                throw new BusinessException("GST Number already exists.");
 
             if (!string.IsNullOrWhiteSpace(company.Email) &&
     await _companyRepository.ExistsByEmailAsync(company.Email, company.CompanyId))
             {
-                throw new Exception("Email already exists.");
+                throw new BusinessException("Email already exists.");
             }
 
             if (!string.IsNullOrWhiteSpace(company.PhoneNumber) &&
                 await _companyRepository.ExistsByPhoneAsync(company.PhoneNumber, company.CompanyId))
             {
-                throw new Exception("Phone Number already exists.");
+                throw new BusinessException("Phone Number already exists.");
             }
 
             company.CreatedOn = DateTime.UtcNow;
@@ -174,16 +175,16 @@ namespace AjayIndustriesERP.Application.Services
                 company.PostalCode = company.PostalCode.Trim();
 
             if (existingCompany == null)
-                throw new Exception("Company not found.");
+                throw new BusinessException("Company not found.");
 
             if (await _companyRepository.ExistsByCodeAsync(company.CompanyCode, company.CompanyId))
-                throw new Exception("Company Code already exists.");
+                throw new BusinessException("Company Code already exists.");
 
             if (await _companyRepository.ExistsByCompanyNameAsync(
                 company.CompanyName,
                 company.CompanyId))
             {
-                throw new Exception("Company Name already exists.");
+                throw new BusinessException("Company Name already exists.");
             }
 
             if (!string.IsNullOrWhiteSpace(company.PanNumber) &&
@@ -191,7 +192,7 @@ namespace AjayIndustriesERP.Application.Services
                     company.PanNumber,
                     company.CompanyId))
             {
-                throw new Exception("PAN Number already exists.");
+                throw new BusinessException("PAN Number already exists.");
             }
 
             if (!string.IsNullOrWhiteSpace(company.Website) &&
@@ -199,22 +200,22 @@ namespace AjayIndustriesERP.Application.Services
                     company.Website,
                     company.CompanyId))
             {
-                throw new Exception("Website already exists.");
+                throw new BusinessException("Website already exists.");
             }
 
             if (await _companyRepository.ExistsByGstAsync(company.GstNumber, company.CompanyId))
-                throw new Exception("GST Number already exists.");
+                throw new BusinessException("GST Number already exists.");
 
             if (!string.IsNullOrWhiteSpace(company.Email) &&
     await _companyRepository.ExistsByEmailAsync(company.Email))
             {
-                throw new Exception("Email already exists.");
+                throw new BusinessException("Email already exists.");
             }
 
             if (!string.IsNullOrWhiteSpace(company.PhoneNumber) &&
                 await _companyRepository.ExistsByPhoneAsync(company.PhoneNumber))
             {
-                throw new Exception("Phone Number already exists.");
+                throw new BusinessException("Phone Number already exists.");
             }
 
             existingCompany.CompanyCode = company.CompanyCode;
@@ -248,7 +249,7 @@ namespace AjayIndustriesERP.Application.Services
             var company = await _companyRepository.GetByIdAsync(companyId);
 
             if (company == null)
-                throw new Exception("Company not found.");
+                throw new BusinessException("Company not found.");
 
             company.IsDeleted = true;
             company.ModifiedOn = DateTime.UtcNow;
