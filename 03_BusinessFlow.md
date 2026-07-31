@@ -1,6 +1,6 @@
 ﻿# Business Flow
 
-## Purchase
+## Purchase Flow
 
 Purchase Requisition
 
@@ -10,7 +10,7 @@ Purchase Order
 
 ↓
 
-Goods Receipt
+Goods Receipt Note (GRN)
 
 ↓
 
@@ -22,9 +22,13 @@ Payment
 
 ---
 
-## Production
+## Production Flow
 
 Sales Order
+
+↓
+
+Production Planning
 
 ↓
 
@@ -36,15 +40,45 @@ Material Issue
 
 ↓
 
-Production
+Production Entry
+
+↓
+
+Finished Goods Receipt
+
+---
+
+## Inventory Flow
+
+Purchase
+
+↓
+
+Stock In
+
+↓
+
+Production Issue
 
 ↓
 
 Finished Goods
 
+↓
+
+Stock Transfer
+
+↓
+
+Stock Adjustment
+
+↓
+
+Sales
+
 ---
 
-## Sales
+## Sales Flow
 
 Quotation
 
@@ -62,4 +96,4 @@ Sales Invoice
 
 ↓
 
-Payment
+Receipt / Payment

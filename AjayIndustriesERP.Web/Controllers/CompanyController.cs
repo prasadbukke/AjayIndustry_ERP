@@ -1,6 +1,7 @@
 ﻿using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Domain.Entities;
 using AjayIndustriesERP.Web.ViewModels.Company;
+using Azure.Core;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AjayIndustriesERP.Web.Controllers
@@ -56,7 +57,7 @@ namespace AjayIndustriesERP.Web.Controllers
             var model = new CompanyViewModel();
 
             // Temporary Auto Generated Company Code
-            model.CompanyCode = $"CMP{DateTime.Now:yyyyMMddHHmmss}";
+            //model.CompanyCode = $"CMP{DateTime.Now:yyyyMMddHHmmss}";
 
             return View(model);
         }
@@ -86,11 +87,20 @@ namespace AjayIndustriesERP.Web.Controllers
                 IsActive = model.IsActive
             };
 
-            await _companyService.CreateAsync(company);
+            try
+            {
+                await _companyService.CreateAsync(company);
 
-            TempData["Success"] = "Company created successfully.";
+                TempData["Success"] = "Company created successfully.";
 
-            return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = ex.Message;
+
+                return View(company);
+            }
         }
 
         #endregion

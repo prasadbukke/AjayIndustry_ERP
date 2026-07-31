@@ -7,7 +7,7 @@ namespace AjayIndustriesERP.Web.ViewModels.Company
         public int CompanyId { get; set; }
 
         [Display(Name = "Company Code")]
-        public string CompanyCode { get; set; } = string.Empty;
+        public string? CompanyCode { get; set; }
 
         [Required(ErrorMessage = "Company Name is required.")]
         [StringLength(100)]

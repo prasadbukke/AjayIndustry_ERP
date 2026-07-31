@@ -1,189 +1,129 @@
-# Components
+# Component Library
 
-Layout
+## Purpose
 
-Navbar
-
-Sidebar
-
-Sidebar Header
-
-Sidebar Menu
-
-Sidebar Footer
-
-Dashboard (Pending)
-
-Cards (Pending)
-
-Tables (Pending)
-
-Buttons (Pending)
-
-Forms (Pending)
-
-## Sidebar Components
-
-### _SidebarHeader
-
-Purpose
-
-Display company branding.
+Reusable UI components used across the ERP.
 
 ---
 
-### _SidebarMenu
+## Layout Components
 
-Purpose
-
-Navigation container.
-
----
-
-### _MenuGroup
-
-Purpose
-
-Reusable navigation group.
-
-(Currently implemented for Masters.)
+- Sidebar
+- Top Navbar
+- Page Header
+- Footer
+- Content Container
 
 ---
 
-### _SubMenu
+## Form Components
 
-Status
-
-Planned.
-
-### Menu Group
-
-Purpose
-
-Represents one expandable navigation group.
-
-Contains
-
-- Header
-- Submenu
+- Textbox
+- TextArea
+- Dropdown
+- Checkbox
+- Switch
+- Date Picker (Future)
+- File Upload (Future)
 
 ---
 
-### Sub Menu
+## Validation Components
 
-Purpose
+- Validation Summary
+- Field Validation Message
+- Required Field Indicator
 
-Contains child navigation items.
+---
 
-Authentication Card
+## Table Components
 
-Purpose
+- Bootstrap Table
+- Search Box
+- Pagination
+- Empty Data Message
+- Status Badge
+- Action Buttons
 
-Reusable card for
+---
 
-Login
+## Action Buttons
 
-Forgot Password
+- Add
+- Save
+- Update
+- Cancel
+- Back
+- Details
+- Edit
+- Delete
 
-Reset Password
+---
 
-CSS
+## Card Components
 
-login-card
+- Dashboard Card
+- Form Card
+- Table Card
+- Statistics Card (Future)
 
-Password Toggle
+---
 
-Purpose:
-Reusable password visibility component.
+## Status Components
 
-Used In:
-- Login
-- Reset Password
+Active
 
-Authentication Components
+- Green Badge
 
-- Login Card
-- Branding Panel
-- Authentication Layout
+Inactive
 
-Navigation Helper
+- Red Badge
 
-HtmlExtensions.IsActive()
+---
 
-Purpose
+## Notification Components
 
-Highlight active menu.
+Current
 
-Authentication Components
+- TempData Success Message
 
-Component:
-_AuthBrandingPanel
+Future
 
-Purpose:
-Reusable branding panel for authentication pages.
+- Toast Notification
+- Error Notification
 
-Used In:
-- Login
-- Forgot Password
-- Reset Password
-- Password Reset Success
+---
 
-Page Header
+## Modal Components
 
-Search Card
+Future
 
-Master Table
+- Delete Confirmation
+- Information Popup
 
-Status Badge
+---
 
-Action Buttons
+## Dashboard Components
 
-Master Form Layout
+- Summary Cards
+- Quick Links
+- Recent Activities (Future)
 
-Two Column Form
+---
 
-Primary Save Button
+## Icons
 
-Secondary Cancel Button
+Use only one icon library consistently.
 
-Component
+Approved Libraries
 
-_CompanyForm
+- Bootstrap Icons
+- Font Awesome
 
-Purpose
+---
 
-Reusable Company Form
+## Reference Module
 
-Used In
+Company Master
 
-Create
-
-Edit
-
-Component
-
-Company Form
-
-Supports
-
-Strongly Typed ViewModel
-
-Validation
-
-Create
-
-Edit
-
-Validation Summary
-
-Validation Message
-
-Required Fields
-
-Strongly Typed Form
-
-Validation Summary
-
-Validation Message
-
-Input Components
+All reusable UI components will be designed based on the Company module.

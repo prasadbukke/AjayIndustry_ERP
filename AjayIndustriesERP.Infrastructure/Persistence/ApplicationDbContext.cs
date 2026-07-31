@@ -1,4 +1,5 @@
 ﻿using AjayIndustriesERP.Domain.Entities;
+using AjayIndustriesERP.Infrastructure.Configurations;
 using Microsoft.EntityFrameworkCore;
 
 namespace AjayIndustriesERP.Infrastructure.Persistence
@@ -11,12 +12,15 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
         }
 
         public DbSet<Company> Companies => Set<Company>();
+        public DbSet<Employee> Employees => Set<Employee>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+            modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
         }
     }
 }
