@@ -9,6 +9,7 @@ Handles Employee database operations.
 ==============================================================
 */
 
+using AjayIndustriesERP.Application.Common;
 using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Domain.Entities;
 using AjayIndustriesERP.Infrastructure.Persistence;
@@ -109,14 +110,26 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<List<Employee>> GetPagedAsync(int pageNumber, int pageSize)
+        public async Task<PagedResult<Employee>> GetPagedAsync(int pageNumber, int pageSize)
         {
-            return await _context.Employees
-                .Where(x => !x.IsDeleted)
+            var query = _context.Employees
+                .Where(x => !x.IsDeleted);
+
+            var totalRecords = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.FirstName)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
+
+            return new PagedResult<Employee>
+            {
+                Items = items,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalRecords = totalRecords
+            };
         }
 
         public async Task<string?> GetLastEmployeeCodeAsync()

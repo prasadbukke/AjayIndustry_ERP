@@ -61,3 +61,20 @@ Status
 # Next Sprint
 
 Employee Master
+
+Sprint 03
+
+Employee Master
+
+Completed
+
+- Employee CRUD
+- Search
+- Pagination
+- Auto Employee Code
+- Details
+- Edit
+- Delete
+- Duplicate Email Validation
+- Duplicate Mobile Validation
+- Toast Notification

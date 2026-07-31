@@ -196,3 +196,20 @@ before starting the next module.
 Status
 
 ✅ Approved
+
+Decision 011
+
+Toast Notification
+
+Approved
+
+Toastr will be used throughout the ERP for
+
+- Success
+- Error
+- Warning
+- Info
+
+Status
+
+✅ Approved

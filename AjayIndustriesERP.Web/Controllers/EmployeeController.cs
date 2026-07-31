@@ -44,26 +44,32 @@ namespace AjayIndustriesERP.Web.Controllers
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> Index(
-            string searchText = "",
-            int pageNumber = 1,
-            int pageSize = 10)
+    string searchText = "",
+    int pageNumber = 1,
+    int pageSize = 10)
         {
-            List<Employee> employees;
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                var employees = await _employeeService.SearchAsync(searchText);
 
-            if (string.IsNullOrWhiteSpace(searchText))
-            {
-                employees = await _employeeService.GetPagedAsync(pageNumber, pageSize);
+                ViewBag.SearchText = searchText;
+                ViewBag.PageNumber = 1;
+                ViewBag.PageSize = pageSize;
+
+                return View(employees);
             }
-            else
-            {
-                employees = await _employeeService.SearchAsync(searchText);
-            }
+
+            var result = await _employeeService.GetPagedAsync(pageNumber, pageSize);
 
             ViewBag.SearchText = searchText;
-            ViewBag.PageNumber = pageNumber;
-            ViewBag.PageSize = pageSize;
+            ViewBag.PageNumber = result.PageNumber;
+            ViewBag.PageSize = result.PageSize;
+            ViewBag.TotalPages = result.TotalPages;
+            ViewBag.TotalRecords = result.TotalRecords;
+            ViewBag.HasPrevious = result.HasPrevious;
+            ViewBag.HasNext = result.HasNext;
 
-            return View(employees);
+            return View(result.Items);
         }
 
         #endregion

@@ -1,4 +1,5 @@
-﻿using AjayIndustriesERP.Domain.Entities;
+﻿using AjayIndustriesERP.Application.Common;
+using AjayIndustriesERP.Domain.Entities;
 
 namespace AjayIndustriesERP.Application.Interfaces
 {
@@ -22,6 +23,6 @@ namespace AjayIndustriesERP.Application.Interfaces
         /// <summary>
         /// Returns paginated company list.
         /// </summary>
-        Task<List<Company>> GetPagedAsync(int pageNumber, int pageSize);
+        Task<PagedResult<Company>> GetPagedAsync(int pageNumber, int pageSize);
     }
 }

@@ -57,8 +57,8 @@
 
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
-    <script src="~/js/common.js"></script>
-    <script src="~/js/sidebar.js"></script>
+    <script src="~/js/common.js" asp-append-version="true"></script>
+    <script src="~/js/sidebar.js" asp-append-version="true"></script>
 
     @RenderSection("Scripts", required: false)
 
@@ -67,6 +67,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
     <partial name="_ToastNotification" />
+    <partial name="Components/_ConfirmDeleteModal" />
 
 </body>
 

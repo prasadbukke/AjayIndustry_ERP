@@ -21,27 +21,30 @@ namespace AjayIndustriesERP.Web.Controllers
         /// Displays Company List.
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> Index(
-            string searchText = "",
-            int pageNumber = 1,
-            int pageSize = 10)
+        public async Task<IActionResult> Index(string searchText = "", int pageNumber = 1, int pageSize = 10)
         {
-            List<Company> companies;
-
             if (!string.IsNullOrWhiteSpace(searchText))
             {
-                companies = await _companyService.SearchAsync(searchText);
+                var companies = await _companyService.SearchAsync(searchText);
+
+                ViewBag.SearchText = searchText;
+                ViewBag.PageNumber = 1;
+                ViewBag.PageSize = pageSize;
+
+                return View(companies);
             }
-            else
-            {
-                companies = await _companyService.GetPagedAsync(pageNumber, pageSize);
-            }
+
+            var result = await _companyService.GetPagedAsync(pageNumber, pageSize);
 
             ViewBag.SearchText = searchText;
-            ViewBag.PageSize = pageSize;
-            ViewBag.PageNumber = pageNumber;
+            ViewBag.PageNumber = result.PageNumber;
+            ViewBag.PageSize = result.PageSize;
+            ViewBag.TotalPages = result.TotalPages;
+            ViewBag.TotalRecords = result.TotalRecords;
+            ViewBag.HasPrevious = result.HasPrevious;
+            ViewBag.HasNext = result.HasNext;
 
-            return View(companies);
+            return View(result.Items);
         }
 
         #endregion

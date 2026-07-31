@@ -1,0 +1,72 @@
+﻿@model (int PageNumber, int PageSize)
+
+<div class="d-flex justify-content-between align-items-center mt-3">
+
+    <div>
+
+        <span class="text-muted">
+
+            Total Records :
+            <strong>@ViewBag.TotalRecords</strong>
+
+        </span>
+
+    </div>
+
+    <div class="d-flex align-items-center">
+
+        <form method="get" class="me-3">
+
+            <input type="hidden"
+                   name="searchText"
+                   value="@ViewBag.SearchText" />
+
+            <input type="hidden"
+                   name="pageNumber"
+                   value="1" />
+
+            <select name="pageSize"
+                    class="form-select"
+                    onchange="this.form.submit()">
+
+                @foreach (var size in new[] { 10, 25, 50 })
+                {
+                    <!option value="@size"
+                    selected="@(Model.PageSize == size)">
+                    @size
+                    </!option>
+                }
+
+            </select>
+
+        </form>
+
+        <a asp-action="Index"
+           asp-route-searchText="@ViewBag.SearchText"
+           asp-route-pageNumber="@(Model.PageNumber - 1)"
+           asp-route-pageSize="@Model.PageSize"
+           class="btn btn-outline-secondary me-2 @(ViewBag.HasPrevious ? "" : "disabled")">
+
+            <i class="fa-solid fa-angle-left"></i>
+
+        </a>
+
+        <span class="fw-semibold me-2">
+
+            Page @Model.PageNumber of @ViewBag.TotalPages
+
+        </span>
+
+        <a asp-action="Index"
+           asp-route-searchText="@ViewBag.SearchText"
+           asp-route-pageNumber="@(Model.PageNumber + 1)"
+           asp-route-pageSize="@Model.PageSize"
+           class="btn btn-outline-secondary @(ViewBag.HasNext ? "" : "disabled")">
+
+            <i class="fa-solid fa-angle-right"></i>
+
+        </a>
+
+    </div>
+
+</div>

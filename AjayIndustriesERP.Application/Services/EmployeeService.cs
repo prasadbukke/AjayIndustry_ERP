@@ -19,6 +19,7 @@ Database
 ==============================================================
 */
 
+using AjayIndustriesERP.Application.Common;
 using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Domain.Entities;
 
@@ -121,7 +122,7 @@ namespace AjayIndustriesERP.Application.Services
             return await _employeeRepository.SearchAsync(searchText);
         }
 
-        public async Task<List<Employee>> GetPagedAsync(int pageNumber, int pageSize)
+        public async Task<PagedResult<Employee>> GetPagedAsync(int pageNumber, int pageSize)
         {
             return await _employeeRepository.GetPagedAsync(pageNumber, pageSize);
         }

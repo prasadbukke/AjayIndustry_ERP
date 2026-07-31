@@ -24,6 +24,7 @@ Project     : Ajay Industries ERP
 ==============================================================================
 */
 
+using AjayIndustriesERP.Application.Common;
 using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Domain.Entities;
 
@@ -151,7 +152,7 @@ namespace AjayIndustriesERP.Application.Services
         /// <summary>
         /// Returns paginated company list.
         /// </summary>
-        public async Task<List<Company>> GetPagedAsync(int pageNumber, int pageSize)
+        public async Task<PagedResult<Company>> GetPagedAsync(int pageNumber, int pageSize)
         {
             return await _companyRepository.GetPagedAsync(pageNumber, pageSize);
         }

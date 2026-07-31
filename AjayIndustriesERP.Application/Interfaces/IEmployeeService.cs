@@ -9,6 +9,7 @@ Defines Employee business operations.
 ==============================================================
 */
 
+using AjayIndustriesERP.Application.Common;
 using AjayIndustriesERP.Domain.Entities;
 
 namespace AjayIndustriesERP.Application.Interfaces
@@ -27,6 +28,6 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         Task<List<Employee>> SearchAsync(string searchText);
 
-        Task<List<Employee>> GetPagedAsync(int pageNumber, int pageSize);
+        Task<PagedResult<Employee>> GetPagedAsync(int pageNumber, int pageSize);
     }
 }

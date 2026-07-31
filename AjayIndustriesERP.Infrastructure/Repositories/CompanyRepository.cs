@@ -1,4 +1,5 @@
-﻿using AjayIndustriesERP.Application.Interfaces;
+﻿using AjayIndustriesERP.Application.Common;
+using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Domain.Entities;
 using AjayIndustriesERP.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -87,14 +88,26 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         /// <summary>
         /// Returns paginated company list.
         /// </summary>
-        public async Task<List<Company>> GetPagedAsync(int pageNumber, int pageSize)
+        public async Task<PagedResult<Company>> GetPagedAsync(int pageNumber, int pageSize)
         {
-            return await _context.Companies
-                .Where(x => !x.IsDeleted)
+            var query = _context.Companies
+                .Where(x => !x.IsDeleted);
+
+            var totalRecords = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.CompanyName)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
+
+            return new PagedResult<Company>
+            {
+                Items = items,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalRecords = totalRecords
+            };
         }
 
 
