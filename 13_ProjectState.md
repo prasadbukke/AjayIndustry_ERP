@@ -144,6 +144,8 @@ All future modules will follow the Company Master implementation pattern.
 
 Employee Master
 
-Status
+Completed
 
-Ready to Start
+Shared Components
+
+Completed

@@ -213,3 +213,18 @@ Toastr will be used throughout the ERP for
 Status
 
 ✅ Approved
+
+Decision 011
+
+Reusable Components
+
+Approved
+
+- Shared Search
+- Shared Pagination
+- Shared Delete Modal
+- Toast Notification
+
+Status
+
+✅ Approved

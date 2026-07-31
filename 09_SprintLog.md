@@ -78,3 +78,14 @@ Completed
 - Duplicate Email Validation
 - Duplicate Mobile Validation
 - Toast Notification
+
+Sprint 04
+
+Shared Components
+
+Completed
+
+- Shared Search
+- Shared Pagination
+- Shared Delete Confirmation Modal
+- Toast Notification

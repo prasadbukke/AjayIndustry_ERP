@@ -23,6 +23,23 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         Task<bool> ExistsByGstAsync(string gstNumber, int companyId);
 
+        Task<bool> ExistsByEmailAsync(string email);
+
+        Task<bool> ExistsByEmailAsync(string email, int companyId);
+
+        Task<bool> ExistsByPhoneAsync(string phoneNumber);
+
+        Task<bool> ExistsByPhoneAsync(string phoneNumber, int companyId);
+
+        Task<bool> ExistsByCompanyNameAsync(string companyName);
+        Task<bool> ExistsByCompanyNameAsync(string companyName, int companyId);
+
+        Task<bool> ExistsByPanAsync(string panNumber);
+        Task<bool> ExistsByPanAsync(string panNumber, int companyId);
+
+        Task<bool> ExistsByWebsiteAsync(string website);
+        Task<bool> ExistsByWebsiteAsync(string website, int companyId);
+
         /// <summary>
         /// Searches companies by Company Code, Company Name or GST Number.
         /// </summary>

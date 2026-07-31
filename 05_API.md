@@ -169,3 +169,7 @@ Status
 MVC Completed
 
 Web API Planned
+
+Employee CRUD API
+Employee Search
+Employee Pagination

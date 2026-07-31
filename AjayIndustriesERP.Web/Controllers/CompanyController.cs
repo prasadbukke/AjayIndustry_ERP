@@ -69,6 +69,8 @@ namespace AjayIndustriesERP.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CompanyViewModel model)
         {
+            ModelState.Remove(nameof(CompanyViewModel.CompanyCode));
+
             if (!ModelState.IsValid)
                 return View(model);
 
@@ -102,7 +104,7 @@ namespace AjayIndustriesERP.Web.Controllers
             {
                 TempData["Error"] = ex.Message;
 
-                return View(company);
+                return View(model);
             }
         }
 
@@ -150,35 +152,45 @@ namespace AjayIndustriesERP.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(CompanyViewModel model)
         {
+            ModelState.Remove(nameof(CompanyViewModel.CompanyCode));
+
             if (!ModelState.IsValid)
                 return View(model);
 
-            var company = new Company
+            try
             {
-                CompanyId = model.CompanyId,
-                CompanyCode = model.CompanyCode,
-                CompanyName = model.CompanyName,
-                GstNumber = model.GstNumber,
-                PanNumber = model.PanNumber,
-                PhoneNumber = model.PhoneNumber,
-                Email = model.Email,
-                Website = model.Website,
-                ContactPerson = model.ContactPerson,
-                Address = model.Address,
-                City = model.City,
-                State = model.State,
-                Country = model.Country,
-                PostalCode = model.PostalCode,
-                IsActive = model.IsActive
-            };
+                var company = new Company
+                {
+                    CompanyId = model.CompanyId,
+                    CompanyCode = model.CompanyCode ?? string.Empty,
+                    CompanyName = model.CompanyName,
+                    GstNumber = model.GstNumber,
+                    PanNumber = model.PanNumber,
+                    PhoneNumber = model.PhoneNumber,
+                    Email = model.Email,
+                    Website = model.Website,
+                    ContactPerson = model.ContactPerson,
+                    Address = model.Address,
+                    City = model.City,
+                    State = model.State,
+                    Country = model.Country,
+                    PostalCode = model.PostalCode,
+                    IsActive = model.IsActive
+                };
 
-            await _companyService.UpdateAsync(company);
+                await _companyService.UpdateAsync(company);
 
-            TempData["Success"] = "Company updated successfully.";
+                TempData["Success"] = "Company updated successfully.";
 
-            return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = ex.Message;
+
+                return View(model);
+            }
         }
-
         #endregion
 
 

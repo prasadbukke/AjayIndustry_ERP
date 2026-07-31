@@ -10,7 +10,7 @@ namespace AjayIndustriesERP.Web.ViewModels.Company
         public string? CompanyCode { get; set; }
 
         [Required(ErrorMessage = "Company Name is required.")]
-        [StringLength(100)]
+        [StringLength(100, MinimumLength = 3)]
         [Display(Name = "Company Name")]
         public string CompanyName { get; set; } = string.Empty;
 
@@ -25,29 +25,43 @@ namespace AjayIndustriesERP.Web.ViewModels.Company
         [Display(Name = "PAN Number")]
         public string PanNumber { get; set; } = string.Empty;
 
-        [Phone]
+        [Required(ErrorMessage = "Phone Number is required.")]
+        [RegularExpression(@"^[6-9]\d{9}$", ErrorMessage = "Enter valid 10 digit mobile number.")]
         [Display(Name = "Phone Number")]
         public string PhoneNumber { get; set; } = string.Empty;
 
-        [EmailAddress]
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Invalid Email Address.")]
         [Display(Name = "Email Address")]
         public string Email { get; set; } = string.Empty;
 
-        [Url]
+        [Url(ErrorMessage = "Invalid Website URL.")]
         [Display(Name = "Website")]
         public string Website { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Contact Person is required.")]
+        [StringLength(100)]
         [Display(Name = "Contact Person")]
         public string ContactPerson { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Address is required.")]
+        [StringLength(500)]
         public string Address { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "City is required.")]
+        [StringLength(100)]
         public string City { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "State is required.")]
+        [StringLength(100)]
         public string State { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Country is required.")]
+        [StringLength(100)]
         public string Country { get; set; } = "India";
 
+        [Required(ErrorMessage = "Postal Code is required.")]
+        [RegularExpression(@"^\d{6}$",  ErrorMessage = "Postal Code must be 6 digits.")]
         [Display(Name = "Postal Code")]
         public string PostalCode { get; set; } = string.Empty;
 

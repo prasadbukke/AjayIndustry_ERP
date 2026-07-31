@@ -143,5 +143,80 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 x.CompanyId != companyId &&
                 !x.IsDeleted);
         }
+
+        public async Task<bool> ExistsByEmailAsync(string email)
+        {
+            return await _context.Companies.AnyAsync(x =>
+                x.Email == email &&
+                !x.IsDeleted);
+        }
+
+        public async Task<bool> ExistsByEmailAsync(string email, int companyId)
+        {
+            return await _context.Companies.AnyAsync(x =>
+                x.Email == email &&
+                x.CompanyId != companyId &&
+                !x.IsDeleted);
+        }
+
+        public async Task<bool> ExistsByPhoneAsync(string phoneNumber)
+        {
+            return await _context.Companies.AnyAsync(x =>
+                x.PhoneNumber == phoneNumber &&
+                !x.IsDeleted);
+        }
+
+        public async Task<bool> ExistsByPhoneAsync(string phoneNumber, int companyId)
+        {
+            return await _context.Companies.AnyAsync(x =>
+                x.PhoneNumber == phoneNumber &&
+                x.CompanyId != companyId &&
+                !x.IsDeleted);
+        }
+
+        public async Task<bool> ExistsByCompanyNameAsync(string companyName)
+        {
+            return await _context.Companies.AnyAsync(x =>
+                x.CompanyName == companyName &&
+                !x.IsDeleted);
+        }
+
+        public async Task<bool> ExistsByCompanyNameAsync(string companyName, int companyId)
+        {
+            return await _context.Companies.AnyAsync(x =>
+                x.CompanyName == companyName &&
+                x.CompanyId != companyId &&
+                !x.IsDeleted);
+        }
+
+        public async Task<bool> ExistsByPanAsync(string panNumber)
+        {
+            return await _context.Companies.AnyAsync(x =>
+                x.PanNumber == panNumber &&
+                !x.IsDeleted);
+        }
+
+        public async Task<bool> ExistsByPanAsync(string panNumber, int companyId)
+        {
+            return await _context.Companies.AnyAsync(x =>
+                x.PanNumber == panNumber &&
+                x.CompanyId != companyId &&
+                !x.IsDeleted);
+        }
+
+        public async Task<bool> ExistsByWebsiteAsync(string website)
+        {
+            return await _context.Companies.AnyAsync(x =>
+                x.Website == website &&
+                !x.IsDeleted);
+        }
+
+        public async Task<bool> ExistsByWebsiteAsync(string website, int companyId)
+        {
+            return await _context.Companies.AnyAsync(x =>
+                x.Website == website &&
+                x.CompanyId != companyId &&
+                !x.IsDeleted);
+        }
     }
 }
