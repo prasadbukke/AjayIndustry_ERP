@@ -149,3 +149,31 @@ Completed
 Shared Components
 
 Completed
+
+Completed
+
+✅ Dashboard
+
+✅ Login UI
+
+✅ Company Master
+
+✅ Employee Master
+
+✅ Shared Search
+
+✅ Shared Pagination
+
+✅ Shared Delete Modal
+
+✅ Toast Notification
+
+✅ Business Exception
+
+Current Sprint
+
+Sprint 05
+
+Next Module
+
+Planning Phase

@@ -197,34 +197,41 @@ Status
 
 ✅ Approved
 
-Decision 011
+## Decision 011
 
-Toast Notification
+Title
 
-Approved
+Shared UI Components
 
-Toastr will be used throughout the ERP for
+Decision
 
-- Success
-- Error
-- Warning
-- Info
+The ERP will use reusable components for:
 
-Status
-
-✅ Approved
-
-Decision 011
-
-Reusable Components
-
-Approved
-
-- Shared Search
-- Shared Pagination
-- Shared Delete Modal
+- Search
+- Pagination
+- Delete Confirmation
 - Toast Notification
 
 Status
 
-✅ Approved
+Approved
+
+## Decision 012
+
+Title
+
+Business Exception Handling
+
+Decision
+
+Business validations will throw BusinessException.
+
+Controllers will catch BusinessException and display Toast Notification.
+
+Unexpected exceptions will display a generic message.
+
+Global Exception Middleware will be implemented during Production Hardening phase.
+
+Status
+
+Approved

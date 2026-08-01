@@ -173,3 +173,31 @@ Web API Planned
 Employee CRUD API
 Employee Search
 Employee Pagination
+
+## Employee APIs
+
+GET
+
+/api/Employee
+
+GET
+
+/api/Employee/{id}
+
+POST
+
+/api/Employee
+
+PUT
+
+/api/Employee
+
+POST
+
+/api/Employee/Delete/{id}
+
+Features
+
+- Search
+- Pagination
+- Auto Employee Code

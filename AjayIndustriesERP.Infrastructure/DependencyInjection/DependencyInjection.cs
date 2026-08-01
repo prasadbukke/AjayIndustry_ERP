@@ -25,6 +25,10 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
 
             services.AddScoped<IEmployeeService, EmployeeService>();
 
+            services.AddScoped<IUomRepository, UomRepository>();
+
+            services.AddScoped<IUomService, UomService>();
+
             return services;
         }
     }

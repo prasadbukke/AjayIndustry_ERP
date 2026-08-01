@@ -115,3 +115,19 @@ Status
 - UserRole
 
 Employee → Status Completed
+
+## Employee
+
+Status
+
+✅ Completed
+
+Features
+
+- CRUD
+- Search
+- Pagination
+- Auto Employee Code
+- Soft Delete
+- Duplicate Validation
+- Toast Notification

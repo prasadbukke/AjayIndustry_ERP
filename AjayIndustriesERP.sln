@@ -25,8 +25,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{645EC466-0
 		12_DecisionLog.md = 12_DecisionLog.md
 		13_ProjectState.md = 13_ProjectState.md
 		14_UITheme.md = 14_UITheme.md
+		15_MasterDependency.md = 15_MasterDependency.md
 		15_ProjectVision.md = 15_ProjectVision.md
 		16. ProjectRoadmap.md = 16. ProjectRoadmap.md
+		16_DatabaseRelationship.md = 16_DatabaseRelationship.md
+		17_ModuleBlueprint.md = 17_ModuleBlueprint.md
+		18_TransactionFlow.md = 18_TransactionFlow.md
+		19_ProductionWorkflow.md = 19_ProductionWorkflow.md
+		20_WorkflowEngine.md = 20_WorkflowEngine.md
+		Purchase.md = Purchase.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "database", "database", "{B6C27EBA-F15C-421A-AC77-F7F361689BCF}"

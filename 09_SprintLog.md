@@ -60,32 +60,40 @@ Status
 
 # Next Sprint
 
-Employee Master
+# Sprint 03
 
-Sprint 03
+## Employee Master
 
-Employee Master
+Status
 
 Completed
 
+Completed Features
+
 - Employee CRUD
-- Search
-- Pagination
-- Auto Employee Code
 - Details
 - Edit
 - Delete
+- Search
+- Pagination
+- Auto Employee Code
 - Duplicate Email Validation
 - Duplicate Mobile Validation
+- Business Exception
 - Toast Notification
+- 
+# Sprint 04
 
-Sprint 04
+## Shared Components
 
-Shared Components
+Status
 
 Completed
 
-- Shared Search
-- Shared Pagination
+Completed
+
+- Shared Search Component
+- Shared Pagination Component
 - Shared Delete Confirmation Modal
-- Toast Notification
+- Shared Toast Notification
+- Controller Exception Handling Standard

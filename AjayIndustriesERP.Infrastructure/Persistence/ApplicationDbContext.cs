@@ -13,6 +13,7 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
 
         public DbSet<Company> Companies => Set<Company>();
         public DbSet<Employee> Employees => Set<Employee>();
+        public DbSet<Uom> Uoms => Set<Uom>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -20,7 +21,6 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
 
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
-            modelBuilder.ApplyConfiguration(new EmployeeConfiguration());
         }
     }
 }
