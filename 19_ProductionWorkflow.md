@@ -109,3 +109,16 @@ Cancelled
 Status
 
 ✅ APPROVED
+
+Current Status
+
+Completed
+
+Company
+Employee
+UOM
+Warehouse
+
+Next Module
+
+Item Category

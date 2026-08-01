@@ -244,3 +244,16 @@ Auto Code
 Status
 
 ✅ LOCKED
+
+Masters
+
+✔ Company
+✔ Employee
+✔ UOM
+✔ Warehouse
+
+Next
+
+Item Category
+Brand
+Item Master

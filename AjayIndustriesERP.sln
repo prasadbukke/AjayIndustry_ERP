@@ -12,6 +12,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{645EC466-0EE6-4FEE-B787-D7D993B18EF4}"
 	ProjectSection(SolutionItems) = preProject
 		01_ProjectVision.md = 01_ProjectVision.md
+		02_ProjectProgress.md = 02_ProjectProgress.md
 		02_Requirements.md = 02_Requirements.md
 		03_BusinessFlow.md = 03_BusinessFlow.md
 		04_DatabaseDesign.md = 04_DatabaseDesign.md
