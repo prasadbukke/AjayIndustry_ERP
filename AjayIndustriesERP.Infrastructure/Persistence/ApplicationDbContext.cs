@@ -15,6 +15,7 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
         public DbSet<Employee> Employees => Set<Employee>();
         public DbSet<Uom> Uoms => Set<Uom>();
         public DbSet<Warehouse> Warehouses => Set<Warehouse>();
+        public DbSet<ItemCategory> ItemCategories => Set<ItemCategory>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
