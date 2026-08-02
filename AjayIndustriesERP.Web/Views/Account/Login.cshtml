@@ -1,0 +1,137 @@
+﻿@model LoginViewModel
+
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Login";
+}
+
+<div class="login-page">
+
+    <partial name="Authentication/_AuthBrandingPanel" />
+
+    <div class="login-right">
+        <div class="login-form-container">
+
+            <div class="login-card">
+
+                <h2 class="login-title">
+
+                    Welcome Back 👋
+
+                </h2>
+
+                <p class="login-subtitle">
+
+                    Sign in to your ERP account
+
+                </p>
+
+                <form asp-action="Login"
+                      asp-controller="Account"
+                      method="post">
+
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-4">
+
+                        <label asp-for="Email" class="form-label"></label>
+
+                        <input asp-for="Email"
+                               class="form-control erp-input"
+                               placeholder="Enter your email" />
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label asp-for="Password" class="form-label"></label>
+
+                        <div class="input-group">
+
+                            <input asp-for="Password"
+                                   id="password"
+                                   class="form-control erp-input"
+                                   placeholder="Enter your password" />
+
+                            <button id="togglePassword"
+                                    class="btn btn-outline-secondary"
+                                    type="button">
+
+                                <i class="fa-solid fa-eye"></i>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <div class="login-options">
+
+                        <div class="form-check">
+
+                            <input asp-for="RememberMe"
+                                   class="form-check-input" />
+
+                            <label asp-for="RememberMe"
+                                   class="form-check-label">
+                            </label>
+
+                        </div>
+
+                        <a asp-controller="Account"
+                           asp-action="ForgotPassword">
+
+                            Forgot Password?
+
+                        </a>
+
+                    </div>
+
+                    <button type="submit"
+                            class="btn erp-login-btn">
+
+                        Sign In
+
+                    </button>
+
+                </form>
+
+                <div class="login-footer">
+
+                    © 2026 Ajay Industries ERP
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+
+@section Scripts {
+
+    <script>
+
+        const password=document.getElementById("password");
+        const toggle=document.getElementById("togglePassword");
+
+        toggle.addEventListener("click",function(){
+
+            if(password.type==="password")
+            {
+                password.type="text";
+                this.innerHTML='<i class="fa-solid fa-eye-slash"></i>';
+            }
+            else
+            {
+                password.type="password";
+                this.innerHTML='<i class="fa-solid fa-eye"></i>';
+            }
+
+        });
+
+    </script>
+
+}

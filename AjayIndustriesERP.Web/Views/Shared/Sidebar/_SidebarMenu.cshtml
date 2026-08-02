@@ -1,0 +1,35 @@
+﻿<nav class="erp-sidebar-nav">
+
+    <ul class="erp-menu">
+
+        <li class="erp-menu-item active">
+
+            <a href="#">
+
+                <i class="bi bi-speedometer2"></i>
+
+                <span>Dashboard</span>
+
+            </a>
+
+        </li>
+
+        @await Html.PartialAsync("Sidebar/_MenuGroup")
+
+        @await Html.PartialAsync("Sidebar/_PurchaseMenu")
+
+        @await Html.PartialAsync("Sidebar/_InventoryMenu")
+
+        @await Html.PartialAsync("Sidebar/_ProductionMenu")
+
+        @await Html.PartialAsync("Sidebar/_SalesMenu")
+
+        @await Html.PartialAsync("Sidebar/_FinanceMenu")
+
+        @await Html.PartialAsync("Sidebar/_ReportsMenu")
+
+        @await Html.PartialAsync("Sidebar/_SettingsMenu")
+
+    </ul>
+
+</nav>

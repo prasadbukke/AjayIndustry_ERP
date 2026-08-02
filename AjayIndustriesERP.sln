@@ -1,0 +1,83 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36109.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AjayIndustriesERP.Web", "AjayIndustriesERP.Web\AjayIndustriesERP.Web.csproj", "{462D7368-E212-4E9C-B9B8-AFE1D69836F6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{7D04AC07-B378-4202-BEB1-5B303D1302C1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{645EC466-0EE6-4FEE-B787-D7D993B18EF4}"
+	ProjectSection(SolutionItems) = preProject
+		01_ProjectVision.md = 01_ProjectVision.md
+		02_ProjectProgress.md = 02_ProjectProgress.md
+		02_Requirements.md = 02_Requirements.md
+		03_BusinessFlow.md = 03_BusinessFlow.md
+		04_DatabaseDesign.md = 04_DatabaseDesign.md
+		05_API.md = 05_API.md
+		06_UIStandards.md = 06_UIStandards.md
+		07_CodingStandards.md = 07_CodingStandards.md
+		08_Deployment.md = 08_Deployment.md
+		09_SprintLog.md = 09_SprintLog.md
+		10_Architecture.md = 10_Architecture.md
+		11_ComponentLibrary.md = 11_ComponentLibrary.md
+		12_DecisionLog.md = 12_DecisionLog.md
+		13_ProjectState.md = 13_ProjectState.md
+		14_UITheme.md = 14_UITheme.md
+		15_MasterDependency.md = 15_MasterDependency.md
+		15_ProjectVision.md = 15_ProjectVision.md
+		16. ProjectRoadmap.md = 16. ProjectRoadmap.md
+		16_DatabaseRelationship.md = 16_DatabaseRelationship.md
+		17_ModuleBlueprint.md = 17_ModuleBlueprint.md
+		18_TransactionFlow.md = 18_TransactionFlow.md
+		19_ProductionWorkflow.md = 19_ProductionWorkflow.md
+		20_WorkflowEngine.md = 20_WorkflowEngine.md
+		Purchase.md = Purchase.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "database", "database", "{B6C27EBA-F15C-421A-AC77-F7F361689BCF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AjayIndustriesERP.Domain", "AjayIndustriesERP.Domain\AjayIndustriesERP.Domain.csproj", "{506075CF-937A-49C2-B416-5CF7DA7B1984}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AjayIndustriesERP.Application", "AjayIndustriesERP.Application\AjayIndustriesERP.Application.csproj", "{8CD2ABE7-4229-4302-BFB1-701C432A2B52}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AjayIndustriesERP.Infrastructure", "AjayIndustriesERP.Infrastructure\AjayIndustriesERP.Infrastructure.csproj", "{82741F55-9BDE-4C48-932F-546C92A7EC5F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{462D7368-E212-4E9C-B9B8-AFE1D69836F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{462D7368-E212-4E9C-B9B8-AFE1D69836F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{462D7368-E212-4E9C-B9B8-AFE1D69836F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{462D7368-E212-4E9C-B9B8-AFE1D69836F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{506075CF-937A-49C2-B416-5CF7DA7B1984}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{506075CF-937A-49C2-B416-5CF7DA7B1984}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{506075CF-937A-49C2-B416-5CF7DA7B1984}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{506075CF-937A-49C2-B416-5CF7DA7B1984}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CD2ABE7-4229-4302-BFB1-701C432A2B52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CD2ABE7-4229-4302-BFB1-701C432A2B52}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CD2ABE7-4229-4302-BFB1-701C432A2B52}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CD2ABE7-4229-4302-BFB1-701C432A2B52}.Release|Any CPU.Build.0 = Release|Any CPU
+		{82741F55-9BDE-4C48-932F-546C92A7EC5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{82741F55-9BDE-4C48-932F-546C92A7EC5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{82741F55-9BDE-4C48-932F-546C92A7EC5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{82741F55-9BDE-4C48-932F-546C92A7EC5F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{462D7368-E212-4E9C-B9B8-AFE1D69836F6} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{506075CF-937A-49C2-B416-5CF7DA7B1984} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{8CD2ABE7-4229-4302-BFB1-701C432A2B52} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{82741F55-9BDE-4C48-932F-546C92A7EC5F} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6C95A756-4B94-4245-B136-75BC92EB77A0}
+	EndGlobalSection
+EndGlobal

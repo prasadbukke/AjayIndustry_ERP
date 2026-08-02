@@ -1,0 +1,21 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Uom.UomViewModel
+
+@{
+    ViewData["Title"] = "Edit UOM";
+}
+
+<h3>Edit UOM</h3>
+
+<hr />
+
+<form asp-action="Edit" method="post">
+
+    <partial name="_Form" model="Model" />
+
+</form>
+
+@section Scripts {
+
+    <partial name="_ValidationScriptsPartial" />
+
+}

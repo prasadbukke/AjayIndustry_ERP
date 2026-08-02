@@ -1,0 +1,56 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Company.CompanyViewModel
+
+@{
+    ViewData["Title"] = "Edit Company";
+}
+
+@section Scripts {
+
+    <partial name="_ValidationScriptsPartial" />
+
+}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+
+            <h2 class="fw-bold">Edit Company</h2>
+
+            <p class="text-muted">
+                Update company information.
+            </p>
+
+        </div>
+
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid fa-arrow-left"></i>
+
+            Back
+
+        </a>
+
+    </div>
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-body">
+
+            <form asp-action="Edit"
+                  method="post">
+
+                <input asp-for="CompanyId" type="hidden" />
+
+                <partial name="_CompanyForm"
+                         model="Model" />
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>

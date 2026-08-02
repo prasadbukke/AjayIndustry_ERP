@@ -1,0 +1,114 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Warehouse.WarehouseViewModel
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+<input asp-for="WarehouseId" type="hidden" />
+
+<div class="row">
+
+    <div class="col-md-6 mb-3">
+
+        <label asp-for="WarehouseCode" class="form-label"></label>
+
+        <input asp-for="WarehouseCode"
+               class="form-control"
+               readonly />
+
+    </div>
+
+    <div class="col-md-6 mb-3">
+
+        <label asp-for="WarehouseName" class="form-label"></label>
+
+        <input asp-for="WarehouseName"
+               class="form-control" />
+
+        <span asp-validation-for="WarehouseName"
+              class="text-danger"></span>
+
+    </div>
+
+    <div class="col-md-6 mb-3">
+
+        <label asp-for="WarehouseType"
+               class="form-label"></label>
+
+        <select asp-for="WarehouseType"
+                class="form-select">
+
+            <option value="">-- Select Type --</option>
+
+            <option>Raw Material</option>
+            <option>Finished Goods</option>
+            <option>WIP</option>
+            <option>Scrap</option>
+            <option>Consumables</option>
+
+        </select>
+
+        <span asp-validation-for="WarehouseType"
+              class="text-danger"></span>
+
+    </div>
+
+    <div class="col-md-6 mb-3">
+
+        <label asp-for="Description"
+               class="form-label"></label>
+
+        <input asp-for="Description"
+               class="form-control" />
+
+    </div>
+
+    <div class="col-md-6 mb-4">
+
+        <div class="form-check form-switch">
+
+            <input asp-for="IsDefault"
+                   class="form-check-input" />
+
+            <label asp-for="IsDefault"
+                   class="form-check-label"></label>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-6 mb-4">
+
+        <div class="form-check form-switch">
+
+            <input asp-for="IsActive"
+                   class="form-check-input" />
+
+            <label asp-for="IsActive"
+                   class="form-check-label"></label>
+
+        </div>
+
+    </div>
+
+</div>
+
+<hr />
+
+<div class="d-flex justify-content-end">
+
+    <a asp-action="Index"
+       class="btn btn-secondary me-2">
+
+        Cancel
+
+    </a>
+
+    <button class="btn btn-primary"
+            type="submit">
+
+        <i class="fa-solid fa-floppy-disk"></i>
+
+        @(Model.WarehouseId == 0 ? "Save Warehouse" : "Update Warehouse")
+
+    </button>
+
+</div>

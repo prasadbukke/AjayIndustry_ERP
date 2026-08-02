@@ -1,0 +1,133 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Company.CompanyViewModel
+
+<div asp-validation-summary="ModelOnly"
+     class="alert alert-danger">
+</div>
+
+<div class="row">
+
+    <div class="col-md-6 mb-3">
+        <label asp-for="CompanyCode" class="form-label"></label>
+        <input asp-for="CompanyId" type="hidden" />
+
+        <input asp-for="CompanyCode"
+               class="form-control"
+               readonly />
+        <span asp-validation-for="CompanyCode" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label asp-for="CompanyName" class="form-label"></label>
+        <input asp-for="CompanyName" class="form-control" />
+        <span asp-validation-for="CompanyName" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label asp-for="GstNumber" class="form-label"></label>
+        <input asp-for="GstNumber" class="form-control" />
+        <span asp-validation-for="GstNumber" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label asp-for="PanNumber" class="form-label"></label>
+        <input asp-for="PanNumber" class="form-control" />
+        <span asp-validation-for="PanNumber" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label asp-for="PhoneNumber" class="form-label"></label>
+        <input asp-for="PhoneNumber" class="form-control" />
+        <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label asp-for="Website" class="form-label"></label>
+        <input asp-for="Website" class="form-control" />
+        <span asp-validation-for="Website" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label asp-for="ContactPerson" class="form-label"></label>
+        <input asp-for="ContactPerson" class="form-control" />
+        <span asp-validation-for="ContactPerson" class="text-danger"></span>
+    </div>
+
+    <div class="col-12 mb-3">
+        <label asp-for="Address" class="form-label"></label>
+        <textarea asp-for="Address"
+                  class="form-control"
+                  rows="3"></textarea>
+        <span asp-validation-for="Address" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <label asp-for="City" class="form-label"></label>
+        <input asp-for="City" class="form-control" />
+        <span asp-validation-for="City" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <label asp-for="State" class="form-label"></label>
+        <input asp-for="State" class="form-control" />
+        <span asp-validation-for="State" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <label asp-for="Country" class="form-label"></label>
+        <input asp-for="Country" class="form-control" />
+        <span asp-validation-for="Country" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <label asp-for="PostalCode" class="form-label"></label>
+        <input asp-for="PostalCode" class="form-control" />
+        <span asp-validation-for="PostalCode" class="text-danger"></span>
+    </div>
+
+    <div class="col-12 mb-4">
+
+        <div class="form-check form-switch">
+
+            <input asp-for="IsActive"
+                   class="form-check-input" />
+
+            <label asp-for="IsActive"
+                   class="form-check-label"></label>
+
+        </div>
+
+    </div>
+
+    <div class="col-12">
+
+        <hr />
+
+        <div class="d-flex justify-content-end">
+
+            <a asp-action="Index"
+               class="btn btn-secondary me-2">
+
+                Cancel
+
+            </a>
+
+            <button type="submit"
+                    class="btn btn-primary">
+
+                <i class="fa-solid fa-floppy-disk"></i>
+
+                @(Model.CompanyId == 0 ? "Save Company" : "Update Company")
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>

@@ -1,0 +1,58 @@
+﻿@model AjayIndustriesERP.Domain.Entities.Uom
+
+@{
+    ViewData["Title"] = "UOM Details";
+}
+
+<div class="container-fluid">
+
+    <div class="card shadow-sm">
+
+        <div class="card-header">
+
+            <h4>UOM Details</h4>
+
+        </div>
+
+        <div class="card-body">
+
+            <dl class="row">
+
+                <dt class="col-sm-3">UOM Code</dt>
+                <dd class="col-sm-9">@Model.UomCode</dd>
+
+                <dt class="col-sm-3">UOM Name</dt>
+                <dd class="col-sm-9">@Model.UomName</dd>
+
+                <dt class="col-sm-3">Description</dt>
+                <dd class="col-sm-9">@Model.Description</dd>
+
+                <dt class="col-sm-3">Status</dt>
+                <dd class="col-sm-9">
+                    @(Model.IsActive ? "Active" : "Inactive")
+                </dd>
+
+            </dl>
+
+            <hr />
+
+            <a asp-action="Edit"
+               asp-route-id="@Model.UomId"
+               class="btn btn-warning">
+
+                Edit
+
+            </a>
+
+            <a asp-action="Index"
+               class="btn btn-secondary">
+
+                Back
+
+            </a>
+
+        </div>
+
+    </div>
+
+</div>

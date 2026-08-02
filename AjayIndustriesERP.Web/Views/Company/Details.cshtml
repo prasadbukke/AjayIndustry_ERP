@@ -1,0 +1,151 @@
+﻿@model AjayIndustriesERP.Domain.Entities.Company
+
+@{
+    ViewData["Title"] = "Company Details";
+}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+
+            <h2 class="fw-bold">Company Details</h2>
+
+            <p class="text-muted">
+                View company information.
+            </p>
+
+        </div>
+
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid fa-arrow-left"></i>
+
+            Back
+
+        </a>
+
+    </div>
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-body">
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+                    <label class="fw-semibold">Company Code</label>
+                    <div class="form-control bg-light">@Model.CompanyCode</div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="fw-semibold">Company Name</label>
+                    <div class="form-control bg-light">@Model.CompanyName</div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="fw-semibold">GST Number</label>
+                    <div class="form-control bg-light">@Model.GstNumber</div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="fw-semibold">PAN Number</label>
+                    <div class="form-control bg-light">@Model.PanNumber</div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="fw-semibold">Phone Number</label>
+                    <div class="form-control bg-light">@Model.PhoneNumber</div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="fw-semibold">Email</label>
+                    <div class="form-control bg-light">@Model.Email</div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="fw-semibold">Website</label>
+                    <div class="form-control bg-light">@Model.Website</div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="fw-semibold">Contact Person</label>
+                    <div class="form-control bg-light">@Model.ContactPerson</div>
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label class="fw-semibold">Address</label>
+                    <div class="form-control bg-light">@Model.Address</div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label class="fw-semibold">City</label>
+                    <div class="form-control bg-light">@Model.City</div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label class="fw-semibold">State</label>
+                    <div class="form-control bg-light">@Model.State</div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label class="fw-semibold">Country</label>
+                    <div class="form-control bg-light">@Model.Country</div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label class="fw-semibold">Postal Code</label>
+                    <div class="form-control bg-light">@Model.PostalCode</div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="fw-semibold">Status</label>
+
+                    <div>
+
+                        @if (Model.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">Inactive</span>
+                        }
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="fw-semibold">Created On</label>
+                    <div class="form-control bg-light">@Model.CreatedOn.ToString("dd-MMM-yyyy hh:mm tt")</div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="fw-semibold">Created By</label>
+                    <div class="form-control bg-light">@Model.CreatedBy</div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="fw-semibold">Modified On</label>
+                    <div class="form-control bg-light">
+                        @(Model.ModifiedOn?.ToString("dd-MMM-yyyy hh:mm tt") ?? "-")
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="fw-semibold">Modified By</label>
+                    <div class="form-control bg-light">
+                        @(string.IsNullOrWhiteSpace(Model.ModifiedBy) ? "-" : Model.ModifiedBy)
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
