@@ -1,0 +1,78 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Brand.BrandViewModel
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+<input asp-for="BrandId" type="hidden" />
+
+<div class="row">
+
+    <div class="col-md-6 mb-3">
+
+        <label asp-for="BrandCode" class="form-label"></label>
+
+        <input asp-for="BrandCode"
+               class="form-control"
+               readonly />
+
+    </div>
+
+    <div class="col-md-6 mb-3">
+
+        <label asp-for="BrandName" class="form-label"></label>
+
+        <input asp-for="BrandName"
+               class="form-control" />
+
+        <span asp-validation-for="BrandName"
+              class="text-danger"></span>
+
+    </div>
+
+    <div class="col-12 mb-4">
+
+        <label asp-for="Description"
+               class="form-label"></label>
+
+        <textarea asp-for="Description"
+                  rows="3"
+                  class="form-control"></textarea>
+
+    </div>
+
+    <div class="col-12 mb-4">
+
+        <div class="form-check form-switch">
+
+            <input asp-for="IsActive"
+                   class="form-check-input" />
+
+            <label asp-for="IsActive"
+                   class="form-check-label"></label>
+
+        </div>
+
+    </div>
+
+</div>
+
+<hr />
+
+<div class="d-flex justify-content-end">
+
+    <a asp-action="Index"
+       class="btn btn-secondary me-2">
+
+        Cancel
+
+    </a>
+
+    <button type="submit"
+            class="btn btn-primary">
+
+        <i class="fa-solid fa-floppy-disk"></i>
+
+        @(Model.BrandId == 0 ? "Save Brand" : "Update Brand")
+
+    </button>
+
+</div>

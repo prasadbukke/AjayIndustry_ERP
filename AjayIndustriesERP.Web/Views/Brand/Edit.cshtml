@@ -1,0 +1,21 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Brand.BrandViewModel
+
+@{
+    ViewData["Title"] = "Edit Brand";
+}
+
+<h3>Edit Brand</h3>
+
+<hr />
+
+<form asp-action="Edit" method="post">
+
+    <partial name="_Form" model="Model" />
+
+</form>
+
+@section Scripts {
+
+    <partial name="_ValidationScriptsPartial" />
+
+}
