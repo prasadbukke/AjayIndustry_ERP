@@ -1,0 +1,27 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Item.ItemViewModel
+
+@{
+    ViewData["Title"] = "Edit Item";
+}
+
+<div class="container-fluid">
+
+    <h3>Edit Item</h3>
+
+    <hr />
+
+    <form asp-action="Edit" method="post">
+
+        <partial name="_Form" model="Model" />
+
+    </form>
+
+</div>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/item-form.js"
+            asp-append-version="true"></script>
+}

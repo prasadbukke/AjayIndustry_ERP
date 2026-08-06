@@ -38,6 +38,9 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
             services.AddScoped<IBrandRepository, BrandRepository>();
             services.AddScoped<IBrandService, BrandService>();
 
+            services.AddScoped<IItemRepository, ItemRepository>();
+            services.AddScoped<IItemService, ItemService>();
+
             return services;
         }
     }

@@ -4,6 +4,7 @@ using AjayIndustriesERP.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AjayIndustriesERP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260803143100_AddItemMaster")]
+    partial class AddItemMaster
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -292,6 +295,12 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<decimal>("MaximumStock")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MinimumStock")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("ModifiedBy")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -299,7 +308,16 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal>("OpeningStock")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ReorderLevel")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("UomId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WarehouseId")
                         .HasColumnType("int");
 
                     b.HasKey("ItemId");
@@ -309,13 +327,14 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                     b.HasIndex("ItemCategoryId");
 
                     b.HasIndex("ItemCode")
-                        .IsUnique()
-                        .HasFilter("[IsDeleted] = 0");
+                        .IsUnique();
 
                     b.HasIndex("ItemName")
                         .IsUnique();
 
                     b.HasIndex("UomId");
+
+                    b.HasIndex("WarehouseId");
 
                     b.ToTable("Items", (string)null);
                 });
@@ -510,11 +529,19 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("AjayIndustriesERP.Domain.Entities.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Brand");
 
                     b.Navigation("ItemCategory");
 
                     b.Navigation("Uom");
+
+                    b.Navigation("Warehouse");
                 });
 #pragma warning restore 612, 618
         }

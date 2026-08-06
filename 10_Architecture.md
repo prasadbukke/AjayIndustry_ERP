@@ -374,3 +374,37 @@ Only Business Rules can grow.
 Status
 
 ✅ APPROVED
+
+Decision : Item Master Domain Separation
+
+Status : LOCKED
+
+Item Master stores only master information.
+
+Purchase Module owns:
+- Purchase Price
+- GST
+- HSN
+- Supplier Pricing
+
+Inventory Module owns:
+- Current Stock
+- Stock Transactions
+- Stock Ledger
+
+Reason:
+Single Responsibility Principle.
+Avoid duplicate data.
+Production ERP design.
+
+Decision
+
+Brand and Item Category are independent Master Modules.
+
+Reason
+
+Both modules are referenced by Item Master through Foreign Keys.
+
+Status
+
+LOCKED

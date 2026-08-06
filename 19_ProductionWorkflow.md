@@ -112,13 +112,17 @@ Status
 
 Current Status
 
+Current ERP Foundation
+
 Completed
 
-Company
-Employee
-UOM
-Warehouse
+✔ Company
+✔ Employee
+✔ UOM
+✔ Warehouse
+✔ Item Category
+✔ Brand
 
-Next Module
+Next
 
-Item Category
+Item Master

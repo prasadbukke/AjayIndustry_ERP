@@ -245,15 +245,36 @@ Status
 
 ✅ LOCKED
 
-Masters
+Master Modules
 
 ✔ Company
 ✔ Employee
 ✔ UOM
 ✔ Warehouse
+✔ Item Category
+✔ Brand
 
 Next
 
-Item Category
-Brand
 Item Master
+Purchase
+Inventory
+Production
+Sales
+
+Item Master (LOCKED)
+
+Fields
+
+ItemCode
+ItemName
+Description
+CategoryId
+BrandId
+UomId
+WarehouseId
+OpeningStock
+MinimumStock
+MaximumStock
+ReorderLevel
+IsActive

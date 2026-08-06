@@ -1,0 +1,233 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Item.ItemViewModel
+
+@*
+==============================================================
+
+File : _Form.cshtml
+
+Purpose :
+Common Create/Edit form for Item Master.
+
+Features :
+- Search directly inside dropdown.
+- Add Category option when Category is not found.
+- Similar Item Name warning.
+- No Stock, Warehouse, GST or Pricing fields.
+
+==============================================================
+*@
+
+<div asp-validation-summary="ModelOnly"
+     class="alert alert-danger"></div>
+
+<input asp-for="ItemId" type="hidden" />
+<input asp-for="ItemCode" type="hidden" />
+
+<div class="row">
+
+    @if (Model.ItemId > 0)
+    {
+        <div class="col-md-6 mb-3">
+
+            <label asp-for="ItemCode"
+                   class="form-label"></label>
+
+            <input value="@Model.ItemCode"
+                   class="form-control"
+                   readonly />
+
+        </div>
+    }
+
+    <div class="@(Model.ItemId > 0 ? "col-md-6" : "col-md-12") mb-3">
+
+        <label asp-for="ItemName"
+               class="form-label"></label>
+
+        <input asp-for="ItemName"
+               class="form-control"
+               autocomplete="off"
+               data-similar-url="@Url.Action("CheckSimilarName", "Item")" />
+
+        <span asp-validation-for="ItemName"
+              class="text-danger"></span>
+
+        <div class="form-text">
+            Similar existing Item Names will be shown automatically.
+        </div>
+
+    </div>
+
+    <!-- Category -->
+
+    <div class="col-md-4 mb-3">
+
+        <label asp-for="ItemCategoryId"
+               class="form-label"></label>
+
+        <select asp-for="ItemCategoryId"
+                asp-items="Model.Categories"
+                class="form-select js-master-select"
+                data-placeholder="-- Select Category --"
+                data-add-label="Add Category"
+                data-add-url="@Url.Action("Create", "ItemCategory")">
+
+            <option value=""></option>
+
+        </select>
+
+        <span asp-validation-for="ItemCategoryId"
+              class="text-danger"></span>
+
+    </div>
+
+    <!-- Brand -->
+
+    <div class="col-md-4 mb-3">
+
+        <label asp-for="BrandId"
+               class="form-label"></label>
+
+        <select asp-for="BrandId"
+                asp-items="Model.Brands"
+                class="form-select js-master-select"
+                data-placeholder="-- Select Brand --"
+                data-add-label="Add Brand"
+                data-add-url="@Url.Action("Create", "Brand")">
+
+            <option value=""></option>
+
+        </select>
+
+        <span asp-validation-for="BrandId"
+              class="text-danger"></span>
+
+    </div>
+
+    <!-- UOM -->
+
+    <div class="col-md-4 mb-3">
+
+        <label asp-for="UomId"
+               class="form-label"></label>
+
+        <select asp-for="UomId"
+                asp-items="Model.Uoms"
+                class="form-select js-master-select"
+                data-placeholder="-- Select UOM --"
+                data-add-label="Add UOM"
+                data-add-url="@Url.Action("Create", "Uom")">
+
+            <option value=""></option>
+
+        </select>
+
+        <span asp-validation-for="UomId"
+              class="text-danger"></span>
+
+    </div>
+
+    <!-- Description -->
+
+    <div class="col-12 mb-3">
+
+        <label asp-for="Description"
+               class="form-label"></label>
+
+        <textarea asp-for="Description"
+                  rows="3"
+                  class="form-control"
+                  placeholder="Enter optional description"></textarea>
+
+        <span asp-validation-for="Description"
+              class="text-danger"></span>
+
+    </div>
+
+    <!-- Similar Item Warning -->
+
+    <div class="col-12 mb-3">
+
+        <div id="similarItemWarning"
+             class="alert alert-warning @(Model.SimilarItemNames.Any() ? string.Empty : "d-none")">
+
+            <div class="fw-semibold mb-2">
+
+                <i class="fa-solid fa-triangle-exclamation"></i>
+
+                Similar Item Names Found
+
+            </div>
+
+            <p class="mb-2">
+                Check whether the Item already exists or whether
+                there is a spelling mistake.
+            </p>
+
+            <ul id="similarItemList"
+                class="mb-3">
+
+                @foreach (var itemName in Model.SimilarItemNames)
+                {
+                    <li>@itemName</li>
+                }
+
+            </ul>
+
+            <div class="form-check">
+
+                <input asp-for="ConfirmSimilarItemName"
+                       class="form-check-input" />
+
+                <label asp-for="ConfirmSimilarItemName"
+                       class="form-check-label">
+
+                    I checked the similar names and still want to continue.
+
+                </label>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Status -->
+
+    <div class="col-12 mb-4">
+
+        <div class="form-check form-switch">
+
+            <input asp-for="IsActive"
+                   class="form-check-input" />
+
+            <label asp-for="IsActive"
+                   class="form-check-label"></label>
+
+        </div>
+
+    </div>
+
+</div>
+
+<hr />
+
+<div class="d-flex justify-content-end">
+
+    <a asp-action="Index"
+       class="btn btn-secondary me-2">
+
+        Cancel
+
+    </a>
+
+    <button type="submit"
+            class="btn btn-primary">
+
+        <i class="fa-solid fa-floppy-disk"></i>
+
+        @(Model.ItemId == 0 ? "Save Item" : "Update Item")
+
+    </button>
+
+</div>

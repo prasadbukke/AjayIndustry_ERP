@@ -1,0 +1,152 @@
+﻿@model AjayIndustriesERP.Domain.Entities.Item
+
+@*
+==============================================================
+
+File : Details.cshtml
+
+Purpose :
+Displays Item Master details.
+
+==============================================================
+*@
+
+@{
+    ViewData["Title"] = "Item Details";
+}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+
+            <h2 class="fw-bold mb-1">Item Details</h2>
+
+            <p class="text-muted mb-0">
+                View Item Master information.
+            </p>
+
+        </div>
+
+        <a asp-action="Index"
+           class="btn btn-secondary">
+
+            <i class="fa-solid fa-arrow-left"></i>
+
+            Back
+
+        </a>
+
+    </div>
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-body">
+
+            <dl class="row mb-0">
+
+                <dt class="col-md-3 mb-3">
+                    Item Code
+                </dt>
+
+                <dd class="col-md-9 mb-3">
+                    @Model.ItemCode
+                </dd>
+
+                <dt class="col-md-3 mb-3">
+                    Item Name
+                </dt>
+
+                <dd class="col-md-9 mb-3">
+                    @Model.ItemName
+                </dd>
+
+                <dt class="col-md-3 mb-3">
+                    Category
+                </dt>
+
+                <dd class="col-md-9 mb-3">
+                    @Model.ItemCategory.CategoryCode -
+                    @Model.ItemCategory.CategoryName
+                </dd>
+
+                <dt class="col-md-3 mb-3">
+                    Brand
+                </dt>
+
+                <dd class="col-md-9 mb-3">
+                    @Model.Brand.BrandCode -
+                    @Model.Brand.BrandName
+                </dd>
+
+                <dt class="col-md-3 mb-3">
+                    UOM
+                </dt>
+
+                <dd class="col-md-9 mb-3">
+                    @Model.Uom.UomCode -
+                    @Model.Uom.UomName
+                </dd>
+
+                <dt class="col-md-3 mb-3">
+                    Description
+                </dt>
+
+                <dd class="col-md-9 mb-3">
+                    @(string.IsNullOrWhiteSpace(Model.Description)
+                                        ? "-"
+                                        : Model.Description)
+                </dd>
+
+                <dt class="col-md-3 mb-3">
+                    Status
+                </dt>
+
+                <dd class="col-md-9 mb-3">
+
+                    @if (Model.IsActive)
+                    {
+                        <span class="badge bg-success">
+                            Active
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">
+                            Inactive
+                        </span>
+                    }
+
+                </dd>
+
+                <dt class="col-md-3 mb-3">
+                    Created On
+                </dt>
+
+                <dd class="col-md-9 mb-3">
+                    @Model.CreatedOn.ToLocalTime()
+                    .ToString("dd-MMM-yyyy hh:mm tt")
+                </dd>
+
+            </dl>
+
+        </div>
+
+        <div class="card-footer bg-white text-end">
+
+            <a asp-action="Edit"
+               asp-route-id="@Model.ItemId"
+               class="btn btn-warning">
+
+                <i class="fa-solid fa-pen"></i>
+
+                Edit
+
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
