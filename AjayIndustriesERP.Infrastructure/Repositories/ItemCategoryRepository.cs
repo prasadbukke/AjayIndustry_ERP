@@ -121,8 +121,9 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
         public async Task<string?> GetLastCategoryCodeAsync()
         {
+            // Deleted recordsसुद्धा consider करायचे.
+            // जुना Category Code पुन्हा वापरला जाणार नाही.
             return await _context.ItemCategories
-                .Where(x => !x.IsDeleted)
                 .OrderByDescending(x => x.ItemCategoryId)
                 .Select(x => x.CategoryCode)
                 .FirstOrDefaultAsync();

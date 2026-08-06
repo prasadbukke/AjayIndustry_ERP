@@ -237,3 +237,16 @@ Git Commit
 Company Master
 
 All future ERP modules must follow the Company Master coding pattern.
+
+Small lookup masters should never redirect
+the user away from the transaction screen.
+
+Use the reusable Quick Master Modal.
+
+Required Features
+
+- Live Search
+- Similar Name Detection
+- Exact Duplicate Blocking
+- AJAX Save
+- Auto Select

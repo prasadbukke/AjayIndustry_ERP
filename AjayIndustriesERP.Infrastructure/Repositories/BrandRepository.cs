@@ -121,8 +121,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
         public async Task<string?> GetLastBrandCodeAsync()
         {
+            // Deleted recordsसुद्धा consider करायचे.
             return await _context.Brands
-                .Where(x => !x.IsDeleted)
                 .OrderByDescending(x => x.BrandId)
                 .Select(x => x.BrandCode)
                 .FirstOrDefaultAsync();

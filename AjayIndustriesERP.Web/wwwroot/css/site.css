@@ -89,3 +89,32 @@ Select2 Add Master Option
         .select2-add-master-wrapper .js-add-master:hover {
             background-color: #f8f9fa;
         }
+
+/*
+==============================================================
+Quick Create Master Modal
+==============================================================
+*/
+
+.select2-add-master-wrapper {
+    padding: 2px;
+}
+
+.js-open-quick-master {
+    display: block;
+    font-weight: 600;
+}
+
+    .js-open-quick-master:hover {
+        background-color: #f8f9fa;
+    }
+
+#quickSimilarRecordsList {
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+#quickCreateMasterSaveButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}

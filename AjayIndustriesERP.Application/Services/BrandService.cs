@@ -35,20 +35,30 @@ namespace AjayIndustriesERP.Application.Services
             return await _brandRepository.GetByIdAsync(BrandId);
         }
 
-        public async Task CreateAsync(Brand Brand)
+        public async Task CreateAsync(Brand brand)
         {
-            if (await _brandRepository.ExistsByCodeAsync(Brand.BrandCode))
-                throw new BusinessException("Brand Code already exists.");
+            brand.BrandName =
+                brand.BrandName.Trim();
 
-            if (await _brandRepository.ExistsByNameAsync(Brand.BrandName))
-                throw new BusinessException("Brand Name already exists.");
+            brand.Description =
+                string.IsNullOrWhiteSpace(brand.Description)
+                    ? null
+                    : brand.Description.Trim();
 
-            Brand.CreatedOn = DateTime.UtcNow;
-            Brand.CreatedBy = "System";
+            if (await _brandRepository.ExistsByNameAsync(
+                brand.BrandName))
+            {
+                throw new BusinessException(
+                    "Brand Name already exists.");
+            }
 
-            Brand.BrandCode = await GenerateBrandCodeAsync();
+            brand.BrandCode =
+                await GenerateBrandCodeAsync();
 
-            await _brandRepository.AddAsync(Brand);
+            brand.CreatedOn = DateTime.UtcNow;
+            brand.CreatedBy = "System";
+
+            await _brandRepository.AddAsync(brand);
 
             await _brandRepository.SaveChangesAsync();
         }
@@ -129,15 +139,30 @@ namespace AjayIndustriesERP.Application.Services
             var lastCode =
                 await _brandRepository.GetLastBrandCodeAsync();
 
-            if (string.IsNullOrWhiteSpace(lastCode))
-                return "BRD00001";
+            var nextNumber = 1;
 
-            int number =
-                int.Parse(lastCode.Replace("BRD", ""));
+            if (!string.IsNullOrWhiteSpace(lastCode))
+            {
+                var numberPart = lastCode
+                    .Replace("BRD", string.Empty)
+                    .Trim();
 
-            number++;
+                if (int.TryParse(numberPart, out var lastNumber))
+                {
+                    nextNumber = lastNumber + 1;
+                }
+            }
 
-            return $"BRD{number:D5}";
+            var brandCode = $"BRD{nextNumber:D5}";
+
+            while (await _brandRepository.ExistsByCodeAsync(brandCode))
+            {
+                nextNumber++;
+
+                brandCode = $"BRD{nextNumber:D5}";
+            }
+
+            return brandCode;
         }
 
         #endregion

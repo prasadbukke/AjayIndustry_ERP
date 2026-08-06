@@ -408,3 +408,28 @@ Both modules are referenced by Item Master through Foreign Keys.
 Status
 
 LOCKED
+
+Reusable Quick Master Framework
+
+Purpose
+
+Provides a common framework for creating
+small master records without leaving the
+current transaction screen.
+
+Current Masters
+
+- Item Category
+- Brand
+- UOM
+
+Future
+
+- Supplier Type
+- Customer Type
+- Machine Type
+- Department
+- Designation
+- Payment Terms
+- Tax Group
+- Warehouse Type

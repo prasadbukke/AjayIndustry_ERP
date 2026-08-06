@@ -69,8 +69,8 @@ Features :
                 asp-items="Model.Categories"
                 class="form-select js-master-select"
                 data-placeholder="-- Select Category --"
-                data-add-label="Add Category"
-                data-add-url="@Url.Action("Create", "ItemCategory")">
+                data-master-type="Category"
+                data-add-label="Add Category">
 
             <option value=""></option>
 
@@ -92,8 +92,8 @@ Features :
                 asp-items="Model.Brands"
                 class="form-select js-master-select"
                 data-placeholder="-- Select Brand --"
-                data-add-label="Add Brand"
-                data-add-url="@Url.Action("Create", "Brand")">
+                data-master-type="Brand"
+                data-add-label="Add Brand">
 
             <option value=""></option>
 
@@ -115,8 +115,8 @@ Features :
                 asp-items="Model.Uoms"
                 class="form-select js-master-select"
                 data-placeholder="-- Select UOM --"
-                data-add-label="Add UOM"
-                data-add-url="@Url.Action("Create", "Uom")">
+                data-master-type="Uom"
+                data-add-label="Add UOM">
 
             <option value=""></option>
 

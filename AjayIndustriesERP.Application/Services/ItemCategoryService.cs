@@ -37,16 +37,26 @@ namespace AjayIndustriesERP.Application.Services
 
         public async Task CreateAsync(ItemCategory itemCategory)
         {
-            if (await _itemCategoryRepository.ExistsByCodeAsync(itemCategory.CategoryCode))
-                throw new BusinessException("Category Code already exists.");
+            itemCategory.CategoryName =
+                itemCategory.CategoryName.Trim();
 
-            if (await _itemCategoryRepository.ExistsByNameAsync(itemCategory.CategoryName))
-                throw new BusinessException("Category Name already exists.");
+            itemCategory.Description =
+                string.IsNullOrWhiteSpace(itemCategory.Description)
+                    ? null
+                    : itemCategory.Description.Trim();
+
+            if (await _itemCategoryRepository.ExistsByNameAsync(
+                itemCategory.CategoryName))
+            {
+                throw new BusinessException(
+                    "Category Name already exists.");
+            }
+
+            itemCategory.CategoryCode =
+                await GenerateCategoryCodeAsync();
 
             itemCategory.CreatedOn = DateTime.UtcNow;
             itemCategory.CreatedBy = "System";
-
-            itemCategory.CategoryCode = await GenerateCategoryCodeAsync();
 
             await _itemCategoryRepository.AddAsync(itemCategory);
 
@@ -129,15 +139,30 @@ namespace AjayIndustriesERP.Application.Services
             var lastCode =
                 await _itemCategoryRepository.GetLastCategoryCodeAsync();
 
-            if (string.IsNullOrWhiteSpace(lastCode))
-                return "CAT00001";
+            var nextNumber = 1;
 
-            int number =
-                int.Parse(lastCode.Replace("CAT", ""));
+            if (!string.IsNullOrWhiteSpace(lastCode))
+            {
+                var numberPart = lastCode
+                    .Replace("CAT", string.Empty)
+                    .Trim();
 
-            number++;
+                if (int.TryParse(numberPart, out var lastNumber))
+                {
+                    nextNumber = lastNumber + 1;
+                }
+            }
 
-            return $"CAT{number:D5}";
+            var categoryCode = $"CAT{nextNumber:D5}";
+
+            while (await _itemCategoryRepository.ExistsByCodeAsync(categoryCode))
+            {
+                nextNumber++;
+
+                categoryCode = $"CAT{nextNumber:D5}";
+            }
+
+            return categoryCode;
         }
 
         #endregion

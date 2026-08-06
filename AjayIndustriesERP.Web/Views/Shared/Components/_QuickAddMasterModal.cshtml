@@ -1,0 +1,219 @@
+﻿@*
+==============================================================
+
+File : _QuickAddMasterModal.cshtml
+
+Purpose :
+Reusable Quick Create modal for Category, Brand and UOM.
+
+Notes :
+- Form is rendered directly inside the modal.
+- No AJAX partial-view loading is required.
+- Master is saved using AJAX.
+- Existing similar records are shown while typing.
+
+==============================================================
+*@
+
+<div class="modal fade"
+     id="quickAddMasterModal"
+     tabindex="-1"
+     aria-labelledby="quickAddMasterModalLabel"
+     aria-hidden="true"
+     data-bs-backdrop="static"
+     data-suggestions-url="@Url.Action("Suggestions", "QuickMaster")">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title"
+                    id="quickAddMasterModalLabel">
+                    Add Master
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <form id="quickCreateMasterForm"
+                      action="@Url.Action("Create", "QuickMaster")"
+                      method="post"
+                      autocomplete="off">
+
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden"
+                           id="QuickMasterType"
+                           name="MasterType" />
+
+                    <input type="hidden"
+                           id="QuickRequiresCode"
+                           name="RequiresCode"
+                           value="false" />
+
+                    <input type="hidden"
+                           id="QuickConfirmSimilarName"
+                           name="ConfirmSimilarName"
+                           value="false" />
+
+                    <div id="quickCreateValidationSummary"
+                         class="alert alert-danger d-none">
+                    </div>
+
+                    <!-- Code: only displayed for UOM -->
+
+                    <div class="mb-3 d-none"
+                         id="QuickCodeContainer">
+
+                        <label class="form-label"
+                               id="QuickCodeLabel"
+                               for="QuickMasterCode">
+
+                            Code
+                            <span class="text-danger">*</span>
+
+                        </label>
+
+                        <input type="text"
+                               id="QuickMasterCode"
+                               name="Code"
+                               class="form-control"
+                               maxlength="20"
+                               placeholder="Enter Code" />
+
+                    </div>
+
+                    <!-- Name -->
+
+                    <div class="mb-3">
+
+                        <label class="form-label"
+                               id="QuickNameLabel"
+                               for="QuickMasterName">
+
+                            Name
+                            <span class="text-danger">*</span>
+
+                        </label>
+
+                        <input type="text"
+                               id="QuickMasterName"
+                               name="Name"
+                               class="form-control"
+                               maxlength="150"
+                               required
+                               placeholder="Enter Name" />
+
+                        <div class="form-text">
+                            Existing exact and similar names will appear
+                            while typing.
+                        </div>
+
+                    </div>
+
+                    <!-- Similar Records -->
+
+                    <div id="quickSimilarRecordsContainer"
+                         class="mb-3 d-none">
+
+                        <div class="alert alert-warning mb-0">
+
+                            <div class="fw-semibold mb-2">
+
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i>
+
+                                Existing similar records found
+
+                            </div>
+
+                            <div id="quickSimilarRecordsList"
+                                 class="list-group mb-3">
+                            </div>
+
+                            <div id="quickExactDuplicateMessage"
+                                 class="text-danger fw-semibold d-none">
+
+                                An exact record already exists.
+                                Duplicate creation is not allowed.
+
+                            </div>
+
+                            <div id="quickSimilarConfirmationContainer"
+                                 class="form-check d-none">
+
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       id="QuickSimilarConfirmationCheckbox" />
+
+                                <label class="form-check-label"
+                                       for="QuickSimilarConfirmationCheckbox">
+
+                                    I checked the similar records and still
+                                    want to create a new record.
+
+                                </label>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Description -->
+
+                    <div class="mb-3">
+
+                        <label for="QuickMasterDescription"
+                               class="form-label">
+                            Description
+                        </label>
+
+                        <textarea id="QuickMasterDescription"
+                                  name="Description"
+                                  class="form-control"
+                                  rows="3"
+                                  maxlength="500"
+                                  placeholder="Enter optional description"></textarea>
+
+                    </div>
+
+                    <hr />
+
+                    <div class="d-flex justify-content-end gap-2">
+
+                        <button type="button"
+                                class="btn btn-secondary"
+                                data-bs-dismiss="modal">
+                            Cancel
+                        </button>
+
+                        <button type="submit"
+                                class="btn btn-primary"
+                                id="quickCreateMasterSaveButton">
+
+                            <i class="fa-solid fa-floppy-disk me-1"></i>
+
+                            Save
+
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
