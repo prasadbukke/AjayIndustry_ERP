@@ -9,10 +9,12 @@ Purpose :
 Common Create/Edit form for Item Master.
 
 Features :
-- Search directly inside dropdown.
-- Add Category option when Category is not found.
-- Similar Item Name warning.
-- No Stock, Warehouse, GST or Pricing fields.
+- Category / Brand / UOM / Shape
+- Searchable dropdowns
+- Quick Master creation
+- Dynamic Item Specification rows
+- Optional Specification UOM
+- Similar Item Name warning
 
 ==============================================================
 *@
@@ -20,8 +22,11 @@ Features :
 <div asp-validation-summary="ModelOnly"
      class="alert alert-danger"></div>
 
-<input asp-for="ItemId" type="hidden" />
-<input asp-for="ItemCode" type="hidden" />
+<input asp-for="ItemId"
+       type="hidden" />
+
+<input asp-for="ItemCode"
+       type="hidden" />
 
 <div class="row">
 
@@ -47,20 +52,21 @@ Features :
         <input asp-for="ItemName"
                class="form-control"
                autocomplete="off"
+               maxlength="150"
                data-similar-url="@Url.Action("CheckSimilarName", "Item")" />
 
         <span asp-validation-for="ItemName"
               class="text-danger"></span>
 
         <div class="form-text">
-            Similar existing Item Names will be shown automatically.
+            Existing exact and similar Item Names will appear while typing.
         </div>
 
     </div>
 
     <!-- Category -->
 
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
 
         <label asp-for="ItemCategoryId"
                class="form-label"></label>
@@ -83,7 +89,7 @@ Features :
 
     <!-- Brand -->
 
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
 
         <label asp-for="BrandId"
                class="form-label"></label>
@@ -104,9 +110,9 @@ Features :
 
     </div>
 
-    <!-- UOM -->
+    <!-- Main UOM -->
 
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
 
         <label asp-for="UomId"
                class="form-label"></label>
@@ -127,6 +133,29 @@ Features :
 
     </div>
 
+    <!-- Shape -->
+
+    <div class="col-md-3 mb-3">
+
+        <label asp-for="ShapeId"
+               class="form-label"></label>
+
+        <select asp-for="ShapeId"
+                asp-items="Model.Shapes"
+                class="form-select js-master-select"
+                data-placeholder="-- Select Shape (Optional) --"
+                data-master-type="Shape"
+                data-add-label="Add Shape">
+
+            <option value=""></option>
+
+        </select>
+
+        <span asp-validation-for="ShapeId"
+              class="text-danger"></span>
+
+    </div>
+
     <!-- Description -->
 
     <div class="col-12 mb-3">
@@ -136,6 +165,7 @@ Features :
 
         <textarea asp-for="Description"
                   rows="3"
+                  maxlength="500"
                   class="form-control"
                   placeholder="Enter optional description"></textarea>
 
@@ -144,65 +174,222 @@ Features :
 
     </div>
 
-    <!-- Similar Item Warning -->
+</div>
 
-    <div class="col-12 mb-3">
+<!-- =========================================================
+     ITEM SPECIFICATIONS
+========================================================== -->
 
-        <div id="similarItemWarning"
-             class="alert alert-warning @(Model.SimilarItemNames.Any() ? string.Empty : "d-none")">
+<div class="card border mb-4">
 
-            <div class="fw-semibold mb-2">
+    <div class="card-header bg-light">
 
-                <i class="fa-solid fa-triangle-exclamation"></i>
+        <div class="d-flex justify-content-between
+                    align-items-center gap-2">
 
-                Similar Item Names Found
+            <div>
 
-            </div>
+                <div class="fw-semibold">
+                    Item Specifications
+                </div>
 
-            <p class="mb-2">
-                Check whether the Item already exists or whether
-                there is a spelling mistake.
-            </p>
-
-            <ul id="similarItemList"
-                class="mb-3">
-
-                @foreach (var itemName in Model.SimilarItemNames)
-                {
-                    <li>@itemName</li>
-                }
-
-            </ul>
-
-            <div class="form-check">
-
-                <input asp-for="ConfirmSimilarItemName"
-                       class="form-check-input" />
-
-                <label asp-for="ConfirmSimilarItemName"
-                       class="form-check-label">
-
-                    I checked the similar names and still want to continue.
-
-                </label>
+                <div class="small text-muted">
+                    Add dimensions, grade, hardness or other
+                    technical specifications.
+                </div>
 
             </div>
+
+            <button type="button"
+                    id="addItemSpecificationButton"
+                    class="btn btn-sm btn-outline-primary">
+
+                <i class="fa-solid fa-plus me-1"></i>
+
+                Add Specification
+
+            </button>
 
         </div>
 
     </div>
 
-    <!-- Status -->
+    <div class="card-body p-0">
 
-    <div class="col-12 mb-4">
+        <div class="table-responsive">
 
-        <div class="form-check form-switch">
+            <table class="table align-middle mb-0"
+                   id="itemSpecificationTable">
 
-            <input asp-for="IsActive"
-                   class="form-check-input" />
+                <thead class="table-light">
 
-            <label asp-for="IsActive"
-                   class="form-check-label"></label>
+                    <tr>
+
+                        <th style="width:34%;">
+                            Specification
+                        </th>
+
+                        <th style="width:32%;">
+                            Value
+                        </th>
+
+                        <th style="width:24%;">
+                            UOM
+                        </th>
+
+                        <th class="text-center"
+                            style="width:10%;">
+                            Remove
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="itemSpecificationRows">
+
+                    @for (var i = 0;
+                                        i < Model.ItemSpecifications.Count;
+                                        i++)
+                    {
+                        var row =
+                        Model.ItemSpecifications[i];
+
+                        <tr class="item-specification-row">
+
+                            <!-- Explicit collection index -->
+
+                            <td>
+
+                                <input type="hidden"
+                                       name="ItemSpecifications.Index"
+                                       value="@i" />
+
+                                <input type="hidden"
+                                       name="ItemSpecifications[@i].ItemSpecificationId"
+                                       value="@row.ItemSpecificationId" />
+
+                                <input type="hidden"
+                                       name="ItemSpecifications[@i].SortOrder"
+                                       value="@(i + 1)"
+                                       class="js-spec-sort-order" />
+
+                                <select name="ItemSpecifications[@i].SpecificationId"
+                                        id="ItemSpecifications_@(i)_SpecificationId"
+                                        class="form-select js-master-select js-specification-select"
+                                        data-placeholder="-- Select Specification --"
+                                        data-master-type="Specification"
+                                        data-add-label="Add Specification"
+                                        required>
+
+                                    <option value=""></option>
+
+                                    @foreach (var option
+                                                                    in Model.SpecificationOptions)
+                                    {
+                                        if (option.Value ==
+                                        row.SpecificationId.ToString())
+                                        {
+                                            <option value="@option.Value"
+                                                    selected>
+                                                @option.Text
+                                            </option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@option.Value">
+                                                @option.Text
+                                            </option>
+                                        }
+                                    }
+
+                                </select>
+
+                            </td>
+
+                            <td>
+
+                                <input type="text"
+                                       name="ItemSpecifications[@i].SpecificationValue"
+                                       value="@row.SpecificationValue"
+                                       maxlength="200"
+                                       class="form-control js-specification-value"
+                                       placeholder="Enter value"
+                                       required />
+
+                            </td>
+
+                            <td>
+
+                                <select name="ItemSpecifications[@i].UomId"
+                                        id="ItemSpecifications_@(i)_UomId"
+                                        class="form-select js-master-select js-specification-uom-select"
+                                        data-placeholder="-- Optional UOM --"
+                                        data-master-type="Uom"
+                                        data-add-label="Add UOM">
+
+                                    <option value=""></option>
+
+                                    @foreach (var option
+                                                                    in Model.SpecificationUoms)
+                                    {
+                                        if (row.UomId.HasValue &&
+                                        option.Value ==
+                                        row.UomId.Value.ToString())
+                                        {
+                                            <option value="@option.Value"
+                                                    selected>
+                                                @option.Text
+                                            </option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@option.Value">
+                                                @option.Text
+                                            </option>
+                                        }
+                                    }
+
+                                </select>
+
+                            </td>
+
+                            <td class="text-center">
+
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger js-remove-specification"
+                                        title="Remove Specification">
+
+                                    <i class="fa-solid fa-trash"></i>
+
+                                </button>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                    <tr id="itemSpecificationEmptyRow"
+                        class="@(Model.ItemSpecifications.Any()
+                                                    ? "d-none"
+                                                    : string.Empty)">
+
+                        <td colspan="4"
+                            class="text-center text-muted py-4">
+
+                            No Specifications added.
+
+                            <div class="small">
+                                Click "Add Specification" to add one.
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
 
         </div>
 
@@ -210,23 +397,193 @@ Features :
 
 </div>
 
+<!-- Dynamic Specification Row Template -->
+
+<template id="itemSpecificationRowTemplate">
+
+    <tr class="item-specification-row">
+
+        <td>
+
+            <input type="hidden"
+                   name="ItemSpecifications.Index"
+                   value="__KEY__" />
+
+            <input type="hidden"
+                   name="ItemSpecifications[__KEY__].ItemSpecificationId"
+                   value="0" />
+
+            <input type="hidden"
+                   name="ItemSpecifications[__KEY__].SortOrder"
+                   value="0"
+                   class="js-spec-sort-order" />
+
+            <select name="ItemSpecifications[__KEY__].SpecificationId"
+                    id="ItemSpecifications___KEY___SpecificationId"
+                    class="form-select js-master-select js-specification-select"
+                    data-placeholder="-- Select Specification --"
+                    data-master-type="Specification"
+                    data-add-label="Add Specification"
+                    required>
+
+                <option value=""></option>
+
+                @foreach (var option
+                                in Model.SpecificationOptions)
+                {
+                    <option value="@option.Value">
+                        @option.Text
+                    </option>
+                }
+
+            </select>
+
+        </td>
+
+        <td>
+
+            <input type="text"
+                   name="ItemSpecifications[__KEY__].SpecificationValue"
+                   maxlength="200"
+                   class="form-control js-specification-value"
+                   placeholder="Enter value"
+                   required />
+
+        </td>
+
+        <td>
+
+            <select name="ItemSpecifications[__KEY__].UomId"
+                    id="ItemSpecifications___KEY___UomId"
+                    class="form-select js-master-select js-specification-uom-select"
+                    data-placeholder="-- Optional UOM --"
+                    data-master-type="Uom"
+                    data-add-label="Add UOM">
+
+                <option value=""></option>
+
+                @foreach (var option
+                                in Model.SpecificationUoms)
+                {
+                    <option value="@option.Value">
+                        @option.Text
+                    </option>
+                }
+
+            </select>
+
+        </td>
+
+        <td class="text-center">
+
+            <button type="button"
+                    class="btn btn-sm btn-outline-danger js-remove-specification"
+                    title="Remove Specification">
+
+                <i class="fa-solid fa-trash"></i>
+
+            </button>
+
+        </td>
+
+    </tr>
+
+</template>
+
+<!-- Similar Item Warning -->
+
+<div id="similarItemWarning"
+     class="alert alert-warning
+            @(Model.SimilarItemNames.Any()
+                     ? string.Empty
+                     : "d-none")">
+
+    <div class="fw-semibold mb-2">
+
+        <i class="fa-solid fa-triangle-exclamation me-1"></i>
+
+        Similar Item Names Found
+
+    </div>
+
+    <p class="mb-2">
+        Check whether the Item already exists or whether there
+        is a spelling mistake.
+    </p>
+
+    <ul id="similarItemList"
+        class="mb-3">
+
+        @foreach (var itemName
+                in Model.SimilarItemNames)
+        {
+            <li>@itemName</li>
+        }
+
+    </ul>
+
+    <div id="itemExactDuplicateMessage"
+         class="text-danger fw-semibold d-none mb-2">
+
+        The same Item Name already exists.
+        It may be a different Shape or Specification variant.
+
+    </div>
+
+    <div id="itemSimilarConfirmationContainer"
+         class="form-check">
+
+        <input asp-for="ConfirmSimilarItemName"
+               class="form-check-input" />
+
+        <label asp-for="ConfirmSimilarItemName"
+               class="form-check-label">
+
+            I checked the similar Items and still want
+            to continue.
+
+        </label>
+
+    </div>
+
+</div>
+
+<!-- Status -->
+
+<div class="mb-4">
+
+    <div class="form-check form-switch">
+
+        <input asp-for="IsActive"
+               class="form-check-input" />
+
+        <label asp-for="IsActive"
+               class="form-check-label"></label>
+
+    </div>
+
+</div>
+
 <hr />
 
-<div class="d-flex justify-content-end">
+<div class="d-flex justify-content-end gap-2">
 
     <a asp-action="Index"
-       class="btn btn-secondary me-2">
+       class="btn btn-secondary">
 
         Cancel
 
     </a>
 
     <button type="submit"
+            id="itemSaveButton"
             class="btn btn-primary">
 
-        <i class="fa-solid fa-floppy-disk"></i>
+        <i class="fa-solid fa-floppy-disk me-1"></i>
 
-        @(Model.ItemId == 0 ? "Save Item" : "Update Item")
+        @(Model.ItemId == 0
+                ? "Save Item"
+                : "Update Item")
 
     </button>
 

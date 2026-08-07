@@ -1,7 +1,18 @@
-﻿@model List<AjayIndustriesERP.Domain.Entities.Item>
+﻿@model List<AjayIndustriesERP.Domain.Entities.Shape>
+
+@*
+==============================================================
+
+File : Index.cshtml
+
+Purpose :
+Displays searchable and paginated Shape Master records.
+
+==============================================================
+*@
 
 @{
-    ViewData["Title"] = "Item Management";
+    ViewData["Title"] = "Shape Management";
 }
 
 <div class="container-fluid">
@@ -12,11 +23,11 @@
         <div>
 
             <h2 class="fw-bold mb-1">
-                Item Management
+                Shape Management
             </h2>
 
             <p class="text-muted mb-0">
-                Manage Item Master records.
+                Manage material and Item Shapes.
             </p>
 
         </div>
@@ -26,7 +37,7 @@
 
             <i class="fa-solid fa-plus me-1"></i>
 
-            Add Item
+            Add Shape
 
         </a>
 
@@ -50,12 +61,8 @@
 
                             <th>#</th>
                             <th>Code</th>
-                            <th>Item Name</th>
-                            <th>Category</th>
-                            <th>Brand</th>
-                            <th>UOM</th>
-                            <th>Shape</th>
-                            <th>Specifications</th>
+                            <th>Shape Name</th>
+                            <th>Description</th>
                             <th>Status</th>
 
                             <th class="text-center"
@@ -82,7 +89,7 @@
                             var serialNumber =
                                 ((pageNumber - 1) * pageSize) + 1;
 
-                            foreach (var item in Model)
+                            foreach (var shape in Model)
                             {
                                 <tr>
 
@@ -93,100 +100,27 @@
                                     <td>
 
                                         <span class="fw-semibold">
-                                            @item.ItemCode
+                                            @shape.ShapeCode
                                         </span>
 
                                     </td>
 
                                     <td>
-                                        @item.ItemName
-                                    </td>
-
-                                    <td>
-                                        @item.ItemCategory.CategoryName
-                                    </td>
-
-                                    <td>
-                                        @item.Brand.BrandName
-                                    </td>
-
-                                    <td>
-                                        @item.Uom.UomCode
+                                        @shape.ShapeName
                                     </td>
 
                                     <td>
 
-                                        @if (item.Shape != null)
-                                        {
-                                            @item.Shape.ShapeName
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">
-                                                -
-                                            </span>
-                                        }
+                                        @(string.IsNullOrWhiteSpace(
+                                            shape.Description)
+                                                ? "-"
+                                                : shape.Description)
 
                                     </td>
 
-                                    <td style="min-width: 260px;">
-
-    @{
-        var specifications =
-            item.ItemSpecifications
-                .Where(x => !x.IsDeleted)
-                .OrderBy(x => x.SortOrder)
-                .ToList();
-    }
-
-    @if (specifications.Any())
-    {
-        <div class="d-flex flex-wrap gap-1">
-
-            @foreach (var specification
-                in specifications.Take(3))
-            {
-                var uomText =
-                    specification.Uom != null
-                        ? $" {specification.Uom.UomCode}"
-                        : string.Empty;
-
-                <span class="badge bg-light
-                             text-dark border
-                             fw-normal">
-
-                    <strong>
-                        @specification.Specification.SpecificationName:
-                    </strong>
-
-                    @specification.SpecificationValue@uomText
-
-                </span>
-            }
-
-            @if (specifications.Count > 3)
-            {
-                <span class="badge bg-secondary">
-
-                    +@(specifications.Count - 3) more
-
-                </span>
-            }
-
-        </div>
-    }
-    else
-    {
-        <span class="text-muted">
-            -
-        </span>
-    }
-
-</td>
-
                                     <td>
 
-                                        @if (item.IsActive)
+                                        @if (shape.IsActive)
                                         {
                                             <span class="badge bg-success">
                                                 Active
@@ -204,8 +138,9 @@
                                     <td class="text-center">
 
                                         <a asp-action="Details"
-                                           asp-route-id="@item.ItemId"
-                                           class="btn btn-sm btn-outline-info"
+                                           asp-route-id="@shape.ShapeId"
+                                           class="btn btn-sm
+                                                  btn-outline-info"
                                            title="View">
 
                                             <i class="fa-solid fa-eye"></i>
@@ -213,8 +148,9 @@
                                         </a>
 
                                         <a asp-action="Edit"
-                                           asp-route-id="@item.ItemId"
-                                           class="btn btn-sm btn-outline-warning"
+                                           asp-route-id="@shape.ShapeId"
+                                           class="btn btn-sm
+                                                  btn-outline-warning"
                                            title="Edit">
 
                                             <i class="fa-solid fa-pen"></i>
@@ -222,15 +158,16 @@
                                         </a>
 
                                         <button type="button"
-                                                class="btn btn-sm btn-outline-danger"
+                                                class="btn btn-sm
+                                                       btn-outline-danger"
                                                 title="Delete"
                                                 onclick="confirmDelete(
                                                     '@Url.Action(
                                                         "Delete",
-                                                        "Item",
+                                                        "Shape",
                                                         new
                                                         {
-                                                            id = item.ItemId
+                                                            id = shape.ShapeId
                                                         })')">
 
                                             <i class="fa-solid fa-trash"></i>
@@ -248,17 +185,17 @@
                         {
                             <tr>
 
-                                <td colspan="10"
+                                <td colspan="6"
                                     class="text-center
                                            text-muted py-5">
 
                                     <i class="fa-solid
-                                              fa-box-open
+                                              fa-shapes
                                               fa-2x mb-2">
                                     </i>
 
                                     <div>
-                                        No Item records found.
+                                        No Shape records found.
                                     </div>
 
                                 </td>

@@ -1,0 +1,56 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Shape.ShapeViewModel
+
+@*
+==============================================================
+
+File : Edit.cshtml
+
+Purpose :
+Updates an existing Shape Master record.
+
+==============================================================
+*@
+
+@{
+    ViewData["Title"] = "Edit Shape";
+}
+
+<div class="container-fluid">
+
+    <div class="mb-4">
+
+        <h2 class="fw-bold mb-1">
+            Edit Shape
+        </h2>
+
+        <p class="text-muted mb-0">
+            Update Shape Master information.
+        </p>
+
+    </div>
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-body">
+
+            <form asp-action="Edit"
+                  method="post">
+
+                <partial name="_Form"
+                         model="Model" />
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/shape-form.js"
+            asp-append-version="true"></script>
+}

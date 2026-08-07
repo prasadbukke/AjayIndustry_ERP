@@ -4,6 +4,7 @@ using AjayIndustriesERP.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AjayIndustriesERP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260807152519_AddShapeToItemMaster")]
+    partial class AddShapeToItemMaster
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -315,6 +318,7 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                         .IsUnique();
 
                     b.HasIndex("ItemName")
+                        .IsUnique()
                         .HasFilter("[IsDeleted] = 0");
 
                     b.HasIndex("ShapeId");
@@ -378,65 +382,6 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                     b.ToTable("ItemCategories", (string)null);
                 });
 
-            modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.ItemSpecification", b =>
-                {
-                    b.Property<int>("ItemSpecificationId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ItemSpecificationId"));
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("ItemId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("ModifiedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SpecificationId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SpecificationValue")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<int?>("UomId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ItemSpecificationId");
-
-                    b.HasIndex("SpecificationId");
-
-                    b.HasIndex("UomId");
-
-                    b.HasIndex("ItemId", "SpecificationId")
-                        .IsUnique()
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.ToTable("ItemSpecifications", (string)null);
-                });
-
             modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.Shape", b =>
                 {
                     b.Property<int>("ShapeId")
@@ -490,61 +435,6 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                         .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("Shapes", (string)null);
-                });
-
-            modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.Specification", b =>
-                {
-                    b.Property<int>("SpecificationId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SpecificationId"));
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("ModifiedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SpecificationCode")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("SpecificationName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("SpecificationId");
-
-                    b.HasIndex("SpecificationCode")
-                        .IsUnique();
-
-                    b.HasIndex("SpecificationName")
-                        .IsUnique()
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.ToTable("Specifications", (string)null);
                 });
 
             modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.Uom", b =>
@@ -695,37 +585,6 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                     b.Navigation("Shape");
 
                     b.Navigation("Uom");
-                });
-
-            modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.ItemSpecification", b =>
-                {
-                    b.HasOne("AjayIndustriesERP.Domain.Entities.Item", "Item")
-                        .WithMany("ItemSpecifications")
-                        .HasForeignKey("ItemId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("AjayIndustriesERP.Domain.Entities.Specification", "Specification")
-                        .WithMany()
-                        .HasForeignKey("SpecificationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("AjayIndustriesERP.Domain.Entities.Uom", "Uom")
-                        .WithMany()
-                        .HasForeignKey("UomId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Item");
-
-                    b.Navigation("Specification");
-
-                    b.Navigation("Uom");
-                });
-
-            modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.Item", b =>
-                {
-                    b.Navigation("ItemSpecifications");
                 });
 #pragma warning restore 612, 618
         }

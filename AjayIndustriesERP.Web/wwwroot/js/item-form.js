@@ -4,221 +4,218 @@
 File : item-form.js
 
 Purpose :
-Handles Item searchable dropdowns, Quick Create modal,
-live master suggestions and similar Item Name warnings.
+Handles Item Master client-side functionality.
+
+Features :
+- Select2 Master dropdowns
+- Category Quick Add
+- Brand Quick Add
+- UOM Quick Add
+- Shape Quick Add
+- Specification Quick Add
+- Quick Master similar-name detection
+- Existing Master selection
+- Dynamic Item Specification rows
+- Duplicate Specification prevention
+- Item similar-name detection
 
 ==============================================================
 */
 
-(function ($) {
+(function () {
     "use strict";
 
     let activeMasterSelect = null;
-    let quickMasterModal = null;
-    let suggestionTimer = null;
-    let suggestionRequest = null;
+    let quickSuggestionTimer = null;
+    let quickSuggestionRequest = null;
+    let itemNameTimer = null;
+    let itemNameRequest = null;
+    let dynamicRowCounter = 0;
 
-    $(document).ready(function () {
+    document.addEventListener(
+        "DOMContentLoaded",
+        initializeItemForm
+    );
 
-        initializeMasterDropdowns();
-        initializeQuickMasterEvents();
-        initializeSimilarItemCheck();
+    function initializeItemForm() {
 
-    });
+        initializeMasterSelects(document);
 
-    /*
-    ==========================================================
-    Searchable Dropdowns
-    ==========================================================
-    */
+        initializeDynamicSpecifications();
 
-    function initializeMasterDropdowns() {
+        initializeQuickMasterModal();
 
-        $(".js-master-select").each(function () {
+        initializeItemNameCheck();
 
-            const $select = $(this);
+        updateSpecificationSortOrders();
 
-            if ($select.hasClass("select2-hidden-accessible")) {
-                $select.select2("destroy");
-            }
-
-            const selectId =
-                $select.attr("id") || "";
-
-            const placeholder =
-                $select.attr("data-placeholder") ||
-                "-- Select --";
-
-            const masterType =
-                $select.attr("data-master-type") || "";
-
-            const addLabel =
-                $select.attr("data-add-label") ||
-                "Add New";
-
-            $select.select2({
-                width: "100%",
-                placeholder: placeholder,
-                allowClear: true,
-                minimumResultsForSearch: 0,
-
-                language: {
-                    noResults: function () {
-
-                        return `
-                            <div class="select2-add-master-wrapper">
-
-                                <div class="text-muted small
-                                            px-2 pt-2 pb-1">
-
-                                    No records found.
-
-                                </div>
-
-                                <button type="button"
-                                        class="btn btn-link
-                                               text-decoration-none
-                                               text-start
-                                               w-100
-                                               px-2 py-2
-                                               js-open-quick-master"
-                                        data-select-id="${escapeHtml(selectId)}"
-                                        data-master-type="${escapeHtml(masterType)}"
-                                        data-add-label="${escapeHtml(addLabel)}">
-
-                                    <i class="fa-solid fa-plus me-1"></i>
-
-                                    ${escapeHtml(addLabel)}
-
-                                </button>
-
-                            </div>
-                        `;
-                    }
-                },
-
-                escapeMarkup: function (markup) {
-                    return markup;
-                }
-            });
-        });
+        updateSpecificationEmptyState();
     }
 
-    /*
-    ==========================================================
-    Event Registration
-    ==========================================================
-    */
+    // =========================================================
+    // SELECT2 MASTER DROPDOWNS
+    // =========================================================
 
-    function initializeQuickMasterEvents() {
+    function initializeMasterSelects(container) {
 
-        document.addEventListener(
-            "pointerdown",
-            handleQuickMasterOpen,
-            true
-        );
+        if (!window.jQuery ||
+            !jQuery.fn.select2) {
 
-        document.addEventListener(
-            "input",
-            handleQuickMasterNameInput
-        );
-
-        document.addEventListener(
-            "change",
-            handleQuickConfirmationChange
-        );
-
-        document.addEventListener(
-            "click",
-            handleExistingMasterSelection
-        );
-
-        document.addEventListener(
-            "submit",
-            handleQuickMasterSubmit
-        );
-
-        const modalElement =
-            document.getElementById(
-                "quickAddMasterModal"
-            );
-
-        if (modalElement) {
-
-            modalElement.addEventListener(
-                "hidden.bs.modal",
-                resetQuickMasterModal
-            );
-        }
-    }
-
-    /*
-    ==========================================================
-    Open Modal
-    ==========================================================
-    */
-
-    function handleQuickMasterOpen(event) {
-
-        const openButton =
-            event.target.closest(
-                ".js-open-quick-master"
-            );
-
-        if (!openButton) {
             return;
         }
 
-        event.preventDefault();
-        event.stopPropagation();
+        const $container =
+            jQuery(container);
 
-        const selectId =
-            openButton.getAttribute(
-                "data-select-id"
-            );
+        $container
+            .find(".js-master-select")
+            .each(function () {
+
+                initializeMasterSelect(
+                    jQuery(this)
+                );
+            });
+    }
+
+    function initializeMasterSelect($select) {
+
+        if ($select.hasClass(
+            "select2-hidden-accessible")) {
+
+            return;
+        }
+
+        const placeholder =
+            $select.data("placeholder") ||
+            "-- Select --";
 
         const masterType =
-            openButton.getAttribute(
-                "data-master-type"
-            );
+            $select.data("master-type") ||
+            "";
 
-        const modalTitle =
-            openButton.getAttribute(
-                "data-add-label"
-            ) || "Add Master";
+        const addLabel =
+            $select.data("add-label") ||
+            "Add New";
 
-        const selectElement =
-            document.getElementById(selectId);
+        ensureSelectId($select);
 
-        if (!selectElement || !masterType) {
-            return;
-        }
+        $select.select2({
 
-        activeMasterSelect =
-            $(selectElement);
+            width: "100%",
 
-        const searchedName =
-            $(".select2-container--open " +
-                ".select2-search__field")
-                .val()
-                ?.toString()
-                .trim() || "";
+            placeholder:
+                placeholder,
 
-        activeMasterSelect.select2("close");
+            allowClear: true,
 
-        configureQuickMasterModal(
-            masterType,
-            modalTitle,
-            searchedName
+            language: {
+
+                noResults: function () {
+
+                    if (!masterType) {
+
+                        return "No results found";
+                    }
+
+                    const selectId =
+                        $select.attr("id");
+
+                    const searchedText =
+                        String(
+                            $select.data(
+                                "last-search"
+                            ) || ""
+                        ).trim();
+
+                    return `
+                        <button type="button"
+                                class="btn btn-link
+                                       text-decoration-none
+                                       p-1
+                                       js-open-quick-master"
+                                data-select-id="${escapeHtml(selectId)}"
+                                data-master-type="${escapeHtml(masterType)}"
+                                data-search-text="${escapeHtml(searchedText)}">
+                            <i class="fa-solid fa-plus me-1"></i>
+                            ${escapeHtml(addLabel)}
+                        </button>
+                    `;
+                }
+            },
+
+            escapeMarkup:
+                function (markup) {
+                    return markup;
+                }
+        });
+
+        $select.on(
+            "select2:open",
+            function () {
+
+                activeMasterSelect =
+                    $select;
+
+                setTimeout(
+                    function () {
+
+                        const searchInput =
+                            document.querySelector(
+                                ".select2-container--open " +
+                                ".select2-search__field"
+                            );
+
+                        if (!searchInput) {
+                            return;
+                        }
+
+                        $select.data(
+                            "last-search",
+                            searchInput.value || ""
+                        );
+
+                        searchInput.addEventListener(
+                            "input",
+                            function () {
+
+                                $select.data(
+                                    "last-search",
+                                    searchInput.value || ""
+                                );
+                            }
+                        );
+
+                    },
+                    0
+                );
+            }
         );
     }
 
-    function configureQuickMasterModal(
-        masterType,
-        modalTitle,
-        searchedName) {
+    function ensureSelectId($select) {
 
-        const modalElement =
+        if ($select.attr("id")) {
+            return;
+        }
+
+        dynamicRowCounter++;
+
+        $select.attr(
+            "id",
+            "masterSelect_" +
+            Date.now() +
+            "_" +
+            dynamicRowCounter
+        );
+    }
+
+    // =========================================================
+    // QUICK MASTER MODAL
+    // =========================================================
+
+    function initializeQuickMasterModal() {
+
+        const modal =
             document.getElementById(
                 "quickAddMasterModal"
             );
@@ -228,16 +225,194 @@ live master suggestions and similar Item Name warnings.
                 "quickCreateMasterForm"
             );
 
-        if (!modalElement || !form) {
+        if (!modal || !form) {
+            return;
+        }
+
+        document.addEventListener(
+            "click",
+            function (event) {
+
+                const button =
+                    event.target.closest(
+                        ".js-open-quick-master"
+                    );
+
+                if (!button) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                const selectId =
+                    button.getAttribute(
+                        "data-select-id"
+                    );
+
+                if (selectId &&
+                    window.jQuery) {
+
+                    const selectedControl =
+                        document.getElementById(
+                            selectId
+                        );
+
+                    if (selectedControl) {
+
+                        activeMasterSelect =
+                            jQuery(
+                                selectedControl
+                            );
+                    }
+                }
+
+                if (!activeMasterSelect ||
+                    activeMasterSelect.length === 0) {
+
+                    return;
+                }
+
+                const masterType =
+                    button.getAttribute(
+                        "data-master-type"
+                    ) ||
+                    activeMasterSelect.data(
+                        "master-type"
+                    );
+
+                const searchText =
+                    button.getAttribute(
+                        "data-search-text"
+                    ) ||
+                    activeMasterSelect.data(
+                        "last-search"
+                    ) ||
+                    "";
+
+                openQuickMasterModal(
+                    masterType,
+                    searchText
+                );
+            }
+        );
+
+        const nameInput =
+            document.getElementById(
+                "QuickMasterName"
+            );
+
+        if (nameInput) {
+
+            nameInput.addEventListener(
+                "input",
+                function () {
+
+                    clearTimeout(
+                        quickSuggestionTimer
+                    );
+
+                    resetQuickConfirmation();
+
+                    const name =
+                        nameInput.value.trim();
+
+                    if (name.length < 3) {
+
+                        clearQuickSuggestions();
+
+                        return;
+                    }
+
+                    quickSuggestionTimer =
+                        setTimeout(
+                            loadQuickSuggestions,
+                            450
+                        );
+                }
+            );
+        }
+
+        const confirmCheckbox =
+            document.getElementById(
+                "QuickConfirmSimilarName"
+            );
+
+        if (confirmCheckbox) {
+
+            confirmCheckbox.addEventListener(
+                "change",
+                refreshQuickSaveButton
+            );
+        }
+
+        document.addEventListener(
+            "click",
+            function (event) {
+
+                const button =
+                    event.target.closest(
+                        ".js-use-existing-master"
+                    );
+
+                if (!button) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                const id =
+                    button.getAttribute(
+                        "data-id"
+                    );
+
+                const text =
+                    button.getAttribute(
+                        "data-text"
+                    );
+
+                selectMasterValue(
+                    id,
+                    text
+                );
+
+                hideQuickMasterModal();
+            }
+        );
+
+        form.addEventListener(
+            "submit",
+            submitQuickMasterForm
+        );
+    }
+
+    function openQuickMasterModal(
+        masterType,
+        searchText) {
+
+        const modal =
+            document.getElementById(
+                "quickAddMasterModal"
+            );
+
+        const form =
+            document.getElementById(
+                "quickCreateMasterForm"
+            );
+
+        if (!modal || !form) {
             return;
         }
 
         form.reset();
 
         clearQuickSuggestions();
-        clearQuickMasterErrors();
 
-        const typeInput =
+        const normalizedType =
+            normalizeMasterType(
+                masterType
+            );
+
+        const masterTypeInput =
             document.getElementById(
                 "QuickMasterType"
             );
@@ -247,9 +422,9 @@ live master suggestions and similar Item Name warnings.
                 "QuickRequiresCode"
             );
 
-        const codeContainer =
+        const nameInput =
             document.getElementById(
-                "QuickCodeContainer"
+                "QuickMasterName"
             );
 
         const codeInput =
@@ -257,9 +432,313 @@ live master suggestions and similar Item Name warnings.
                 "QuickMasterCode"
             );
 
-        const codeLabel =
+        const codeContainer =
             document.getElementById(
-                "QuickCodeLabel"
+                "QuickCodeContainer"
+            );
+
+        const modalTitle =
+            modal.querySelector(
+                ".modal-title"
+            );
+
+        const nameLabel =
+            modal.querySelector(
+                "label[for='QuickMasterName']"
+            );
+
+        const codeLabel =
+            modal.querySelector(
+                "label[for='QuickMasterCode']"
+            );
+
+        const config =
+            getMasterConfiguration(
+                normalizedType
+            );
+
+        if (!config) {
+            return;
+        }
+
+        if (masterTypeInput) {
+
+            masterTypeInput.value =
+                config.masterType;
+        }
+
+        if (requiresCodeInput) {
+
+            requiresCodeInput.value =
+                config.requiresCode
+                    ? "true"
+                    : "false";
+        }
+
+        if (modalTitle) {
+
+            modalTitle.textContent =
+                config.title;
+        }
+
+        if (nameLabel) {
+
+            nameLabel.innerHTML =
+                `${escapeHtml(config.nameLabel)}
+                 <span class="text-danger">*</span>`;
+        }
+
+        if (nameInput) {
+
+            nameInput.value =
+                String(searchText || "").trim();
+
+            nameInput.placeholder =
+                config.namePlaceholder;
+        }
+
+        if (codeLabel) {
+
+            codeLabel.innerHTML =
+                config.requiresCode
+                    ? `${escapeHtml(config.codeLabel)}
+                       <span class="text-danger">*</span>`
+                    : escapeHtml(
+                        config.codeLabel
+                    );
+        }
+
+        if (codeInput) {
+
+            codeInput.value = "";
+
+            codeInput.required =
+                config.requiresCode;
+
+            codeInput.placeholder =
+                config.codePlaceholder ||
+                "";
+        }
+
+        if (codeContainer) {
+
+            codeContainer.classList.toggle(
+                "d-none",
+                !config.requiresCode
+            );
+        }
+
+        resetQuickConfirmation();
+
+        const bootstrapModal =
+            bootstrap.Modal
+                .getOrCreateInstance(
+                    modal
+                );
+
+        bootstrapModal.show();
+
+        setTimeout(
+            function () {
+
+                if (nameInput) {
+
+                    nameInput.focus();
+
+                    if (nameInput.value) {
+
+                        nameInput.dispatchEvent(
+                            new Event("input")
+                        );
+                    }
+                }
+
+            },
+            250
+        );
+    }
+
+    function getMasterConfiguration(
+        masterType) {
+
+        switch (
+        normalizeMasterType(masterType)
+        ) {
+
+            case "Category":
+
+                return {
+                    masterType:
+                        "Category",
+
+                    title:
+                        "Add Category",
+
+                    nameLabel:
+                        "Category Name",
+
+                    namePlaceholder:
+                        "Enter Category Name",
+
+                    codeLabel:
+                        "Category Code",
+
+                    codePlaceholder:
+                        "",
+
+                    requiresCode:
+                        false
+                };
+
+            case "Brand":
+
+                return {
+                    masterType:
+                        "Brand",
+
+                    title:
+                        "Add Brand",
+
+                    nameLabel:
+                        "Brand Name",
+
+                    namePlaceholder:
+                        "Enter Brand Name",
+
+                    codeLabel:
+                        "Brand Code",
+
+                    codePlaceholder:
+                        "",
+
+                    requiresCode:
+                        false
+                };
+
+            case "Uom":
+
+                return {
+                    masterType:
+                        "Uom",
+
+                    title:
+                        "Add UOM",
+
+                    nameLabel:
+                        "UOM Name",
+
+                    namePlaceholder:
+                        "Enter UOM Name",
+
+                    codeLabel:
+                        "UOM Code",
+
+                    codePlaceholder:
+                        "Example: MM, KG, NOS",
+
+                    requiresCode:
+                        true
+                };
+
+            case "Shape":
+
+                return {
+                    masterType:
+                        "Shape",
+
+                    title:
+                        "Add Shape",
+
+                    nameLabel:
+                        "Shape Name",
+
+                    namePlaceholder:
+                        "Enter Shape Name",
+
+                    codeLabel:
+                        "Shape Code",
+
+                    codePlaceholder:
+                        "",
+
+                    requiresCode:
+                        false
+                };
+
+            case "Specification":
+
+                return {
+                    masterType:
+                        "Specification",
+
+                    title:
+                        "Add Specification",
+
+                    nameLabel:
+                        "Specification Name",
+
+                    namePlaceholder:
+                        "Example: Diameter",
+
+                    codeLabel:
+                        "Specification Code",
+
+                    codePlaceholder:
+                        "",
+
+                    requiresCode:
+                        false
+                };
+
+            default:
+
+                return null;
+        }
+    }
+
+    function normalizeMasterType(
+        masterType) {
+
+        const value =
+            String(masterType || "")
+                .trim()
+                .toLowerCase();
+
+        switch (value) {
+
+            case "category":
+            case "itemcategory":
+                return "Category";
+
+            case "brand":
+                return "Brand";
+
+            case "uom":
+            case "unit":
+                return "Uom";
+
+            case "shape":
+                return "Shape";
+
+            case "specification":
+            case "specifications":
+                return "Specification";
+
+            default:
+                return "";
+        }
+    }
+
+    async function loadQuickSuggestions() {
+
+        const modal =
+            document.getElementById(
+                "quickAddMasterModal"
+            );
+
+        const typeInput =
+            document.getElementById(
+                "QuickMasterType"
             );
 
         const nameInput =
@@ -267,207 +746,67 @@ live master suggestions and similar Item Name warnings.
                 "QuickMasterName"
             );
 
-        const nameLabel =
-            document.getElementById(
-                "QuickNameLabel"
-            );
-
-        const titleElement =
-            document.getElementById(
-                "quickAddMasterModalLabel"
-            );
-
-        const isUom =
-            masterType.toLowerCase() === "uom";
-
-        typeInput.value =
-            masterType;
-
-        requiresCodeInput.value =
-            isUom ? "true" : "false";
-
-        codeContainer.classList.toggle(
-            "d-none",
-            !isUom
-        );
-
-        codeInput.required =
-            isUom;
-
-        if (!isUom) {
-            codeInput.value = "";
-        }
-
-        titleElement.textContent =
-            modalTitle;
-
-        switch (masterType.toLowerCase()) {
-
-            case "category":
-
-                nameLabel.innerHTML =
-                    'Category Name <span class="text-danger">*</span>';
-
-                nameInput.placeholder =
-                    "Enter Category Name";
-
-                codeLabel.innerHTML =
-                    'Category Code <span class="text-danger">*</span>';
-
-                break;
-
-            case "brand":
-
-                nameLabel.innerHTML =
-                    'Brand Name <span class="text-danger">*</span>';
-
-                nameInput.placeholder =
-                    "Enter Brand Name";
-
-                codeLabel.innerHTML =
-                    'Brand Code <span class="text-danger">*</span>';
-
-                break;
-
-            case "uom":
-
-                nameLabel.innerHTML =
-                    'UOM Name <span class="text-danger">*</span>';
-
-                nameInput.placeholder =
-                    "Enter UOM Name";
-
-                codeLabel.innerHTML =
-                    'UOM Code <span class="text-danger">*</span>';
-
-                codeInput.placeholder =
-                    "Example: KG, NOS, MTR";
-
-                break;
-        }
-
-        nameInput.value =
-            searchedName;
-
-        quickMasterModal =
-            bootstrap.Modal.getOrCreateInstance(
-                modalElement
-            );
-
-        quickMasterModal.show();
-
-        setTimeout(function () {
-
-            nameInput.focus();
-
-            if (searchedName.length >= 3) {
-
-                nameInput.dispatchEvent(
-                    new Event(
-                        "input",
-                        {
-                            bubbles: true
-                        }
-                    )
-                );
-            }
-
-        }, 200);
-
-        refreshQuickSaveButton();
-    }
-
-    /*
-    ==========================================================
-    Live Suggestions
-    ==========================================================
-    */
-
-    function handleQuickMasterNameInput(event) {
-
-        if (event.target.id !==
-            "QuickMasterName") {
+        if (!modal ||
+            !typeInput ||
+            !nameInput) {
 
             return;
         }
 
-        clearTimeout(suggestionTimer);
+        const name =
+            nameInput.value.trim();
 
-        resetQuickSimilarConfirmation();
-
-        const enteredName =
-            event.target.value.trim();
-
-        if (enteredName.length < 3) {
+        if (name.length < 3) {
 
             clearQuickSuggestions();
 
             return;
         }
 
-        suggestionTimer =
-            setTimeout(function () {
-
-                loadQuickSuggestions(
-                    enteredName
-                );
-
-            }, 450);
-    }
-
-    async function loadQuickSuggestions(
-        enteredName) {
-
-        const modalElement =
-            document.getElementById(
-                "quickAddMasterModal"
-            );
-
-        const masterType =
-            document.getElementById(
-                "QuickMasterType"
-            )?.value || "";
-
-        const suggestionsUrl =
-            modalElement?.getAttribute(
+        const url =
+            modal.getAttribute(
                 "data-suggestions-url"
             );
 
-        if (!suggestionsUrl ||
-            !masterType) {
-
+        if (!url) {
             return;
         }
 
-        if (suggestionRequest) {
-            suggestionRequest.abort();
+        if (quickSuggestionRequest) {
+
+            quickSuggestionRequest.abort();
         }
 
-        suggestionRequest =
+        quickSuggestionRequest =
             new AbortController();
 
         const requestUrl =
-            suggestionsUrl +
+            url +
             "?masterType=" +
-            encodeURIComponent(masterType) +
+            encodeURIComponent(
+                typeInput.value
+            ) +
             "&name=" +
-            encodeURIComponent(enteredName);
+            encodeURIComponent(name);
 
         try {
 
             const response =
-                await fetch(requestUrl, {
-                    method: "GET",
-                    cache: "no-store",
-                    signal:
-                        suggestionRequest.signal,
-                    headers: {
-                        "X-Requested-With":
-                            "XMLHttpRequest"
+                await fetch(
+                    requestUrl,
+                    {
+                        cache:
+                            "no-store",
+
+                        signal:
+                            quickSuggestionRequest.signal
                     }
-                });
+                );
 
             if (!response.ok) {
+
+                clearQuickSuggestions();
+
                 return;
             }
 
@@ -480,13 +819,16 @@ live master suggestions and similar Item Name warnings.
 
         } catch (error) {
 
-            if (error.name !== "AbortError") {
+            if (error.name !==
+                "AbortError") {
+
                 clearQuickSuggestions();
             }
         }
     }
 
-    function renderQuickSuggestions(records) {
+    function renderQuickSuggestions(
+        records) {
 
         const container =
             document.getElementById(
@@ -508,548 +850,130 @@ live master suggestions and similar Item Name warnings.
                 "quickSimilarConfirmationContainer"
             );
 
-        if (!container ||
-            !list ||
-            !exactMessage ||
-            !confirmationContainer) {
+        const confirmCheckbox =
+            document.getElementById(
+                "QuickConfirmSimilarName"
+            );
 
+        if (!container || !list) {
             return;
         }
 
         list.innerHTML = "";
 
-        if (!records || records.length === 0) {
+        if (!records ||
+            records.length === 0) {
 
             clearQuickSuggestions();
 
             return;
         }
 
-        const hasExactMatch =
-            records.some(
-                x => x.isExactMatch
-            );
+        let hasExactMatch = false;
 
-        records.forEach(function (record) {
+        records.forEach(
+            function (record) {
 
-            list.appendChild(
-                createSuggestionElement(record)
-            );
-        });
+                if (record.isExactMatch) {
+
+                    hasExactMatch = true;
+                }
+
+                const button =
+                    document.createElement(
+                        "button"
+                    );
+
+                button.type =
+                    "button";
+
+                button.className =
+                    "list-group-item " +
+                    "list-group-item-action " +
+                    "js-use-existing-master";
+
+                button.setAttribute(
+                    "data-id",
+                    record.id
+                );
+
+                button.setAttribute(
+                    "data-text",
+                    record.displayText
+                );
+
+                const row =
+                    document.createElement(
+                        "div"
+                    );
+
+                row.className =
+                    "d-flex " +
+                    "justify-content-between " +
+                    "align-items-center gap-2";
+
+                const text =
+                    document.createElement(
+                        "span"
+                    );
+
+                text.textContent =
+                    record.displayText;
+
+                const badge =
+                    document.createElement(
+                        "span"
+                    );
+
+                badge.className =
+                    record.isExactMatch
+                        ? "badge bg-danger"
+                        : "badge bg-warning text-dark";
+
+                badge.textContent =
+                    record.isExactMatch
+                        ? "Exact"
+                        : "Similar";
+
+                row.appendChild(text);
+                row.appendChild(badge);
+
+                button.appendChild(row);
+
+                list.appendChild(button);
+            }
+        );
 
         container.classList.remove(
             "d-none"
         );
 
-        exactMessage.classList.toggle(
-            "d-none",
-            !hasExactMatch
-        );
+        if (exactMessage) {
 
-        confirmationContainer.classList.toggle(
-            "d-none",
-            hasExactMatch
-        );
+            exactMessage.classList.toggle(
+                "d-none",
+                !hasExactMatch
+            );
+        }
+
+        if (confirmationContainer) {
+
+            confirmationContainer
+                .classList
+                .toggle(
+                    "d-none",
+                    hasExactMatch
+                );
+        }
+
+        if (hasExactMatch &&
+            confirmCheckbox) {
+
+            confirmCheckbox.checked =
+                false;
+        }
 
         refreshQuickSaveButton();
-    }
-
-    function createSuggestionElement(record) {
-
-        const wrapper =
-            document.createElement("div");
-
-        wrapper.className =
-            "list-group-item";
-
-        const row =
-            document.createElement("div");
-
-        row.className =
-            "d-flex justify-content-between " +
-            "align-items-center gap-2";
-
-        const information =
-            document.createElement("div");
-
-        const title =
-            document.createElement("div");
-
-        title.className =
-            "fw-semibold";
-
-        title.textContent =
-            record.displayText;
-
-        const badge =
-            document.createElement("span");
-
-        if (record.isExactMatch) {
-
-            badge.className =
-                "badge bg-danger mt-1";
-
-            badge.textContent =
-                "Exact duplicate";
-
-        } else {
-
-            badge.className =
-                "badge bg-warning text-dark mt-1";
-
-            badge.textContent =
-                "Similar name";
-        }
-
-        information.appendChild(title);
-        information.appendChild(badge);
-
-        const selectButton =
-            document.createElement("button");
-
-        selectButton.type =
-            "button";
-
-        selectButton.className =
-            "btn btn-sm btn-outline-primary " +
-            "js-select-existing-master";
-
-        selectButton.setAttribute(
-            "data-existing-id",
-            record.id
-        );
-
-        selectButton.setAttribute(
-            "data-existing-text",
-            record.displayText
-        );
-
-        selectButton.textContent =
-            "Select Existing";
-
-        row.appendChild(information);
-        row.appendChild(selectButton);
-
-        wrapper.appendChild(row);
-
-        return wrapper;
-    }
-
-    /*
-    ==========================================================
-    Confirmation
-    ==========================================================
-    */
-
-    function handleQuickConfirmationChange(event) {
-
-        if (event.target.id !==
-            "QuickSimilarConfirmationCheckbox") {
-
-            return;
-        }
-
-        const hiddenInput =
-            document.getElementById(
-                "QuickConfirmSimilarName"
-            );
-
-        hiddenInput.value =
-            event.target.checked
-                ? "true"
-                : "false";
-
-        refreshQuickSaveButton();
-    }
-
-    function resetQuickSimilarConfirmation() {
-
-        const checkbox =
-            document.getElementById(
-                "QuickSimilarConfirmationCheckbox"
-            );
-
-        const hiddenInput =
-            document.getElementById(
-                "QuickConfirmSimilarName"
-            );
-
-        if (checkbox) {
-            checkbox.checked = false;
-        }
-
-        if (hiddenInput) {
-            hiddenInput.value = "false";
-        }
-    }
-
-    function refreshQuickSaveButton() {
-
-        const saveButton =
-            document.getElementById(
-                "quickCreateMasterSaveButton"
-            );
-
-        if (!saveButton ||
-            saveButton.dataset.saving === "true") {
-
-            return;
-        }
-
-        const exactMessage =
-            document.getElementById(
-                "quickExactDuplicateMessage"
-            );
-
-        const confirmationContainer =
-            document.getElementById(
-                "quickSimilarConfirmationContainer"
-            );
-
-        const confirmationCheckbox =
-            document.getElementById(
-                "QuickSimilarConfirmationCheckbox"
-            );
-
-        const hasExactDuplicate =
-            exactMessage &&
-            !exactMessage.classList.contains(
-                "d-none"
-            );
-
-        const confirmationRequired =
-            confirmationContainer &&
-            !confirmationContainer.classList.contains(
-                "d-none"
-            );
-
-        const confirmed =
-            confirmationCheckbox?.checked ||
-            false;
-
-        saveButton.disabled =
-            hasExactDuplicate ||
-            (
-                confirmationRequired &&
-                !confirmed
-            );
-    }
-
-    /*
-    ==========================================================
-    Existing Master Selection
-    ==========================================================
-    */
-
-    function handleExistingMasterSelection(event) {
-
-        const button =
-            event.target.closest(
-                ".js-select-existing-master"
-            );
-
-        if (!button) {
-            return;
-        }
-
-        event.preventDefault();
-
-        selectMasterValue(
-            button.getAttribute(
-                "data-existing-id"
-            ),
-            button.getAttribute(
-                "data-existing-text"
-            )
-        );
-
-        quickMasterModal?.hide();
-    }
-
-    /*
-    ==========================================================
-    AJAX Save
-    ==========================================================
-    */
-
-    async function handleQuickMasterSubmit(event) {
-
-        if (event.target.id !==
-            "quickCreateMasterForm") {
-
-            return;
-        }
-
-        event.preventDefault();
-
-        const form =
-            event.target;
-
-        clearQuickMasterErrors();
-
-        if (!form.checkValidity()) {
-
-            form.reportValidity();
-
-            return;
-        }
-
-        const saveButton =
-            document.getElementById(
-                "quickCreateMasterSaveButton"
-            );
-
-        if (saveButton.disabled) {
-            return;
-        }
-
-        const originalHtml =
-            saveButton.innerHTML;
-
-        saveButton.dataset.saving =
-            "true";
-
-        saveButton.disabled =
-            true;
-
-        saveButton.innerHTML = `
-            <span class="spinner-border
-                         spinner-border-sm
-                         me-1">
-            </span>
-
-            Saving...
-        `;
-
-        try {
-
-            const response =
-                await fetch(form.action, {
-                    method: "POST",
-                    body: new FormData(form),
-                    headers: {
-                        "X-Requested-With":
-                            "XMLHttpRequest"
-                    }
-                });
-
-            const result =
-                await response.json();
-
-            if (result.records) {
-
-                renderQuickSuggestions(
-                    result.records
-                );
-            }
-
-            if (response.ok &&
-                result.success) {
-
-                selectMasterValue(
-                    result.id,
-                    result.text
-                );
-
-                quickMasterModal?.hide();
-
-                if (typeof toastr !==
-                    "undefined") {
-
-                    toastr.success(
-                        result.message ||
-                        "Record created successfully."
-                    );
-                }
-
-                return;
-            }
-
-            showQuickMasterErrors(
-                result.errors,
-                result.message
-            );
-
-        } catch {
-
-            showQuickMasterErrors(
-                null,
-                "Something went wrong. Please try again."
-            );
-
-        } finally {
-
-            saveButton.dataset.saving =
-                "false";
-
-            saveButton.innerHTML =
-                originalHtml;
-
-            refreshQuickSaveButton();
-        }
-    }
-
-    /*
-    ==========================================================
-    Dropdown Value Selection
-    ==========================================================
-    */
-
-    function selectMasterValue(
-        value,
-        displayText) {
-
-        if (!activeMasterSelect ||
-            !value) {
-
-            return;
-        }
-
-        const stringValue =
-            value.toString();
-
-        let option =
-            activeMasterSelect.find(
-                "option"
-            ).filter(function () {
-
-                return this.value ===
-                    stringValue;
-            });
-
-        if (option.length === 0) {
-
-            option =
-                new Option(
-                    displayText,
-                    stringValue,
-                    true,
-                    true
-                );
-
-            activeMasterSelect.append(
-                option
-            );
-        }
-
-        activeMasterSelect
-            .val(stringValue)
-            .trigger("change");
-    }
-
-    /*
-    ==========================================================
-    Modal Reset
-    ==========================================================
-    */
-
-    function resetQuickMasterModal() {
-
-        clearTimeout(suggestionTimer);
-
-        if (suggestionRequest) {
-
-            suggestionRequest.abort();
-
-            suggestionRequest = null;
-        }
-
-        const form =
-            document.getElementById(
-                "quickCreateMasterForm"
-            );
-
-        if (form) {
-            form.reset();
-        }
-
-        const codeContainer =
-            document.getElementById(
-                "QuickCodeContainer"
-            );
-
-        const codeInput =
-            document.getElementById(
-                "QuickMasterCode"
-            );
-
-        codeContainer?.classList.add(
-            "d-none"
-        );
-
-        if (codeInput) {
-            codeInput.required = false;
-        }
-
-        clearQuickSuggestions();
-        clearQuickMasterErrors();
-
-        activeMasterSelect = null;
-    }
-
-    /*
-    ==========================================================
-    Error Helpers
-    ==========================================================
-    */
-
-    function showQuickMasterErrors(
-        errors,
-        message) {
-
-        const summary =
-            document.getElementById(
-                "quickCreateValidationSummary"
-            );
-
-        if (!summary) {
-            return;
-        }
-
-        const messages =
-            Array.isArray(errors) &&
-                errors.length > 0
-                ? errors
-                : [
-                    message ||
-                    "Unable to save the record."
-                ];
-
-        const list =
-            document.createElement("ul");
-
-        list.className =
-            "mb-0";
-
-        messages.forEach(function (text) {
-
-            const item =
-                document.createElement("li");
-
-            item.textContent =
-                text;
-
-            list.appendChild(item);
-        });
-
-        summary.innerHTML = "";
-        summary.appendChild(list);
-        summary.classList.remove("d-none");
-    }
-
-    function clearQuickMasterErrors() {
-
-        const summary =
-            document.getElementById(
-                "quickCreateValidationSummary"
-            );
-
-        if (!summary) {
-            return;
-        }
-
-        summary.innerHTML = "";
-        summary.classList.add("d-none");
     }
 
     function clearQuickSuggestions() {
@@ -1078,168 +1002,1004 @@ live master suggestions and similar Item Name warnings.
             list.innerHTML = "";
         }
 
-        container?.classList.add(
-            "d-none"
-        );
+        if (container) {
 
-        exactMessage?.classList.add(
-            "d-none"
-        );
+            container.classList.add(
+                "d-none"
+            );
+        }
 
-        confirmationContainer?.classList.add(
-            "d-none"
-        );
+        if (exactMessage) {
 
-        resetQuickSimilarConfirmation();
+            exactMessage.classList.add(
+                "d-none"
+            );
+        }
+
+        if (confirmationContainer) {
+
+            confirmationContainer
+                .classList
+                .add("d-none");
+        }
+
         refreshQuickSaveButton();
     }
 
-    /*
-    ==========================================================
-    Item Similar-Name Check
-    ==========================================================
-    */
+    function resetQuickConfirmation() {
 
-    function initializeSimilarItemCheck() {
-
-        const itemNameInput =
+        const checkbox =
             document.getElementById(
-                "ItemName"
+                "QuickConfirmSimilarName"
             );
 
-        const warningContainer =
+        if (checkbox) {
+
+            checkbox.checked =
+                false;
+        }
+
+        clearQuickSuggestions();
+    }
+
+    function refreshQuickSaveButton() {
+
+        const button =
             document.getElementById(
-                "similarItemWarning"
+                "quickCreateMasterSaveButton"
             );
 
-        const similarItemList =
+        const exactMessage =
             document.getElementById(
-                "similarItemList"
+                "quickExactDuplicateMessage"
             );
 
-        const confirmationCheckbox =
+        const confirmationContainer =
             document.getElementById(
-                "ConfirmSimilarItemName"
+                "quickSimilarConfirmationContainer"
             );
 
-        if (!itemNameInput ||
-            !warningContainer ||
-            !similarItemList ||
-            !confirmationCheckbox) {
+        const confirmation =
+            document.getElementById(
+                "QuickConfirmSimilarName"
+            );
+
+        if (!button) {
+            return;
+        }
+
+        const exactExists =
+            exactMessage &&
+            !exactMessage.classList
+                .contains("d-none");
+
+        const confirmationRequired =
+            confirmationContainer &&
+            !confirmationContainer
+                .classList
+                .contains("d-none");
+
+        button.disabled =
+            Boolean(exactExists) ||
+            Boolean(
+                confirmationRequired &&
+                confirmation &&
+                !confirmation.checked
+            );
+    }
+
+    async function submitQuickMasterForm(
+        event) {
+
+        event.preventDefault();
+
+        const form =
+            event.currentTarget;
+
+        const saveButton =
+            document.getElementById(
+                "quickCreateMasterSaveButton"
+            );
+
+        if (saveButton) {
+
+            saveButton.disabled =
+                true;
+        }
+
+        try {
+
+            const response =
+                await fetch(
+                    form.action,
+                    {
+                        method:
+                            "POST",
+
+                        body:
+                            new FormData(form),
+
+                        headers: {
+                            "X-Requested-With":
+                                "XMLHttpRequest"
+                        }
+                    }
+                );
+
+            const result =
+                await response.json();
+
+            if (response.ok &&
+                result.success) {
+
+                selectMasterValue(
+                    result.id,
+                    result.text
+                );
+
+                hideQuickMasterModal();
+
+                showSuccess(
+                    result.message ||
+                    "Record created successfully."
+                );
+
+                return;
+            }
+
+            if (result.records) {
+
+                renderQuickSuggestions(
+                    result.records
+                );
+            }
+
+            showError(
+                result.message ||
+                "Unable to save record."
+            );
+
+        } catch (error) {
+
+            showError(
+                "Something went wrong. Please try again."
+            );
+
+        } finally {
+
+            refreshQuickSaveButton();
+        }
+    }
+
+    function selectMasterValue(
+        id,
+        text) {
+
+        if (!activeMasterSelect ||
+            activeMasterSelect.length === 0) {
 
             return;
         }
 
-        const similarNameUrl =
-            itemNameInput.dataset.similarUrl;
+        const stringId =
+            String(id);
 
-        let timer;
+        let option = null;
 
-        itemNameInput.addEventListener(
-            "input",
+        activeMasterSelect
+            .find("option")
+            .each(function () {
+
+                if (this.value ===
+                    stringId) {
+
+                    option = this;
+                }
+            });
+
+        if (!option) {
+
+            option =
+                new Option(
+                    text,
+                    stringId,
+                    true,
+                    true
+                );
+
+            activeMasterSelect.append(
+                option
+            );
+        }
+
+        activeMasterSelect
+            .val(stringId)
+            .trigger("change");
+
+        /*
+         * A newly created Specification must become
+         * available in all Specification rows.
+         */
+        const masterType =
+            normalizeMasterType(
+                activeMasterSelect.data(
+                    "master-type"
+                )
+            );
+
+        if (masterType ===
+            "Specification") {
+
+            synchronizeNewOption(
+                ".js-specification-select",
+                stringId,
+                text
+            );
+        }
+
+        if (masterType === "Uom") {
+
+            synchronizeNewOption(
+                ".js-specification-uom-select",
+                stringId,
+                text
+            );
+        }
+
+        validateDuplicateSpecifications();
+    }
+
+    function synchronizeNewOption(
+        selector,
+        value,
+        text) {
+
+        document
+            .querySelectorAll(selector)
+            .forEach(
+                function (select) {
+
+                    const exists =
+                        Array.from(
+                            select.options
+                        )
+                            .some(
+                                option =>
+                                    option.value ===
+                                    value
+                            );
+
+                    if (!exists) {
+
+                        select.add(
+                            new Option(
+                                text,
+                                value,
+                                false,
+                                false
+                            )
+                        );
+                    }
+                }
+            );
+    }
+
+    function hideQuickMasterModal() {
+
+        const modal =
+            document.getElementById(
+                "quickAddMasterModal"
+            );
+
+        if (!modal) {
+            return;
+        }
+
+        const instance =
+            bootstrap.Modal
+                .getInstance(modal);
+
+        if (instance) {
+            instance.hide();
+        }
+    }
+
+    // =========================================================
+    // DYNAMIC ITEM SPECIFICATIONS
+    // =========================================================
+
+    function initializeDynamicSpecifications() {
+
+        const addButton =
+            document.getElementById(
+                "addItemSpecificationButton"
+            );
+
+        const rowsContainer =
+            document.getElementById(
+                "itemSpecificationRows"
+            );
+
+        const template =
+            document.getElementById(
+                "itemSpecificationRowTemplate"
+            );
+
+        if (!addButton ||
+            !rowsContainer ||
+            !template) {
+
+            return;
+        }
+
+        addButton.addEventListener(
+            "click",
             function () {
 
-                clearTimeout(timer);
+                dynamicRowCounter++;
 
-                confirmationCheckbox.checked =
-                    false;
+                const key =
+                    "new_" +
+                    Date.now() +
+                    "_" +
+                    dynamicRowCounter;
 
-                const itemName =
-                    itemNameInput.value.trim();
+                const html =
+                    template.innerHTML
+                        .replaceAll(
+                            "__KEY__",
+                            key
+                        );
 
-                if (itemName.length < 3) {
-
-                    similarItemList.innerHTML = "";
-
-                    warningContainer.classList.add(
-                        "d-none"
+                const wrapper =
+                    document.createElement(
+                        "tbody"
                     );
+
+                wrapper.innerHTML =
+                    html.trim();
+
+                const newRow =
+                    wrapper.firstElementChild;
+
+                if (!newRow) {
+                    return;
+                }
+
+                rowsContainer.appendChild(
+                    newRow
+                );
+
+                initializeMasterSelects(
+                    newRow
+                );
+
+                updateSpecificationSortOrders();
+
+                updateSpecificationEmptyState();
+
+                const firstSelect =
+                    newRow.querySelector(
+                        ".js-specification-select"
+                    );
+
+                if (firstSelect &&
+                    window.jQuery &&
+                    jQuery.fn.select2) {
+
+                    jQuery(firstSelect)
+                        .select2("open");
+                }
+            }
+        );
+
+        rowsContainer.addEventListener(
+            "click",
+            function (event) {
+
+                const removeButton =
+                    event.target.closest(
+                        ".js-remove-specification"
+                    );
+
+                if (!removeButton) {
+                    return;
+                }
+
+                const row =
+                    removeButton.closest(
+                        ".item-specification-row"
+                    );
+
+                if (!row) {
+                    return;
+                }
+
+                destroySelect2InRow(row);
+
+                row.remove();
+
+                updateSpecificationSortOrders();
+
+                updateSpecificationEmptyState();
+
+                validateDuplicateSpecifications();
+            }
+        );
+
+        rowsContainer.addEventListener(
+            "change",
+            function (event) {
+
+                if (!event.target.classList
+                    .contains(
+                        "js-specification-select"
+                    )) {
 
                     return;
                 }
 
-                timer = setTimeout(
-                    async function () {
-
-                        const itemId =
-                            document.getElementById(
-                                "ItemId"
-                            )?.value || "";
-
-                        const requestUrl =
-                            similarNameUrl +
-                            "?itemName=" +
-                            encodeURIComponent(itemName) +
-                            "&itemId=" +
-                            encodeURIComponent(itemId);
-
-                        try {
-
-                            const response =
-                                await fetch(requestUrl);
-
-                            if (!response.ok) {
-                                return;
-                            }
-
-                            const result =
-                                await response.json();
-
-                            similarItemList.innerHTML =
-                                "";
-
-                            if (!result.hasSimilarItems) {
-
-                                warningContainer.classList.add(
-                                    "d-none"
-                                );
-
-                                return;
-                            }
-
-                            result.items.forEach(
-                                function (item) {
-
-                                    const listItem =
-                                        document.createElement(
-                                            "li"
-                                        );
-
-                                    listItem.textContent =
-                                        item;
-
-                                    similarItemList.appendChild(
-                                        listItem
-                                    );
-                                }
-                            );
-
-                            warningContainer.classList.remove(
-                                "d-none"
-                            );
-
-                        } catch {
-                            // Server validation remains active.
-                        }
-
-                    },
-                    500
+                validateDuplicateSpecifications(
+                    event.target
                 );
+            }
+        );
+
+        if (window.jQuery) {
+
+            jQuery(document).on(
+                "select2:select",
+                ".js-specification-select",
+                function () {
+
+                    validateDuplicateSpecifications(
+                        this
+                    );
+                }
+            );
+        }
+    }
+
+    function destroySelect2InRow(row) {
+
+        if (!window.jQuery ||
+            !jQuery.fn.select2) {
+
+            return;
+        }
+
+        jQuery(row)
+            .find(
+                ".select2-hidden-accessible"
+            )
+            .each(function () {
+
+                jQuery(this)
+                    .select2("destroy");
+            });
+    }
+
+    function updateSpecificationSortOrders() {
+
+        const rows =
+            document.querySelectorAll(
+                ".item-specification-row"
+            );
+
+        rows.forEach(
+            function (row, index) {
+
+                const input =
+                    row.querySelector(
+                        ".js-spec-sort-order"
+                    );
+
+                if (input) {
+
+                    input.value =
+                        index + 1;
+                }
             }
         );
     }
 
-    /*
-    ==========================================================
-    Security Helper
-    ==========================================================
-    */
+    function updateSpecificationEmptyState() {
+
+        const emptyRow =
+            document.getElementById(
+                "itemSpecificationEmptyRow"
+            );
+
+        if (!emptyRow) {
+            return;
+        }
+
+        const rowCount =
+            document.querySelectorAll(
+                ".item-specification-row"
+            ).length;
+
+        emptyRow.classList.toggle(
+            "d-none",
+            rowCount > 0
+        );
+    }
+
+    function validateDuplicateSpecifications(
+        changedSelect) {
+
+        const selectedValues =
+            new Map();
+
+        let duplicateFound =
+            false;
+
+        document
+            .querySelectorAll(
+                ".js-specification-select"
+            )
+            .forEach(
+                function (select) {
+
+                    const value =
+                        String(
+                            select.value || ""
+                        ).trim();
+
+                    if (!value) {
+                        return;
+                    }
+
+                    if (selectedValues
+                        .has(value)) {
+
+                        duplicateFound =
+                            true;
+
+                        if (changedSelect ===
+                            select) {
+
+                            if (window.jQuery &&
+                                jQuery.fn.select2) {
+
+                                jQuery(select)
+                                    .val(null)
+                                    .trigger(
+                                        "change.select2"
+                                    );
+
+                            } else {
+
+                                select.value = "";
+                            }
+
+                            showError(
+                                "The same Specification cannot be added more than once."
+                            );
+                        }
+
+                        return;
+                    }
+
+                    selectedValues.set(
+                        value,
+                        select
+                    );
+                }
+            );
+
+        return !duplicateFound;
+    }
+
+    // =========================================================
+    // ITEM NAME SIMILARITY
+    // =========================================================
+
+    function initializeItemNameCheck() {
+
+        const input =
+            document.getElementById(
+                "ItemName"
+            );
+
+        if (!input) {
+            return;
+        }
+
+        input.addEventListener(
+            "input",
+            function () {
+
+                clearTimeout(
+                    itemNameTimer
+                );
+
+                const value =
+                    input.value.trim();
+
+                const confirmation =
+                    document.getElementById(
+                        "ConfirmSimilarItemName"
+                    );
+
+                if (confirmation) {
+
+                    confirmation.checked =
+                        false;
+                }
+
+                if (value.length < 3) {
+
+                    clearItemSuggestions();
+
+                    return;
+                }
+
+                itemNameTimer =
+                    setTimeout(
+                        loadItemSuggestions,
+                        450
+                    );
+            }
+        );
+
+        const confirmation =
+            document.getElementById(
+                "ConfirmSimilarItemName"
+            );
+
+        if (confirmation) {
+
+            confirmation.addEventListener(
+                "change",
+                refreshItemSaveButton
+            );
+        }
+
+        refreshItemSaveButton();
+    }
+
+    async function loadItemSuggestions() {
+
+        const input =
+            document.getElementById(
+                "ItemName"
+            );
+
+        const itemId =
+            document.getElementById(
+                "ItemId"
+            );
+
+        if (!input) {
+            return;
+        }
+
+        const url =
+            input.getAttribute(
+                "data-similar-url"
+            );
+
+        const value =
+            input.value.trim();
+
+        if (!url ||
+            value.length < 3) {
+
+            return;
+        }
+
+        if (itemNameRequest) {
+
+            itemNameRequest.abort();
+        }
+
+        itemNameRequest =
+            new AbortController();
+
+        const requestUrl =
+            url +
+            "?itemName=" +
+            encodeURIComponent(value) +
+            "&itemId=" +
+            encodeURIComponent(
+                itemId?.value || ""
+            );
+
+        try {
+
+            const response =
+                await fetch(
+                    requestUrl,
+                    {
+                        cache:
+                            "no-store",
+
+                        signal:
+                            itemNameRequest.signal
+                    }
+                );
+
+            if (!response.ok) {
+                return;
+            }
+
+            const result =
+                await response.json();
+
+            renderItemSuggestions(
+                result
+            );
+
+        } catch (error) {
+
+            if (error.name !==
+                "AbortError") {
+
+                clearItemSuggestions();
+            }
+        }
+    }
+
+    function renderItemSuggestions(
+        result) {
+
+        const warning =
+            document.getElementById(
+                "similarItemWarning"
+            );
+
+        const list =
+            document.getElementById(
+                "similarItemList"
+            );
+
+        const sameNameMessage =
+            document.getElementById(
+                "itemExactDuplicateMessage"
+            );
+
+        const confirmationContainer =
+            document.getElementById(
+                "itemSimilarConfirmationContainer"
+            );
+
+        const confirmation =
+            document.getElementById(
+                "ConfirmSimilarItemName"
+            );
+
+        if (!warning || !list) {
+            return;
+        }
+
+        const items =
+            result.items || [];
+
+        if (!result.hasSimilarItems ||
+            items.length === 0) {
+
+            clearItemSuggestions();
+
+            return;
+        }
+
+        list.innerHTML = "";
+
+        items.forEach(
+            function (item) {
+
+                const li =
+                    document.createElement(
+                        "li"
+                    );
+
+                li.textContent =
+                    item;
+
+                list.appendChild(li);
+            }
+        );
+
+        warning.classList.remove(
+            "d-none"
+        );
+
+        /*
+         * Same Item Name is only informational.
+         *
+         * Final duplicate validation uses:
+         * Name + Shape + Specifications.
+         */
+        const hasSameName =
+            Boolean(
+                result.hasSameName
+            );
+
+        if (sameNameMessage) {
+
+            sameNameMessage.classList.toggle(
+                "d-none",
+                !hasSameName
+            );
+        }
+
+        /*
+         * Similar/same names still require the user
+         * to review existing Items.
+         */
+        if (confirmationContainer) {
+
+            confirmationContainer
+                .classList
+                .remove("d-none");
+        }
+
+        if (confirmation) {
+
+            confirmation.checked =
+                false;
+        }
+
+        refreshItemSaveButton();
+    }
+
+    function clearItemSuggestions() {
+
+        const warning =
+            document.getElementById(
+                "similarItemWarning"
+            );
+
+        const list =
+            document.getElementById(
+                "similarItemList"
+            );
+
+        const exactMessage =
+            document.getElementById(
+                "itemExactDuplicateMessage"
+            );
+
+        const confirmationContainer =
+            document.getElementById(
+                "itemSimilarConfirmationContainer"
+            );
+
+        const confirmation =
+            document.getElementById(
+                "ConfirmSimilarItemName"
+            );
+
+        if (list) {
+            list.innerHTML = "";
+        }
+
+        if (warning) {
+
+            warning.classList.add(
+                "d-none"
+            );
+        }
+
+        if (exactMessage) {
+
+            exactMessage.classList.add(
+                "d-none"
+            );
+        }
+
+        if (confirmationContainer) {
+
+            confirmationContainer
+                .classList
+                .remove("d-none");
+        }
+
+        if (confirmation) {
+
+            confirmation.checked =
+                false;
+        }
+
+        refreshItemSaveButton();
+    }
+
+    function refreshItemSaveButton() {
+
+        const saveButton =
+            document.getElementById(
+                "itemSaveButton"
+            );
+
+        const warning =
+            document.getElementById(
+                "similarItemWarning"
+            );
+
+        const confirmationContainer =
+            document.getElementById(
+                "itemSimilarConfirmationContainer"
+            );
+
+        const confirmation =
+            document.getElementById(
+                "ConfirmSimilarItemName"
+            );
+
+        if (!saveButton) {
+            return;
+        }
+
+        const warningVisible =
+            warning &&
+            !warning.classList
+                .contains("d-none");
+
+        const confirmationRequired =
+            warningVisible &&
+            confirmationContainer &&
+            !confirmationContainer
+                .classList
+                .contains("d-none");
+
+        /*
+         * Same Item Name does NOT disable Save.
+         *
+         * User only confirms that existing similar/same
+         * Items have been reviewed.
+         *
+         * Exact configuration duplicate is enforced
+         * securely by ItemService during Save.
+         */
+        saveButton.disabled =
+            Boolean(
+                confirmationRequired &&
+                confirmation &&
+                !confirmation.checked
+            );
+    }
+
+    // =========================================================
+    // NOTIFICATION HELPERS
+    // =========================================================
+
+    function showSuccess(message) {
+
+        if (window.toastr) {
+
+            toastr.success(message);
+
+            return;
+        }
+
+        console.log(message);
+    }
+
+    function showError(message) {
+
+        if (window.toastr) {
+
+            toastr.error(message);
+
+            return;
+        }
+
+        alert(message);
+    }
+
+    // =========================================================
+    // HTML HELPERS
+    // =========================================================
 
     function escapeHtml(value) {
 
-        return $("<div>")
-            .text(value || "")
-            .html();
+        return String(value || "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
     }
 
-})(jQuery);
+})();

@@ -1,0 +1,198 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Specification.SpecificationViewModel
+
+@*
+==============================================================
+
+File : _Form.cshtml
+
+Purpose :
+Common Create/Edit form for Specification Master.
+
+Features :
+- Live exact duplicate detection
+- Similar spelling warning
+- Similar-name confirmation
+- Create/Edit support
+
+==============================================================
+*@
+
+@{
+    var hasNameError =
+        ViewData.ModelState["SpecificationName"]?.Errors.Any() == true;
+
+    var hasServerSuggestions =
+        Model.SimilarSpecificationNames.Any();
+}
+
+<div asp-validation-summary="ModelOnly"
+     class="alert alert-danger"></div>
+
+<input asp-for="SpecificationId"
+       type="hidden" />
+
+<input asp-for="SpecificationCode"
+       type="hidden" />
+
+<div class="row">
+
+    @if (Model.SpecificationId > 0)
+    {
+        <div class="col-md-6 mb-3">
+
+            <label asp-for="SpecificationCode"
+                   class="form-label"></label>
+
+            <input value="@Model.SpecificationCode"
+                   class="form-control"
+                   readonly />
+
+        </div>
+    }
+
+    <div class="@(Model.SpecificationId > 0 ? "col-md-6" : "col-md-12") mb-3">
+
+        <label asp-for="SpecificationName"
+               class="form-label"></label>
+
+        <input asp-for="SpecificationName"
+               class="form-control"
+               autocomplete="off"
+               maxlength="100"
+               data-similar-url="@Url.Action("CheckSimilarName", "Specification")" />
+
+        <span asp-validation-for="SpecificationName"
+              class="text-danger"></span>
+
+        <div class="form-text">
+            Examples: Diameter, Thickness, Width, Length, Grade, Hardness.
+        </div>
+
+    </div>
+
+    <!-- Similar Name Warning -->
+
+    <div class="col-12 mb-3">
+
+        <div id="specificationSimilarWarning"
+             class="alert alert-warning
+                    @(!hasServerSuggestions ? "d-none" : string.Empty)">
+
+            <div class="fw-semibold mb-2">
+
+                <i class="fa-solid fa-triangle-exclamation me-1"></i>
+
+                Similar Specifications Found
+
+            </div>
+
+            <p class="mb-2">
+                Check whether this Specification already exists
+                or whether there is a spelling mistake.
+            </p>
+
+            <div id="specificationSimilarList"
+                 class="list-group mb-3">
+
+                @foreach (var specificationName
+                                in Model.SimilarSpecificationNames)
+                {
+                    <div class="list-group-item">
+                        @specificationName
+                    </div>
+                }
+
+            </div>
+
+            <div id="specificationExactDuplicateMessage"
+                 class="text-danger fw-semibold mb-2
+                        @(!hasNameError ? "d-none" : string.Empty)">
+
+                An exact Specification Name already exists.
+                Duplicate creation is not allowed.
+
+            </div>
+
+            <div id="specificationConfirmationContainer"
+                 class="form-check
+                        @(!hasServerSuggestions || hasNameError
+                                             ? "d-none"
+                                             : string.Empty)">
+
+                <input asp-for="ConfirmSimilarSpecificationName"
+                       class="form-check-input" />
+
+                <label asp-for="ConfirmSimilarSpecificationName"
+                       class="form-check-label">
+
+                    I checked the similar Specifications and still
+                    want to continue.
+
+                </label>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Description -->
+
+    <div class="col-12 mb-3">
+
+        <label asp-for="Description"
+               class="form-label"></label>
+
+        <textarea asp-for="Description"
+                  class="form-control"
+                  rows="3"
+                  maxlength="500"
+                  placeholder="Enter optional description"></textarea>
+
+        <span asp-validation-for="Description"
+              class="text-danger"></span>
+
+    </div>
+
+    <!-- Status -->
+
+    <div class="col-12 mb-4">
+
+        <div class="form-check form-switch">
+
+            <input asp-for="IsActive"
+                   class="form-check-input" />
+
+            <label asp-for="IsActive"
+                   class="form-check-label"></label>
+
+        </div>
+
+    </div>
+
+</div>
+
+<hr />
+
+<div class="d-flex justify-content-end gap-2">
+
+    <a asp-action="Index"
+       class="btn btn-secondary">
+
+        Cancel
+
+    </a>
+
+    <button type="submit"
+            class="btn btn-primary"
+            id="specificationSaveButton">
+
+        <i class="fa-solid fa-floppy-disk me-1"></i>
+
+        @(Model.SpecificationId == 0
+                ? "Save Specification"
+                : "Update Specification")
+
+    </button>
+
+</div>

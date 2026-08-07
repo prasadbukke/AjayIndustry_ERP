@@ -4,6 +4,7 @@ using AjayIndustriesERP.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AjayIndustriesERP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260807174335_AddSpecificationMasterAndItemSpecifications")]
+    partial class AddSpecificationMasterAndItemSpecifications
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -315,6 +318,7 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                         .IsUnique();
 
                     b.HasIndex("ItemName")
+                        .IsUnique()
                         .HasFilter("[IsDeleted] = 0");
 
                     b.HasIndex("ShapeId");
@@ -700,7 +704,7 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
             modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.ItemSpecification", b =>
                 {
                     b.HasOne("AjayIndustriesERP.Domain.Entities.Item", "Item")
-                        .WithMany("ItemSpecifications")
+                        .WithMany()
                         .HasForeignKey("ItemId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -721,11 +725,6 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                     b.Navigation("Specification");
 
                     b.Navigation("Uom");
-                });
-
-            modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.Item", b =>
-                {
-                    b.Navigation("ItemSpecifications");
                 });
 #pragma warning restore 612, 618
         }

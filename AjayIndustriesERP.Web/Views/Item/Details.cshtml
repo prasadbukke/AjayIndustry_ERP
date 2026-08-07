@@ -6,7 +6,17 @@
 File : Details.cshtml
 
 Purpose :
-Displays Item Master details.
+Displays complete Item Master information.
+
+Features :
+- Category
+- Brand
+- Main UOM
+- Shape
+- Description
+- Dynamic Item Specifications
+- Specification UOM
+- Status and audit information
 
 ==============================================================
 *@
@@ -17,133 +27,525 @@ Displays Item Master details.
 
 <div class="container-fluid">
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- =====================================================
+         PAGE HEADER
+    ====================================================== -->
+
+    <div class="d-flex justify-content-between
+                align-items-center mb-4">
 
         <div>
 
-            <h2 class="fw-bold mb-1">Item Details</h2>
+            <h2 class="fw-bold mb-1">
+                Item Details
+            </h2>
 
             <p class="text-muted mb-0">
-                View Item Master information.
+                View complete Item Master information.
             </p>
 
         </div>
 
-        <a asp-action="Index"
-           class="btn btn-secondary">
-
-            <i class="fa-solid fa-arrow-left"></i>
-
-            Back
-
-        </a>
-
-    </div>
-
-    <div class="card shadow-sm border-0">
-
-        <div class="card-body">
-
-            <dl class="row mb-0">
-
-                <dt class="col-md-3 mb-3">
-                    Item Code
-                </dt>
-
-                <dd class="col-md-9 mb-3">
-                    @Model.ItemCode
-                </dd>
-
-                <dt class="col-md-3 mb-3">
-                    Item Name
-                </dt>
-
-                <dd class="col-md-9 mb-3">
-                    @Model.ItemName
-                </dd>
-
-                <dt class="col-md-3 mb-3">
-                    Category
-                </dt>
-
-                <dd class="col-md-9 mb-3">
-                    @Model.ItemCategory.CategoryCode -
-                    @Model.ItemCategory.CategoryName
-                </dd>
-
-                <dt class="col-md-3 mb-3">
-                    Brand
-                </dt>
-
-                <dd class="col-md-9 mb-3">
-                    @Model.Brand.BrandCode -
-                    @Model.Brand.BrandName
-                </dd>
-
-                <dt class="col-md-3 mb-3">
-                    UOM
-                </dt>
-
-                <dd class="col-md-9 mb-3">
-                    @Model.Uom.UomCode -
-                    @Model.Uom.UomName
-                </dd>
-
-                <dt class="col-md-3 mb-3">
-                    Description
-                </dt>
-
-                <dd class="col-md-9 mb-3">
-                    @(string.IsNullOrWhiteSpace(Model.Description)
-                                        ? "-"
-                                        : Model.Description)
-                </dd>
-
-                <dt class="col-md-3 mb-3">
-                    Status
-                </dt>
-
-                <dd class="col-md-9 mb-3">
-
-                    @if (Model.IsActive)
-                    {
-                        <span class="badge bg-success">
-                            Active
-                        </span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-danger">
-                            Inactive
-                        </span>
-                    }
-
-                </dd>
-
-                <dt class="col-md-3 mb-3">
-                    Created On
-                </dt>
-
-                <dd class="col-md-9 mb-3">
-                    @Model.CreatedOn.ToLocalTime()
-                    .ToString("dd-MMM-yyyy hh:mm tt")
-                </dd>
-
-            </dl>
-
-        </div>
-
-        <div class="card-footer bg-white text-end">
+        <div class="d-flex gap-2">
 
             <a asp-action="Edit"
                asp-route-id="@Model.ItemId"
                class="btn btn-warning">
 
-                <i class="fa-solid fa-pen"></i>
+                <i class="fa-solid fa-pen me-1"></i>
 
                 Edit
 
             </a>
+
+            <a asp-action="Index"
+               class="btn btn-secondary">
+
+                <i class="fa-solid fa-arrow-left me-1"></i>
+
+                Back
+
+            </a>
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+         BASIC ITEM INFORMATION
+    ====================================================== -->
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-light">
+
+            <div class="fw-semibold">
+                Item Information
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="row">
+
+                <!-- Item Code -->
+
+                <div class="col-md-6 mb-3">
+
+                    <div class="text-muted small">
+                        Item Code
+                    </div>
+
+                    <div class="fw-semibold">
+                        @Model.ItemCode
+                    </div>
+
+                </div>
+
+                <!-- Item Name -->
+
+                <div class="col-md-6 mb-3">
+
+                    <div class="text-muted small">
+                        Item Name
+                    </div>
+
+                    <div class="fw-semibold">
+                        @Model.ItemName
+                    </div>
+
+                </div>
+
+                <!-- Category -->
+
+                <div class="col-md-3 mb-3">
+
+                    <div class="text-muted small">
+                        Category
+                    </div>
+
+                    <div>
+
+                        @if (Model.ItemCategory != null)
+                        {
+                            <span>
+                                @Model.ItemCategory.CategoryCode
+                                -
+                                @Model.ItemCategory.CategoryName
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">
+                                -
+                            </span>
+                        }
+
+                    </div>
+
+                </div>
+
+                <!-- Brand -->
+
+                <div class="col-md-3 mb-3">
+
+                    <div class="text-muted small">
+                        Brand
+                    </div>
+
+                    <div>
+
+                        @if (Model.Brand != null)
+                        {
+                            <span>
+                                @Model.Brand.BrandCode
+                                -
+                                @Model.Brand.BrandName
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">
+                                -
+                            </span>
+                        }
+
+                    </div>
+
+                </div>
+
+                <!-- Main UOM -->
+
+                <div class="col-md-3 mb-3">
+
+                    <div class="text-muted small">
+                        UOM
+                    </div>
+
+                    <div>
+
+                        @if (Model.Uom != null)
+                        {
+                            <span>
+                                @Model.Uom.UomCode
+                                -
+                                @Model.Uom.UomName
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">
+                                -
+                            </span>
+                        }
+
+                    </div>
+
+                </div>
+
+                <!-- Shape -->
+
+                <div class="col-md-3 mb-3">
+
+                    <div class="text-muted small">
+                        Shape
+                    </div>
+
+                    <div>
+
+                        @if (Model.Shape != null)
+                        {
+                            <span>
+                                @Model.Shape.ShapeCode
+                                -
+                                @Model.Shape.ShapeName
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">
+                                -
+                            </span>
+                        }
+
+                    </div>
+
+                </div>
+
+                <!-- Description -->
+
+                <div class="col-12 mb-3">
+
+                    <div class="text-muted small">
+                        Description
+                    </div>
+
+                    <div>
+
+                        @if (!string.IsNullOrWhiteSpace(
+                            Model.Description))
+                        {
+                            @Model.Description
+                        }
+                        else
+                        {
+                            <span class="text-muted">
+                                -
+                            </span>
+                        }
+
+                    </div>
+
+                </div>
+
+                <!-- Status -->
+
+                <div class="col-md-6 mb-2">
+
+                    <div class="text-muted small">
+                        Status
+                    </div>
+
+                    <div>
+
+                        @if (Model.IsActive)
+                        {
+                            <span class="badge bg-success">
+                                Active
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">
+                                Inactive
+                            </span>
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+         ITEM SPECIFICATIONS
+    ====================================================== -->
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-light">
+
+            <div class="d-flex justify-content-between
+                        align-items-center">
+
+                <div>
+
+                    <div class="fw-semibold">
+                        Item Specifications
+                    </div>
+
+                    <div class="small text-muted">
+                        Technical specifications assigned
+                        to this Item.
+                    </div>
+
+                </div>
+
+                @if (Model.ItemSpecifications.Any())
+                {
+                    <span class="badge bg-secondary">
+
+                        @Model.ItemSpecifications.Count
+                        Specification(s)
+
+                    </span>
+                }
+
+            </div>
+
+        </div>
+
+        <div class="card-body p-0">
+
+            @if (Model.ItemSpecifications.Any())
+            {
+                <div class="table-responsive">
+
+                    <table class="table table-hover
+                                  align-middle mb-0">
+
+                        <thead class="table-light">
+
+                            <tr>
+
+                                <th style="width:60px;">
+                                    #
+                                </th>
+
+                                <th>
+                                    Specification
+                                </th>
+
+                                <th>
+                                    Value
+                                </th>
+
+                                <th>
+                                    UOM
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            @{
+                                var serialNumber = 1;
+                            }
+
+                            @foreach (var specification
+                                in Model.ItemSpecifications
+                                    .OrderBy(x => x.SortOrder))
+                            {
+                                <tr>
+
+                                    <td>
+                                        @serialNumber
+                                    </td>
+
+                                    <td>
+
+                                        @if (specification.Specification != null)
+                                        {
+                                            <div class="fw-semibold">
+                                                @specification.Specification.SpecificationName
+                                            </div>
+
+                                            <div class="small text-muted">
+                                                @specification.Specification.SpecificationCode
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">
+                                                -
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                    <td>
+
+                                        <span class="fw-semibold">
+                                            @specification.SpecificationValue
+                                        </span>
+
+                                    </td>
+
+                                    <td>
+
+                                        @if (specification.Uom != null)
+                                        {
+                                            <span>
+                                                @specification.Uom.UomCode
+                                                -
+                                                @specification.Uom.UomName
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">
+                                                -
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                </tr>
+
+                                serialNumber++;
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+            }
+            else
+            {
+                <div class="text-center
+                            text-muted py-5">
+
+                    <i class="fa-solid fa-sliders
+                              fa-2x mb-2"></i>
+
+                    <div>
+                        No Specifications assigned to this Item.
+                    </div>
+
+                </div>
+            }
+
+        </div>
+
+    </div>
+
+    <!-- =====================================================
+         AUDIT INFORMATION
+    ====================================================== -->
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-header bg-light">
+
+            <div class="fw-semibold">
+                Audit Information
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="row">
+
+                <div class="col-md-3 mb-3">
+
+                    <div class="text-muted small">
+                        Created On
+                    </div>
+
+                    <div>
+
+                        @Model.CreatedOn
+                            .ToLocalTime()
+                            .ToString(
+                                "dd-MMM-yyyy hh:mm tt")
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-3 mb-3">
+
+                    <div class="text-muted small">
+                        Created By
+                    </div>
+
+                    <div>
+                        @Model.CreatedBy
+                    </div>
+
+                </div>
+
+                <div class="col-md-3 mb-3">
+
+                    <div class="text-muted small">
+                        Modified On
+                    </div>
+
+                    <div>
+
+                        @if (Model.ModifiedOn.HasValue)
+                        {
+                            @Model.ModifiedOn.Value.ToLocalTime().ToString(
+                                    "dd-MMM-yyyy hh:mm tt")
+                        }
+                        else
+                        {
+                            <span class="text-muted">
+                                -
+                            </span>
+                        }
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-3 mb-3">
+
+                    <div class="text-muted small">
+                        Modified By
+                    </div>
+
+                    <div>
+
+                        @(string.IsNullOrWhiteSpace(
+                            Model.ModifiedBy)
+                                ? "-"
+                                : Model.ModifiedBy)
+
+                    </div>
+
+                </div>
+
+            </div>
 
         </div>
 

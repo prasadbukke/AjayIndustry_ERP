@@ -29,6 +29,20 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         Task<string?> GetLastItemCodeAsync();
 
+        #region Duplicate Configuration Lookup
+
+        /// <summary>
+        /// Returns active Items having the same Item Name,
+        /// including their Shape and Specification rows.
+        ///
+        /// Used for final duplicate Item configuration validation.
+        /// </summary>
+        Task<List<Item>> GetByNameForDuplicateCheckAsync(
+            string itemName,
+            int? excludedItemId = null);
+
+        #endregion
+
         Task SaveChangesAsync();
     }
 }

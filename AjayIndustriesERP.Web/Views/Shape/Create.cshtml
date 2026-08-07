@@ -1,0 +1,56 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Shape.ShapeViewModel
+
+@*
+==============================================================
+
+File : Create.cshtml
+
+Purpose :
+Creates a new Shape Master record.
+
+==============================================================
+*@
+
+@{
+    ViewData["Title"] = "Create Shape";
+}
+
+<div class="container-fluid">
+
+    <div class="mb-4">
+
+        <h2 class="fw-bold mb-1">
+            Create Shape
+        </h2>
+
+        <p class="text-muted mb-0">
+            Add a new material or Item Shape.
+        </p>
+
+    </div>
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-body">
+
+            <form asp-action="Create"
+                  method="post">
+
+                <partial name="_Form"
+                         model="Model" />
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/shape-form.js"
+            asp-append-version="true"></script>
+}

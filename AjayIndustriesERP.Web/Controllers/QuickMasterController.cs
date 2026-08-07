@@ -4,15 +4,20 @@
 File : QuickMasterController.cs
 
 Purpose :
-Handles reusable AJAX Quick Create operations for
-Category, Brand and UOM masters.
+Handles reusable AJAX Quick Create operations.
+
+Supported Masters :
+- Category
+- Brand
+- UOM
+- Shape
 
 Features :
-- Loads Quick Create forms inside Bootstrap Modal.
-- Provides live exact/similar-name suggestions.
-- Blocks exact duplicates.
-- Requires confirmation for similar names.
-- Returns newly created record for automatic dropdown selection.
+- AJAX Create
+- Live similar-name suggestions
+- Exact duplicate blocking
+- Similar-name confirmation
+- Automatic dropdown selection
 
 ==============================================================
 */
@@ -27,45 +32,66 @@ using Microsoft.AspNetCore.Mvc;
 namespace AjayIndustriesERP.Web.Controllers
 {
     /// <summary>
-    /// Provides common Quick Create operations for masters
-    /// used inside transactional and relational forms.
+    /// Provides reusable Quick Master operations.
     /// </summary>
-
     public class QuickMasterController : Controller
     {
-        private const string CategoryType = "Category";
-        private const string BrandType = "Brand";
-        private const string UomType = "Uom";
+        private const string CategoryType =
+            "Category";
 
+        private const string BrandType =
+            "Brand";
 
+        private const string UomType =
+            "Uom";
 
-        private readonly IItemCategoryService _itemCategoryService;
-        private readonly IBrandService _brandService;
-        private readonly IUomService _uomService;
+        private const string ShapeType =
+            "Shape";
+
+        private const string SpecificationType =
+    "Specification";
+
+        private readonly IItemCategoryService
+            _itemCategoryService;
+
+        private readonly IBrandService
+            _brandService;
+
+        private readonly IUomService
+            _uomService;
+
+        private readonly IShapeService
+            _shapeService;
+
+        private readonly ISpecificationService
+    _specificationService;
 
         public QuickMasterController(
             IItemCategoryService itemCategoryService,
             IBrandService brandService,
-            IUomService uomService)
+            IUomService uomService,
+            IShapeService shapeService,
+            ISpecificationService specificationService)
         {
-            _itemCategoryService = itemCategoryService;
-            _brandService = brandService;
-            _uomService = uomService;
+            _itemCategoryService =
+                itemCategoryService;
+
+            _brandService =
+                brandService;
+
+            _uomService =
+                uomService;
+
+            _shapeService =
+                shapeService;
+
+            _specificationService = specificationService;
         }
-
-
-
-
-
-
-
-
 
         #region Live Suggestions
 
         /// <summary>
-        /// Returns exact and similar existing records while
-        /// the user types a master name.
+        /// Returns live exact and similar master records.
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> Suggestions(
@@ -74,6 +100,16 @@ namespace AjayIndustriesERP.Web.Controllers
         {
             var normalizedMasterType =
                 NormalizeMasterType(masterType);
+
+            if (string.IsNullOrWhiteSpace(
+                normalizedMasterType))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Invalid master type."
+                });
+            }
 
             if (string.IsNullOrWhiteSpace(name) ||
                 name.Trim().Length < 3)
@@ -102,14 +138,18 @@ namespace AjayIndustriesERP.Web.Controllers
             return Json(new
             {
                 success = true,
-                records = suggestions.Select(x => new
-                {
-                    id = x.Id,
-                    code = x.Code,
-                    name = x.Name,
-                    displayText = x.DisplayText,
-                    isExactMatch = x.IsExactMatch
-                })
+
+                records =
+                    suggestions.Select(x => new
+                    {
+                        id = x.Id,
+                        code = x.Code,
+                        name = x.Name,
+                        displayText =
+                            x.DisplayText,
+                        isExactMatch =
+                            x.IsExactMatch
+                    })
             });
         }
 
@@ -118,7 +158,7 @@ namespace AjayIndustriesERP.Web.Controllers
         #region Save Quick Master
 
         /// <summary>
-        /// Creates Category, Brand or UOM using the common modal.
+        /// Creates a master from the common Quick Create modal.
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -126,9 +166,11 @@ namespace AjayIndustriesERP.Web.Controllers
             QuickCreateMasterViewModel model)
         {
             model.MasterType =
-                NormalizeMasterType(model.MasterType);
+                NormalizeMasterType(
+                    model.MasterType);
 
-            if (string.IsNullOrWhiteSpace(model.MasterType))
+            if (string.IsNullOrWhiteSpace(
+                model.MasterType))
             {
                 return BadRequest(new
                 {
@@ -149,7 +191,7 @@ namespace AjayIndustriesERP.Web.Controllers
             NormalizeFormValues(model);
 
             /*
-             * Revalidate after trimming and normalizing the values.
+             * Rebuild validation after normalization.
              */
             ModelState.Clear();
 
@@ -159,19 +201,25 @@ namespace AjayIndustriesERP.Web.Controllers
 
             if (!ModelState.IsValid)
             {
-                var errors = ModelState
-                    .Where(x => x.Value?.Errors.Count > 0)
-                    .SelectMany(x => x.Value!.Errors)
-                    .Select(x => string.IsNullOrWhiteSpace(x.ErrorMessage)
-                        ? "Invalid value."
-                        : x.ErrorMessage)
-                    .Distinct()
-                    .ToList();
+                var errors =
+                    ModelState
+                        .Where(x =>
+                            x.Value?.Errors.Count > 0)
+                        .SelectMany(x =>
+                            x.Value!.Errors)
+                        .Select(x =>
+                            string.IsNullOrWhiteSpace(
+                                x.ErrorMessage)
+                                ? "Invalid value."
+                                : x.ErrorMessage)
+                        .Distinct()
+                        .ToList();
 
                 return BadRequest(new
                 {
                     success = false,
-                    message = "Please correct the validation errors.",
+                    message =
+                        "Please correct the validation errors.",
                     errors
                 });
             }
@@ -190,47 +238,58 @@ namespace AjayIndustriesERP.Web.Controllers
                 });
             }
 
-            var suggestionResponse = suggestions
-                .Select(x => new
-                {
-                    id = x.Id,
-                    code = x.Code,
-                    name = x.Name,
-                    displayText = x.DisplayText,
-                    isExactMatch = x.IsExactMatch
-                })
-                .ToList();
+            var suggestionResponse =
+                suggestions
+                    .Select(x => new
+                    {
+                        id = x.Id,
+                        code = x.Code,
+                        name = x.Name,
+                        displayText =
+                            x.DisplayText,
+                        isExactMatch =
+                            x.IsExactMatch
+                    })
+                    .ToList();
 
-            var exactMatches = suggestions
-                .Where(x => x.IsExactMatch)
-                .ToList();
+            var hasExactDuplicate =
+                suggestions.Any(
+                    x => x.IsExactMatch);
 
-            if (exactMatches.Count > 0)
+            if (hasExactDuplicate)
             {
                 return BadRequest(new
                 {
                     success = false,
+
                     message =
                         "A record with the same name already exists.",
+
                     isExactDuplicate = true,
-                    records = suggestionResponse
+
+                    records =
+                        suggestionResponse
                 });
             }
 
-            var similarMatches = suggestions
-                .Where(x => !x.IsExactMatch)
-                .ToList();
+            var hasSimilarRecords =
+                suggestions.Any(
+                    x => !x.IsExactMatch);
 
-            if (similarMatches.Count > 0 &&
+            if (hasSimilarRecords &&
                 !model.ConfirmSimilarName)
             {
                 return BadRequest(new
                 {
                     success = false,
+
                     message =
                         "Please review and confirm the similar records.",
+
                     requiresConfirmation = true,
-                    records = suggestionResponse
+
+                    records =
+                        suggestionResponse
                 });
             }
 
@@ -239,18 +298,29 @@ namespace AjayIndustriesERP.Web.Controllers
                 return model.MasterType switch
                 {
                     CategoryType =>
-                        await CreateCategoryAsync(model),
+                        await CreateCategoryAsync(
+                            model),
 
                     BrandType =>
-                        await CreateBrandAsync(model),
+                        await CreateBrandAsync(
+                            model),
 
                     UomType =>
-                        await CreateUomAsync(model),
+                        await CreateUomAsync(
+                            model),
+
+                    ShapeType =>
+                        await CreateShapeAsync(
+                            model),
+
+                    SpecificationType =>
+                        await CreateSpecificationAsync(model),
 
                     _ => BadRequest(new
                     {
                         success = false,
-                        message = "Invalid master type."
+                        message =
+                            "Invalid master type."
                     })
                 };
             }
@@ -265,10 +335,12 @@ namespace AjayIndustriesERP.Web.Controllers
             catch (Exception)
             {
                 return StatusCode(
-                    StatusCodes.Status500InternalServerError,
+                    StatusCodes
+                        .Status500InternalServerError,
                     new
                     {
                         success = false,
+
                         message =
                             "Something went wrong. Please try again."
                     });
@@ -279,65 +351,93 @@ namespace AjayIndustriesERP.Web.Controllers
 
         #region Create Individual Masters
 
-        private async Task<IActionResult> CreateCategoryAsync(
-            QuickCreateMasterViewModel model)
+        private async Task<IActionResult>
+            CreateCategoryAsync(
+                QuickCreateMasterViewModel model)
         {
-            var category = new ItemCategory
-            {
-                CategoryName = model.Name,
-                Description = model.Description,
-                IsActive = true
-            };
+            var category =
+                new ItemCategory
+                {
+                    CategoryName =
+                        model.Name,
 
-            await _itemCategoryService.CreateAsync(category);
+                    Description =
+                        model.Description,
+
+                    IsActive = true
+                };
+
+            await _itemCategoryService
+                .CreateAsync(category);
 
             return Json(new
             {
                 success = true,
                 masterType = CategoryType,
                 id = category.ItemCategoryId,
+
                 text =
                     $"{category.CategoryCode} - {category.CategoryName}",
-                message = "Category created successfully."
+
+                message =
+                    "Category created successfully."
             });
         }
 
-        private async Task<IActionResult> CreateBrandAsync(
-            QuickCreateMasterViewModel model)
+        private async Task<IActionResult>
+            CreateBrandAsync(
+                QuickCreateMasterViewModel model)
         {
-            var brand = new Brand
-            {
-                BrandName = model.Name,
-                Description = model.Description,
-                IsActive = true
-            };
+            var brand =
+                new Brand
+                {
+                    BrandName =
+                        model.Name,
 
-            await _brandService.CreateAsync(brand);
+                    Description =
+                        model.Description,
+
+                    IsActive = true
+                };
+
+            await _brandService
+                .CreateAsync(brand);
 
             return Json(new
             {
                 success = true,
                 masterType = BrandType,
                 id = brand.BrandId,
+
                 text =
                     $"{brand.BrandCode} - {brand.BrandName}",
-                message = "Brand created successfully."
+
+                message =
+                    "Brand created successfully."
             });
         }
 
-        private async Task<IActionResult> CreateUomAsync(
-            QuickCreateMasterViewModel model)
+        private async Task<IActionResult>
+            CreateUomAsync(
+                QuickCreateMasterViewModel model)
         {
-            var uom = new Uom
-            {
-                UomCode =
-                    model.Code?.Trim().ToUpperInvariant()
-                    ?? string.Empty,
+            var uom =
+                new Uom
+                {
+                    UomCode =
+                        model.Code?
+                            .Trim()
+                            .ToUpperInvariant()
+                        ?? string.Empty,
 
-                UomName = model.Name,
-                Description = model.Description,
-                IsActive = true
-            };
+                    UomName =
+                        model.Name,
+
+                    Description =
+                        model.Description,
+
+                    IsActive = true
+                };
 
             await _uomService.CreateAsync(uom);
 
@@ -346,9 +446,80 @@ namespace AjayIndustriesERP.Web.Controllers
                 success = true,
                 masterType = UomType,
                 id = uom.UomId,
+
                 text =
                     $"{uom.UomCode} - {uom.UomName}",
-                message = "UOM created successfully."
+
+                message =
+                    "UOM created successfully."
+            });
+        }
+
+        private async Task<IActionResult>
+            CreateShapeAsync(
+                QuickCreateMasterViewModel model)
+        {
+            var shape =
+                new Shape
+                {
+                    ShapeName =
+                        model.Name,
+
+                    Description =
+                        model.Description,
+
+                    IsActive = true
+                };
+
+            await _shapeService.CreateAsync(shape);
+
+            return Json(new
+            {
+                success = true,
+                masterType = ShapeType,
+                id = shape.ShapeId,
+
+                text =
+                    $"{shape.ShapeCode} - {shape.ShapeName}",
+
+                message =
+                    "Shape created successfully."
+            });
+        }
+        private async Task<IActionResult>
+    CreateSpecificationAsync(
+        QuickCreateMasterViewModel model)
+        {
+            var specification =
+                new Specification
+                {
+                    SpecificationName =
+                        model.Name,
+
+                    Description =
+                        model.Description,
+
+                    IsActive = true
+                };
+
+            await _specificationService
+                .CreateAsync(specification);
+
+            return Json(new
+            {
+                success = true,
+
+                masterType =
+                    SpecificationType,
+
+                id =
+                    specification.SpecificationId,
+
+                text =
+                    $"{specification.SpecificationCode} - {specification.SpecificationName}",
+
+                message =
+                    "Specification created successfully."
             });
         }
 
@@ -356,7 +527,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
         #region Similar Record Loading
 
-        private async Task<List<QuickCreateSuggestionViewModel>?>
+        private async Task<
+            List<QuickCreateSuggestionViewModel>?>
             GetSuggestionsAsync(
                 string masterType,
                 string enteredName)
@@ -365,87 +537,190 @@ namespace AjayIndustriesERP.Web.Controllers
             {
                 case CategoryType:
                     {
-                        var categories =
-                            (await _itemCategoryService.GetAllAsync())
+                        var records =
+                            (await _itemCategoryService
+                                .GetAllAsync())
                             .Where(x => x.IsActive)
                             .ToList();
 
                         var matches =
-                            NameSimilarityHelper.FindMatches(
-                                categories,
-                                enteredName,
-                                x => x.CategoryName,
-                                5);
+                            NameSimilarityHelper
+                                .FindMatches(
+                                    records,
+                                    enteredName,
+                                    x => x.CategoryName,
+                                    5);
 
                         return matches
                             .Select(x =>
                                 new QuickCreateSuggestionViewModel
                                 {
-                                    Id = x.ItemCategoryId,
-                                    Code = x.CategoryCode,
-                                    Name = x.CategoryName,
+                                    Id =
+                                        x.ItemCategoryId,
+
+                                    Code =
+                                        x.CategoryCode,
+
+                                    Name =
+                                        x.CategoryName,
+
                                     IsExactMatch =
-                                        NameSimilarityHelper.IsExactMatch(
-                                            enteredName,
-                                            x.CategoryName)
+                                        NameSimilarityHelper
+                                            .IsExactMatch(
+                                                enteredName,
+                                                x.CategoryName)
                                 })
                             .ToList();
                     }
 
                 case BrandType:
                     {
-                        var brands =
-                            (await _brandService.GetAllAsync())
+                        var records =
+                            (await _brandService
+                                .GetAllAsync())
                             .Where(x => x.IsActive)
                             .ToList();
 
                         var matches =
-                            NameSimilarityHelper.FindMatches(
-                                brands,
-                                enteredName,
-                                x => x.BrandName,
-                                5);
+                            NameSimilarityHelper
+                                .FindMatches(
+                                    records,
+                                    enteredName,
+                                    x => x.BrandName,
+                                    5);
 
                         return matches
                             .Select(x =>
                                 new QuickCreateSuggestionViewModel
                                 {
-                                    Id = x.BrandId,
-                                    Code = x.BrandCode,
-                                    Name = x.BrandName,
+                                    Id =
+                                        x.BrandId,
+
+                                    Code =
+                                        x.BrandCode,
+
+                                    Name =
+                                        x.BrandName,
+
                                     IsExactMatch =
-                                        NameSimilarityHelper.IsExactMatch(
-                                            enteredName,
-                                            x.BrandName)
+                                        NameSimilarityHelper
+                                            .IsExactMatch(
+                                                enteredName,
+                                                x.BrandName)
                                 })
                             .ToList();
                     }
 
                 case UomType:
                     {
-                        var uoms =
-                            (await _uomService.GetAllAsync())
+                        var records =
+                            (await _uomService
+                                .GetAllAsync())
                             .Where(x => x.IsActive)
                             .ToList();
 
                         var matches =
-                            NameSimilarityHelper.FindMatches(
-                                uoms,
-                                enteredName,
-                                x => x.UomName,
-                                5);
+                            NameSimilarityHelper
+                                .FindMatches(
+                                    records,
+                                    enteredName,
+                                    x => x.UomName,
+                                    5);
 
                         return matches
                             .Select(x =>
                                 new QuickCreateSuggestionViewModel
                                 {
-                                    Id = x.UomId,
-                                    Code = x.UomCode,
-                                    Name = x.UomName,
+                                    Id =
+                                        x.UomId,
+
+                                    Code =
+                                        x.UomCode,
+
+                                    Name =
+                                        x.UomName,
+
                                     IsExactMatch =
-                                        NameSimilarityHelper.IsExactMatch(
-                                            enteredName,
-                                            x.UomName)
+                                        NameSimilarityHelper
+                                            .IsExactMatch(
+                                                enteredName,
+                                                x.UomName)
+                                })
+                            .ToList();
+                    }
+
+                case ShapeType:
+                    {
+                        var records =
+                            (await _shapeService
+                                .GetAllAsync())
+                            .Where(x => x.IsActive)
+                            .ToList();
+
+                        var matches =
+                            NameSimilarityHelper
+                                .FindMatches(
+                                    records,
+                                    enteredName,
+                                    x => x.ShapeName,
+                                    5);
+
+                        return matches
+                            .Select(x =>
+                                new QuickCreateSuggestionViewModel
+                                {
+                                    Id =
+                                        x.ShapeId,
+
+                                    Code =
+                                        x.ShapeCode,
+
+                                    Name =
+                                        x.ShapeName,
+
+                                    IsExactMatch =
+                                        NameSimilarityHelper
+                                            .IsExactMatch(
+                                                enteredName,
+                                                x.ShapeName)
+                                })
+                            .ToList();
+                    }
+
+                case SpecificationType:
+                    {
+                        var records =
+                            (await _specificationService
+                                .GetAllAsync())
+                            .Where(x => x.IsActive)
+                            .ToList();
+
+                        var matches =
+                            NameSimilarityHelper
+                                .FindMatches(
+                                    records,
+                                    enteredName,
+                                    x => x.SpecificationName,
+                                    5);
+
+                        return matches
+                            .Select(x =>
+                                new QuickCreateSuggestionViewModel
+                                {
+                                    Id =
+                                        x.SpecificationId,
+
+                                    Code =
+                                        x.SpecificationCode,
+
+                                    Name =
+                                        x.SpecificationName,
+
+                                    IsExactMatch =
+                                        NameSimilarityHelper
+                                            .IsExactMatch(
+                                                enteredName,
+                                                x.SpecificationName)
                                 })
                             .ToList();
                     }
@@ -477,24 +752,83 @@ namespace AjayIndustriesERP.Web.Controllers
             switch (model.MasterType)
             {
                 case CategoryType:
-                    model.MasterTitle = "Add Category";
-                    model.NameLabel = "Category Name";
-                    model.CodeLabel = "Category Code";
-                    model.RequiresCode = false;
+
+                    model.MasterTitle =
+                        "Add Category";
+
+                    model.NameLabel =
+                        "Category Name";
+
+                    model.CodeLabel =
+                        "Category Code";
+
+                    model.RequiresCode =
+                        false;
+
                     return true;
 
                 case BrandType:
-                    model.MasterTitle = "Add Brand";
-                    model.NameLabel = "Brand Name";
-                    model.CodeLabel = "Brand Code";
-                    model.RequiresCode = false;
+
+                    model.MasterTitle =
+                        "Add Brand";
+
+                    model.NameLabel =
+                        "Brand Name";
+
+                    model.CodeLabel =
+                        "Brand Code";
+
+                    model.RequiresCode =
+                        false;
+
                     return true;
 
                 case UomType:
-                    model.MasterTitle = "Add UOM";
-                    model.NameLabel = "UOM Name";
-                    model.CodeLabel = "UOM Code";
-                    model.RequiresCode = true;
+
+                    model.MasterTitle =
+                        "Add UOM";
+
+                    model.NameLabel =
+                        "UOM Name";
+
+                    model.CodeLabel =
+                        "UOM Code";
+
+                    model.RequiresCode =
+                        true;
+
+                    return true;
+
+                case ShapeType:
+
+                    model.MasterTitle =
+                        "Add Shape";
+
+                    model.NameLabel =
+                        "Shape Name";
+
+                    model.CodeLabel =
+                        "Shape Code";
+
+                    model.RequiresCode =
+                        false;
+
+                    return true;
+
+                case SpecificationType:
+
+                    model.MasterTitle =
+                        "Add Specification";
+
+                    model.NameLabel =
+                        "Specification Name";
+
+                    model.CodeLabel =
+                        "Specification Code";
+
+                    model.RequiresCode =
+                        false;
+
                     return true;
 
                 default:
@@ -505,7 +839,8 @@ namespace AjayIndustriesERP.Web.Controllers
         private static string NormalizeMasterType(
             string? masterType)
         {
-            if (string.IsNullOrWhiteSpace(masterType))
+            if (string.IsNullOrWhiteSpace(
+                masterType))
             {
                 return string.Empty;
             }
@@ -514,12 +849,32 @@ namespace AjayIndustriesERP.Web.Controllers
                 .Trim()
                 .ToLowerInvariant() switch
             {
-                "category" => CategoryType,
-                "itemcategory" => CategoryType,
-                "brand" => BrandType,
-                "uom" => UomType,
-                "unit" => UomType,
-                _ => string.Empty
+                "category" =>
+                    CategoryType,
+
+                "itemcategory" =>
+                    CategoryType,
+
+                "brand" =>
+                    BrandType,
+
+                "uom" =>
+                    UomType,
+
+                "unit" =>
+                    UomType,
+
+                "shape" =>
+                    ShapeType,
+
+                "specification" =>
+                    SpecificationType,
+
+                "specifications" =>
+                    SpecificationType,
+
+                _ =>
+                    string.Empty
             };
         }
 
@@ -527,15 +882,20 @@ namespace AjayIndustriesERP.Web.Controllers
             QuickCreateMasterViewModel model)
         {
             model.Name =
-                model.Name?.Trim() ?? string.Empty;
+                model.Name?.Trim()
+                ?? string.Empty;
 
             model.Code =
-                string.IsNullOrWhiteSpace(model.Code)
+                string.IsNullOrWhiteSpace(
+                    model.Code)
                     ? null
-                    : model.Code.Trim().ToUpperInvariant();
+                    : model.Code
+                        .Trim()
+                        .ToUpperInvariant();
 
             model.Description =
-                string.IsNullOrWhiteSpace(model.Description)
+                string.IsNullOrWhiteSpace(
+                    model.Description)
                     ? null
                     : model.Description.Trim();
         }
@@ -543,8 +903,15 @@ namespace AjayIndustriesERP.Web.Controllers
         private void ValidateConditionalFields(
             QuickCreateMasterViewModel model)
         {
+            /*
+             * Only UOM requires a manually entered Code.
+             *
+             * Category, Brand and Shape Codes are
+             * generated automatically by their services.
+             */
             if (model.RequiresCode &&
-                string.IsNullOrWhiteSpace(model.Code))
+                string.IsNullOrWhiteSpace(
+                    model.Code))
             {
                 ModelState.AddModelError(
                     nameof(model.Code),
@@ -553,7 +920,5 @@ namespace AjayIndustriesERP.Web.Controllers
         }
 
         #endregion
-
-
     }
 }

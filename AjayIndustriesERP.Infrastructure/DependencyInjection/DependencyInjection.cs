@@ -41,6 +41,14 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
             services.AddScoped<IItemRepository, ItemRepository>();
             services.AddScoped<IItemService, ItemService>();
 
+            services.AddScoped<IShapeRepository, ShapeRepository>();
+            services.AddScoped<IShapeService, ShapeService>();
+
+            services.AddScoped<ISpecificationRepository, SpecificationRepository>();
+            services.AddScoped<ISpecificationService, SpecificationService>();
+
+            services.AddScoped<IItemSpecificationRepository, ItemSpecificationRepository>();
+
             return services;
         }
     }

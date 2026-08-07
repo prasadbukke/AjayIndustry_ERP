@@ -4,12 +4,15 @@
 File : ItemViewModel.cs
 
 Purpose :
-Represents Item Master form data.
+Represents Item Master Create/Edit form data.
 
-Notes :
-- Stock and Warehouse are managed in Inventory.
-- SimilarItemNames is used to warn about possible spelling
-  mistakes or duplicate-like Item Names.
+Features :
+- Category
+- Brand
+- UOM
+- Optional Shape
+- Dynamic Item Specifications
+- Similar Item Name validation
 
 ==============================================================
 */
@@ -21,7 +24,7 @@ using System.ComponentModel.DataAnnotations;
 namespace AjayIndustriesERP.Web.ViewModels.Item
 {
     /// <summary>
-    /// Represents Item Master Create and Edit form data.
+    /// Represents Item Master form data.
     /// </summary>
     public class ItemViewModel
     {
@@ -32,16 +35,20 @@ namespace AjayIndustriesERP.Web.ViewModels.Item
         [Display(Name = "Item Code")]
         public string? ItemCode { get; set; }
 
-        [Required(ErrorMessage = "Item Name is required.")]
+        [Required(
+            ErrorMessage = "Item Name is required.")]
         [StringLength(
             150,
-            ErrorMessage = "Item Name cannot exceed 150 characters.")]
+            ErrorMessage =
+                "Item Name cannot exceed 150 characters.")]
         [Display(Name = "Item Name")]
-        public string ItemName { get; set; } = string.Empty;
+        public string ItemName { get; set; } =
+            string.Empty;
 
         [StringLength(
             500,
-            ErrorMessage = "Description cannot exceed 500 characters.")]
+            ErrorMessage =
+                "Description cannot exceed 500 characters.")]
         [Display(Name = "Description")]
         public string? Description { get; set; }
 
@@ -70,6 +77,31 @@ namespace AjayIndustriesERP.Web.ViewModels.Item
         [Display(Name = "UOM")]
         public int UomId { get; set; }
 
+        /// <summary>
+        /// Optional physical Shape.
+        /// </summary>
+        [Display(Name = "Shape")]
+        public int? ShapeId { get; set; }
+
+        #endregion
+
+        #region Item Specifications
+
+        /// <summary>
+        /// Dynamic Specification rows assigned to the Item.
+        ///
+        /// Examples:
+        /// Diameter = 25 MM
+        /// Length   = 6000 MM
+        /// Grade    = EN8
+        /// </summary>
+        public List<ItemSpecificationRowViewModel>
+            ItemSpecifications
+        {
+            get;
+            set;
+        } = new();
+
         #endregion
 
         #region Status
@@ -79,33 +111,76 @@ namespace AjayIndustriesERP.Web.ViewModels.Item
 
         #endregion
 
-        #region Similar Name Confirmation
+        #region Similar Item Validation
 
-        /// <summary>
-        /// Indicates that the user has reviewed similar Item Names
-        /// and still wants to continue.
-        /// </summary>
-        [Display(Name = "Create item despite similar names")]
+        [Display(
+            Name = "Create item despite similar names")]
         public bool ConfirmSimilarItemName { get; set; }
 
-        /// <summary>
-        /// Contains Item Names that are similar to the entered name.
-        /// </summary>
         [ValidateNever]
-        public List<string> SimilarItemNames { get; set; } = new();
+        public List<string> SimilarItemNames
+        {
+            get;
+            set;
+        } = new();
 
         #endregion
 
-        #region Dropdown Lists
+        #region Main Dropdown Lists
 
         [ValidateNever]
-        public List<SelectListItem> Categories { get; set; } = new();
+        public List<SelectListItem> Categories
+        {
+            get;
+            set;
+        } = new();
 
         [ValidateNever]
-        public List<SelectListItem> Brands { get; set; } = new();
+        public List<SelectListItem> Brands
+        {
+            get;
+            set;
+        } = new();
 
         [ValidateNever]
-        public List<SelectListItem> Uoms { get; set; } = new();
+        public List<SelectListItem> Uoms
+        {
+            get;
+            set;
+        } = new();
+
+        [ValidateNever]
+        public List<SelectListItem> Shapes
+        {
+            get;
+            set;
+        } = new();
+
+        #endregion
+
+        #region Specification Dropdown Lists
+
+        /// <summary>
+        /// Available Specification Master records.
+        /// Used by every dynamic Specification row.
+        /// </summary>
+        [ValidateNever]
+        public List<SelectListItem> SpecificationOptions
+        {
+            get;
+            set;
+        } = new();
+
+        /// <summary>
+        /// Available UOM records for Specification values.
+        /// UOM remains optional.
+        /// </summary>
+        [ValidateNever]
+        public List<SelectListItem> SpecificationUoms
+        {
+            get;
+            set;
+        } = new();
 
         #endregion
     }

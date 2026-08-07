@@ -1,0 +1,186 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Shape.ShapeViewModel
+
+@*
+==============================================================
+
+File : _Form.cshtml
+
+Purpose :
+Common Create/Edit form for Shape Master.
+
+Features :
+- Live exact duplicate detection
+- Similar spelling warning
+- Similar-name confirmation
+- Create/Edit support
+
+==============================================================
+*@
+
+@{
+    var hasShapeNameError =
+        ViewData.ModelState["ShapeName"]?.Errors.Any() == true;
+
+    var hasServerSuggestions =
+        Model.SimilarShapeNames.Any();
+}
+
+<div asp-validation-summary="ModelOnly"
+     class="alert alert-danger"></div>
+
+<input asp-for="ShapeId" type="hidden" />
+<input asp-for="ShapeCode" type="hidden" />
+
+<div class="row">
+
+    @if (Model.ShapeId > 0)
+    {
+        <div class="col-md-6 mb-3">
+
+            <label asp-for="ShapeCode"
+                   class="form-label"></label>
+
+            <input value="@Model.ShapeCode"
+                   class="form-control"
+                   readonly />
+
+        </div>
+    }
+
+    <div class="@(Model.ShapeId > 0 ? "col-md-6" : "col-md-12") mb-3">
+
+        <label asp-for="ShapeName"
+               class="form-label"></label>
+
+        <input asp-for="ShapeName"
+               class="form-control"
+               autocomplete="off"
+               maxlength="100"
+               data-similar-url="@Url.Action("CheckSimilarName", "Shape")" />
+
+        <span asp-validation-for="ShapeName"
+              class="text-danger"></span>
+
+        <div class="form-text">
+            Existing exact and similar Shape Names will appear while typing.
+        </div>
+
+    </div>
+
+    <div class="col-12 mb-3">
+
+        <div id="shapeSimilarWarning"
+             class="alert alert-warning
+                    @(!hasServerSuggestions ? "d-none" : string.Empty)">
+
+            <div class="fw-semibold mb-2">
+
+                <i class="fa-solid fa-triangle-exclamation me-1"></i>
+
+                Similar Shape Names Found
+
+            </div>
+
+            <p class="mb-2">
+                Check whether the Shape already exists or whether
+                there is a spelling mistake.
+            </p>
+
+            <div id="shapeSimilarList"
+                 class="list-group mb-3">
+
+                @foreach (var shapeName in Model.SimilarShapeNames)
+                {
+                    <div class="list-group-item">
+                        @shapeName
+                    </div>
+                }
+
+            </div>
+
+            <div id="shapeExactDuplicateMessage"
+                 class="text-danger fw-semibold mb-2
+                        @(!hasShapeNameError ? "d-none" : string.Empty)">
+
+                An exact Shape Name already exists.
+                Duplicate creation is not allowed.
+
+            </div>
+
+            <div id="shapeSimilarConfirmationContainer"
+                 class="form-check
+                        @(!hasServerSuggestions || hasShapeNameError
+                                             ? "d-none"
+                                             : string.Empty)">
+
+                <input asp-for="ConfirmSimilarShapeName"
+                       class="form-check-input" />
+
+                <label asp-for="ConfirmSimilarShapeName"
+                       class="form-check-label">
+
+                    I checked the similar Shapes and still want
+                    to continue.
+
+                </label>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-12 mb-3">
+
+        <label asp-for="Description"
+               class="form-label"></label>
+
+        <textarea asp-for="Description"
+                  class="form-control"
+                  rows="3"
+                  maxlength="500"
+                  placeholder="Enter optional description"></textarea>
+
+        <span asp-validation-for="Description"
+              class="text-danger"></span>
+
+    </div>
+
+    <div class="col-12 mb-4">
+
+        <div class="form-check form-switch">
+
+            <input asp-for="IsActive"
+                   class="form-check-input" />
+
+            <label asp-for="IsActive"
+                   class="form-check-label"></label>
+
+        </div>
+
+    </div>
+
+</div>
+
+<hr />
+
+<div class="d-flex justify-content-end gap-2">
+
+    <a asp-action="Index"
+       class="btn btn-secondary">
+
+        Cancel
+
+    </a>
+
+    <button type="submit"
+            class="btn btn-primary"
+            id="shapeSaveButton">
+
+        <i class="fa-solid fa-floppy-disk me-1"></i>
+
+        @(Model.ShapeId == 0 ? "Save Shape" : "Update Shape")
+
+    </button>
+
+</div>

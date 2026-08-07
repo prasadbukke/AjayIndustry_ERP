@@ -47,23 +47,159 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     !x.IsDeleted);
         }
 
-        public async Task<List<Item>> SearchAsync(string searchText)
+        #region Search
+
+        public async Task<List<Item>> SearchAsync(
+            string searchText)
         {
-            searchText = searchText.Trim().ToLower();
+            if (string.IsNullOrWhiteSpace(
+                searchText))
+            {
+                return await GetAllAsync();
+            }
+
+            var normalizedSearch =
+                searchText
+                    .Trim()
+                    .ToLower();
 
             return await ItemQuery()
                 .Where(x =>
-                    !x.IsDeleted &&
+
+                    // Item Code
+                    x.ItemCode
+                        .ToLower()
+                        .Contains(normalizedSearch)
+
+                    ||
+
+                    // Item Name
+                    x.ItemName
+                        .ToLower()
+                        .Contains(normalizedSearch)
+
+                    ||
+
+                    // Description
                     (
-                        x.ItemCode.ToLower().Contains(searchText) ||
-                        x.ItemName.ToLower().Contains(searchText) ||
-                        x.ItemCategory.CategoryName.ToLower().Contains(searchText) ||
-                        x.Brand.BrandName.ToLower().Contains(searchText) ||
-                        x.Uom.UomName.ToLower().Contains(searchText)
-                    ))
+                        x.Description != null &&
+                        x.Description
+                            .ToLower()
+                            .Contains(normalizedSearch)
+                    )
+
+                    ||
+
+                    // Category
+                    x.ItemCategory.CategoryCode
+                        .ToLower()
+                        .Contains(normalizedSearch)
+
+                    ||
+
+                    x.ItemCategory.CategoryName
+                        .ToLower()
+                        .Contains(normalizedSearch)
+
+                    ||
+
+                    // Brand
+                    x.Brand.BrandCode
+                        .ToLower()
+                        .Contains(normalizedSearch)
+
+                    ||
+
+                    x.Brand.BrandName
+                        .ToLower()
+                        .Contains(normalizedSearch)
+
+                    ||
+
+                    // Main UOM
+                    x.Uom.UomCode
+                        .ToLower()
+                        .Contains(normalizedSearch)
+
+                    ||
+
+                    x.Uom.UomName
+                        .ToLower()
+                        .Contains(normalizedSearch)
+
+                    ||
+
+                    // Shape
+                    (
+                        x.Shape != null &&
+                        (
+                            x.Shape.ShapeCode
+                                .ToLower()
+                                .Contains(normalizedSearch)
+
+                            ||
+
+                            x.Shape.ShapeName
+                                .ToLower()
+                                .Contains(normalizedSearch)
+                        )
+                    )
+
+                    ||
+
+                    // Item Specifications
+                    x.ItemSpecifications.Any(s =>
+
+                        !s.IsDeleted
+
+                        &&
+
+                        (
+                            // Specification Code
+                            s.Specification.SpecificationCode
+                                .ToLower()
+                                .Contains(normalizedSearch)
+
+                            ||
+
+                            // Specification Name
+                            s.Specification.SpecificationName
+                                .ToLower()
+                                .Contains(normalizedSearch)
+
+                            ||
+
+                            // Specification Value
+                            s.SpecificationValue
+                                .ToLower()
+                                .Contains(normalizedSearch)
+
+                            ||
+
+                            // Specification UOM
+                            (
+                                s.Uom != null &&
+                                (
+                                    s.Uom.UomCode
+                                        .ToLower()
+                                        .Contains(normalizedSearch)
+
+                                    ||
+
+                                    s.Uom.UomName
+                                        .ToLower()
+                                        .Contains(normalizedSearch)
+                                )
+                            )
+                        )
+                    )
+                )
                 .OrderBy(x => x.ItemName)
+                .ThenBy(x => x.ItemCode)
                 .ToListAsync();
         }
+
+        #endregion
 
         public async Task<PagedResult<Item>> GetPagedAsync(
             int pageNumber,
@@ -72,7 +208,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             var query = ItemQuery()
                 .Where(x => !x.IsDeleted);
 
-            var totalRecords = await query.CountAsync();
+            var totalRecords =
+                await query.CountAsync();
 
             var items = await query
                 .OrderBy(x => x.ItemName)
@@ -118,44 +255,62 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
         #region Duplicate Validation
 
-        public async Task<bool> ExistsByCodeAsync(string itemCode)
+        public async Task<bool> ExistsByCodeAsync(
+            string itemCode)
         {
-            var normalizedCode = itemCode.Trim().ToLower();
+            var normalizedCode =
+                itemCode.Trim().ToLower();
 
-            return await _context.Items.AnyAsync(x =>
-                x.ItemCode.ToLower() == normalizedCode);
+            /*
+             * Deleted Items are included because
+             * Item Codes must never be reused.
+             */
+            return await _context.Items
+                .AnyAsync(x =>
+                    x.ItemCode.ToLower() ==
+                    normalizedCode);
         }
 
         public async Task<bool> ExistsByCodeAsync(
             string itemCode,
             int itemId)
         {
-            var normalizedCode = itemCode.Trim().ToLower();
+            var normalizedCode =
+                itemCode.Trim().ToLower();
 
-            return await _context.Items.AnyAsync(x =>
-                x.ItemCode.ToLower() == normalizedCode &&
-                x.ItemId != itemId);
+            return await _context.Items
+                .AnyAsync(x =>
+                    x.ItemCode.ToLower() ==
+                    normalizedCode &&
+                    x.ItemId != itemId);
         }
 
-        public async Task<bool> ExistsByNameAsync(string itemName)
+        public async Task<bool> ExistsByNameAsync(
+            string itemName)
         {
-            var normalizedName = itemName.Trim().ToLower();
+            var normalizedName =
+                itemName.Trim().ToLower();
 
-            return await _context.Items.AnyAsync(x =>
-                !x.IsDeleted &&
-                x.ItemName.ToLower() == normalizedName);
+            return await _context.Items
+                .AnyAsync(x =>
+                    !x.IsDeleted &&
+                    x.ItemName.ToLower() ==
+                    normalizedName);
         }
 
         public async Task<bool> ExistsByNameAsync(
             string itemName,
             int itemId)
         {
-            var normalizedName = itemName.Trim().ToLower();
+            var normalizedName =
+                itemName.Trim().ToLower();
 
-            return await _context.Items.AnyAsync(x =>
-                !x.IsDeleted &&
-                x.ItemName.ToLower() == normalizedName &&
-                x.ItemId != itemId);
+            return await _context.Items
+                .AnyAsync(x =>
+                    !x.IsDeleted &&
+                    x.ItemName.ToLower() ==
+                    normalizedName &&
+                    x.ItemId != itemId);
         }
 
         #endregion
@@ -165,8 +320,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         public async Task<string?> GetLastItemCodeAsync()
         {
             /*
-             * Deleted records are intentionally included.
-             * This prevents an old Item Code from being reused.
+             * Deleted records are intentionally included
+             * to prevent Item Code reuse.
              */
             return await _context.Items
                 .OrderByDescending(x => x.ItemId)
@@ -190,9 +345,72 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         private IQueryable<Item> ItemQuery()
         {
             return _context.Items
+
                 .Include(x => x.ItemCategory)
+
                 .Include(x => x.Brand)
-                .Include(x => x.Uom);
+
+                .Include(x => x.Uom)
+
+                .Include(x => x.Shape)
+
+                /*
+                 * Load active Item Specification rows
+                 * for Item list/details/search display.
+                 */
+                .Include(x =>
+                    x.ItemSpecifications
+                        .Where(s => !s.IsDeleted))
+                    .ThenInclude(x =>
+                        x.Specification)
+
+                .Include(x =>
+                    x.ItemSpecifications
+                        .Where(s => !s.IsDeleted))
+                    .ThenInclude(x =>
+                        x.Uom)
+
+                .Where(x =>
+                    !x.IsDeleted);
+        }
+
+        #endregion
+
+        #region Duplicate Configuration Lookup
+
+        public async Task<List<Item>>
+            GetByNameForDuplicateCheckAsync(
+                string itemName,
+                int? excludedItemId = null)
+        {
+            var normalizedName =
+                itemName.Trim().ToLower();
+
+            var query =
+                _context.Items
+                    .Include(x => x.Shape)
+                    .Include(x => x.ItemSpecifications
+                        .Where(s => !s.IsDeleted))
+                        .ThenInclude(x => x.Specification)
+                    .Include(x => x.ItemSpecifications
+                        .Where(s => !s.IsDeleted))
+                        .ThenInclude(x => x.Uom)
+                    .Where(x =>
+                        !x.IsDeleted &&
+                        x.ItemName.ToLower() ==
+                            normalizedName);
+
+            if (excludedItemId.HasValue)
+            {
+                query =
+                    query.Where(x =>
+                        x.ItemId !=
+                        excludedItemId.Value);
+            }
+
+            return await query
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         #endregion

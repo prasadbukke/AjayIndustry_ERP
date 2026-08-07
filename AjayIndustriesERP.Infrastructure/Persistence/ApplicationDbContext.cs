@@ -18,6 +18,11 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
         public DbSet<ItemCategory> ItemCategories => Set<ItemCategory>();
         public DbSet<Brand> Brands => Set<Brand>();
         public DbSet<Item> Items => Set<Item>();
+        public DbSet<Shape> Shapes => Set<Shape>();
+
+        public DbSet<Specification> Specifications => Set<Specification>();
+
+        public DbSet<ItemSpecification> ItemSpecifications => Set<ItemSpecification>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

@@ -6,21 +6,26 @@ File : ItemController.cs
 Purpose :
 Handles Item Master UI requests.
 
-Notes :
-- Category, Brand and UOM dropdowns contain only active records.
-- Similar Item Names generate a warning before Create or Edit.
-- Exact duplicate validation remains inside ItemService.
+Features :
+- CRUD
+- Search and pagination
+- Category / Brand / UOM / Shape dropdowns
+- Dynamic Item Specifications
+- Specification UOM support
+- Live similar Item Name detection
+- Exact duplicate blocking
+- Similar-name confirmation
 
 ==============================================================
 */
 
+using AjayIndustriesERP.Application.Common;
 using AjayIndustriesERP.Application.Exceptions;
 using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Domain.Entities;
 using AjayIndustriesERP.Web.ViewModels.Item;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using System.Text.RegularExpressions;
 
 namespace AjayIndustriesERP.Web.Controllers
 {
@@ -33,17 +38,23 @@ namespace AjayIndustriesERP.Web.Controllers
         private readonly IItemCategoryService _itemCategoryService;
         private readonly IBrandService _brandService;
         private readonly IUomService _uomService;
+        private readonly IShapeService _shapeService;
+        private readonly ISpecificationService _specificationService;
 
         public ItemController(
             IItemService itemService,
             IItemCategoryService itemCategoryService,
             IBrandService brandService,
-            IUomService uomService)
+            IUomService uomService,
+            IShapeService shapeService,
+            ISpecificationService specificationService)
         {
             _itemService = itemService;
             _itemCategoryService = itemCategoryService;
             _brandService = brandService;
             _uomService = uomService;
+            _shapeService = shapeService;
+            _specificationService = specificationService;
         }
 
         #region Item List
@@ -57,7 +68,8 @@ namespace AjayIndustriesERP.Web.Controllers
             if (!string.IsNullOrWhiteSpace(searchText))
             {
                 var items =
-                    await _itemService.SearchAsync(searchText);
+                    await _itemService.SearchAsync(
+                        searchText);
 
                 ViewBag.SearchText = searchText;
                 ViewBag.PageNumber = 1;
@@ -102,9 +114,10 @@ namespace AjayIndustriesERP.Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(ItemViewModel model)
+        public async Task<IActionResult> Create(
+            ItemViewModel model)
         {
-            model.ItemName = model.ItemName?.Trim() ?? string.Empty;
+            NormalizeModel(model);
 
             if (!ModelState.IsValid)
             {
@@ -115,44 +128,40 @@ namespace AjayIndustriesERP.Web.Controllers
 
             try
             {
-                /*
-                 * Similar names generate a warning.
-                 * User can review them and confirm continuation.
-                 */
-                if (!model.ConfirmSimilarItemName)
+                var similarItems =
+                    await FindSimilarItemsAsync(
+                        model.ItemName);
+
+                
+
+                if (similarItems.Count > 0 &&
+                    !model.ConfirmSimilarItemName)
                 {
                     model.SimilarItemNames =
-                        await FindSimilarItemNamesAsync(
-                            model.ItemName);
+                        similarItems
+                            .Select(x => x.DisplayText)
+                            .ToList();
 
-                    if (model.SimilarItemNames.Count > 0)
-                    {
-                        await LoadDropdowns(model);
+                    await LoadDropdowns(model);
 
-                        return View(model);
-                    }
+                    return View(model);
                 }
 
-                var item = new Item
-                {
-                    ItemName = model.ItemName,
-                    Description = model.Description,
-                    ItemCategoryId = model.ItemCategoryId,
-                    BrandId = model.BrandId,
-                    UomId = model.UomId,
-                    IsActive = model.IsActive
-                };
+                var item =
+                    MapToEntity(model);
 
                 await _itemService.CreateAsync(item);
 
                 TempData["Success"] =
                     "Item created successfully.";
 
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(
+                    nameof(Index));
             }
             catch (BusinessException ex)
             {
-                TempData["Error"] = ex.Message;
+                TempData["Error"] =
+                    ex.Message;
 
                 await LoadDropdowns(model);
 
@@ -174,17 +183,29 @@ namespace AjayIndustriesERP.Web.Controllers
         #region Item Details
 
         [HttpGet]
-        public async Task<IActionResult> Details(int id)
+        public async Task<IActionResult> Details(
+            int id)
         {
             var item =
                 await _itemService.GetByIdAsync(id);
 
             if (item == null)
             {
-                TempData["Error"] = "Item not found.";
+                TempData["Error"] =
+                    "Item not found.";
 
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(
+                    nameof(Index));
             }
+
+            /*
+             * ItemRepository loads the main navigation
+             * properties. Item Specifications are loaded
+             * separately through the Item aggregate service.
+             */
+            item.ItemSpecifications =
+                await _itemService
+                    .GetSpecificationsAsync(id);
 
             return View(item);
         }
@@ -194,29 +215,78 @@ namespace AjayIndustriesERP.Web.Controllers
         #region Edit Item
 
         [HttpGet]
-        public async Task<IActionResult> Edit(int id)
+        public async Task<IActionResult> Edit(
+            int id)
         {
             var item =
                 await _itemService.GetByIdAsync(id);
 
             if (item == null)
             {
-                TempData["Error"] = "Item not found.";
+                TempData["Error"] =
+                    "Item not found.";
 
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(
+                    nameof(Index));
             }
 
-            var model = new ItemViewModel
-            {
-                ItemId = item.ItemId,
-                ItemCode = item.ItemCode,
-                ItemName = item.ItemName,
-                Description = item.Description,
-                ItemCategoryId = item.ItemCategoryId,
-                BrandId = item.BrandId,
-                UomId = item.UomId,
-                IsActive = item.IsActive
-            };
+            var itemSpecifications =
+                await _itemService
+                    .GetSpecificationsAsync(id);
+
+            var model =
+                new ItemViewModel
+                {
+                    ItemId =
+                        item.ItemId,
+
+                    ItemCode =
+                        item.ItemCode,
+
+                    ItemName =
+                        item.ItemName,
+
+                    Description =
+                        item.Description,
+
+                    ItemCategoryId =
+                        item.ItemCategoryId,
+
+                    BrandId =
+                        item.BrandId,
+
+                    UomId =
+                        item.UomId,
+
+                    ShapeId =
+                        item.ShapeId,
+
+                    IsActive =
+                        item.IsActive,
+
+                    ItemSpecifications =
+                        itemSpecifications
+                            .OrderBy(x => x.SortOrder)
+                            .Select(x =>
+                                new ItemSpecificationRowViewModel
+                                {
+                                    ItemSpecificationId =
+                                        x.ItemSpecificationId,
+
+                                    SpecificationId =
+                                        x.SpecificationId,
+
+                                    SpecificationValue =
+                                        x.SpecificationValue,
+
+                                    UomId =
+                                        x.UomId,
+
+                                    SortOrder =
+                                        x.SortOrder
+                                })
+                            .ToList()
+                };
 
             await LoadDropdowns(model);
 
@@ -225,11 +295,13 @@ namespace AjayIndustriesERP.Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(ItemViewModel model)
+        public async Task<IActionResult> Edit(
+            ItemViewModel model)
         {
-            ModelState.Remove(nameof(ItemViewModel.ItemCode));
+            ModelState.Remove(
+                nameof(ItemViewModel.ItemCode));
 
-            model.ItemName = model.ItemName?.Trim() ?? string.Empty;
+            NormalizeModel(model);
 
             if (!ModelState.IsValid)
             {
@@ -240,42 +312,41 @@ namespace AjayIndustriesERP.Web.Controllers
 
             try
             {
-                if (!model.ConfirmSimilarItemName)
+                var similarItems =
+                    await FindSimilarItemsAsync(
+                        model.ItemName,
+                        model.ItemId);
+
+                
+
+                if (similarItems.Count > 0 &&
+                    !model.ConfirmSimilarItemName)
                 {
                     model.SimilarItemNames =
-                        await FindSimilarItemNamesAsync(
-                            model.ItemName,
-                            model.ItemId);
+                        similarItems
+                            .Select(x => x.DisplayText)
+                            .ToList();
 
-                    if (model.SimilarItemNames.Count > 0)
-                    {
-                        await LoadDropdowns(model);
+                    await LoadDropdowns(model);
 
-                        return View(model);
-                    }
+                    return View(model);
                 }
 
-                var item = new Item
-                {
-                    ItemId = model.ItemId,
-                    ItemName = model.ItemName,
-                    Description = model.Description,
-                    ItemCategoryId = model.ItemCategoryId,
-                    BrandId = model.BrandId,
-                    UomId = model.UomId,
-                    IsActive = model.IsActive
-                };
+                var item =
+                    MapToEntity(model);
 
                 await _itemService.UpdateAsync(item);
 
                 TempData["Success"] =
                     "Item updated successfully.";
 
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(
+                    nameof(Index));
             }
             catch (BusinessException ex)
             {
-                TempData["Error"] = ex.Message;
+                TempData["Error"] =
+                    ex.Message;
 
                 await LoadDropdowns(model);
 
@@ -298,7 +369,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(
+            int id)
         {
             try
             {
@@ -309,7 +381,8 @@ namespace AjayIndustriesERP.Web.Controllers
             }
             catch (BusinessException ex)
             {
-                TempData["Error"] = ex.Message;
+                TempData["Error"] =
+                    ex.Message;
             }
             catch (Exception)
             {
@@ -317,30 +390,44 @@ namespace AjayIndustriesERP.Web.Controllers
                     "Something went wrong. Please try again.";
             }
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(
+                nameof(Index));
         }
 
         #endregion
 
-        #region Similar Item Name Check
+        #region Live Similar Item Name Check
 
-        /// <summary>
-        /// Returns similar Item Names while the user enters an Item Name.
-        /// </summary>
         [HttpGet]
         public async Task<IActionResult> CheckSimilarName(
-            string itemName,
-            int? itemId = null)
+    string itemName,
+    int? itemId = null)
         {
-            var similarItems =
-                await FindSimilarItemNamesAsync(
+            var matches =
+                await FindSimilarItemsAsync(
                     itemName,
                     itemId);
 
             return Json(new
             {
-                hasSimilarItems = similarItems.Count > 0,
-                items = similarItems
+                hasSimilarItems =
+                    matches.Count > 0,
+
+                /*
+                 * Same Name is informational only.
+                 *
+                 * It is NOT automatically a duplicate because
+                 * Shape / Specifications may be different.
+                 */
+                hasSameName =
+                    matches.Any(
+                        x => x.IsExactMatch),
+
+                items =
+                    matches
+                        .Select(x =>
+                            x.DisplayText)
+                        .ToList()
             });
         }
 
@@ -348,199 +435,403 @@ namespace AjayIndustriesERP.Web.Controllers
 
         #region Dropdown Loading
 
-        private async Task LoadDropdowns(ItemViewModel model)
+        /// <summary>
+        /// Loads all dropdown data required by
+        /// Item Create/Edit forms.
+        /// </summary>
+        private async Task LoadDropdowns(
+            ItemViewModel model)
         {
+            #region Category
+
             model.Categories =
-                (await _itemCategoryService.GetAllAsync())
+                (await _itemCategoryService
+                    .GetAllAsync())
                 .Where(x => x.IsActive)
                 .OrderBy(x => x.CategoryName)
-                .Select(x => new SelectListItem
-                {
-                    Value = x.ItemCategoryId.ToString(),
-                    Text = $"{x.CategoryCode} - {x.CategoryName}",
-                    Selected =
-                        x.ItemCategoryId == model.ItemCategoryId
-                })
+                .Select(x =>
+                    new SelectListItem
+                    {
+                        Value =
+                            x.ItemCategoryId
+                                .ToString(),
+
+                        Text =
+                            $"{x.CategoryCode} - {x.CategoryName}",
+
+                        Selected =
+                            x.ItemCategoryId ==
+                            model.ItemCategoryId
+                    })
                 .ToList();
+
+            #endregion
+
+            #region Brand
 
             model.Brands =
-                (await _brandService.GetAllAsync())
+                (await _brandService
+                    .GetAllAsync())
                 .Where(x => x.IsActive)
                 .OrderBy(x => x.BrandName)
-                .Select(x => new SelectListItem
-                {
-                    Value = x.BrandId.ToString(),
-                    Text = $"{x.BrandCode} - {x.BrandName}",
-                    Selected =
-                        x.BrandId == model.BrandId
-                })
+                .Select(x =>
+                    new SelectListItem
+                    {
+                        Value =
+                            x.BrandId.ToString(),
+
+                        Text =
+                            $"{x.BrandCode} - {x.BrandName}",
+
+                        Selected =
+                            x.BrandId ==
+                            model.BrandId
+                    })
                 .ToList();
 
+            #endregion
+
+            #region Main UOM
+
+            var allUoms =
+                await _uomService.GetAllAsync();
+
             model.Uoms =
-                (await _uomService.GetAllAsync())
+                allUoms
+                    .Where(x => x.IsActive)
+                    .OrderBy(x => x.UomName)
+                    .Select(x =>
+                        new SelectListItem
+                        {
+                            Value =
+                                x.UomId.ToString(),
+
+                            Text =
+                                $"{x.UomCode} - {x.UomName}",
+
+                            Selected =
+                                x.UomId ==
+                                model.UomId
+                        })
+                    .ToList();
+
+            #endregion
+
+            #region Shape
+
+            model.Shapes =
+                (await _shapeService
+                    .GetAllAsync())
                 .Where(x => x.IsActive)
-                .OrderBy(x => x.UomName)
-                .Select(x => new SelectListItem
-                {
-                    Value = x.UomId.ToString(),
-                    Text = $"{x.UomCode} - {x.UomName}",
-                    Selected =
-                        x.UomId == model.UomId
-                })
+                .OrderBy(x => x.ShapeName)
+                .Select(x =>
+                    new SelectListItem
+                    {
+                        Value =
+                            x.ShapeId.ToString(),
+
+                        Text =
+                            $"{x.ShapeCode} - {x.ShapeName}",
+
+                        Selected =
+                            x.ShapeId ==
+                            model.ShapeId
+                    })
                 .ToList();
+
+            #endregion
+
+            #region Specification Master
+
+            var allSpecifications =
+                await _specificationService
+                    .GetAllAsync();
+
+            /*
+             * Normally only Active Specifications are
+             * available for selection.
+             *
+             * During Edit, an existing Item may reference
+             * a Specification that was later made inactive.
+             * Such selected records are also included so
+             * existing Item data remains visible.
+             */
+            var selectedSpecificationIds =
+                model.ItemSpecifications
+                    .Where(x =>
+                        x.SpecificationId > 0)
+                    .Select(x =>
+                        x.SpecificationId)
+                    .ToHashSet();
+
+            model.SpecificationOptions =
+                allSpecifications
+                    .Where(x =>
+                        x.IsActive ||
+                        selectedSpecificationIds
+                            .Contains(
+                                x.SpecificationId))
+                    .OrderBy(x =>
+                        x.SpecificationName)
+                    .Select(x =>
+                        new SelectListItem
+                        {
+                            Value =
+                                x.SpecificationId
+                                    .ToString(),
+
+                            Text =
+                                $"{x.SpecificationCode} - {x.SpecificationName}"
+                        })
+                    .ToList();
+
+            #endregion
+
+            #region Specification UOM
+
+            var selectedSpecificationUomIds =
+                model.ItemSpecifications
+                    .Where(x =>
+                        x.UomId.HasValue &&
+                        x.UomId.Value > 0)
+                    .Select(x =>
+                        x.UomId!.Value)
+                    .ToHashSet();
+
+            model.SpecificationUoms =
+                allUoms
+                    .Where(x =>
+                        x.IsActive ||
+                        selectedSpecificationUomIds
+                            .Contains(
+                                x.UomId))
+                    .OrderBy(x =>
+                        x.UomName)
+                    .Select(x =>
+                        new SelectListItem
+                        {
+                            Value =
+                                x.UomId.ToString(),
+
+                            Text =
+                                $"{x.UomCode} - {x.UomName}"
+                        })
+                    .ToList();
+
+            #endregion
+        }
+
+        #endregion
+
+        #region Entity Mapping
+
+        /// <summary>
+        /// Maps ItemViewModel including dynamic child rows
+        /// into the Item aggregate.
+        /// </summary>
+        private static Item MapToEntity(
+            ItemViewModel model)
+        {
+            var item =
+                new Item
+                {
+                    ItemId =
+                        model.ItemId,
+
+                    ItemName =
+                        model.ItemName,
+
+                    Description =
+                        model.Description,
+
+                    ItemCategoryId =
+                        model.ItemCategoryId,
+
+                    BrandId =
+                        model.BrandId,
+
+                    UomId =
+                        model.UomId,
+
+                    ShapeId =
+                        NormalizeShapeId(
+                            model.ShapeId),
+
+                    IsActive =
+                        model.IsActive
+                };
+
+            item.ItemSpecifications =
+                model.ItemSpecifications
+                    .Select((row, index) =>
+                        new ItemSpecification
+                        {
+                            ItemSpecificationId =
+                                row.ItemSpecificationId,
+
+                            SpecificationId =
+                                row.SpecificationId,
+
+                            SpecificationValue =
+                                row.SpecificationValue,
+
+                            UomId =
+                                NormalizeUomId(
+                                    row.UomId),
+
+                            SortOrder =
+                                index + 1
+                        })
+                    .ToList();
+
+            return item;
         }
 
         #endregion
 
         #region Similar Name Methods
 
-        private async Task<List<string>> FindSimilarItemNamesAsync(
-            string itemName,
-            int? excludedItemId = null)
+        private async Task<List<ItemSuggestion>>
+            FindSimilarItemsAsync(
+                string itemName,
+                int? excludedItemId = null)
         {
-            if (string.IsNullOrWhiteSpace(itemName))
+            if (string.IsNullOrWhiteSpace(
+                    itemName) ||
+                itemName.Trim().Length < 3)
             {
-                return new List<string>();
-            }
-
-            var normalizedInput =
-                NormalizeName(itemName);
-
-            if (normalizedInput.Length < 3)
-            {
-                return new List<string>();
+                return new List<ItemSuggestion>();
             }
 
             var items =
                 await _itemService.GetAllAsync();
 
-            return items
-                .Where(x =>
-                    !excludedItemId.HasValue ||
-                    x.ItemId != excludedItemId.Value)
-                .Where(x =>
-                    IsSimilarName(
-                        normalizedInput,
-                        NormalizeName(x.ItemName)))
-                .OrderBy(x => x.ItemName)
+            var availableItems =
+                items
+                    .Where(x =>
+                        !excludedItemId.HasValue ||
+                        x.ItemId !=
+                        excludedItemId.Value)
+                    .ToList();
+
+            var matches =
+                NameSimilarityHelper.FindMatches(
+                    availableItems,
+                    itemName,
+                    x => x.ItemName,
+                    5);
+
+            return matches
                 .Select(x =>
-                    $"{x.ItemCode} - {x.ItemName}")
-                .Take(5)
+                    new ItemSuggestion
+                    {
+                        ItemId =
+                            x.ItemId,
+
+                        DisplayText =
+                            $"{x.ItemCode} - {x.ItemName}",
+
+                        IsExactMatch =
+                            NameSimilarityHelper
+                                .IsExactMatch(
+                                    itemName,
+                                    x.ItemName)
+                    })
                 .ToList();
         }
 
-        private static bool IsSimilarName(
-            string firstName,
-            string secondName)
+        #endregion
+
+        #region Model Normalization
+
+        private static void NormalizeModel(
+            ItemViewModel model)
         {
-            if (string.IsNullOrWhiteSpace(firstName) ||
-                string.IsNullOrWhiteSpace(secondName))
+            model.ItemName =
+                model.ItemName?.Trim()
+                ?? string.Empty;
+
+            model.Description =
+                string.IsNullOrWhiteSpace(
+                    model.Description)
+                    ? null
+                    : model.Description.Trim();
+
+            model.ShapeId =
+                NormalizeShapeId(
+                    model.ShapeId);
+
+            if (model.ItemSpecifications == null)
             {
-                return false;
+                model.ItemSpecifications =
+                    new List<
+                        ItemSpecificationRowViewModel>();
+
+                return;
             }
 
             /*
-             * Exact duplicate validation is handled by ItemService.
+             * SortOrder is determined from current UI row
+             * sequence instead of trusting posted values.
              */
-            if (firstName == secondName)
+            for (var index = 0;
+                 index <
+                 model.ItemSpecifications.Count;
+                 index++)
             {
-                return false;
+                var row =
+                    model.ItemSpecifications[index];
+
+                row.SpecificationValue =
+                    row.SpecificationValue?.Trim()
+                    ?? string.Empty;
+
+                row.UomId =
+                    NormalizeUomId(
+                        row.UomId);
+
+                row.SortOrder =
+                    index + 1;
             }
-
-            if (firstName[0] != secondName[0])
-            {
-                return false;
-            }
-
-            var lengthDifference =
-                Math.Abs(firstName.Length - secondName.Length);
-
-            if (lengthDifference > 2)
-            {
-                return false;
-            }
-
-            var distance =
-                CalculateLevenshteinDistance(
-                    firstName,
-                    secondName);
-
-            var maximumLength =
-                Math.Max(
-                    firstName.Length,
-                    secondName.Length);
-
-            var similarity =
-                1D - ((double)distance / maximumLength);
-
-            /*
-             * For short names, maximum two spelling changes are allowed.
-             * Example: Steel and Still.
-             */
-            if (maximumLength <= 6)
-            {
-                return distance <= 2;
-            }
-
-            return similarity >= 0.75D;
         }
 
-        private static string NormalizeName(string value)
+        private static int? NormalizeShapeId(
+            int? shapeId)
         {
-            var normalizedValue =
-                value.Trim().ToLowerInvariant();
-
-            return Regex.Replace(
-                normalizedValue,
-                @"\s+",
-                " ");
+            return shapeId.HasValue &&
+                   shapeId.Value > 0
+                ? shapeId.Value
+                : null;
         }
 
-        private static int CalculateLevenshteinDistance(
-            string source,
-            string target)
+        private static int? NormalizeUomId(
+            int? uomId)
         {
-            var sourceLength = source.Length;
-            var targetLength = target.Length;
+            return uomId.HasValue &&
+                   uomId.Value > 0
+                ? uomId.Value
+                : null;
+        }
 
-            var matrix =
-                new int[sourceLength + 1, targetLength + 1];
+        #endregion
 
-            for (var row = 0; row <= sourceLength; row++)
+        #region Private Classes
+
+        private sealed class ItemSuggestion
+        {
+            public int ItemId { get; set; }
+
+            public string DisplayText
             {
-                matrix[row, 0] = row;
-            }
+                get;
+                set;
+            } = string.Empty;
 
-            for (var column = 0;
-                 column <= targetLength;
-                 column++)
+            public bool IsExactMatch
             {
-                matrix[0, column] = column;
+                get;
+                set;
             }
-
-            for (var row = 1;
-                 row <= sourceLength;
-                 row++)
-            {
-                for (var column = 1;
-                     column <= targetLength;
-                     column++)
-                {
-                    var cost =
-                        source[row - 1] ==
-                        target[column - 1]
-                            ? 0
-                            : 1;
-
-                    matrix[row, column] = Math.Min(
-                        Math.Min(
-                            matrix[row - 1, column] + 1,
-                            matrix[row, column - 1] + 1),
-                        matrix[row - 1, column - 1] + cost);
-                }
-            }
-
-            return matrix[sourceLength, targetLength];
         }
 
         #endregion

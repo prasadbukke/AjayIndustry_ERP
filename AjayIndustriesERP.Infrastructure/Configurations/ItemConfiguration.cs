@@ -18,9 +18,11 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
     /// <summary>
     /// Contains Entity Framework configuration for Item.
     /// </summary>
-    public class ItemConfiguration : IEntityTypeConfiguration<Item>
+    public class ItemConfiguration :
+        IEntityTypeConfiguration<Item>
     {
-        public void Configure(EntityTypeBuilder<Item> builder)
+        public void Configure(
+            EntityTypeBuilder<Item> builder)
         {
             #region Table and Primary Key
 
@@ -37,8 +39,8 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
                 .IsRequired();
 
             builder.HasIndex(x => x.ItemCode)
-                .IsUnique()
-                 .HasFilter("[IsDeleted] = 0");
+                .IsUnique();
+
             #endregion
 
             #region Item Name
@@ -47,8 +49,21 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
                 .HasMaxLength(150)
                 .IsRequired();
 
+            /*
+ * Item Name alone is NOT unique.
+ *
+ * Example:
+ *
+ * MS Round Bar + Round + Diameter 25 MM
+ * MS Round Bar + Round + Diameter 30 MM
+ *
+ * These are valid separate Items.
+ *
+ * Final duplicate validation is handled using:
+ * ItemName + Shape + Specifications.
+ */
             builder.HasIndex(x => x.ItemName)
-                .IsUnique();
+                .HasFilter("[IsDeleted] = 0");
 
             #endregion
 
@@ -74,6 +89,15 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
             builder.HasOne(x => x.Uom)
                 .WithMany()
                 .HasForeignKey(x => x.UomId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            /*
+             * Shape is optional because every Item does not
+             * necessarily require a physical material shape.
+             */
+            builder.HasOne(x => x.Shape)
+                .WithMany()
+                .HasForeignKey(x => x.ShapeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             #endregion

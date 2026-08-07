@@ -7,7 +7,9 @@ Purpose :
 Represents the Item Master entity.
 
 Notes :
-- Stock quantities are maintained in the Inventory module.
+- Shape is optional.
+- Item can contain multiple Specifications.
+- Stock is maintained in Inventory.
 - Warehouse-wise stock is maintained separately.
 - GST and pricing are not part of Item Master.
 
@@ -47,6 +49,11 @@ namespace AjayIndustriesERP.Domain.Entities
 
         public int UomId { get; set; }
 
+        /// <summary>
+        /// Optional physical Shape of the Item.
+        /// </summary>
+        public int? ShapeId { get; set; }
+
         #endregion
 
         #region Navigation Properties
@@ -56,6 +63,22 @@ namespace AjayIndustriesERP.Domain.Entities
         public Brand Brand { get; set; } = null!;
 
         public Uom Uom { get; set; } = null!;
+
+        public Shape? Shape { get; set; }
+
+        /// <summary>
+        /// Specifications assigned to this Item.
+        ///
+        /// Examples:
+        /// Diameter = 25 MM
+        /// Length   = 6000 MM
+        /// Grade    = EN8
+        /// </summary>
+        public ICollection<ItemSpecification> ItemSpecifications
+        {
+            get;
+            set;
+        } = new List<ItemSpecification>();
 
         #endregion
     }

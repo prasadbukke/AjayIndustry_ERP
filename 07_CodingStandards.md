@@ -230,7 +230,7 @@ Documentation
 
 Git Commit
 
----
+----
 
 ## Reference Module
 

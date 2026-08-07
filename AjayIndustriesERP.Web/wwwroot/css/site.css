@@ -118,3 +118,34 @@ Quick Create Master Modal
     cursor: not-allowed;
     opacity: 0.65;
 }
+
+/*
+==============================================================
+Shape Similar Name Results
+==============================================================
+*/
+
+#shapeSimilarList {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+#shapeSaveButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+/*
+==============================================================
+Specification Similar Name Results
+==============================================================
+*/
+
+#specificationSimilarList {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+#specificationSaveButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
