@@ -6,6 +6,15 @@ File : ItemRepository.cs
 Purpose :
 Handles Item Master database operations.
 
+Features :
+- Item CRUD
+- Pagination
+- Part Number search
+- Category / Brand / UOM / Shape search
+- Specification search
+- Duplicate configuration lookup
+- Soft delete
+
 ==============================================================
 */
 
@@ -17,35 +26,42 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AjayIndustriesERP.Infrastructure.Repositories
 {
-    /// <summary>
-    /// Provides database operations for Item Master.
-    /// </summary>
     public class ItemRepository : IItemRepository
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ApplicationDbContext
+            _context;
 
-        public ItemRepository(ApplicationDbContext context)
+        public ItemRepository(
+            ApplicationDbContext context)
         {
-            _context = context;
+            _context =
+                context;
         }
 
         #region Read Operations
 
-        public async Task<List<Item>> GetAllAsync()
+        public async Task<List<Item>>
+            GetAllAsync()
         {
             return await ItemQuery()
-                .Where(x => !x.IsDeleted)
-                .OrderBy(x => x.ItemName)
+                .OrderBy(x =>
+                    x.ItemName)
+                .ThenBy(x =>
+                    x.ItemCode)
                 .ToListAsync();
         }
 
-        public async Task<Item?> GetByIdAsync(int itemId)
+        public async Task<Item?>
+            GetByIdAsync(
+                int itemId)
         {
             return await ItemQuery()
                 .FirstOrDefaultAsync(x =>
-                    x.ItemId == itemId &&
-                    !x.IsDeleted);
+                    x.ItemId ==
+                    itemId);
         }
+
+        #endregion
 
         #region Search
 
@@ -69,14 +85,27 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     // Item Code
                     x.ItemCode
                         .ToLower()
-                        .Contains(normalizedSearch)
+                        .Contains(
+                            normalizedSearch)
 
                     ||
 
                     // Item Name
                     x.ItemName
                         .ToLower()
-                        .Contains(normalizedSearch)
+                        .Contains(
+                            normalizedSearch)
+
+                    ||
+
+                    // Part Number
+                    (
+                        x.PartNumber != null &&
+                        x.PartNumber
+                            .ToLower()
+                            .Contains(
+                                normalizedSearch)
+                    )
 
                     ||
 
@@ -85,47 +114,63 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                         x.Description != null &&
                         x.Description
                             .ToLower()
-                            .Contains(normalizedSearch)
+                            .Contains(
+                                normalizedSearch)
                     )
 
                     ||
 
-                    // Category
-                    x.ItemCategory.CategoryCode
+                    // Category Code
+                    x.ItemCategory
+                        .CategoryCode
                         .ToLower()
-                        .Contains(normalizedSearch)
+                        .Contains(
+                            normalizedSearch)
 
                     ||
 
-                    x.ItemCategory.CategoryName
+                    // Category Name
+                    x.ItemCategory
+                        .CategoryName
                         .ToLower()
-                        .Contains(normalizedSearch)
+                        .Contains(
+                            normalizedSearch)
 
                     ||
 
-                    // Brand
-                    x.Brand.BrandCode
+                    // Brand Code
+                    x.Brand
+                        .BrandCode
                         .ToLower()
-                        .Contains(normalizedSearch)
+                        .Contains(
+                            normalizedSearch)
 
                     ||
 
-                    x.Brand.BrandName
+                    // Brand Name
+                    x.Brand
+                        .BrandName
                         .ToLower()
-                        .Contains(normalizedSearch)
+                        .Contains(
+                            normalizedSearch)
 
                     ||
 
-                    // Main UOM
-                    x.Uom.UomCode
+                    // Main UOM Code
+                    x.Uom
+                        .UomCode
                         .ToLower()
-                        .Contains(normalizedSearch)
+                        .Contains(
+                            normalizedSearch)
 
                     ||
 
-                    x.Uom.UomName
+                    // Main UOM Name
+                    x.Uom
+                        .UomName
                         .ToLower()
-                        .Contains(normalizedSearch)
+                        .Contains(
+                            normalizedSearch)
 
                     ||
 
@@ -135,13 +180,15 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                         (
                             x.Shape.ShapeCode
                                 .ToLower()
-                                .Contains(normalizedSearch)
+                                .Contains(
+                                    normalizedSearch)
 
                             ||
 
                             x.Shape.ShapeName
                                 .ToLower()
-                                .Contains(normalizedSearch)
+                                .Contains(
+                                    normalizedSearch)
                         )
                     )
 
@@ -155,74 +202,97 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                         &&
 
                         (
-                            // Specification Code
-                            s.Specification.SpecificationCode
+                            s.Specification
+                                .SpecificationCode
                                 .ToLower()
-                                .Contains(normalizedSearch)
+                                .Contains(
+                                    normalizedSearch)
 
                             ||
 
-                            // Specification Name
-                            s.Specification.SpecificationName
+                            s.Specification
+                                .SpecificationName
                                 .ToLower()
-                                .Contains(normalizedSearch)
+                                .Contains(
+                                    normalizedSearch)
 
                             ||
 
-                            // Specification Value
                             s.SpecificationValue
                                 .ToLower()
-                                .Contains(normalizedSearch)
+                                .Contains(
+                                    normalizedSearch)
 
                             ||
 
-                            // Specification UOM
                             (
                                 s.Uom != null &&
                                 (
                                     s.Uom.UomCode
                                         .ToLower()
-                                        .Contains(normalizedSearch)
+                                        .Contains(
+                                            normalizedSearch)
 
                                     ||
 
                                     s.Uom.UomName
                                         .ToLower()
-                                        .Contains(normalizedSearch)
+                                        .Contains(
+                                            normalizedSearch)
                                 )
                             )
                         )
                     )
                 )
-                .OrderBy(x => x.ItemName)
-                .ThenBy(x => x.ItemCode)
+                .OrderBy(x =>
+                    x.ItemName)
+                .ThenBy(x =>
+                    x.ItemCode)
                 .ToListAsync();
         }
 
         #endregion
 
-        public async Task<PagedResult<Item>> GetPagedAsync(
-            int pageNumber,
-            int pageSize)
+        #region Pagination
+
+        public async Task<PagedResult<Item>>
+            GetPagedAsync(
+                int pageNumber,
+                int pageSize)
         {
-            var query = ItemQuery()
-                .Where(x => !x.IsDeleted);
+            var query =
+                ItemQuery();
 
             var totalRecords =
-                await query.CountAsync();
+                await query
+                    .CountAsync();
 
-            var items = await query
-                .OrderBy(x => x.ItemName)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+            var items =
+                await query
+                    .OrderBy(x =>
+                        x.ItemName)
+                    .ThenBy(x =>
+                        x.ItemCode)
+                    .Skip(
+                        (pageNumber - 1) *
+                        pageSize)
+                    .Take(
+                        pageSize)
+                    .ToListAsync();
 
             return new PagedResult<Item>
             {
-                Items = items,
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                TotalRecords = totalRecords
+                Items =
+                    items,
+
+                PageNumber =
+                    pageNumber,
+
+                PageSize =
+                    pageSize,
+
+                TotalRecords =
+                    totalRecords
             };
         }
 
@@ -230,23 +300,33 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
         #region Write Operations
 
-        public async Task AddAsync(Item item)
+        public async Task AddAsync(
+            Item item)
         {
-            await _context.Items.AddAsync(item);
+            await _context.Items
+                .AddAsync(
+                    item);
         }
 
-        public Task UpdateAsync(Item item)
+        public Task UpdateAsync(
+            Item item)
         {
-            _context.Items.Update(item);
+            _context.Items
+                .Update(
+                    item);
 
             return Task.CompletedTask;
         }
 
-        public Task DeleteAsync(Item item)
+        public Task DeleteAsync(
+            Item item)
         {
-            item.IsDeleted = true;
+            item.IsDeleted =
+                true;
 
-            _context.Items.Update(item);
+            _context.Items
+                .Update(
+                    item);
 
             return Task.CompletedTask;
         }
@@ -255,77 +335,98 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
         #region Duplicate Validation
 
-        public async Task<bool> ExistsByCodeAsync(
-            string itemCode)
+        public async Task<bool>
+            ExistsByCodeAsync(
+                string itemCode)
         {
             var normalizedCode =
-                itemCode.Trim().ToLower();
+                itemCode
+                    .Trim()
+                    .ToLower();
 
             /*
-             * Deleted Items are included because
-             * Item Codes must never be reused.
+             * Deleted Items are intentionally included
+             * because Item Codes must never be reused.
              */
             return await _context.Items
                 .AnyAsync(x =>
-                    x.ItemCode.ToLower() ==
+                    x.ItemCode
+                        .ToLower() ==
                     normalizedCode);
         }
 
-        public async Task<bool> ExistsByCodeAsync(
-            string itemCode,
-            int itemId)
+        public async Task<bool>
+            ExistsByCodeAsync(
+                string itemCode,
+                int itemId)
         {
             var normalizedCode =
-                itemCode.Trim().ToLower();
+                itemCode
+                    .Trim()
+                    .ToLower();
 
             return await _context.Items
                 .AnyAsync(x =>
-                    x.ItemCode.ToLower() ==
+                    x.ItemCode
+                        .ToLower() ==
                     normalizedCode &&
-                    x.ItemId != itemId);
+                    x.ItemId !=
+                    itemId);
         }
 
-        public async Task<bool> ExistsByNameAsync(
-            string itemName)
+        public async Task<bool>
+            ExistsByNameAsync(
+                string itemName)
         {
             var normalizedName =
-                itemName.Trim().ToLower();
+                itemName
+                    .Trim()
+                    .ToLower();
 
             return await _context.Items
                 .AnyAsync(x =>
                     !x.IsDeleted &&
-                    x.ItemName.ToLower() ==
+                    x.ItemName
+                        .ToLower() ==
                     normalizedName);
         }
 
-        public async Task<bool> ExistsByNameAsync(
-            string itemName,
-            int itemId)
+        public async Task<bool>
+            ExistsByNameAsync(
+                string itemName,
+                int itemId)
         {
             var normalizedName =
-                itemName.Trim().ToLower();
+                itemName
+                    .Trim()
+                    .ToLower();
 
             return await _context.Items
                 .AnyAsync(x =>
                     !x.IsDeleted &&
-                    x.ItemName.ToLower() ==
+                    x.ItemName
+                        .ToLower() ==
                     normalizedName &&
-                    x.ItemId != itemId);
+                    x.ItemId !=
+                    itemId);
         }
 
         #endregion
 
         #region Item Code Generation
 
-        public async Task<string?> GetLastItemCodeAsync()
+        public async Task<string?>
+            GetLastItemCodeAsync()
         {
             /*
              * Deleted records are intentionally included
              * to prevent Item Code reuse.
              */
             return await _context.Items
-                .OrderByDescending(x => x.ItemId)
-                .Select(x => x.ItemCode)
+                .OrderByDescending(x =>
+                    x.ItemId)
+                .Select(x =>
+                    x.ItemCode)
                 .FirstOrDefaultAsync();
         }
 
@@ -335,38 +436,42 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
         public async Task SaveChangesAsync()
         {
-            await _context.SaveChangesAsync();
+            await _context
+                .SaveChangesAsync();
         }
 
         #endregion
 
         #region Private Query
 
-        private IQueryable<Item> ItemQuery()
+        private IQueryable<Item>
+            ItemQuery()
         {
             return _context.Items
 
-                .Include(x => x.ItemCategory)
+                .Include(x =>
+                    x.ItemCategory)
 
-                .Include(x => x.Brand)
+                .Include(x =>
+                    x.Brand)
 
-                .Include(x => x.Uom)
+                .Include(x =>
+                    x.Uom)
 
-                .Include(x => x.Shape)
+                .Include(x =>
+                    x.Shape)
 
-                /*
-                 * Load active Item Specification rows
-                 * for Item list/details/search display.
-                 */
                 .Include(x =>
                     x.ItemSpecifications
-                        .Where(s => !s.IsDeleted))
+                        .Where(s =>
+                            !s.IsDeleted))
                     .ThenInclude(x =>
                         x.Specification)
 
                 .Include(x =>
                     x.ItemSpecifications
-                        .Where(s => !s.IsDeleted))
+                        .Where(s =>
+                            !s.IsDeleted))
                     .ThenInclude(x =>
                         x.Uom)
 
@@ -384,21 +489,35 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 int? excludedItemId = null)
         {
             var normalizedName =
-                itemName.Trim().ToLower();
+                itemName
+                    .Trim()
+                    .ToLower();
 
             var query =
                 _context.Items
-                    .Include(x => x.Shape)
-                    .Include(x => x.ItemSpecifications
-                        .Where(s => !s.IsDeleted))
-                        .ThenInclude(x => x.Specification)
-                    .Include(x => x.ItemSpecifications
-                        .Where(s => !s.IsDeleted))
-                        .ThenInclude(x => x.Uom)
+
+                    .Include(x =>
+                        x.Shape)
+
+                    .Include(x =>
+                        x.ItemSpecifications
+                            .Where(s =>
+                                !s.IsDeleted))
+                        .ThenInclude(x =>
+                            x.Specification)
+
+                    .Include(x =>
+                        x.ItemSpecifications
+                            .Where(s =>
+                                !s.IsDeleted))
+                        .ThenInclude(x =>
+                            x.Uom)
+
                     .Where(x =>
                         !x.IsDeleted &&
-                        x.ItemName.ToLower() ==
-                            normalizedName);
+                        x.ItemName
+                            .ToLower() ==
+                        normalizedName);
 
             if (excludedItemId.HasValue)
             {

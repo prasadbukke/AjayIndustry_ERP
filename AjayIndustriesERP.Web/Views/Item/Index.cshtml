@@ -1,165 +1,303 @@
 ﻿@model List<AjayIndustriesERP.Domain.Entities.Item>
 
+@*
+==============================================================
+
+File : Index.cshtml
+
+Purpose :
+Displays Item Master list.
+
+Features :
+- Search
+- Pagination
+- Part Number
+- Category / Brand / UOM / Shape
+- Compact Specification summary
+- Status
+- Details / Edit / Delete actions
+
+==============================================================
+*@
+
 @{
     ViewData["Title"] = "Item Management";
 }
 
-<div class="container-fluid">
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
 
-    <div class="d-flex justify-content-between
-                align-items-center mb-4">
+    <div>
 
-        <div>
+        <h2 class="fw-bold mb-1">
+            Item Management
+        </h2>
 
-            <h2 class="fw-bold mb-1">
-                Item Management
-            </h2>
-
-            <p class="text-muted mb-0">
-                Manage Item Master records.
-            </p>
-
-        </div>
-
-        <a asp-action="Create"
-           class="btn btn-primary">
-
-            <i class="fa-solid fa-plus me-1"></i>
-
-            Add Item
-
-        </a>
+        <p class="text-muted mb-0">
+            Manage Item Master records.
+        </p>
 
     </div>
 
-    <partial name="Components/_SearchBar"
-             model='@(ViewBag.SearchText as string ?? "")' />
+    <a asp-action="Create"
+       class="btn btn-primary">
 
-    <div class="card shadow-sm border-0">
+        <i class="fa-solid fa-plus me-1"></i>
 
-        <div class="card-body p-0">
+        Add Item
 
-            <div class="table-responsive">
+    </a>
 
-                <table class="table table-hover
-                              align-middle mb-0">
+</div>
 
-                    <thead class="table-light">
+<!-- =========================================================
+     SEARCH
+========================================================== -->
 
-                        <tr>
+<partial name="Components/_SearchBar"
+         model='@(ViewBag.SearchText as string ?? "")' />
 
-                            <th>#</th>
-                            <th>Code</th>
-                            <th>Item Name</th>
-                            <th>Category</th>
-                            <th>Brand</th>
-                            <th>UOM</th>
-                            <th>Shape</th>
-                            <th>Specifications</th>
-                            <th>Status</th>
+<!-- =========================================================
+     ITEM LIST
+========================================================== -->
 
-                            <th class="text-center"
-                                style="width: 160px;">
+<div class="card shadow-sm border-0">
 
-                                Actions
+    <div class="card-body p-0">
 
-                            </th>
+        <div class="table-responsive">
 
-                        </tr>
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
 
-                    </thead>
+                <thead class="table-light">
 
-                    <tbody>
+                    <tr>
 
-                        @if (Model.Any())
+                        <th>#</th>
+
+                        <th>
+                            Code
+                        </th>
+
+                        <th>
+                            Item Name
+                        </th>
+
+                        <th>
+                            Part Number
+                        </th>
+
+                        <th>
+                            Category
+                        </th>
+
+                        
+
+                        <th>
+                            UOM
+                        </th>
+
+                        <th>
+                            Shape
+                        </th>
+
+                        <th>
+                            Specifications
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th class="text-center"
+                            style="width:160px;">
+
+                            Actions
+
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @if (Model.Any())
+                    {
+                        var pageNumber =
+                            (int)ViewBag.PageNumber;
+
+                        var pageSize =
+                            (int)ViewBag.PageSize;
+
+                        var serialNumber =
+                            ((pageNumber - 1) *
+                             pageSize) + 1;
+
+                        foreach (var item in Model)
                         {
-                            var pageNumber =
-                                (int)ViewBag.PageNumber;
+                            var specifications =
+                                item.ItemSpecifications
+                                    .Where(x =>
+                                        !x.IsDeleted)
+                                    .OrderBy(x =>
+                                        x.SortOrder)
+                                    .ToList();
 
-                            var pageSize =
-                                (int)ViewBag.PageSize;
+                            <tr>
 
-                            var serialNumber =
-                                ((pageNumber - 1) * pageSize) + 1;
+                                <!-- Serial Number -->
 
-                            foreach (var item in Model)
-                            {
-                                <tr>
+                                <td>
+                                    @serialNumber
+                                </td>
 
-                                    <td>
-                                        @serialNumber
-                                    </td>
+                                <!-- Item Code -->
 
-                                    <td>
+                                <td>
 
-                                        <span class="fw-semibold">
-                                            @item.ItemCode
-                                        </span>
+                                    <span class="fw-semibold">
+                                        @item.ItemCode
+                                    </span>
 
-                                    </td>
+                                </td>
 
-                                    <td>
+                                <!-- Item Name -->
+
+                                <td style="min-width:180px;">
+
+                                    <a asp-action="Details"
+                                       asp-route-id="@item.ItemId"
+                                       class="text-decoration-none
+                                              fw-semibold">
+
                                         @item.ItemName
-                                    </td>
 
-                                    <td>
+                                    </a>
+
+                                </td>
+
+                                <!-- Part Number -->
+
+                                <td style="min-width:130px;">
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        item.PartNumber))
+                                    {
+                                        <span>
+                                            @item.PartNumber
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+                                <!-- Category -->
+
+                                <td>
+
+                                    @if (item.ItemCategory != null)
+                                    {
                                         @item.ItemCategory.CategoryName
-                                    </td>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
 
-                                    <td>
-                                        @item.Brand.BrandName
-                                    </td>
+                                </td>
 
-                                    <td>
+                                <!-- Brand -->
+
+                                
+
+                                <!-- UOM -->
+
+                                <td>
+
+                                    @if (item.Uom != null)
+                                    {
                                         @item.Uom.UomCode
-                                    </td>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
 
-                                    <td>
+                                </td>
 
-                                        @if (item.Shape != null)
-                                        {
-                                            @item.Shape.ShapeName
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">
-                                                -
-                                            </span>
-                                        }
+                                <!-- Shape -->
 
-                                    </td>
+                                <td>
 
-                                    <td style="min-width: 260px;">
+                                    @if (item.Shape != null)
+                                    {
+                                        @item.Shape.ShapeName
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
 
-    @{
-        var specifications =
-            item.ItemSpecifications
-                .Where(x => !x.IsDeleted)
-                .OrderBy(x => x.SortOrder)
-                .ToList();
-    }
+                                </td>
+
+                                <!-- Specifications -->
+
+                                <!-- Specifications -->
+
+<td style="min-width:260px;">
 
     @if (specifications.Any())
     {
-        <div class="d-flex flex-wrap gap-1">
+        <div class="d-flex
+                    flex-wrap
+                    gap-1">
 
             @foreach (var specification
                 in specifications.Take(3))
             {
+                var specificationName =
+                    specification.Specification != null
+                        ? specification.Specification.SpecificationName
+                        : "-";
+
                 var uomText =
                     specification.Uom != null
                         ? $" {specification.Uom.UomCode}"
                         : string.Empty;
 
-                <span class="badge bg-light
-                             text-dark border
+                var specificationText =
+                    $"{specification.SpecificationValue}{uomText}";
+
+                <span class="badge
+                             bg-light
+                             text-dark
+                             border
                              fw-normal">
 
                     <strong>
-                        @specification.Specification.SpecificationName:
+                        @(specificationName):
                     </strong>
 
-                    @specification.SpecificationValue@uomText
+                    @specificationText
 
                 </span>
             }
@@ -184,28 +322,38 @@
 
 </td>
 
-                                    <td>
+                                <!-- Status -->
 
-                                        @if (item.IsActive)
-                                        {
-                                            <span class="badge bg-success">
-                                                Active
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-danger">
-                                                Inactive
-                                            </span>
-                                        }
+                                <td>
 
-                                    </td>
+                                    @if (item.IsActive)
+                                    {
+                                        <span class="badge bg-success">
+                                            Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">
+                                            Inactive
+                                        </span>
+                                    }
 
-                                    <td class="text-center">
+                                </td>
+
+                                <!-- Actions -->
+
+                                <td class="text-center">
+
+                                    <div class="d-flex
+                                                justify-content-center
+                                                gap-1">
 
                                         <a asp-action="Details"
                                            asp-route-id="@item.ItemId"
-                                           class="btn btn-sm btn-outline-info"
+                                           class="btn
+                                                  btn-sm
+                                                  btn-outline-info"
                                            title="View">
 
                                             <i class="fa-solid fa-eye"></i>
@@ -214,7 +362,9 @@
 
                                         <a asp-action="Edit"
                                            asp-route-id="@item.ItemId"
-                                           class="btn btn-sm btn-outline-warning"
+                                           class="btn
+                                                  btn-sm
+                                                  btn-outline-warning"
                                            title="Edit">
 
                                             <i class="fa-solid fa-pen"></i>
@@ -222,7 +372,9 @@
                                         </a>
 
                                         <button type="button"
-                                                class="btn btn-sm btn-outline-danger"
+                                                class="btn
+                                                       btn-sm
+                                                       btn-outline-danger"
                                                 title="Delete"
                                                 onclick="confirmDelete(
                                                     '@Url.Action(
@@ -237,49 +389,55 @@
 
                                         </button>
 
-                                    </td>
-
-                                </tr>
-
-                                serialNumber++;
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-
-                                <td colspan="10"
-                                    class="text-center
-                                           text-muted py-5">
-
-                                    <i class="fa-solid
-                                              fa-box-open
-                                              fa-2x mb-2">
-                                    </i>
-
-                                    <div>
-                                        No Item records found.
                                     </div>
 
                                 </td>
 
                             </tr>
+
+                            serialNumber++;
                         }
+                    }
+                    else
+                    {
+                        <tr>
 
-                    </tbody>
+                            <td colspan="11"
+                                class="text-center
+                                       text-muted
+                                       py-5">
 
-                </table>
+                                <i class="fa-solid
+                                          fa-box-open
+                                          fa-2x
+                                          mb-2">
+                                </i>
 
-            </div>
+                                <div>
+                                    No Item records found.
+                                </div>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
 
         </div>
 
     </div>
 
-    <partial name="Components/_Pagination"
-             model='(
-                 (int)ViewBag.PageNumber,
-                 (int)ViewBag.PageSize
-             )' />
-
 </div>
+
+<!-- =========================================================
+     PAGINATION
+========================================================== -->
+
+<partial name="Components/_Pagination"
+         model='(
+             (int)ViewBag.PageNumber,
+             (int)ViewBag.PageSize
+         )' />

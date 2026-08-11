@@ -48,8 +48,7 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
                 .HasFilter(
                     "[PartNumber] IS NOT NULL AND [IsDeleted] = 0");
 
-            builder.Property(x => x.ImagePath)
-                .HasMaxLength(500);
+            
 
             #endregion
 

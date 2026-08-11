@@ -8,6 +8,7 @@ Contains Item Master business rules and operations.
 
 Responsibilities :
 - Item validation
+- Optional Part Number
 - Item Code generation
 - Item CRUD
 - Item Specification validation
@@ -18,12 +19,7 @@ Responsibilities :
 Duplicate Rule :
 ItemName + Shape + Specifications
 
-Specification comparison includes:
-- SpecificationId
-- SpecificationValue
-- Specification UOM
-
-Specification row order is ignored.
+PartNumber is NOT part of duplicate identity.
 
 ==============================================================
 */
@@ -36,12 +32,10 @@ using System.Text.RegularExpressions;
 
 namespace AjayIndustriesERP.Application.Services
 {
-    /// <summary>
-    /// Provides Item Master business operations.
-    /// </summary>
     public class ItemService : IItemService
     {
-        private readonly IItemRepository _itemRepository;
+        private readonly IItemRepository
+            _itemRepository;
 
         private readonly IItemSpecificationRepository
             _itemSpecificationRepository;
@@ -83,7 +77,8 @@ namespace AjayIndustriesERP.Application.Services
             int itemId)
         {
             return await _itemRepository
-                .GetByIdAsync(itemId);
+                .GetByIdAsync(
+                    itemId);
         }
 
         public async Task<List<Item>> SearchAsync(
@@ -97,7 +92,8 @@ namespace AjayIndustriesERP.Application.Services
             }
 
             return await _itemRepository
-                .SearchAsync(searchText);
+                .SearchAsync(
+                    searchText);
         }
 
         public async Task<PagedResult<Item>>
@@ -131,7 +127,8 @@ namespace AjayIndustriesERP.Application.Services
             }
 
             return await _itemSpecificationRepository
-                .GetByItemIdAsync(itemId);
+                .GetByItemIdAsync(
+                    itemId);
         }
 
         #endregion
@@ -141,12 +138,14 @@ namespace AjayIndustriesERP.Application.Services
         public async Task CreateAsync(
             Item item)
         {
-            NormalizeItem(item);
+            NormalizeItem(
+                item);
 
             NormalizeItemSpecifications(
                 item.ItemSpecifications);
 
-            ValidateItem(item);
+            ValidateItem(
+                item);
 
             await ValidateItemSpecificationsAsync(
                 item.ItemSpecifications);
@@ -156,6 +155,8 @@ namespace AjayIndustriesERP.Application.Services
              *
              * Final duplicate validation:
              * ItemName + Shape + Specifications.
+             *
+             * PartNumber is intentionally excluded.
              */
             await ValidateDuplicateConfigurationAsync(
                 item);
@@ -189,12 +190,9 @@ namespace AjayIndustriesERP.Application.Services
             }
 
             await _itemRepository
-                .AddAsync(item);
+                .AddAsync(
+                    item);
 
-            /*
-             * Parent and child rows are saved together
-             * through the same scoped DbContext.
-             */
             await _itemRepository
                 .SaveChangesAsync();
         }
@@ -217,20 +215,18 @@ namespace AjayIndustriesERP.Application.Services
                     "Item not found.");
             }
 
-            NormalizeItem(item);
+            NormalizeItem(
+                item);
 
             NormalizeItemSpecifications(
                 item.ItemSpecifications);
 
-            ValidateItem(item);
+            ValidateItem(
+                item);
 
             await ValidateItemSpecificationsAsync(
                 item.ItemSpecifications);
 
-            /*
-             * Exclude the Item currently being edited
-             * from duplicate comparison.
-             */
             await ValidateDuplicateConfigurationAsync(
                 item,
                 item.ItemId);
@@ -239,6 +235,9 @@ namespace AjayIndustriesERP.Application.Services
 
             existingItem.ItemName =
                 item.ItemName;
+
+            existingItem.PartNumber =
+                item.PartNumber;
 
             existingItem.Description =
                 item.Description;
@@ -265,7 +264,8 @@ namespace AjayIndustriesERP.Application.Services
                 "System";
 
             await _itemRepository
-                .UpdateAsync(existingItem);
+                .UpdateAsync(
+                    existingItem);
 
             #endregion
 
@@ -290,7 +290,8 @@ namespace AjayIndustriesERP.Application.Services
         {
             var item =
                 await _itemRepository
-                    .GetByIdAsync(itemId);
+                    .GetByIdAsync(
+                        itemId);
 
             if (item == null)
             {
@@ -300,7 +301,8 @@ namespace AjayIndustriesERP.Application.Services
 
             var itemSpecifications =
                 await _itemSpecificationRepository
-                    .GetByItemIdAsync(itemId);
+                    .GetByItemIdAsync(
+                        itemId);
 
             var modifiedOn =
                 DateTime.UtcNow;
@@ -326,7 +328,8 @@ namespace AjayIndustriesERP.Application.Services
                 "System";
 
             await _itemRepository
-                .DeleteAsync(item);
+                .DeleteAsync(
+                    item);
 
             await _itemSpecificationRepository
                 .SaveChangesAsync();
@@ -336,12 +339,6 @@ namespace AjayIndustriesERP.Application.Services
 
         #region Duplicate Item Configuration
 
-        /// <summary>
-        /// Blocks only an identical Item configuration.
-        ///
-        /// Same Item Name with another Shape or different
-        /// Specifications is allowed.
-        /// </summary>
         private async Task
             ValidateDuplicateConfigurationAsync(
                 Item item,
@@ -369,7 +366,8 @@ namespace AjayIndustriesERP.Application.Services
 
                 throw new BusinessException(
                     $"The same Item configuration already exists as " +
-                    $"{existingItem.ItemCode} - {existingItem.ItemName}.");
+                    $"{existingItem.ItemCode} - " +
+                    $"{existingItem.ItemName}.");
             }
         }
 
@@ -385,7 +383,8 @@ namespace AjayIndustriesERP.Application.Services
         {
             var existingSpecifications =
                 await _itemSpecificationRepository
-                    .GetByItemIdAsync(itemId);
+                    .GetByItemIdAsync(
+                        itemId);
 
             var retainedIds =
                 new HashSet<int>();
@@ -417,8 +416,7 @@ namespace AjayIndustriesERP.Application.Services
                         existingSpecifications
                             .FirstOrDefault(x =>
                                 x.SpecificationId ==
-                                postedRow
-                                    .SpecificationId &&
+                                postedRow.SpecificationId &&
                                 !retainedIds.Contains(
                                     x.ItemSpecificationId));
                 }
@@ -454,7 +452,8 @@ namespace AjayIndustriesERP.Application.Services
                             .ItemSpecificationId);
 
                     await _itemSpecificationRepository
-                        .UpdateAsync(existingRow);
+                        .UpdateAsync(
+                            existingRow);
 
                     continue;
                 }
@@ -615,6 +614,13 @@ namespace AjayIndustriesERP.Application.Services
                 NormalizeDisplayValue(
                     item.ItemName);
 
+            item.PartNumber =
+                string.IsNullOrWhiteSpace(
+                    item.PartNumber)
+                    ? null
+                    : NormalizeDisplayValue(
+                        item.PartNumber);
+
             item.Description =
                 string.IsNullOrWhiteSpace(
                     item.Description)
@@ -625,15 +631,18 @@ namespace AjayIndustriesERP.Application.Services
             if (!item.ShapeId.HasValue ||
                 item.ShapeId.Value <= 0)
             {
-                item.ShapeId = null;
+                item.ShapeId =
+                    null;
             }
         }
 
-        private static void NormalizeItemSpecifications(
-            ICollection<ItemSpecification>
-                itemSpecifications)
+        private static void
+            NormalizeItemSpecifications(
+                ICollection<ItemSpecification>
+                    itemSpecifications)
         {
-            var sortOrder = 1;
+            var sortOrder =
+                1;
 
             foreach (var row
                 in itemSpecifications)
@@ -645,7 +654,8 @@ namespace AjayIndustriesERP.Application.Services
                 if (!row.UomId.HasValue ||
                     row.UomId.Value <= 0)
                 {
-                    row.UomId = null;
+                    row.UomId =
+                        null;
                 }
 
                 row.SortOrder =
@@ -655,10 +665,12 @@ namespace AjayIndustriesERP.Application.Services
             }
         }
 
-        private static string NormalizeDisplayValue(
-            string? value)
+        private static string
+            NormalizeDisplayValue(
+                string? value)
         {
-            if (string.IsNullOrWhiteSpace(value))
+            if (string.IsNullOrWhiteSpace(
+                value))
             {
                 return string.Empty;
             }
@@ -683,6 +695,12 @@ namespace AjayIndustriesERP.Application.Services
             {
                 throw new BusinessException(
                     "Item Name cannot exceed 150 characters.");
+            }
+
+            if (item.PartNumber?.Length > 100)
+            {
+                throw new BusinessException(
+                    "Part Number cannot exceed 100 characters.");
             }
 
             if (item.Description?.Length > 500)
@@ -721,7 +739,8 @@ namespace AjayIndustriesERP.Application.Services
                 await _itemRepository
                     .GetLastItemCodeAsync();
 
-            var nextNumber = 1;
+            var nextNumber =
+                1;
 
             if (!string.IsNullOrWhiteSpace(
                 lastCode))

@@ -150,6 +150,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
         #region Create
 
+       
+
         [HttpGet]
         public async Task<IActionResult> Create(
             int? itemId = null)
@@ -157,6 +159,11 @@ namespace AjayIndustriesERP.Web.Controllers
             var model =
                 new DrawingViewModel();
 
+            /*
+             * When Drawing Create is opened from
+             * Item Details / Item Edit,
+             * automatically select that Item.
+             */
             if (itemId.HasValue &&
                 itemId.Value > 0)
             {
@@ -164,10 +171,13 @@ namespace AjayIndustriesERP.Web.Controllers
                     itemId.Value;
             }
 
-            await LoadItemsAsync(model);
+            await LoadItemsAsync(
+                model);
 
             return View(model);
         }
+
+        
 
         [HttpPost]
         [ValidateAntiForgeryToken]

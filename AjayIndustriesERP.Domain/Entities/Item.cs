@@ -48,7 +48,7 @@ namespace AjayIndustriesERP.Domain.Entities
         /// Optional primary Item image file path.
         /// Actual image binary is not stored in the database.
         /// </summary>
-        public string? ImagePath { get; set; }
+        
 
         #endregion
 

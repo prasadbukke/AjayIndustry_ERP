@@ -45,6 +45,10 @@ namespace AjayIndustriesERP.Web.ViewModels.Item
         public string ItemName { get; set; } =
             string.Empty;
 
+        [StringLength(100,  ErrorMessage ="Part Number cannot exceed 100 characters.")]
+        [Display(Name = "Part Number")]
+        public string? PartNumber { get; set; }
+
         [StringLength(
             500,
             ErrorMessage =

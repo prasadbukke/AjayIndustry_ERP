@@ -9,12 +9,14 @@ Handles Item Master UI requests.
 Features :
 - CRUD
 - Search and pagination
+- Optional Part Number
 - Category / Brand / UOM / Shape dropdowns
 - Dynamic Item Specifications
 - Specification UOM support
 - Live similar Item Name detection
-- Exact duplicate blocking
+- Exact configuration duplicate blocking
 - Similar-name confirmation
+- Drawing integration in Item Details/Edit
 
 ==============================================================
 */
@@ -34,12 +36,26 @@ namespace AjayIndustriesERP.Web.Controllers
     /// </summary>
     public class ItemController : Controller
     {
-        private readonly IItemService _itemService;
-        private readonly IItemCategoryService _itemCategoryService;
-        private readonly IBrandService _brandService;
-        private readonly IUomService _uomService;
-        private readonly IShapeService _shapeService;
-        private readonly ISpecificationService _specificationService;
+        private readonly IItemService
+            _itemService;
+
+        private readonly IItemCategoryService
+            _itemCategoryService;
+
+        private readonly IBrandService
+            _brandService;
+
+        private readonly IUomService
+            _uomService;
+
+        private readonly IShapeService
+            _shapeService;
+
+        private readonly ISpecificationService
+            _specificationService;
+
+        private readonly IDrawingService
+            _drawingService;
 
         public ItemController(
             IItemService itemService,
@@ -47,14 +63,29 @@ namespace AjayIndustriesERP.Web.Controllers
             IBrandService brandService,
             IUomService uomService,
             IShapeService shapeService,
-            ISpecificationService specificationService)
+            ISpecificationService specificationService,
+            IDrawingService drawingService)
         {
-            _itemService = itemService;
-            _itemCategoryService = itemCategoryService;
-            _brandService = brandService;
-            _uomService = uomService;
-            _shapeService = shapeService;
-            _specificationService = specificationService;
+            _itemService =
+                itemService;
+
+            _itemCategoryService =
+                itemCategoryService;
+
+            _brandService =
+                brandService;
+
+            _uomService =
+                uomService;
+
+            _shapeService =
+                shapeService;
+
+            _specificationService =
+                specificationService;
+
+            _drawingService =
+                drawingService;
         }
 
         #region Item List
@@ -65,37 +96,67 @@ namespace AjayIndustriesERP.Web.Controllers
             int pageNumber = 1,
             int pageSize = 10)
         {
-            if (!string.IsNullOrWhiteSpace(searchText))
+            if (!string.IsNullOrWhiteSpace(
+                searchText))
             {
                 var items =
-                    await _itemService.SearchAsync(
-                        searchText);
+                    await _itemService
+                        .SearchAsync(
+                            searchText);
 
-                ViewBag.SearchText = searchText;
-                ViewBag.PageNumber = 1;
-                ViewBag.PageSize = pageSize;
-                ViewBag.TotalRecords = items.Count;
-                ViewBag.TotalPages = 1;
-                ViewBag.HasPrevious = false;
-                ViewBag.HasNext = false;
+                ViewBag.SearchText =
+                    searchText;
+
+                ViewBag.PageNumber =
+                    1;
+
+                ViewBag.PageSize =
+                    pageSize;
+
+                ViewBag.TotalRecords =
+                    items.Count;
+
+                ViewBag.TotalPages =
+                    1;
+
+                ViewBag.HasPrevious =
+                    false;
+
+                ViewBag.HasNext =
+                    false;
 
                 return View(items);
             }
 
             var result =
-                await _itemService.GetPagedAsync(
-                    pageNumber,
-                    pageSize);
+                await _itemService
+                    .GetPagedAsync(
+                        pageNumber,
+                        pageSize);
 
-            ViewBag.SearchText = searchText;
-            ViewBag.PageNumber = result.PageNumber;
-            ViewBag.PageSize = result.PageSize;
-            ViewBag.TotalRecords = result.TotalRecords;
-            ViewBag.TotalPages = result.TotalPages;
-            ViewBag.HasPrevious = result.HasPrevious;
-            ViewBag.HasNext = result.HasNext;
+            ViewBag.SearchText =
+                searchText;
 
-            return View(result.Items);
+            ViewBag.PageNumber =
+                result.PageNumber;
+
+            ViewBag.PageSize =
+                result.PageSize;
+
+            ViewBag.TotalRecords =
+                result.TotalRecords;
+
+            ViewBag.TotalPages =
+                result.TotalPages;
+
+            ViewBag.HasPrevious =
+                result.HasPrevious;
+
+            ViewBag.HasNext =
+                result.HasNext;
+
+            return View(
+                result.Items);
         }
 
         #endregion
@@ -105,9 +166,11 @@ namespace AjayIndustriesERP.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            var model = new ItemViewModel();
+            var model =
+                new ItemViewModel();
 
-            await LoadDropdowns(model);
+            await LoadDropdowns(
+                model);
 
             return View(model);
         }
@@ -117,11 +180,13 @@ namespace AjayIndustriesERP.Web.Controllers
         public async Task<IActionResult> Create(
             ItemViewModel model)
         {
-            NormalizeModel(model);
+            NormalizeModel(
+                model);
 
             if (!ModelState.IsValid)
             {
-                await LoadDropdowns(model);
+                await LoadDropdowns(
+                    model);
 
                 return View(model);
             }
@@ -132,38 +197,53 @@ namespace AjayIndustriesERP.Web.Controllers
                     await FindSimilarItemsAsync(
                         model.ItemName);
 
-                
-
                 if (similarItems.Count > 0 &&
                     !model.ConfirmSimilarItemName)
                 {
                     model.SimilarItemNames =
                         similarItems
-                            .Select(x => x.DisplayText)
+                            .Select(x =>
+                                x.DisplayText)
                             .ToList();
 
-                    await LoadDropdowns(model);
+                    await LoadDropdowns(
+                        model);
 
                     return View(model);
                 }
 
                 var item =
-                    MapToEntity(model);
+                    MapToEntity(
+                        model);
 
-                await _itemService.CreateAsync(item);
+                await _itemService
+                    .CreateAsync(
+                        item);
 
                 TempData["Success"] =
                     "Item created successfully.";
 
+                /*
+                 * After Item creation redirect directly
+                 * to Details so Drawing can be added
+                 * immediately if required.
+                 *
+                 * EF populates ItemId after SaveChanges.
+                 */
                 return RedirectToAction(
-                    nameof(Index));
+                    nameof(Details),
+                    new
+                    {
+                        id = item.ItemId
+                    });
             }
             catch (BusinessException ex)
             {
                 TempData["Error"] =
                     ex.Message;
 
-                await LoadDropdowns(model);
+                await LoadDropdowns(
+                    model);
 
                 return View(model);
             }
@@ -172,7 +252,8 @@ namespace AjayIndustriesERP.Web.Controllers
                 TempData["Error"] =
                     "Something went wrong. Please try again.";
 
-                await LoadDropdowns(model);
+                await LoadDropdowns(
+                    model);
 
                 return View(model);
             }
@@ -187,7 +268,9 @@ namespace AjayIndustriesERP.Web.Controllers
             int id)
         {
             var item =
-                await _itemService.GetByIdAsync(id);
+                await _itemService
+                    .GetByIdAsync(
+                        id);
 
             if (item == null)
             {
@@ -198,14 +281,18 @@ namespace AjayIndustriesERP.Web.Controllers
                     nameof(Index));
             }
 
-            /*
-             * ItemRepository loads the main navigation
-             * properties. Item Specifications are loaded
-             * separately through the Item aggregate service.
-             */
             item.ItemSpecifications =
                 await _itemService
-                    .GetSpecificationsAsync(id);
+                    .GetSpecificationsAsync(
+                        id);
+
+            var drawings =
+                await _drawingService
+                    .GetByItemIdAsync(
+                        id);
+
+            ViewBag.CurrentDrawing =
+                drawings.FirstOrDefault();
 
             return View(item);
         }
@@ -219,7 +306,9 @@ namespace AjayIndustriesERP.Web.Controllers
             int id)
         {
             var item =
-                await _itemService.GetByIdAsync(id);
+                await _itemService
+                    .GetByIdAsync(
+                        id);
 
             if (item == null)
             {
@@ -232,7 +321,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
             var itemSpecifications =
                 await _itemService
-                    .GetSpecificationsAsync(id);
+                    .GetSpecificationsAsync(
+                        id);
 
             var model =
                 new ItemViewModel
@@ -245,6 +335,9 @@ namespace AjayIndustriesERP.Web.Controllers
 
                     ItemName =
                         item.ItemName,
+
+                    PartNumber =
+                        item.PartNumber,
 
                     Description =
                         item.Description,
@@ -266,7 +359,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
                     ItemSpecifications =
                         itemSpecifications
-                            .OrderBy(x => x.SortOrder)
+                            .OrderBy(x =>
+                                x.SortOrder)
                             .Select(x =>
                                 new ItemSpecificationRowViewModel
                                 {
@@ -288,7 +382,11 @@ namespace AjayIndustriesERP.Web.Controllers
                             .ToList()
                 };
 
-            await LoadDropdowns(model);
+            await LoadDropdowns(
+                model);
+
+            await LoadCurrentDrawingAsync(
+                model);
 
             return View(model);
         }
@@ -299,13 +397,19 @@ namespace AjayIndustriesERP.Web.Controllers
             ItemViewModel model)
         {
             ModelState.Remove(
-                nameof(ItemViewModel.ItemCode));
+                nameof(
+                    ItemViewModel.ItemCode));
 
-            NormalizeModel(model);
+            NormalizeModel(
+                model);
 
             if (!ModelState.IsValid)
             {
-                await LoadDropdowns(model);
+                await LoadDropdowns(
+                    model);
+
+                await LoadCurrentDrawingAsync(
+                    model);
 
                 return View(model);
             }
@@ -317,38 +421,52 @@ namespace AjayIndustriesERP.Web.Controllers
                         model.ItemName,
                         model.ItemId);
 
-                
-
                 if (similarItems.Count > 0 &&
                     !model.ConfirmSimilarItemName)
                 {
                     model.SimilarItemNames =
                         similarItems
-                            .Select(x => x.DisplayText)
+                            .Select(x =>
+                                x.DisplayText)
                             .ToList();
 
-                    await LoadDropdowns(model);
+                    await LoadDropdowns(
+                        model);
+
+                    await LoadCurrentDrawingAsync(
+                        model);
 
                     return View(model);
                 }
 
                 var item =
-                    MapToEntity(model);
+                    MapToEntity(
+                        model);
 
-                await _itemService.UpdateAsync(item);
+                await _itemService
+                    .UpdateAsync(
+                        item);
 
                 TempData["Success"] =
                     "Item updated successfully.";
 
                 return RedirectToAction(
-                    nameof(Index));
+                    nameof(Details),
+                    new
+                    {
+                        id = model.ItemId
+                    });
             }
             catch (BusinessException ex)
             {
                 TempData["Error"] =
                     ex.Message;
 
-                await LoadDropdowns(model);
+                await LoadDropdowns(
+                    model);
+
+                await LoadCurrentDrawingAsync(
+                    model);
 
                 return View(model);
             }
@@ -357,7 +475,11 @@ namespace AjayIndustriesERP.Web.Controllers
                 TempData["Error"] =
                     "Something went wrong. Please try again.";
 
-                await LoadDropdowns(model);
+                await LoadDropdowns(
+                    model);
+
+                await LoadCurrentDrawingAsync(
+                    model);
 
                 return View(model);
             }
@@ -374,7 +496,9 @@ namespace AjayIndustriesERP.Web.Controllers
         {
             try
             {
-                await _itemService.DeleteAsync(id);
+                await _itemService
+                    .DeleteAsync(
+                        id);
 
                 TempData["Success"] =
                     "Item deleted successfully.";
@@ -399,46 +523,38 @@ namespace AjayIndustriesERP.Web.Controllers
         #region Live Similar Item Name Check
 
         [HttpGet]
-        public async Task<IActionResult> CheckSimilarName(
-    string itemName,
-    int? itemId = null)
+        public async Task<IActionResult>
+            CheckSimilarName(
+                string itemName,
+                int? itemId = null)
         {
             var matches =
                 await FindSimilarItemsAsync(
                     itemName,
                     itemId);
 
-            return Json(new
-            {
-                hasSimilarItems =
-                    matches.Count > 0,
+            return Json(
+                new
+                {
+                    hasSimilarItems =
+                        matches.Count > 0,
 
-                /*
-                 * Same Name is informational only.
-                 *
-                 * It is NOT automatically a duplicate because
-                 * Shape / Specifications may be different.
-                 */
-                hasSameName =
-                    matches.Any(
-                        x => x.IsExactMatch),
+                    hasSameName =
+                        matches.Any(x =>
+                            x.IsExactMatch),
 
-                items =
-                    matches
-                        .Select(x =>
-                            x.DisplayText)
-                        .ToList()
-            });
+                    items =
+                        matches
+                            .Select(x =>
+                                x.DisplayText)
+                            .ToList()
+                });
         }
 
         #endregion
 
         #region Dropdown Loading
 
-        /// <summary>
-        /// Loads all dropdown data required by
-        /// Item Create/Edit forms.
-        /// </summary>
         private async Task LoadDropdowns(
             ItemViewModel model)
         {
@@ -447,8 +563,10 @@ namespace AjayIndustriesERP.Web.Controllers
             model.Categories =
                 (await _itemCategoryService
                     .GetAllAsync())
-                .Where(x => x.IsActive)
-                .OrderBy(x => x.CategoryName)
+                .Where(x =>
+                    x.IsActive)
+                .OrderBy(x =>
+                    x.CategoryName)
                 .Select(x =>
                     new SelectListItem
                     {
@@ -472,13 +590,16 @@ namespace AjayIndustriesERP.Web.Controllers
             model.Brands =
                 (await _brandService
                     .GetAllAsync())
-                .Where(x => x.IsActive)
-                .OrderBy(x => x.BrandName)
+                .Where(x =>
+                    x.IsActive)
+                .OrderBy(x =>
+                    x.BrandName)
                 .Select(x =>
                     new SelectListItem
                     {
                         Value =
-                            x.BrandId.ToString(),
+                            x.BrandId
+                                .ToString(),
 
                         Text =
                             $"{x.BrandCode} - {x.BrandName}",
@@ -491,20 +612,24 @@ namespace AjayIndustriesERP.Web.Controllers
 
             #endregion
 
-            #region Main UOM
+            #region UOM
 
             var allUoms =
-                await _uomService.GetAllAsync();
+                await _uomService
+                    .GetAllAsync();
 
             model.Uoms =
                 allUoms
-                    .Where(x => x.IsActive)
-                    .OrderBy(x => x.UomName)
+                    .Where(x =>
+                        x.IsActive)
+                    .OrderBy(x =>
+                        x.UomName)
                     .Select(x =>
                         new SelectListItem
                         {
                             Value =
-                                x.UomId.ToString(),
+                                x.UomId
+                                    .ToString(),
 
                             Text =
                                 $"{x.UomCode} - {x.UomName}",
@@ -522,13 +647,16 @@ namespace AjayIndustriesERP.Web.Controllers
             model.Shapes =
                 (await _shapeService
                     .GetAllAsync())
-                .Where(x => x.IsActive)
-                .OrderBy(x => x.ShapeName)
+                .Where(x =>
+                    x.IsActive)
+                .OrderBy(x =>
+                    x.ShapeName)
                 .Select(x =>
                     new SelectListItem
                     {
                         Value =
-                            x.ShapeId.ToString(),
+                            x.ShapeId
+                                .ToString(),
 
                         Text =
                             $"{x.ShapeCode} - {x.ShapeName}",
@@ -541,21 +669,12 @@ namespace AjayIndustriesERP.Web.Controllers
 
             #endregion
 
-            #region Specification Master
+            #region Specification
 
             var allSpecifications =
                 await _specificationService
                     .GetAllAsync();
 
-            /*
-             * Normally only Active Specifications are
-             * available for selection.
-             *
-             * During Edit, an existing Item may reference
-             * a Specification that was later made inactive.
-             * Such selected records are also included so
-             * existing Item data remains visible.
-             */
             var selectedSpecificationIds =
                 model.ItemSpecifications
                     .Where(x =>
@@ -611,7 +730,8 @@ namespace AjayIndustriesERP.Web.Controllers
                         new SelectListItem
                         {
                             Value =
-                                x.UomId.ToString(),
+                                x.UomId
+                                    .ToString(),
 
                             Text =
                                 $"{x.UomCode} - {x.UomName}"
@@ -623,12 +743,38 @@ namespace AjayIndustriesERP.Web.Controllers
 
         #endregion
 
-        #region Entity Mapping
+        #region Drawing Loading
 
         /// <summary>
-        /// Maps ItemViewModel including dynamic child rows
-        /// into the Item aggregate.
+        /// Loads the Current Drawing for Item Edit.
+        ///
+        /// Create does not have an ItemId yet,
+        /// therefore Drawing cannot exist during Create.
         /// </summary>
+        private async Task LoadCurrentDrawingAsync(
+            ItemViewModel model)
+        {
+            ViewBag.CurrentDrawing =
+                null;
+
+            if (model.ItemId <= 0)
+            {
+                return;
+            }
+
+            var drawings =
+                await _drawingService
+                    .GetByItemIdAsync(
+                        model.ItemId);
+
+            ViewBag.CurrentDrawing =
+                drawings.FirstOrDefault();
+        }
+
+        #endregion
+
+        #region Entity Mapping
+
         private static Item MapToEntity(
             ItemViewModel model)
         {
@@ -640,6 +786,9 @@ namespace AjayIndustriesERP.Web.Controllers
 
                     ItemName =
                         model.ItemName,
+
+                    PartNumber =
+                        model.PartNumber,
 
                     Description =
                         model.Description,
@@ -704,7 +853,8 @@ namespace AjayIndustriesERP.Web.Controllers
             }
 
             var items =
-                await _itemService.GetAllAsync();
+                await _itemService
+                    .GetAllAsync();
 
             var availableItems =
                 items
@@ -715,11 +865,12 @@ namespace AjayIndustriesERP.Web.Controllers
                     .ToList();
 
             var matches =
-                NameSimilarityHelper.FindMatches(
-                    availableItems,
-                    itemName,
-                    x => x.ItemName,
-                    5);
+                NameSimilarityHelper
+                    .FindMatches(
+                        availableItems,
+                        itemName,
+                        x => x.ItemName,
+                        5);
 
             return matches
                 .Select(x =>
@@ -729,7 +880,8 @@ namespace AjayIndustriesERP.Web.Controllers
                             x.ItemId,
 
                         DisplayText =
-                            $"{x.ItemCode} - {x.ItemName}",
+                            BuildItemDisplayText(
+                                x),
 
                         IsExactMatch =
                             NameSimilarityHelper
@@ -738,6 +890,22 @@ namespace AjayIndustriesERP.Web.Controllers
                                     x.ItemName)
                     })
                 .ToList();
+        }
+
+        private static string BuildItemDisplayText(
+            Item item)
+        {
+            var text =
+                $"{item.ItemCode} - {item.ItemName}";
+
+            if (!string.IsNullOrWhiteSpace(
+                item.PartNumber))
+            {
+                text +=
+                    $" | PN: {item.PartNumber}";
+            }
+
+            return text;
         }
 
         #endregion
@@ -750,6 +918,12 @@ namespace AjayIndustriesERP.Web.Controllers
             model.ItemName =
                 model.ItemName?.Trim()
                 ?? string.Empty;
+
+            model.PartNumber =
+                string.IsNullOrWhiteSpace(
+                    model.PartNumber)
+                    ? null
+                    : model.PartNumber.Trim();
 
             model.Description =
                 string.IsNullOrWhiteSpace(
@@ -770,13 +944,8 @@ namespace AjayIndustriesERP.Web.Controllers
                 return;
             }
 
-            /*
-             * SortOrder is determined from current UI row
-             * sequence instead of trusting posted values.
-             */
             for (var index = 0;
-                 index <
-                 model.ItemSpecifications.Count;
+                 index < model.ItemSpecifications.Count;
                  index++)
             {
                 var row =

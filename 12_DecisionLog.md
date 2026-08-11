@@ -1,458 +1,436 @@
-﻿# Decision Log
+﻿# 12 - Decision Log
+
+## Project
+
+Ajay Industries ERP
+
+This document records architecture and business decisions that should not be changed casually.
 
 ---
 
-## Decision 001
+# Decision 001 - Clean Architecture
 
-### Architecture
+The ERP uses:
 
-Approved
+- Domain
+- Application
+- Infrastructure
+- Web
 
-- Clean Architecture
-- Repository Pattern
-- Service Pattern
+ASP.NET Core MVC is the current presentation technology.
 
-Status
+React is not part of the current architecture.
 
-✅ Approved
-
----
-
-## Decision 002
-
-### UI Technology
-
-Approved
-
-- ASP.NET Core MVC
-
-Reason
-
-Client delivery will be done using MVC.
-
-Status
-
-✅ Approved
+Web API may be added later when required.
 
 ---
 
-## Decision 003
+# Decision 002 - Repository + Service Pattern
 
-### API Strategy
+Database access belongs to Repository classes.
 
-Approved
+Business rules belong to Application Services.
 
-ASP.NET Core Web API will be developed after the MVC application.
+MVC Controllers should remain thin.
 
-Business logic will be reused from the Application Layer.
-
-Status
-
-✅ Approved
+Business validation errors use `BusinessException`.
 
 ---
 
-## Decision 004
+# Decision 003 - Soft Delete
 
-### Delete Strategy
+Business records use Soft Delete.
 
-Approved
+Physical deletion is avoided.
 
-Soft Delete
+Standard fields:
 
-Reason
-
-ERP records should never be physically deleted.
-
-Status
-
-✅ Approved
-
----
-
-## Decision 005
-
-### Audit Fields
-
-Every master table will contain
-
-- IsActive
 - IsDeleted
-- CreatedOn
-- CreatedBy
-- ModifiedOn
-- ModifiedBy
+- IsActive
 
-Status
-
-✅ Approved
+Deleted records are normally excluded from UI lists.
 
 ---
 
-## Decision 006
+# Decision 004 - Business Code Reuse
 
-### Company Code
-
-Format
-
-CMP00001
-
-Auto Generated
-
-Status
-
-✅ Approved
-
----
-
-## Decision 007
-
-### Reference Module
-
-Company Master
-
-Reason
-
-Every future ERP module will follow the same
-
-- Folder Structure
-- Coding Style
-- Comments
-- Validation
-- CRUD Flow
-- Search
-- Pagination
-- Documentation
-
-Status
-
-✅ Approved
-
----
-
-## Decision 008
-
-### ERP Navigation
-
-Navigation is frozen.
-
-Dashboard
-
-Masters
-
-Purchase
-
-Inventory
-
-Production
-
-Sales
-
-Finance
-
-Reports
-
-Settings
-
-No new module will be introduced unless required by the client.
-
-Status
-
-✅ Approved
-
----
-
-## Decision 009
-
-### Documentation Policy
-
-Every completed module must update
-
-- DatabaseDesign.md
-- API.md
-- SprintLog.md
-- DecisionLog.md
-- ProjectState.md
-
-before starting the next module.
-
-Status
-
-✅ Approved
-
----
-
-## Decision 010
-
-### Git Policy
-
-Every completed module requires
-
-- Git Commit
-- Documentation Update
-
-before starting the next module.
-
-Status
-
-✅ Approved
-
-## Decision 011
-
-Title
-
-Shared UI Components
-
-Decision
-
-The ERP will use reusable components for:
-
-- Search
-- Pagination
-- Delete Confirmation
-- Toast Notification
-
-Status
-
-Approved
-
-## Decision 012
-
-Title
-
-Business Exception Handling
-
-Decision
-
-Business validations will throw BusinessException.
-
-Controllers will catch BusinessException and display Toast Notification.
-
-Unexpected exceptions will display a generic message.
-
-Global Exception Middleware will be implemented during Production Hardening phase.
-
-Status
-
-Approved
-
-# Decision Log Update
-
-Date: 08-Aug-2026
-
----
-
-## Item Shape
-
-Decision:
-
-Shape will be maintained as a standalone reusable Shape Master.
-
-Item contains:
-
-ShapeId - Nullable
-
-Reason:
-
-Shape is reusable across many Items and should not be entered as random
-free text.
+Auto-generated business codes must never be reused.
 
 Examples:
 
-- Round
-- Flat
-- Square
-- Sheet
-- Pipe
+- ITM00001
+- SUP00001
+- SPC00001
+
+Deleted records are included when generating/checking codes.
 
 ---
 
-## Item Specifications
+# Decision 005 - Item Code
 
-Decision:
+ItemCode remains system generated.
 
-Specification names will NOT be stored as free-text fields directly
-inside Item Master.
+Format:
 
-A reusable Specification Master will be maintained.
+`ITM00001`
 
-Item Specification values will be stored in ItemSpecifications.
+ItemCode is ERP identity, not a human-readable Item description.
+
+Meaningful Item information belongs to:
+
+- ItemName
+- Shape
+- Specifications
+- PartNumber
+- Drawing
+- Image
+
+---
+
+# Decision 006 - Item Name Is Not Globally Unique
+
+Same Item Name may exist for different Item configurations.
 
 Example:
 
-Specification Master:
-Diameter
-Length
-Grade
+MS Round Bar with different Diameter/Grade combinations.
 
-Item:
-MS Round Bar
+Exact Item duplicate identity is:
 
-Values:
-Diameter = 25 MM
-Length = 6000 MM
-Grade = EN8
+- ItemName
+- Shape
+- Complete specification configuration
+
+Specification row order is ignored.
+
+Category, Brand and main UOM are excluded from duplicate signature.
+
+---
+
+# Decision 007 - Shape Is a Standalone Master
+
+Shape is maintained independently.
+
+Item has optional ShapeId.
+
+Shape participates in Item duplicate/configuration identity.
+
+---
+
+# Decision 008 - Specification Is a Standalone Master
+
+Specification is maintained independently.
+
+Examples:
+
+- Diameter
+- Length
+- Width
+- Thickness
+- Grade
+
+Grade is handled as a Specification.
+
+A separate Grade master/column is not currently required.
+
+---
+
+# Decision 009 - Drawing Number Was Deferred Initially
+
+Drawing Number was initially deferred while Item configuration architecture was still evolving.
+
+After Item/Specification architecture stabilized, Drawing was implemented as a dedicated module.
+
+---
+
+# Decision 010 - Drawing Is Not an Item Column
+
+Drawing Number is not stored directly on Item.
+
+Drawing has its own engineering lifecycle.
+
+Therefore Drawing is represented in a dedicated `Drawings` table.
+
+---
+
+# Decision 011 - One Drawing Table
+
+Drawing and revision history currently use one table.
+
+A separate `DrawingRevisions` table is intentionally not used at this stage.
+
+Every Drawings row represents one revision.
+
+This avoids unnecessary multi-table complexity while still supporting revision history.
+
+---
+
+# Decision 012 - One Item Has One Drawing Number
+
+Final Drawing relationship:
+
+`One Item -> One Drawing Number -> Many Revisions`
+
+Same Item cannot have another Drawing Number.
+
+If a Drawing changes, a new Revision must be added.
+
+This decision replaced the earlier idea of allowing multiple Drawings per Item.
+
+---
+
+# Decision 013 - Drawing Number Is Permanent
+
+Drawing Number:
+
+- is manually entered
+- is required
+- is permanent
+- cannot be changed after creation
+- cannot be reused after deletion
+
+Drawing Number is an engineering identity.
+
+---
+
+# Decision 014 - Drawing Number Similarity
+
+During Drawing Create:
+
+Exact Drawing Number:
+
+- blocks Create
+- user is instructed to open existing Drawing and add Revision
+
+Similar Drawing Number:
+
+- warning only
+
+Drawing Name:
+
+- exact/similar spelling warning
+- does not block Save
+
+---
+
+# Decision 015 - Revision Number Is Auto Generated
+
+Revision Number is not manually entered.
+
+Format:
+
+- RV-01
+- RV-02
+- RV-03
+
+Deleted revisions remain part of numbering history.
+
+Revision Numbers are never reused.
+
+Legacy values such as R01/R02 are recognized while calculating the next number.
+
+---
+
+# Decision 016 - Only One Current Revision
+
+For one Drawing Number, only one Revision can be Current.
+
+`IsActive = true` means Current Revision.
+
+Historical revisions use:
+
+`IsActive = false`
+
+A filtered unique database index protects this rule.
+
+---
+
+# Decision 017 - Previous Revision Can Be Reactivated
+
+Historical inactive revisions may be activated again.
+
+When an old revision becomes Current:
+
+- existing Current revision becomes Inactive
+- selected revision becomes Current
+
+Only one Current revision can exist.
+
+The switch is executed inside a database transaction.
+
+---
+
+# Decision 018 - Revision Soft Delete
+
+Inactive revisions may be soft deleted.
+
+Current revision cannot be deleted directly.
+
+The user must first activate another revision.
+
+Deleted revision:
+
+- remains in database
+- disappears from normal UI
+- retains its revision number
+- retains its physical Drawing file
+
+---
+
+# Decision 019 - Drawing Soft Delete and Restore
+
+Deleting the complete Drawing does not free the Drawing Number.
+
+Deleted Drawings appear in a dedicated Deleted Drawings screen.
+
+User can Restore the Drawing.
+
+This prevents the confusing situation where:
+
+- Drawing disappears from normal UI
+- same Drawing Number remains reserved
+- user cannot understand why Create is blocked
+
+Restore is the correct recovery path.
+
+---
+
+# Decision 020 - Drawing Files Are Not Stored as SQL Binary
+
+Drawing files are stored in the web file system.
+
+Current location:
+
+`wwwroot/uploads/drawings`
+
+Database stores:
+
+- FileName
+- FilePath
+
+File binary is not stored in SQL Server.
+
+---
+
+# Decision 021 - Historical Drawing Files Are Preserved
+
+Old revision files are not overwritten.
+
+A new revision creates a new file reference.
+
+Soft deletion does not physically remove the file.
+
+This preserves engineering history.
+
+---
+
+# Decision 022 - IsPrimary Removed
+
+The original Drawing design contained `IsPrimary`.
+
+After finalizing:
+
+`One Item -> One Drawing Number`
+
+the Primary concept became unnecessary.
+
+`IsPrimary` was removed from:
+
+- Domain entity
+- ViewModel
+- Service
+- Repository
+- UI
+- Database
+
+---
+
+# Decision 023 - Supplier Master Financial Separation
+
+Supplier Master stores identity/contact/tax/address/payment-term data only.
+
+It does not store transaction-derived values such as:
+
+- Opening Balance
+- Purchase Total
+- Pending Payment
+- Last Purchase
+- GST totals
+
+These belong to future accounting/purchase modules.
+
+---
+
+# Decision 024 - Supplier Duplicate Rules
+
+Supplier Name:
+
+- exact active duplicate blocked
+- similar spelling warning
+
+GSTIN:
+
+- optional
+- active unique when provided
+
+PAN:
+
+- optional
+- not unique
+
+---
+
+# Decision 025 - Item Part Number
+
+PartNumber is an optional Item field.
+
+It is not currently unique.
 
 Reason:
 
-Prevents inconsistent names such as:
-
-Diameter
-Dia
-OD
-Diamter
-
-and enables future reporting, filtering and searching.
+Manufacturer/internal part numbers may overlap across brands/sources.
 
 ---
 
-## Grade
+# Decision 026 - Item Image
 
-Decision:
+Item should support a primary image.
 
-Grade will currently be treated as an Item Specification.
+Current design:
 
-Example:
+`Items.ImagePath`
 
-Grade = EN8
+Image binary will not be stored in SQL Server.
 
-A dedicated Grade Master is not required at this stage.
-
-This decision may be revisited if Grade later requires its own business
-attributes or transactional behavior.
+Actual Item image upload/display integration is the next Item Master enhancement.
 
 ---
 
-## Drawing Number
+# Decision 027 - Production Workflow Is Database Driven
 
-Decision:
+Future Production workflow will be database driven.
 
-Drawing Number is not included in Item Master at this stage.
+Planned statuses:
 
-It can be introduced later when drawing-controlled manufactured Items
-require it.
+- Pending
+- Running
+- Completed
+- Rejected
+- On Hold
+- Cancelled
 
----
+Future production history should capture:
 
-## Same Item Name
+- Operator
+- Machine
+- Start Time
+- End Time
+- Duration
+- Good Quantity
+- Reject Quantity
+- Rework Quantity
+- Remarks
+- Current Stage
+- Overall Progress
 
-Decision:
-
-ItemName is NOT unique.
-
-Example:
-
-MS Round Bar - Diameter 25 MM
-
-MS Round Bar - Diameter 30 MM
-
-Both are valid separate Items.
-
----
-
-## Item Duplicate Rule
-
-Decision:
-
-An Item is considered an exact duplicate only when all of the following
-match:
-
-- Item Name
-- Shape
-- Complete Specification Set
-- Specification Values
-- Specification UOMs
-
-Specification row order does not affect duplicate detection.
-
----
-
-## Item Stock
-
-Decision:
-
-Stock quantities will NOT be stored directly in Item Master.
-
-Stock information belongs to Inventory transactions and warehouse-wise
-stock tables.
-
-Future Item availability information will be derived from Inventory.
-
----
-
-## Warehouse
-
-Decision:
-
-Warehouse is not permanently attached to Item Master.
-
-One Item can exist across multiple Warehouses.
-
-Warehouse-wise stock will be handled by the Inventory module.
-
----
-
-## GST and Tax
-
-Decision:
-
-GST and tax configuration will not be stored directly in Item Master.
-
-Tax configuration will be maintained separately and linked as required.
-
----
-
-## Pricing
-
-Decision:
-
-Purchase and Sales prices are not stored directly in Item Master.
-
-Pricing will be transaction/supplier/customer dependent and handled in
-dedicated modules.
-
----
-
-## Quick Master Creation
-
-Decision:
-
-Reusable Master dropdowns may provide Quick Add functionality without
-leaving the current transaction/form.
-
-Current supported Quick Masters:
-
-- Category
-- Brand
-- UOM
-- Shape
-- Specification
-
-Quick Add supports:
-
-- Live similar-name suggestions
-- Exact duplicate prevention
-- Similar-name confirmation
-- AJAX creation
-- Automatic selection of the newly created record
-
----
-
-## Name Similarity
-
-Decision:
-
-Name-based Masters will use reusable NameSimilarityHelper logic.
-
-Behavior:
-
-Exact match:
-Block duplicate creation.
-
-Similar spelling:
-Show warning and allow user confirmation.
-
-Live suggestions:
-Start while the user is typing.
-
-This pattern should be reused by future name-based Masters.
+Production coding is deferred until its module phase.

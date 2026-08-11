@@ -1,4 +1,6 @@
-﻿@model AjayIndustriesERP.Domain.Entities.Item
+﻿@using AjayIndustriesERP.Domain.Entities
+
+@model AjayIndustriesERP.Domain.Entities.Item
 
 @*
 ==============================================================
@@ -9,20 +11,25 @@ Purpose :
 Displays complete Item Master information.
 
 Features :
-- Category
-- Brand
-- Main UOM
-- Shape
-- Description
-- Dynamic Item Specifications
-- Specification UOM
-- Status and audit information
+- Clean 3-column Item Information
+- Part Number
+- Dynamic Specifications
+- Current Drawing integration
+- Drawing Number
+- Current Revision
+- Drawing Type
+- Current Drawing File
+- Add / Open Drawing actions
+- Audit Information
 
 ==============================================================
 *@
 
 @{
     ViewData["Title"] = "Item Details";
+
+    var currentDrawing =
+        ViewBag.CurrentDrawing as Drawing;
 }
 
 <div class="container-fluid">
@@ -31,8 +38,12 @@ Features :
          PAGE HEADER
     ====================================================== -->
 
-    <div class="d-flex justify-content-between
-                align-items-center mb-4">
+    <div class="d-flex
+                justify-content-between
+                align-items-center
+                flex-wrap
+                gap-3
+                mb-4">
 
         <div>
 
@@ -72,7 +83,7 @@ Features :
     </div>
 
     <!-- =====================================================
-         BASIC ITEM INFORMATION
+         ITEM INFORMATION
     ====================================================== -->
 
     <div class="card shadow-sm border-0 mb-4">
@@ -87,60 +98,99 @@ Features :
 
         <div class="card-body">
 
-            <div class="row">
+            <div class="row g-3">
 
                 <!-- Item Code -->
 
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4">
 
-                    <div class="text-muted small">
-                        Item Code
-                    </div>
+                    <div class="border rounded p-3 h-100">
 
-                    <div class="fw-semibold">
-                        @Model.ItemCode
+                        <div class="small text-muted mb-1">
+                            Item Code
+                        </div>
+
+                        <div class="fw-semibold">
+                            @Model.ItemCode
+                        </div>
+
                     </div>
 
                 </div>
 
                 <!-- Item Name -->
 
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4">
 
-                    <div class="text-muted small">
-                        Item Name
+                    <div class="border rounded p-3 h-100">
+
+                        <div class="small text-muted mb-1">
+                            Item Name
+                        </div>
+
+                        <div class="fw-semibold"
+                             style="overflow-wrap:anywhere;">
+
+                            @Model.ItemName
+
+                        </div>
+
                     </div>
 
-                    <div class="fw-semibold">
-                        @Model.ItemName
+                </div>
+
+                <!-- Part Number -->
+
+                <div class="col-md-4">
+
+                    <div class="border rounded p-3 h-100">
+
+                        <div class="small text-muted mb-1">
+                            Part Number
+                        </div>
+
+                        <div class="fw-semibold"
+                             style="overflow-wrap:anywhere;">
+
+                            @(string.IsNullOrWhiteSpace(
+                                Model.PartNumber)
+                                ? "-"
+                                : Model.PartNumber)
+
+                        </div>
+
                     </div>
 
                 </div>
 
                 <!-- Category -->
 
-                <div class="col-md-3 mb-3">
+                <div class="col-md-4">
 
-                    <div class="text-muted small">
-                        Category
-                    </div>
+                    <div class="border rounded p-3 h-100">
 
-                    <div>
+                        <div class="small text-muted mb-1">
+                            Category
+                        </div>
 
-                        @if (Model.ItemCategory != null)
-                        {
-                            <span>
-                                @Model.ItemCategory.CategoryCode
-                                -
-                                @Model.ItemCategory.CategoryName
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="text-muted">
-                                -
-                            </span>
-                        }
+                        <div>
+
+                            @if (Model.ItemCategory != null)
+                            {
+                                <span>
+                                    @Model.ItemCategory.CategoryCode
+                                    -
+                                    @Model.ItemCategory.CategoryName
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">
+                                    -
+                                </span>
+                            }
+
+                        </div>
 
                     </div>
 
@@ -148,57 +198,65 @@ Features :
 
                 <!-- Brand -->
 
-                <div class="col-md-3 mb-3">
+                <div class="col-md-4">
 
-                    <div class="text-muted small">
-                        Brand
-                    </div>
+                    <div class="border rounded p-3 h-100">
 
-                    <div>
+                        <div class="small text-muted mb-1">
+                            Brand
+                        </div>
 
-                        @if (Model.Brand != null)
-                        {
-                            <span>
-                                @Model.Brand.BrandCode
-                                -
-                                @Model.Brand.BrandName
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="text-muted">
-                                -
-                            </span>
-                        }
+                        <div>
+
+                            @if (Model.Brand != null)
+                            {
+                                <span>
+                                    @Model.Brand.BrandCode
+                                    -
+                                    @Model.Brand.BrandName
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">
+                                    -
+                                </span>
+                            }
+
+                        </div>
 
                     </div>
 
                 </div>
 
-                <!-- Main UOM -->
+                <!-- UOM -->
 
-                <div class="col-md-3 mb-3">
+                <div class="col-md-4">
 
-                    <div class="text-muted small">
-                        UOM
-                    </div>
+                    <div class="border rounded p-3 h-100">
 
-                    <div>
+                        <div class="small text-muted mb-1">
+                            UOM
+                        </div>
 
-                        @if (Model.Uom != null)
-                        {
-                            <span>
-                                @Model.Uom.UomCode
-                                -
-                                @Model.Uom.UomName
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="text-muted">
-                                -
-                            </span>
-                        }
+                        <div>
+
+                            @if (Model.Uom != null)
+                            {
+                                <span>
+                                    @Model.Uom.UomCode
+                                    -
+                                    @Model.Uom.UomName
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">
+                                    -
+                                </span>
+                            }
+
+                        </div>
 
                     </div>
 
@@ -206,54 +264,32 @@ Features :
 
                 <!-- Shape -->
 
-                <div class="col-md-3 mb-3">
+                <div class="col-md-4">
 
-                    <div class="text-muted small">
-                        Shape
-                    </div>
+                    <div class="border rounded p-3 h-100">
 
-                    <div>
+                        <div class="small text-muted mb-1">
+                            Shape
+                        </div>
 
-                        @if (Model.Shape != null)
-                        {
-                            <span>
-                                @Model.Shape.ShapeCode
-                                -
-                                @Model.Shape.ShapeName
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="text-muted">
-                                -
-                            </span>
-                        }
+                        <div>
 
-                    </div>
+                            @if (Model.Shape != null)
+                            {
+                                <span>
+                                    @Model.Shape.ShapeCode
+                                    -
+                                    @Model.Shape.ShapeName
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">
+                                    -
+                                </span>
+                            }
 
-                </div>
-
-                <!-- Description -->
-
-                <div class="col-12 mb-3">
-
-                    <div class="text-muted small">
-                        Description
-                    </div>
-
-                    <div>
-
-                        @if (!string.IsNullOrWhiteSpace(
-                            Model.Description))
-                        {
-                            @Model.Description
-                        }
-                        else
-                        {
-                            <span class="text-muted">
-                                -
-                            </span>
-                        }
+                        </div>
 
                     </div>
 
@@ -261,26 +297,54 @@ Features :
 
                 <!-- Status -->
 
-                <div class="col-md-6 mb-2">
+                <div class="col-md-4">
 
-                    <div class="text-muted small">
-                        Status
+                    <div class="border rounded p-3 h-100">
+
+                        <div class="small text-muted mb-1">
+                            Status
+                        </div>
+
+                        <div>
+
+                            @if (Model.IsActive)
+                            {
+                                <span class="badge bg-success">
+                                    Active
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">
+                                    Inactive
+                                </span>
+                            }
+
+                        </div>
+
                     </div>
 
-                    <div>
+                </div>
 
-                        @if (Model.IsActive)
-                        {
-                            <span class="badge bg-success">
-                                Active
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-danger">
-                                Inactive
-                            </span>
-                        }
+                <!-- Description -->
+
+                <div class="col-md-4">
+
+                    <div class="border rounded p-3 h-100">
+
+                        <div class="small text-muted mb-1">
+                            Description
+                        </div>
+
+                        <div style="white-space:normal;
+                                    overflow-wrap:anywhere;">
+
+                            @(string.IsNullOrWhiteSpace(
+                                Model.Description)
+                                ? "-"
+                                : Model.Description)
+
+                        </div>
 
                     </div>
 
@@ -300,7 +364,8 @@ Features :
 
         <div class="card-header bg-light">
 
-            <div class="d-flex justify-content-between
+            <div class="d-flex
+                        justify-content-between
                         align-items-center">
 
                 <div>
@@ -336,14 +401,16 @@ Features :
             {
                 <div class="table-responsive">
 
-                    <table class="table table-hover
-                                  align-middle mb-0">
+                    <table class="table
+                                  table-hover
+                                  align-middle
+                                  mb-0">
 
                         <thead class="table-light">
 
                             <tr>
 
-                                <th style="width:60px;">
+                                <th style="width:70px;">
                                     #
                                 </th>
 
@@ -371,6 +438,7 @@ Features :
 
                             @foreach (var specification
                                 in Model.ItemSpecifications
+                                    .Where(x => !x.IsDeleted)
                                     .OrderBy(x => x.SortOrder))
                             {
                                 <tr>
@@ -384,11 +452,23 @@ Features :
                                         @if (specification.Specification != null)
                                         {
                                             <div class="fw-semibold">
-                                                @specification.Specification.SpecificationName
+
+                                                @(
+                                                    specification
+                                                        .Specification
+                                                        .SpecificationName
+                                                )
+
                                             </div>
 
                                             <div class="small text-muted">
-                                                @specification.Specification.SpecificationCode
+
+                                                @(
+                                                    specification
+                                                        .Specification
+                                                        .SpecificationCode
+                                                )
+
                                             </div>
                                         }
                                         else
@@ -400,11 +480,9 @@ Features :
 
                                     </td>
 
-                                    <td>
+                                    <td class="fw-semibold">
 
-                                        <span class="fw-semibold">
-                                            @specification.SpecificationValue
-                                        </span>
+                                        @specification.SpecificationValue
 
                                     </td>
 
@@ -413,9 +491,19 @@ Features :
                                         @if (specification.Uom != null)
                                         {
                                             <span>
-                                                @specification.Uom.UomCode
+
+                                                @(
+                                                    specification
+                                                        .Uom
+                                                        .UomCode
+                                                )
                                                 -
-                                                @specification.Uom.UomName
+                                                @(
+                                                    specification
+                                                        .Uom
+                                                        .UomName
+                                                )
+
                                             </span>
                                         }
                                         else
@@ -441,10 +529,14 @@ Features :
             else
             {
                 <div class="text-center
-                            text-muted py-5">
+                            text-muted
+                            py-5">
 
-                    <i class="fa-solid fa-sliders
-                              fa-2x mb-2"></i>
+                    <i class="fa-solid
+                              fa-sliders
+                              fa-2x
+                              mb-2">
+                    </i>
 
                     <div>
                         No Specifications assigned to this Item.
@@ -454,6 +546,271 @@ Features :
             }
 
         </div>
+
+    </div>
+
+    <!-- =====================================================
+         DRAWING INFORMATION
+    ====================================================== -->
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-light">
+
+            <div class="d-flex
+                        justify-content-between
+                        align-items-center
+                        flex-wrap
+                        gap-2">
+
+                <div>
+
+                    <div class="fw-semibold">
+                        Drawing Information
+                    </div>
+
+                    <div class="small text-muted">
+                        Current engineering Drawing
+                        linked to this Item.
+                    </div>
+
+                </div>
+
+                @if (currentDrawing != null)
+                {
+                    <span class="badge bg-success">
+                        Drawing Available
+                    </span>
+                }
+
+            </div>
+
+        </div>
+
+        @if (currentDrawing != null)
+        {
+            <div class="card-body">
+
+                <div class="row g-3">
+
+                    <!-- Drawing Number -->
+
+                    <div class="col-md-4">
+
+                        <div class="border rounded p-3 h-100">
+
+                            <div class="small
+                                        text-muted
+                                        mb-1">
+                                Drawing Number
+                            </div>
+
+                            <div class="fw-semibold">
+
+                                @currentDrawing.DrawingNumber
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Current Revision -->
+
+                    <div class="col-md-4">
+
+                        <div class="border rounded p-3 h-100">
+
+                            <div class="small
+                                        text-muted
+                                        mb-1">
+                                Current Revision
+                            </div>
+
+                            <div>
+
+                                <span class="badge bg-success fs-6">
+
+                                    @currentDrawing.RevisionNumber
+
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Drawing Type -->
+
+                    <div class="col-md-4">
+
+                        <div class="border rounded p-3 h-100">
+
+                            <div class="small
+                                        text-muted
+                                        mb-1">
+                                Drawing Type
+                            </div>
+
+                            <div style="overflow-wrap:anywhere;">
+
+                                @(string.IsNullOrWhiteSpace(
+                                    currentDrawing.DrawingType)
+                                    ? "-"
+                                    : currentDrawing.DrawingType)
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Drawing Name -->
+
+                    <div class="col-md-4">
+
+                        <div class="border rounded p-3 h-100">
+
+                            <div class="small
+                                        text-muted
+                                        mb-1">
+                                Drawing Name
+                            </div>
+
+                            <div style="overflow-wrap:anywhere;">
+
+                                @(string.IsNullOrWhiteSpace(
+                                    currentDrawing.DrawingName)
+                                    ? "-"
+                                    : currentDrawing.DrawingName)
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Drawing File -->
+
+                    <div class="col-md-4">
+
+                        <div class="border rounded p-3 h-100">
+
+                            <div class="small
+                                        text-muted
+                                        mb-1">
+                                Current Drawing File
+                            </div>
+
+                            <div>
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    currentDrawing.FilePath))
+                                {
+                                    <a href="@currentDrawing.FilePath"
+                                       target="_blank"
+                                       rel="noopener"
+                                       class="btn
+                                              btn-sm
+                                              btn-outline-primary">
+
+                                        <i class="fa-solid
+                                                  fa-file
+                                                  me-1">
+                                        </i>
+
+                                        @(string.IsNullOrWhiteSpace(
+                                            currentDrawing.FileName)
+                                            ? "View Drawing"
+                                            : currentDrawing.FileName)
+
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        No File
+                                    </span>
+                                }
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Drawing Details -->
+
+                    <div class="col-md-4">
+
+                        <div class="border rounded p-3 h-100">
+
+                            <div class="small
+                                        text-muted
+                                        mb-2">
+                                Drawing Details
+                            </div>
+
+                            <a asp-controller="Drawing"
+                               asp-action="Details"
+                               asp-route-id="@currentDrawing.DrawingId"
+                               class="btn
+                                      btn-sm
+                                      btn-outline-info">
+
+                                <i class="fa-solid
+                                          fa-eye
+                                          me-1">
+                                </i>
+
+                                Open Drawing Details
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+        }
+        else
+        {
+            <div class="card-body">
+
+                <div class="text-center py-4">
+
+                    <div class="text-muted mb-3">
+
+                        <i class="fa-solid
+                                  fa-file-circle-xmark
+                                  fa-2x
+                                  mb-2">
+                        </i>
+
+                        <div>
+                            No Drawing is available for this Item.
+                        </div>
+
+                    </div>
+
+                    <a asp-controller="Drawing"
+                       asp-action="Create"
+                       asp-route-itemId="@Model.ItemId"
+                       class="btn btn-primary">
+
+                        <i class="fa-solid fa-plus me-1"></i>
+
+                        Add Drawing
+
+                    </a>
+
+                </div>
+
+            </div>
+        }
 
     </div>
 
@@ -473,73 +830,103 @@ Features :
 
         <div class="card-body">
 
-            <div class="row">
+            <div class="row g-3">
 
-                <div class="col-md-3 mb-3">
+                <!-- Created On -->
 
-                    <div class="text-muted small">
-                        Created On
-                    </div>
+                <div class="col-md-3">
 
-                    <div>
+                    <div class="border rounded p-3 h-100">
 
-                        @Model.CreatedOn
-                            .ToLocalTime()
-                            .ToString(
-                                "dd-MMM-yyyy hh:mm tt")
+                        <div class="small text-muted mb-1">
+                            Created On
+                        </div>
 
-                    </div>
+                        <div>
 
-                </div>
+                            @(
+                                Model.CreatedOn
+                                    .ToLocalTime()
+                                    .ToString(
+                                        "dd-MMM-yyyy hh:mm tt")
+                            )
 
-                <div class="col-md-3 mb-3">
-
-                    <div class="text-muted small">
-                        Created By
-                    </div>
-
-                    <div>
-                        @Model.CreatedBy
-                    </div>
-
-                </div>
-
-                <div class="col-md-3 mb-3">
-
-                    <div class="text-muted small">
-                        Modified On
-                    </div>
-
-                    <div>
-
-                        @if (Model.ModifiedOn.HasValue)
-                        {
-                            @Model.ModifiedOn.Value.ToLocalTime().ToString(
-                                    "dd-MMM-yyyy hh:mm tt")
-                        }
-                        else
-                        {
-                            <span class="text-muted">
-                                -
-                            </span>
-                        }
+                        </div>
 
                     </div>
 
                 </div>
 
-                <div class="col-md-3 mb-3">
+                <!-- Created By -->
 
-                    <div class="text-muted small">
-                        Modified By
+                <div class="col-md-3">
+
+                    <div class="border rounded p-3 h-100">
+
+                        <div class="small text-muted mb-1">
+                            Created By
+                        </div>
+
+                        <div>
+                            @Model.CreatedBy
+                        </div>
+
                     </div>
 
-                    <div>
+                </div>
 
-                        @(string.IsNullOrWhiteSpace(
-                            Model.ModifiedBy)
+                <!-- Modified On -->
+
+                <div class="col-md-3">
+
+                    <div class="border rounded p-3 h-100">
+
+                        <div class="small text-muted mb-1">
+                            Modified On
+                        </div>
+
+                        <div>
+
+                            @if (Model.ModifiedOn.HasValue)
+                            {
+                                @(
+                                    Model.ModifiedOn.Value
+                                        .ToLocalTime()
+                                        .ToString(
+                                            "dd-MMM-yyyy hh:mm tt")
+                                )
+                            }
+                            else
+                            {
+                                <span class="text-muted">
+                                    -
+                                </span>
+                            }
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Modified By -->
+
+                <div class="col-md-3">
+
+                    <div class="border rounded p-3 h-100">
+
+                        <div class="small text-muted mb-1">
+                            Modified By
+                        </div>
+
+                        <div>
+
+                            @(string.IsNullOrWhiteSpace(
+                                Model.ModifiedBy)
                                 ? "-"
                                 : Model.ModifiedBy)
+
+                        </div>
 
                     </div>
 

@@ -1,282 +1,352 @@
-﻿# Project State
+﻿# 13 - Project State
 
 ## Project
 
 Ajay Industries ERP
 
----
+## Current Status
 
-## Current Version
+Core Master-data foundation is under active development.
 
-Version 1.0 (Foundation)
+The project is using:
 
----
-
-## Technology
-
-- ASP.NET Core MVC (.NET 8)
-- ASP.NET Core Web API (Planned)
-- SQL Server
+- ASP.NET Core MVC
+- .NET 8
 - Entity Framework Core
+- SQL Server
 - Clean Architecture
-- Bootstrap 5
-- AutoMapper
-
----
-
-## Completed
-
-### Foundation
-
-- Solution Structure
-- Clean Architecture
-- Dependency Injection
-- BaseEntity
-
-### Authentication
-
-- Login UI
-
-### Dashboard
-
-- Dashboard UI
-- Sidebar
-- Navigation
-- Theme
-
-### Company Master
-
-- Create
-- List
-- Details
-- Edit
+- Repository + Service pattern
 - Soft Delete
-- Search
-- Pagination
-- Auto Company Code
-- Duplicate Company Code Validation
-- Duplicate GST Validation
-- Audit Fields
+- Bootstrap
+- jQuery
+- Select2
+- Toastr
 
 ---
 
-## Pending Modules
+# Architecture
 
-### Masters
+Layers:
 
-- Employees
-- Customers
-- Suppliers
-- Warehouses
-- Units
-- Categories
-- Items
-- Machines
-- Bill Of Materials
+1. Domain
+2. Application
+3. Infrastructure
+4. Web
 
-### Purchase
+Entity configurations use:
 
-- Purchase Requisition
+`IEntityTypeConfiguration<T>`
+
+DbContext applies configurations using:
+
+`ApplyConfigurationsFromAssembly`
+
+Dependency Injection registrations are maintained in:
+
+`Infrastructure/DependencyInjection/DependencyInjection.cs`
+
+---
+
+# Shared Application Components
+
+Available/reused patterns include:
+
+- `PagedResult<T>`
+- `BusinessException`
+- `NameSimilarityHelper`
+- `ItemConfigurationSimilarityHelper`
+- Shared Search Bar
+- Shared Pagination
+- Shared Confirm Delete Modal
+- Shared Toast Notification
+- `common.js`
+- Select2
+- Quick Add modal infrastructure
+
+---
+
+# Completed Masters
+
+The following modules are completed:
+
+- Company
+- Employee
+- UOM
+- Warehouse
+- Item Category
+- Brand
+- Shape
+- Specification
+- Item
+- Supplier
+- Drawing
+
+---
+
+# Item Master State
+
+Item Master currently supports:
+
+- Auto ItemCode
+- ItemName
+- Category
+- Brand
+- Main UOM
+- Optional Shape
+- Dynamic Specifications
+- Specification Value
+- Optional Specification UOM
+- Description
+- PartNumber database field
+- ImagePath database field
+
+ItemCode format:
+
+`ITM00001`
+
+ItemCode is permanent system identity.
+
+Item Name is not unique.
+
+Item duplicate signature:
+
+- ItemName
+- Shape
+- Complete Specification set
+
+Category, Brand and main UOM are excluded from duplicate signature.
+
+Dynamic Item Specification UI is complete.
+
+Item search supports:
+
+- Item Code
+- Item Name
+- Description
+- Category
+- Brand
+- Main UOM
+- Shape
+- Specification Code
+- Specification Name
+- Specification Value
+- Specification UOM
+
+Current Item list shows compact Specification summary.
+
+---
+
+# Supplier Master State
+
+Supplier Master is completed and tested.
+
+Fields include:
+
+- Supplier Code
+- Supplier Name
+- Contact Person
+- Mobile
+- Alternate Mobile
+- Email
+- GSTIN
+- PAN
+- Address
+- City
+- State
+- Pincode
+- Payment Terms Days
+- Description
+- Status
+
+SupplierCode:
+
+`SUP00001`
+
+Rules:
+
+- exact Supplier Name blocked
+- similar Supplier Name warning
+- live similarity checking
+- GSTIN optional but unique among active records
+- PAN not unique
+- soft delete
+- deleted Supplier Code not reused
+- search complete
+
+---
+
+# Drawing Master State
+
+Drawing Master is completed, tested and considered stable.
+
+Final relationship:
+
+`One Item -> One Drawing Number -> Many Revisions`
+
+Drawing Number:
+
+- manual
+- permanent
+- cannot change after Create
+- never reused
+- live duplicate/similarity checking
+
+Drawing Name:
+
+- similar spelling warning
+- not unique
+
+Revision Number:
+
+- auto generated
+- format `RV-01`
+- deleted revision numbers never reused
+
+Revision capabilities:
+
+- Add Revision
+- View complete history
+- Activate previous revision
+- Soft delete inactive revision
+- Only one Current revision
+- Current revision cannot be deleted directly
+
+Drawing capabilities:
+
+- soft delete complete Drawing
+- Deleted Drawings screen
+- Restore deleted Drawing
+- revision history restored
+- same Drawing Number cannot be recreated after deletion
+
+Drawing file support:
+
+- PDF
+- JPG
+- JPEG
+- PNG
+- DWG
+- DXF
+- maximum 25 MB
+
+Storage:
+
+`wwwroot/uploads/drawings`
+
+Database stores FileName and FilePath.
+
+`IsPrimary` has been removed from Drawing architecture.
+
+---
+
+# Drawing UI
+
+Drawing Index:
+
+- Current revision only
+- Drawing Number clickable
+- search
+- edit
+- delete
+
+Drawing Details:
+
+- 2-column Current Drawing information
+- full Revision History
+- Activate action
+- Delete Revision action
+- file links
+
+Drawing Edit:
+
+- Item read-only
+- Drawing Number read-only
+- Drawing Name editable
+- Drawing Type editable
+- revision history
+- Add Revision
+- Activate previous revision
+- Delete inactive revision
+
+Deleted Drawings:
+
+- one entry per Drawing Number
+- Restore action
+
+---
+
+# Current Database Rules
+
+Drawing:
+
+- DrawingNumber + RevisionNumber unique
+- one Current row per DrawingNumber
+- one Current Drawing row per Item
+- deleted Drawing Number reserved
+- deleted Revision Number reserved
+
+Item Specification:
+
+- active ItemId + SpecificationId unique
+
+Supplier:
+
+- SupplierCode unique
+- active SupplierName unique
+- active GSTIN unique when GSTIN is provided
+
+---
+
+# Current Next Work
+
+Next major task:
+
+## Item Master Enhancement
+
+Implement:
+
+1. PartNumber in Item UI
+2. Item image upload
+3. Item image display
+4. Item Details Drawing section
+5. Current Drawing Number display
+6. Current Drawing Revision display
+7. Drawing file access from Item Details
+
+After that:
+
+- Item + Drawing integration testing
+- documentation update
+- Git commit
+
+---
+
+# Deferred Modules
+
+Not yet started:
+
+- Purchase
 - Purchase Order
 - Goods Receipt
-- Purchase Invoice
-- Purchase Return
-
-### Inventory
-
 - Stock
-- Stock Adjustment
-- Stock Transfer
 - Warehouse Stock
 - Stock Ledger
-
-### Production
-
-- Production Order
-- Material Issue
-- Material Return
-- Production Entry
-- Finished Goods
-
-### Sales
-
-- Quotation
-- Sales Order
-- Delivery Challan
-- Sales Invoice
-- Sales Return
-
-### Finance
-
-- Payment Entry
-- Receipt Entry
-- Expenses
-- Outstanding Payments
-
-### Reports
-
-- Purchase Report
-- Sales Report
-- Inventory Report
-- Production Report
-- GST Report
-- Profit & Loss
-
-### Settings
-
-- Users
-- Roles
-- Company Settings
-- Financial Year
-- Backup
+- Supplier Transactions
+- BOM
+- Production
+- Quality
+- Sales
+- Accounting
+- GST transaction logic
 
 ---
 
-## Reference Module
+# Important Development Rule
 
-Company Master
+Before starting a new major transaction module:
 
-All future modules will follow the Company Master implementation pattern.
-
----
-
-## Next Module
-
-Employee Master
-
-Completed
-
-Shared Components
-
-Completed
-
-Completed
-
-✅ Dashboard
-
-✅ Login UI
-
-✅ Company Master
-
-✅ Employee Master
-
-✅ Shared Search
-
-✅ Shared Pagination
-
-✅ Shared Delete Modal
-
-✅ Toast Notification
-
-✅ Business Exception
-
-Current Sprint
-
-Sprint 05
-
-Next Module
-
-Planning Phase
-
-# Project State
-
-Last Updated: 08-Aug-2026
-
----
-
-## Completed Masters
-
-| Module | Status |
-|---|---|
-| Company Master | Completed |
-| Employee Master | Completed |
-| UOM Master | Completed |
-| Warehouse Master | Completed |
-| Item Category Master | Completed |
-| Brand Master | Completed |
-| Shape Master | Completed |
-| Specification Master | Completed |
-| Item Master | Completed |
-
----
-
-## Item Master Status
-
-Item Master Phase is complete.
-
-Implemented features:
-
-- Automatic Item Code generation
-- Category selection
-- Brand selection
-- Main UOM selection
-- Optional Shape
-- Dynamic Item Specifications
-- Optional Specification UOM
-- Specification row Add/Remove
-- Specification Edit synchronization
-- Removed child rows use Soft Delete
-- Quick Add Category
-- Quick Add Brand
-- Quick Add UOM
-- Quick Add Shape
-- Quick Add Specification
-- Select2 searchable Master dropdowns
-- Live similar Item Name detection
-- Live similar Master Name detection
-- Exact Master duplicate prevention
-- Item configuration duplicate prevention
-- Same Item Name variants allowed
-- Specification-aware Item search
-- Shape-aware Item search
-- Item List Specification summary
-- Item Details Specification table
-- Soft Delete
-
----
-
-## Item Duplicate Rule
-
-Current duplicate identity:
-
-ItemName
-+ Shape
-+ Specifications
-
-Specification comparison contains:
-
-SpecificationId
-+ SpecificationValue
-+ UomId
-
-Specification order is ignored.
-
----
-
-## Current Next Module
-
-Supplier Master
-
-Planned Supplier Code:
-
-SUP00001
-
-Supplier Master will become the base dependency for future Purchase and
-Supplier-related transactions.
-
----
-
-## Deferred Item Features
-
-The following are intentionally deferred:
-
-- Opening Stock
-- Warehouse Stock
-- Min Stock
-- Max Stock
-- Reorder Level
-- GST
-- Pricing
-- Drawing Number
-
-These will be implemented in their appropriate future modules.
+- current master architecture should be locked
+- docs should be updated
+- migration should be applied
+- runtime testing should pass
+- Git commit should be created
