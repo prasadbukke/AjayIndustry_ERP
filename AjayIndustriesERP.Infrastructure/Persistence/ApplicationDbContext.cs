@@ -19,10 +19,10 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
         public DbSet<Brand> Brands => Set<Brand>();
         public DbSet<Item> Items => Set<Item>();
         public DbSet<Shape> Shapes => Set<Shape>();
-
         public DbSet<Specification> Specifications => Set<Specification>();
-
         public DbSet<ItemSpecification> ItemSpecifications => Set<ItemSpecification>();
+        public DbSet<Supplier> Suppliers => Set<Supplier>();
+        public DbSet<Drawing> Drawings =>  Set<Drawing>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

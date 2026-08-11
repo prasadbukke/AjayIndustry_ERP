@@ -258,3 +258,132 @@ Production Masters
 Status
 
 ✅ APPROVED
+
+# Master Dependency Update
+
+Last Updated: 08-Aug-2026
+
+---
+
+## Item Master Dependency
+
+Item
+|
+|-- ItemCategory      Required
+|
+|-- Brand             Required
+|
+|-- UOM               Required
+|
+|-- Shape             Optional
+|
+`-- ItemSpecifications[]       Optional
+      |
+      |-- Specification        Required per row
+      |
+      `-- UOM                  Optional per row
+
+---
+
+## Relationship Meaning
+
+### Item Category
+
+Defines the logical category of an Item.
+
+Examples:
+
+- Raw Material
+- Consumable
+- Finished Goods
+- Spare
+
+---
+
+### Brand
+
+Defines the Item Brand.
+
+Brand is currently required by Item Master.
+
+---
+
+### Main UOM
+
+Defines the primary unit used for the Item.
+
+Example:
+
+Item:
+MS Round Bar
+
+Main UOM:
+KG
+
+Technical Specifications may independently use MM or another UOM.
+
+---
+
+### Shape
+
+Optional physical representation of the Item.
+
+Example:
+
+Shape:
+Round
+
+---
+
+### Specifications
+
+An Item may contain zero or more technical Specifications.
+
+Example:
+
+Item:
+MS Round Bar
+
+Shape:
+Round
+
+Specifications:
+
+Diameter = 25 MM
+Length = 6000 MM
+Grade = EN8
+
+---
+
+## Quick Master Dependencies
+
+Item Create/Edit allows Quick Add for:
+
+Item Category
+Brand
+UOM
+Shape
+Specification
+
+Newly created records are automatically selected in the originating
+dropdown.
+
+---
+
+## Future Dependency
+
+Supplier Master will be independent of Item Master.
+
+Future Purchase transactions will connect:
+
+Supplier
++
+Item
++
+Warehouse
++
+Quantity
++
+Rate
++
+Tax

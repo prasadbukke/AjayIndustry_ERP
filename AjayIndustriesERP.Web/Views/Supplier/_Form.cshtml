@@ -1,0 +1,529 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Supplier.SupplierViewModel
+
+@*
+==============================================================
+
+File : _Form.cshtml
+
+Purpose :
+Common Create/Edit form for Supplier Master.
+
+Features :
+- Basic Supplier information
+- Contact details
+- GSTIN / PAN
+- Address
+- Payment terms
+- Live Supplier Name similarity checking
+- Exact duplicate blocking
+- Similar-name confirmation
+
+==============================================================
+*@
+
+@{
+    var supplierNameErrors =
+        ViewData.ModelState["SupplierName"]?
+            .Errors
+            .Select(x => x.ErrorMessage)
+            .ToList()
+        ?? new List<string>();
+
+    var hasExactDuplicateError =
+        supplierNameErrors.Any(x =>
+            x.Contains(
+                "already exists",
+                StringComparison.OrdinalIgnoreCase));
+
+    var hasServerSuggestions =
+        Model.SimilarSupplierNames.Any();
+}
+
+<div asp-validation-summary="ModelOnly"
+     class="alert alert-danger"></div>
+
+<input asp-for="SupplierId"
+       type="hidden" />
+
+<input asp-for="SupplierCode"
+       type="hidden" />
+
+<!-- =========================================================
+     BASIC INFORMATION
+========================================================== -->
+
+<div class="card border mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="fw-semibold">
+            Basic Information
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            @if (Model.SupplierId > 0)
+            {
+                <div class="col-md-4 mb-3">
+
+                    <label asp-for="SupplierCode"
+                           class="form-label"></label>
+
+                    <input value="@Model.SupplierCode"
+                           class="form-control"
+                           readonly />
+
+                </div>
+            }
+
+            <div class="@(Model.SupplierId > 0 ? "col-md-8" : "col-md-12") mb-3">
+
+                <label asp-for="SupplierName"
+                       class="form-label"></label>
+
+                <input asp-for="SupplierName"
+                       class="form-control"
+                       autocomplete="off"
+                       maxlength="150"
+                       data-similar-url="@Url.Action("CheckSimilarName", "Supplier")" />
+
+                <span asp-validation-for="SupplierName"
+                      class="text-danger"></span>
+
+                <div class="form-text">
+                    Existing exact and similar Supplier Names
+                    will appear while typing.
+                </div>
+
+            </div>
+
+            <div class="col-md-6 mb-3">
+
+                <label asp-for="ContactPerson"
+                       class="form-label"></label>
+
+                <input asp-for="ContactPerson"
+                       class="form-control"
+                       maxlength="100"
+                       autocomplete="off"
+                       placeholder="Enter contact person" />
+
+                <span asp-validation-for="ContactPerson"
+                      class="text-danger"></span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     SIMILAR SUPPLIER WARNING
+========================================================== -->
+
+<div id="supplierSimilarWarning"
+     class="alert alert-warning
+            @(!hasServerSuggestions
+                     ? "d-none"
+                     : string.Empty)">
+
+    <div class="fw-semibold mb-2">
+
+        <i class="fa-solid fa-triangle-exclamation me-1"></i>
+
+        Similar Suppliers Found
+
+    </div>
+
+    <p class="mb-2">
+        Check whether this Supplier already exists or whether
+        there is a spelling mistake.
+    </p>
+
+    <div id="supplierSimilarList"
+         class="list-group mb-3">
+
+        @foreach (var supplier
+                in Model.SimilarSupplierNames)
+        {
+            <div class="list-group-item">
+                @supplier
+            </div>
+        }
+
+    </div>
+
+    <div id="supplierExactDuplicateMessage"
+         class="text-danger fw-semibold mb-2
+                @(!hasExactDuplicateError
+                             ? "d-none"
+                             : string.Empty)">
+
+        An exact Supplier Name already exists.
+        Duplicate creation is not allowed.
+
+    </div>
+
+    <div id="supplierSimilarConfirmationContainer"
+         class="form-check
+                @(!hasServerSuggestions ||
+                           hasExactDuplicateError
+                             ? "d-none"
+                             : string.Empty)">
+
+        <input asp-for="ConfirmSimilarSupplierName"
+               class="form-check-input" />
+
+        <label asp-for="ConfirmSimilarSupplierName"
+               class="form-check-label">
+
+            I checked the similar Suppliers and still
+            want to continue.
+
+        </label>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     CONTACT INFORMATION
+========================================================== -->
+
+<div class="card border mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="fw-semibold">
+            Contact Information
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-4 mb-3">
+
+                <label asp-for="MobileNumber"
+                       class="form-label"></label>
+
+                <input asp-for="MobileNumber"
+                       class="form-control"
+                       maxlength="20"
+                       autocomplete="off"
+                       placeholder="Example: 9876543210" />
+
+                <span asp-validation-for="MobileNumber"
+                      class="text-danger"></span>
+
+            </div>
+
+            <div class="col-md-4 mb-3">
+
+                <label asp-for="AlternateMobileNumber"
+                       class="form-label"></label>
+
+                <input asp-for="AlternateMobileNumber"
+                       class="form-control"
+                       maxlength="20"
+                       autocomplete="off"
+                       placeholder="Optional" />
+
+                <span asp-validation-for="AlternateMobileNumber"
+                      class="text-danger"></span>
+
+            </div>
+
+            <div class="col-md-4 mb-3">
+
+                <label asp-for="Email"
+                       class="form-label"></label>
+
+                <input asp-for="Email"
+                       type="email"
+                       class="form-control"
+                       maxlength="150"
+                       autocomplete="off"
+                       placeholder="supplier@example.com" />
+
+                <span asp-validation-for="Email"
+                      class="text-danger"></span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     TAX INFORMATION
+========================================================== -->
+
+<div class="card border mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="fw-semibold">
+            Tax Information
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-6 mb-3">
+
+                <label asp-for="Gstin"
+                       class="form-label"></label>
+
+                <input asp-for="Gstin"
+                       class="form-control text-uppercase"
+                       maxlength="15"
+                       autocomplete="off"
+                       placeholder="Enter GSTIN if applicable" />
+
+                <span asp-validation-for="Gstin"
+                      class="text-danger"></span>
+
+                <div class="form-text">
+                    Optional for suppliers without GST registration.
+                </div>
+
+            </div>
+
+            <div class="col-md-6 mb-3">
+
+                <label asp-for="Pan"
+                       class="form-label"></label>
+
+                <input asp-for="Pan"
+                       class="form-control text-uppercase"
+                       maxlength="10"
+                       autocomplete="off"
+                       placeholder="Enter PAN if available" />
+
+                <span asp-validation-for="Pan"
+                      class="text-danger"></span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     ADDRESS
+========================================================== -->
+
+<div class="card border mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="fw-semibold">
+            Address
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-6 mb-3">
+
+                <label asp-for="AddressLine1"
+                       class="form-label"></label>
+
+                <input asp-for="AddressLine1"
+                       class="form-control"
+                       maxlength="200"
+                       autocomplete="off" />
+
+                <span asp-validation-for="AddressLine1"
+                      class="text-danger"></span>
+
+            </div>
+
+            <div class="col-md-6 mb-3">
+
+                <label asp-for="AddressLine2"
+                       class="form-label"></label>
+
+                <input asp-for="AddressLine2"
+                       class="form-control"
+                       maxlength="200"
+                       autocomplete="off" />
+
+                <span asp-validation-for="AddressLine2"
+                      class="text-danger"></span>
+
+            </div>
+
+            <div class="col-md-4 mb-3">
+
+                <label asp-for="City"
+                       class="form-label"></label>
+
+                <input asp-for="City"
+                       class="form-control"
+                       maxlength="100"
+                       autocomplete="off" />
+
+                <span asp-validation-for="City"
+                      class="text-danger"></span>
+
+            </div>
+
+            <div class="col-md-4 mb-3">
+
+                <label asp-for="State"
+                       class="form-label"></label>
+
+                <input asp-for="State"
+                       class="form-control"
+                       maxlength="100"
+                       autocomplete="off" />
+
+                <span asp-validation-for="State"
+                      class="text-danger"></span>
+
+            </div>
+
+            <div class="col-md-4 mb-3">
+
+                <label asp-for="Pincode"
+                       class="form-label"></label>
+
+                <input asp-for="Pincode"
+                       class="form-control"
+                       maxlength="10"
+                       autocomplete="off" />
+
+                <span asp-validation-for="Pincode"
+                      class="text-danger"></span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     COMMERCIAL INFORMATION
+========================================================== -->
+
+<div class="card border mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="fw-semibold">
+            Commercial Information
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-4 mb-3">
+
+                <label asp-for="PaymentTermsDays"
+                       class="form-label"></label>
+
+                <input asp-for="PaymentTermsDays"
+                       type="number"
+                       min="0"
+                       max="3650"
+                       class="form-control"
+                       placeholder="Example: 30" />
+
+                <span asp-validation-for="PaymentTermsDays"
+                      class="text-danger"></span>
+
+                <div class="form-text">
+                    0 = Immediate payment. Blank = Not specified.
+                </div>
+
+            </div>
+
+            <div class="col-md-8 mb-3">
+
+                <label asp-for="Description"
+                       class="form-label"></label>
+
+                <textarea asp-for="Description"
+                          rows="3"
+                          maxlength="500"
+                          class="form-control"
+                          placeholder="Enter optional notes"></textarea>
+
+                <span asp-validation-for="Description"
+                      class="text-danger"></span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================================================
+     STATUS
+========================================================== -->
+
+<div class="mb-4">
+
+    <div class="form-check form-switch">
+
+        <input asp-for="IsActive"
+               class="form-check-input" />
+
+        <label asp-for="IsActive"
+               class="form-check-label"></label>
+
+    </div>
+
+</div>
+
+<hr />
+
+<div class="d-flex justify-content-end gap-2">
+
+    <a asp-action="Index"
+       class="btn btn-secondary">
+
+        Cancel
+
+    </a>
+
+    <button type="submit"
+            id="supplierSaveButton"
+            class="btn btn-primary">
+
+        <i class="fa-solid fa-floppy-disk me-1"></i>
+
+        @(Model.SupplierId == 0
+                ? "Save Supplier"
+                : "Update Supplier")
+
+    </button>
+
+</div>

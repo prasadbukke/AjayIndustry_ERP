@@ -235,3 +235,224 @@ Global Exception Middleware will be implemented during Production Hardening phas
 Status
 
 Approved
+
+# Decision Log Update
+
+Date: 08-Aug-2026
+
+---
+
+## Item Shape
+
+Decision:
+
+Shape will be maintained as a standalone reusable Shape Master.
+
+Item contains:
+
+ShapeId - Nullable
+
+Reason:
+
+Shape is reusable across many Items and should not be entered as random
+free text.
+
+Examples:
+
+- Round
+- Flat
+- Square
+- Sheet
+- Pipe
+
+---
+
+## Item Specifications
+
+Decision:
+
+Specification names will NOT be stored as free-text fields directly
+inside Item Master.
+
+A reusable Specification Master will be maintained.
+
+Item Specification values will be stored in ItemSpecifications.
+
+Example:
+
+Specification Master:
+Diameter
+Length
+Grade
+
+Item:
+MS Round Bar
+
+Values:
+Diameter = 25 MM
+Length = 6000 MM
+Grade = EN8
+
+Reason:
+
+Prevents inconsistent names such as:
+
+Diameter
+Dia
+OD
+Diamter
+
+and enables future reporting, filtering and searching.
+
+---
+
+## Grade
+
+Decision:
+
+Grade will currently be treated as an Item Specification.
+
+Example:
+
+Grade = EN8
+
+A dedicated Grade Master is not required at this stage.
+
+This decision may be revisited if Grade later requires its own business
+attributes or transactional behavior.
+
+---
+
+## Drawing Number
+
+Decision:
+
+Drawing Number is not included in Item Master at this stage.
+
+It can be introduced later when drawing-controlled manufactured Items
+require it.
+
+---
+
+## Same Item Name
+
+Decision:
+
+ItemName is NOT unique.
+
+Example:
+
+MS Round Bar - Diameter 25 MM
+
+MS Round Bar - Diameter 30 MM
+
+Both are valid separate Items.
+
+---
+
+## Item Duplicate Rule
+
+Decision:
+
+An Item is considered an exact duplicate only when all of the following
+match:
+
+- Item Name
+- Shape
+- Complete Specification Set
+- Specification Values
+- Specification UOMs
+
+Specification row order does not affect duplicate detection.
+
+---
+
+## Item Stock
+
+Decision:
+
+Stock quantities will NOT be stored directly in Item Master.
+
+Stock information belongs to Inventory transactions and warehouse-wise
+stock tables.
+
+Future Item availability information will be derived from Inventory.
+
+---
+
+## Warehouse
+
+Decision:
+
+Warehouse is not permanently attached to Item Master.
+
+One Item can exist across multiple Warehouses.
+
+Warehouse-wise stock will be handled by the Inventory module.
+
+---
+
+## GST and Tax
+
+Decision:
+
+GST and tax configuration will not be stored directly in Item Master.
+
+Tax configuration will be maintained separately and linked as required.
+
+---
+
+## Pricing
+
+Decision:
+
+Purchase and Sales prices are not stored directly in Item Master.
+
+Pricing will be transaction/supplier/customer dependent and handled in
+dedicated modules.
+
+---
+
+## Quick Master Creation
+
+Decision:
+
+Reusable Master dropdowns may provide Quick Add functionality without
+leaving the current transaction/form.
+
+Current supported Quick Masters:
+
+- Category
+- Brand
+- UOM
+- Shape
+- Specification
+
+Quick Add supports:
+
+- Live similar-name suggestions
+- Exact duplicate prevention
+- Similar-name confirmation
+- AJAX creation
+- Automatic selection of the newly created record
+
+---
+
+## Name Similarity
+
+Decision:
+
+Name-based Masters will use reusable NameSimilarityHelper logic.
+
+Behavior:
+
+Exact match:
+Block duplicate creation.
+
+Similar spelling:
+Show warning and allow user confirmation.
+
+Live suggestions:
+Start while the user is typing.
+
+This pattern should be reused by future name-based Masters.

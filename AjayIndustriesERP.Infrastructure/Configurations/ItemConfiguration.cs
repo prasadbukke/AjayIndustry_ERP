@@ -41,6 +41,16 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
             builder.HasIndex(x => x.ItemCode)
                 .IsUnique();
 
+            builder.Property(x => x.PartNumber)
+    .HasMaxLength(100);
+
+            builder.HasIndex(x => x.PartNumber)
+                .HasFilter(
+                    "[PartNumber] IS NOT NULL AND [IsDeleted] = 0");
+
+            builder.Property(x => x.ImagePath)
+                .HasMaxLength(500);
+
             #endregion
 
             #region Item Name

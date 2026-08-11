@@ -1,0 +1,211 @@
+﻿@model List<AjayIndustriesERP.Domain.Entities.Drawing>
+
+@{
+    ViewData["Title"] = "Deleted Drawings";
+}
+
+<div class="container-fluid">
+
+    <div class="d-flex
+                justify-content-between
+                align-items-center
+                flex-wrap
+                gap-3
+                mb-4">
+
+        <div>
+
+            <h2 class="fw-bold mb-1">
+                Deleted Drawings
+            </h2>
+
+            <p class="text-muted mb-0">
+                Restore previously deleted Drawing records.
+            </p>
+
+        </div>
+
+        <a asp-action="Index"
+           class="btn btn-secondary">
+
+            <i class="fa-solid fa-arrow-left me-1"></i>
+
+            Back to Drawings
+
+        </a>
+
+    </div>
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table
+                              table-hover
+                              align-middle
+                              mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+
+                            <th>#</th>
+
+                            <th>
+                                Drawing Number
+                            </th>
+
+                            <th>
+                                Drawing Name
+                            </th>
+
+                            <th>
+                                Item
+                            </th>
+
+                            <th>
+                                Last Revision
+                            </th>
+
+                            <th>
+                                Deleted / Modified
+                            </th>
+
+                            <th class="text-center"
+                                style="width:140px;">
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model.Any())
+                        {
+                            var serialNumber = 1;
+
+                            foreach (var drawing
+                                in Model)
+                            {
+                                <tr>
+
+                                    <td>
+                                        @serialNumber
+                                    </td>
+
+                                    <td class="fw-semibold">
+                                        @drawing.DrawingNumber
+                                    </td>
+
+                                    <td>
+                                        @(drawing.DrawingName ?? "-")
+                                    </td>
+
+                                    <td>
+
+                                        <div class="fw-semibold">
+                                            @drawing.Item.ItemName
+                                        </div>
+
+                                        <div class="small text-muted">
+                                            @drawing.Item.ItemCode
+                                        </div>
+
+                                    </td>
+
+                                    <td>
+                                        @drawing.RevisionNumber
+                                    </td>
+
+                                    <td>
+
+                                        @if (drawing.ModifiedOn.HasValue)
+                                        {
+                                            @(
+                                                drawing.ModifiedOn.Value
+                                                    .ToLocalTime()
+                                                    .ToString(
+                                                        "dd-MMM-yyyy hh:mm tt")
+                                            )
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">
+                                                -
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                    <td class="text-center">
+
+                                        <form asp-action="Restore"
+                                              method="post"
+                                              class="d-inline">
+
+                                            <input type="hidden"
+                                                   name="id"
+                                                   value="@drawing.DrawingId" />
+
+                                            <button type="submit"
+                                                    class="btn btn-sm
+                                                           btn-outline-success"
+                                                    onclick="return confirm(
+                                                        'Restore Drawing @drawing.DrawingNumber?');">
+
+                                                <i class="fa-solid
+                                                          fa-rotate-left
+                                                          me-1"></i>
+
+                                                Restore
+
+                                            </button>
+
+                                        </form>
+
+                                    </td>
+
+                                </tr>
+
+                                serialNumber++;
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+
+                                <td colspan="7"
+                                    class="text-center
+                                           text-muted
+                                           py-5">
+
+                                    <i class="fa-solid
+                                              fa-trash-can-arrow-up
+                                              fa-2x
+                                              mb-2">
+                                    </i>
+
+                                    <div>
+                                        No deleted Drawings found.
+                                    </div>
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

@@ -1,0 +1,37 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Supplier.SupplierViewModel
+
+@{
+    ViewData["Title"] = "Create Supplier";
+}
+
+<div class="container-fluid">
+
+    <div class="mb-4">
+
+        <h2 class="fw-bold mb-1">
+            Create Supplier
+        </h2>
+
+        <p class="text-muted mb-0">
+            Register a new Supplier.
+        </p>
+
+    </div>
+
+    <form asp-action="Create"
+          method="post">
+
+        <partial name="_Form"
+                 model="Model" />
+
+    </form>
+
+</div>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/supplier-form.js"
+            asp-append-version="true"></script>
+}

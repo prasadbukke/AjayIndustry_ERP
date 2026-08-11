@@ -1,0 +1,38 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Drawing.DrawingViewModel
+
+@{
+    ViewData["Title"] = "Create Drawing";
+}
+
+<div class="container-fluid">
+
+    <div class="mb-4">
+
+        <h2 class="fw-bold mb-1">
+            Create Drawing
+        </h2>
+
+        <p class="text-muted mb-0">
+            Create a new Drawing Number and its first revision.
+        </p>
+
+    </div>
+
+    <form asp-action="Create"
+          method="post"
+          enctype="multipart/form-data">
+
+        <partial name="_Form"
+                 model="Model" />
+
+    </form>
+
+</div>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/drawing-form.js"
+            asp-append-version="true"></script>
+}

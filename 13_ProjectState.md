@@ -177,3 +177,106 @@ Sprint 05
 Next Module
 
 Planning Phase
+
+# Project State
+
+Last Updated: 08-Aug-2026
+
+---
+
+## Completed Masters
+
+| Module | Status |
+|---|---|
+| Company Master | Completed |
+| Employee Master | Completed |
+| UOM Master | Completed |
+| Warehouse Master | Completed |
+| Item Category Master | Completed |
+| Brand Master | Completed |
+| Shape Master | Completed |
+| Specification Master | Completed |
+| Item Master | Completed |
+
+---
+
+## Item Master Status
+
+Item Master Phase is complete.
+
+Implemented features:
+
+- Automatic Item Code generation
+- Category selection
+- Brand selection
+- Main UOM selection
+- Optional Shape
+- Dynamic Item Specifications
+- Optional Specification UOM
+- Specification row Add/Remove
+- Specification Edit synchronization
+- Removed child rows use Soft Delete
+- Quick Add Category
+- Quick Add Brand
+- Quick Add UOM
+- Quick Add Shape
+- Quick Add Specification
+- Select2 searchable Master dropdowns
+- Live similar Item Name detection
+- Live similar Master Name detection
+- Exact Master duplicate prevention
+- Item configuration duplicate prevention
+- Same Item Name variants allowed
+- Specification-aware Item search
+- Shape-aware Item search
+- Item List Specification summary
+- Item Details Specification table
+- Soft Delete
+
+---
+
+## Item Duplicate Rule
+
+Current duplicate identity:
+
+ItemName
++ Shape
++ Specifications
+
+Specification comparison contains:
+
+SpecificationId
++ SpecificationValue
++ UomId
+
+Specification order is ignored.
+
+---
+
+## Current Next Module
+
+Supplier Master
+
+Planned Supplier Code:
+
+SUP00001
+
+Supplier Master will become the base dependency for future Purchase and
+Supplier-related transactions.
+
+---
+
+## Deferred Item Features
+
+The following are intentionally deferred:
+
+- Opening Stock
+- Warehouse Stock
+- Min Stock
+- Max Stock
+- Reorder Level
+- GST
+- Pricing
+- Drawing Number
+
+These will be implemented in their appropriate future modules.

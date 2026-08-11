@@ -52,7 +52,17 @@
         </li>
 
         <li><a href="#">Customers</a></li>
-        <li><a href="#">Suppliers</a></li>
+        
+        <li>
+            <a asp-controller="Supplier"
+               asp-action="Index">
+
+                <i class="fa-solid fa-ruler"></i>
+
+                Suppliers
+
+            </a>
+        </li>
         
         <li>
             <a asp-controller="Warehouse"
@@ -102,6 +112,18 @@
                 <i class="fa-solid fa-ruler"></i>
 
                 Items
+
+            </a>
+        </li>
+
+        <li>
+            <a asp-controller="Drawing"
+               asp-action="Index"
+               class="nav-link">
+
+                <i class="fa-solid fa-compass-drafting nav-icon"></i>
+
+                Drawings
 
             </a>
         </li>

@@ -39,6 +39,17 @@ namespace AjayIndustriesERP.Domain.Entities
 
         public string? Description { get; set; }
 
+        /// <summary>
+        /// Optional manufacturer/internal Part Number.
+        /// </summary>
+        public string? PartNumber { get; set; }
+
+        /// <summary>
+        /// Optional primary Item image file path.
+        /// Actual image binary is not stored in the database.
+        /// </summary>
+        public string? ImagePath { get; set; }
+
         #endregion
 
         #region Foreign Keys
@@ -79,6 +90,15 @@ namespace AjayIndustriesERP.Domain.Entities
             get;
             set;
         } = new List<ItemSpecification>();
+
+        /// <summary>
+        /// Engineering Drawings linked with this Item.
+        /// </summary>
+        public ICollection<Drawing> Drawings
+        {
+            get;
+            set;
+        } = new List<Drawing>();
 
         #endregion
     }

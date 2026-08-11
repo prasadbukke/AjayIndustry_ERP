@@ -1,0 +1,239 @@
+﻿@model List<AjayIndustriesERP.Domain.Entities.Drawing>
+
+@{
+    ViewData["Title"] = "Drawing Management";
+}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between
+                align-items-center mb-4">
+
+        <div>
+
+            <h2 class="fw-bold mb-1">
+                Drawing Management
+            </h2>
+
+            <p class="text-muted mb-0">
+                Manage engineering Drawings and revisions.
+            </p>
+
+        </div>
+
+        <div class="d-flex gap-2">
+
+    <a asp-action="Deleted"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid fa-trash-can-arrow-up me-1"></i>
+
+        Deleted Drawings
+
+    </a>
+
+    <a asp-action="Create"
+       class="btn btn-primary">
+
+        <i class="fa-solid fa-plus me-1"></i>
+
+        Add Drawing
+
+    </a>
+
+</div>
+
+    </div>
+
+    <partial name="Components/_SearchBar"
+             model='@(ViewBag.SearchText as string ?? "")' />
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table table-hover
+                              align-middle mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+                            <th>#</th>
+                            <th>Drawing Number</th>
+                            <th>Drawing Name</th>
+                            <th>Item</th>
+                            <th>Current Rev</th>
+                            <th>Type</th>
+                            <th>File</th>
+                            
+                            <th class="text-center">
+                                Actions
+                            </th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model.Any())
+                        {
+                            var pageNumber =
+                                (int)ViewBag.PageNumber;
+
+                            var pageSize =
+                                (int)ViewBag.PageSize;
+
+                            var serialNumber =
+                                ((pageNumber - 1) *
+                                 pageSize) + 1;
+
+                            foreach (var drawing in Model)
+                            {
+                                <tr>
+
+                                    <td>
+                                        @serialNumber
+                                    </td>
+
+                                    <td>
+
+                                        <a asp-action="Details"
+                                           asp-route-id="@drawing.DrawingId"
+                                           class="fw-semibold
+                                                  text-decoration-none">
+
+                                            @drawing.DrawingNumber
+
+                                        </a>
+
+                                    </td>
+
+                                    <td>
+                                        @(drawing.DrawingName ?? "-")
+                                    </td>
+
+                                    <td>
+
+                                        <div class="fw-semibold">
+                                            @drawing.Item.ItemName
+                                        </div>
+
+                                        <div class="small text-muted">
+                                            @drawing.Item.ItemCode
+                                        </div>
+
+                                    </td>
+
+                                    <td>
+
+                                        <span class="badge bg-success">
+                                            @drawing.RevisionNumber
+                                        </span>
+
+                                    </td>
+
+                                    <td>
+                                        @(drawing.DrawingType ?? "-")
+                                    </td>
+
+                                    <td>
+
+                                        @if (!string.IsNullOrWhiteSpace(
+                                            drawing.FilePath))
+                                        {
+                                            <a href="@drawing.FilePath"
+                                               target="_blank"
+                                               rel="noopener"
+                                               class="btn btn-sm btn-outline-primary"
+                                               title="@drawing.FileName">
+
+                                                <i class="fa-solid fa-file"></i>
+
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">
+                                                -
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                    
+
+                                    <td class="text-center">
+
+                                        <a asp-action="Edit"
+                                           asp-route-id="@drawing.DrawingId"
+                                           class="btn btn-sm btn-outline-warning"
+                                           title="Edit / Add Revision">
+
+                                            <i class="fa-solid fa-pen"></i>
+
+                                        </a>
+
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                title="Delete"
+                                                onclick="confirmDelete(
+                                                    '@Url.Action(
+                                                        "Delete",
+                                                        "Drawing",
+                                                        new
+                                                        {
+                                                            id = drawing.DrawingId
+                                                        })')">
+
+                                            <i class="fa-solid fa-trash"></i>
+
+                                        </button>
+
+                                    </td>
+
+                                </tr>
+
+                                serialNumber++;
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+
+                                <td colspan="8"
+                                    class="text-center
+                                           text-muted py-5">
+
+                                    <i class="fa-solid
+                                              fa-compass-drafting
+                                              fa-2x mb-2">
+                                    </i>
+
+                                    <div>
+                                        No Drawings found.
+                                    </div>
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <partial name="Components/_Pagination"
+             model='(
+                 (int)ViewBag.PageNumber,
+                 (int)ViewBag.PageSize
+             )' />
+
+</div>
