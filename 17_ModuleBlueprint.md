@@ -1,501 +1,95 @@
-﻿# ERP Module Blueprint
+﻿# 17 - Module Blueprint
 
-Status
+## Ajay Industries ERP
 
-✅ LOCKED
-
----
-
-Every ERP Module must follow this template.
+This document defines standard module implementation patterns.
 
 ---
 
-# 1. Module Information
+# 1. Standard Master Module Implementation Order
 
-Module Name
-
-Purpose
-
-Business Owner
-
-Department
-
-Priority
-
-Status
-
----
-
-# 2. Business Requirement
-
-Why this module is required?
-
-Who will use it?
-
-When will it be used?
-
-Inputs
-
-Outputs
-
-Dependencies
+1. Domain Entity
+2. EF Core Configuration
+3. ApplicationDbContext
+4. Repository Interface
+5. Repository Implementation
+6. Service Interface
+7. Service Implementation
+8. Dependency Injection
+9. ViewModel
+10. Controller
+11. Views
+12. JavaScript
+13. Migration
+14. Runtime Testing
+15. Documentation
+16. Git Commit
 
 ---
 
-# 3. Business Flow
+# 2. Standard Master Features
 
-Step 1
+Where applicable:
 
-↓
-
-Step 2
-
-↓
-
-Step 3
-
-↓
-
-Completed
-
----
-
-# 4. Actors
-
-Admin
-
-Manager
-
-Purchase User
-
-Production User
-
-Store User
-
-Sales User
-
-Accounts User
-
-Quality User
+- Index
+- Search
+- Pagination
+- Create
+- Edit
+- Details
+- Soft Delete
+- Active/Inactive
+- Duplicate Validation
+- Similar Name Warning
+- Audit Fields
+- Auto Business Code
+- Toast Notifications
+- Confirmation Modal
 
 ---
 
-# 5. Database
+# 3. Name Similarity Pattern
 
-Header Table
+Helper:
 
-Detail Table
+NameSimilarityHelper
 
-Relationships
+Behavior:
 
-Foreign Keys
-
-Indexes
-
-Unique Constraints
-
----
-
-# 6. Business Rules
-
-Mandatory Fields
-
-Duplicate Rules
-
-Approval Rules
-
-Validation Rules
-
-Edit Rules
-
-Delete Rules
-
-Cancel Rules
-
-Reopen Rules
+- Exact duplicate -> block when required
+- Similar spelling -> warning
+- Live suggestions
+- Normalized matching
+- Fuzzy matching
 
 ---
 
-# 7. Workflow
-
-Pending
-
-↓
-
-Approved
-
-↓
-
-In Progress
-
-↓
-
-Completed
-
-↓
-
-Closed
-
----
-
-# 8. Screens
-
-List
-
-Create
-
-Edit
-
-Details
-
-Print
-
-Reports
-
-Dashboard
-
----
-
-# 9. Reports
-
-Summary
-
-Details
-
-Pending
-
-Completed
-
-Cancelled
-
-Analysis
-
----
-
-# 10. Audit
-
-Created By
-
-Created On
-
-Modified By
-
-Modified On
-
-Status History
-
-Remarks
-
----
-
-# 11. Testing
-
-Positive Cases
-
-Negative Cases
-
-Edge Cases
-
-Performance
-
----
-
-# 12. Documentation
-
-Database
-
-API
-
-Business Rules
-
-Screenshots
-
-Sprint Log
-
-Git Commit
-
----
-
-Status
-
-✅ APPROVED
-
-UOM Decision
-
-Code Entry
-
-Manual
-
-Examples
-
-NOS
-PCS
-KG
-GM
-LTR
-MTR
-BOX
-SET
-
-Auto Code
-
-❌ Not Allowed
-
-Status
-
-✅ LOCKED
-
-Master Modules
-
-✔ Company
-✔ Employee
-✔ UOM
-✔ Warehouse
-✔ Item Category
-✔ Brand
-
-Next
-
-Item Master
-Purchase
-Inventory
-Production
-Sales
-
-Item Master (LOCKED)
-
-Fields
-
-ItemCode
-ItemName
-Description
-CategoryId
-BrandId
-UomId
-WarehouseId
-OpeningStock
-MinimumStock
-MaximumStock
-ReorderLevel
-IsActive
-
-# Item Master Module Blueprint
-
-Last Updated: 08-Aug-2026
-
----
-
-## Purpose
-
-Item Master provides a single reusable Item definition that can later be
-used across:
-
-- Purchase
-- Inventory
-- BOM
-- Production
-- Sales
-- Planning
-- Reporting
-
----
-
-## Architecture Flow
-
-Domain
-    Item
-    Shape
-    Specification
-    ItemSpecification
-
-Application
-    Repository Interfaces
-    Services
-    Business Validation
-    Duplicate Configuration Logic
-    Name Similarity Helper
-
-Infrastructure
-    EF Core Configurations
-    Repository Implementations
-    SQL Server Persistence
-
-Web
-    ViewModels
-    Controllers
-    Razor Views
-    Select2
-    Quick Master Modal
-    Dynamic Specification Rows
-
----
-
-## Create Flow
-
-User opens Item Create
-
-    ↓
-
-Load:
-
-Category
-Brand
-UOM
-Shape
-Specification Options
-
-    ↓
-
-User enters Item information
-
-    ↓
-
-Optional Dynamic Specification Rows
-
-    ↓
-
-Controller maps ItemViewModel to Item aggregate
-
-    ↓
-
-ItemService normalizes input
-
-    ↓
-
-Validate:
-
-Main Item fields
-Specification rows
-Specification duplicates
-Specification UOM
-Exact Item configuration
-
-    ↓
-
-Generate Item Code
-
-    ↓
-
-Save Item + ItemSpecifications
-
-    ↓
-
-Single DbContext SaveChanges
-
----
-
-## Edit Flow
-
-Load Item
-
-    ↓
-
-Load active ItemSpecifications
-
-    ↓
-
-Map to ItemViewModel
-
-    ↓
-
-User:
-
-Updates existing row
-Adds new row
-Removes row
-
-    ↓
-
-ItemService synchronization
-
-Existing row:
-UPDATE
-
-New row:
-INSERT
-
-Removed row:
-SOFT DELETE
-
-    ↓
-
-SaveChanges
-
----
-
-## Item Delete Flow
-
-Item Delete
-
-    ↓
-
-Load active ItemSpecifications
-
-    ↓
-
-Soft Delete ItemSpecifications
-
-    ↓
-
-Soft Delete Item
-
-    ↓
-
-SaveChanges
-
----
-
-## Duplicate Validation
-
-Name-only duplicates are allowed.
-
-Exact configuration duplicate is blocked.
-
-Comparison:
+# 4. Item Module Blueprint
+
+Flow:
+
+Create Item
+→ Item Name
+→ Part Number
+→ Category
+→ Brand
+→ UOM
+→ Optional Shape
+→ Dynamic Specifications
+→ Duplicate Configuration Validation
+→ Save
+
+Duplicate configuration:
 
 ItemName
-ShapeId
-SpecificationId
-SpecificationValue
-Specification UomId
-
-Specification order is ignored.
++ Shape
++ Specifications
 
 ---
 
-## Search
+# 5. Item Quick Add Blueprint
 
-Item Search currently supports:
-
-- Item Code
-- Item Name
-- Description
-- Category Code
-- Category Name
-- Brand Code
-- Brand Name
-- Main UOM
-- Shape
-- Specification Code
-- Specification Name
-- Specification Value
-- Specification UOM
-
-Example searches:
-
-25
-EN8
-Diameter
-Round
-MM
-
-return the matching Items.
-
----
-
-## Quick Master
-
-Item Form supports AJAX Quick Add for:
+Supported Masters:
 
 - Category
 - Brand
@@ -503,28 +97,361 @@ Item Form supports AJAX Quick Add for:
 - Shape
 - Specification
 
-Quick Add Flow:
+Flow:
 
-Search dropdown
+Select2
+→ No Result
+→ Add Master
+→ Quick Add Modal
+→ Validation
+→ AJAX Save
+→ Auto Select
 
-    ↓
+---
 
-No Result
+# 6. Item Specification Blueprint
 
-    ↓
+Dynamic row:
 
-Add Master
+Specification
+| Value
+| Optional UOM
+| Remove
 
-    ↓
+Features:
 
-Live similar-name detection
+- Dynamic indexes
+- SortOrder
+- Duplicate Specification protection
+- Quick Add
 
-    ↓
+---
 
-Create
+# 7. Item Details Blueprint
 
-    ↓
+Item Information:
 
-New record automatically selected
+Three-column desktop layout.
 
-No page redirect is required.
+Fields:
+
+- Item Code
+- Item Name
+- Part Number
+- Category
+- Brand
+- UOM
+- Shape
+- Status
+- Description
+
+Then:
+
+- Item Specifications
+- Drawing Information
+- Audit Information
+
+---
+
+# 8. Supplier Module Blueprint
+
+Supplier flow:
+
+Create Supplier
+→ Identity
+→ Contact
+→ GSTIN / PAN
+→ Address
+→ Payment Terms
+→ Similar Name Validation
+→ Save
+
+---
+
+# 9. Drawing Module Blueprint
+
+Final Drawing flow:
+
+Select Item
+→ Enter Drawing Number
+→ Drawing Name / Type
+→ Upload First File
+→ System Generates RV-01
+→ Save
+
+Business rule:
+
+One Item
+→ One Drawing Number
+→ Many Revisions
+
+---
+
+# 10. Drawing Edit Blueprint
+
+Read-only:
+
+- Item
+- Drawing Number
+
+Editable:
+
+- Drawing Name
+- Drawing Type
+
+Revision area:
+
+- Revision History
+- Add Revision
+- Activate Previous Revision
+- Delete Inactive Revision
+
+---
+
+# 11. Drawing Revision Add
+
+New Revision input:
+
+- Revision Number = Auto
+- Drawing File
+- Remarks
+
+Save:
+
+- Previous Current becomes Inactive
+- New Revision created
+- Last added Revision becomes Current
+
+---
+
+# 12. Drawing Revision Activation
+
+Flow:
+
+Select Historical Revision
+→ Deactivate Current
+→ Save
+→ Activate Selected
+→ Save
+→ Commit Transaction
+
+---
+
+# 13. Drawing Revision Delete
+
+Rules:
+
+- Inactive only
+- Soft Delete
+- Current Revision protected
+- File retained
+- Revision Number retained
+
+---
+
+# 14. Drawing Delete / Restore
+
+Delete Drawing:
+
+Soft Delete
+→ Remove from normal Index
+→ Keep Drawing Number reserved
+
+Deleted Drawings:
+
+Dedicated screen
+→ Restore
+
+Restore:
+
+- Drawing identity
+- Revision history
+- Current Revision
+
+---
+
+# 15. Item and Drawing Integration Blueprint
+
+Item Details:
+
+If Drawing exists:
+
+Drawing Number
+| Current Revision
+| Drawing Type
+
+Drawing Name
+| Drawing File
+| Open Details
+
+If no Drawing:
+
+No Drawing Available
+→ Add Drawing
+
+---
+
+# 16. Item Edit Drawing Blueprint
+
+Item Edit displays read-only Drawing summary.
+
+Drawing information is not editable from Item Master.
+
+Engineering lifecycle remains in Drawing Master.
+
+---
+
+# 17. New Item to Drawing Blueprint
+
+Flow:
+
+Create Item
+→ Save Item
+→ Redirect Item Details
+→ Add Drawing
+→ Drawing Create
+→ Item Auto Selected
+→ Create RV-01
+
+This pattern ensures ItemId exists before Drawing creation.
+
+---
+
+# 18. File Upload Blueprint
+
+Drawing File:
+
+- Validate extension
+- Validate size
+- Generate physical stored filename
+- Preserve original FileName
+- Store relative FilePath
+- Do not store binary in SQL
+
+---
+
+# 19. Error Handling Blueprint
+
+Application Service:
+
+throw BusinessException
+
+Controller:
+
+- Catch BusinessException
+- TempData Error
+- Catch unexpected Exception
+- Generic error message
+
+Global middleware remains deferred.
+
+---
+
+# 20. Transaction Module General Pattern
+
+Future transaction modules should generally use:
+
+Header
+→ Lines
+→ Validation
+→ Totals
+→ Status
+→ Audit
+→ Output / Print / PDF
+
+---
+
+# 21. Next Module - Purchase Order
+
+Purchase Order is the next selected module.
+
+Before coding, finalize:
+
+## Header
+
+Potential fields:
+
+- PurchaseOrderId
+- PurchaseOrderNumber
+- PurchaseOrderDate
+- Company
+- Supplier
+- Supplier Address Snapshot
+- Supplier GSTIN
+- Delivery Address
+- Payment Terms
+- Delivery Terms
+- Remarks
+- Status
+
+Exact fields are not yet locked.
+
+## Lines
+
+Potential fields:
+
+- PurchaseOrderLineId
+- PurchaseOrderId
+- ItemId
+- UomId
+- Quantity
+- Rate
+- Discount
+- Tax
+- Amount
+
+Exact fields are not yet locked.
+
+---
+
+# 22. Purchase Order Workflow Goal
+
+Expected basic workflow:
+
+Create PO
+→ Select Supplier
+→ Add Items
+→ Quantity / Rate
+→ Tax Calculation
+→ Terms
+→ Save
+→ Generate PDF
+→ Share PDF with Supplier
+
+---
+
+# 23. Purchase Order PDF Requirement
+
+Purchase Order must generate a professional PDF.
+
+PDF should be suitable for:
+
+- Printing
+- Email
+- WhatsApp/file sharing
+- Supplier communication
+
+PDF design will be finalized during Purchase Order module design.
+
+---
+
+# 24. Purchase Requisition Decision
+
+Purchase Requisition is not required before the first Purchase Order implementation.
+
+It is deferred.
+
+It may be added later if the business workflow requires internal purchase approval/request processing.
+
+---
+
+# 25. Future Transaction Direction
+
+Expected future sequence:
+
+Purchase Order
+→ GRN / Purchase Receipt
+→ Warehouse / Stock
+→ Supplier Transaction / Accounting
+
+Further modules will be finalized one at a time.

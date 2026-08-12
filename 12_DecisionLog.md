@@ -1,8 +1,6 @@
 ﻿# 12 - Decision Log
 
-## Project
-
-Ajay Industries ERP
+## Ajay Industries ERP
 
 This document records architecture and business decisions that should not be changed casually.
 
@@ -10,16 +8,18 @@ This document records architecture and business decisions that should not be cha
 
 # Decision 001 - Clean Architecture
 
-The ERP uses:
+Layers:
 
 - Domain
 - Application
 - Infrastructure
 - Web
 
-ASP.NET Core MVC is the current presentation technology.
+Current presentation:
 
-React is not part of the current architecture.
+ASP.NET Core MVC
+
+React is not currently used.
 
 Web API may be added later when required.
 
@@ -27,34 +27,36 @@ Web API may be added later when required.
 
 # Decision 002 - Repository + Service Pattern
 
-Database access belongs to Repository classes.
+Repository:
 
-Business rules belong to Application Services.
+Database access.
 
-MVC Controllers should remain thin.
+Application Service:
 
-Business validation errors use `BusinessException`.
+Business rules and validation.
+
+Controller:
+
+UI request coordination.
+
+Business validation uses BusinessException.
 
 ---
 
 # Decision 003 - Soft Delete
 
-Business records use Soft Delete.
+Business data uses Soft Delete.
 
-Physical deletion is avoided.
+Physical delete is avoided.
 
-Standard fields:
+Common fields:
 
 - IsDeleted
 - IsActive
 
-Deleted records are normally excluded from UI lists.
-
 ---
 
-# Decision 004 - Business Code Reuse
-
-Auto-generated business codes must never be reused.
+# Decision 004 - Business Codes Are Never Reused
 
 Examples:
 
@@ -66,60 +68,53 @@ Deleted records are included when generating/checking codes.
 
 ---
 
-# Decision 005 - Item Code
+# Decision 005 - ItemCode Is System Identity
 
-ItemCode remains system generated.
+ItemCode remains auto generated.
 
 Format:
 
-`ITM00001`
+ITM00001
 
-ItemCode is ERP identity, not a human-readable Item description.
+ItemCode is not intended to describe technical Item properties.
 
-Meaningful Item information belongs to:
+Technical meaning belongs to:
 
 - ItemName
+- PartNumber
 - Shape
 - Specifications
-- PartNumber
 - Drawing
-- Image
 
 ---
 
 # Decision 006 - Item Name Is Not Globally Unique
 
-Same Item Name may exist for different Item configurations.
+Same ItemName may exist for technically different Items.
 
-Example:
+Duplicate identity:
 
-MS Round Bar with different Diameter/Grade combinations.
+ItemName
++ Shape
++ Complete Specifications
 
-Exact Item duplicate identity is:
-
-- ItemName
-- Shape
-- Complete specification configuration
-
-Specification row order is ignored.
-
-Category, Brand and main UOM are excluded from duplicate signature.
+Category, Brand, Main UOM and PartNumber do not participate in this signature.
 
 ---
 
-# Decision 007 - Shape Is a Standalone Master
+# Decision 007 - Shape Is a Separate Master
 
-Shape is maintained independently.
+Shape is reusable Master data.
 
-Item has optional ShapeId.
+Shape is optional on Item.
 
-Shape participates in Item duplicate/configuration identity.
+Shape participates in Item duplicate configuration.
 
 ---
 
-# Decision 008 - Specification Is a Standalone Master
+# Decision 008 - Specification Is Dynamic
 
-Specification is maintained independently.
+Specifications are not static Item columns.
 
 Examples:
 
@@ -128,182 +123,179 @@ Examples:
 - Width
 - Thickness
 - Grade
+- Hardness
 
-Grade is handled as a Specification.
-
-A separate Grade master/column is not currently required.
-
----
-
-# Decision 009 - Drawing Number Was Deferred Initially
-
-Drawing Number was initially deferred while Item configuration architecture was still evolving.
-
-After Item/Specification architecture stabilized, Drawing was implemented as a dedicated module.
+Grade remains a Specification rather than a dedicated Item field.
 
 ---
 
-# Decision 010 - Drawing Is Not an Item Column
+# Decision 009 - PartNumber Is Optional and Non-Unique
+
+PartNumber belongs directly to Item.
+
+Rules:
+
+- Optional
+- Maximum 100 characters
+- Searchable
+- Not unique
+
+PartNumber is not part of exact Item duplicate identity.
+
+---
+
+# Decision 010 - Item Image Removed
+
+Item Image support is not required at this stage.
+
+ImagePath was removed.
+
+Reason:
+
+Technical/engineering identification is already covered by:
+
+- PartNumber
+- Shape
+- Specifications
+- Drawing
+- Drawing Revision
+- Drawing File
+
+This avoids unnecessary file-storage complexity.
+
+---
+
+# Decision 011 - Drawing Is a Separate Module
 
 Drawing Number is not stored directly on Item.
 
-Drawing has its own engineering lifecycle.
-
-Therefore Drawing is represented in a dedicated `Drawings` table.
+Drawing has its own lifecycle and revision history.
 
 ---
 
-# Decision 011 - One Drawing Table
+# Decision 012 - One Drawing Table
 
-Drawing and revision history currently use one table.
+Current architecture uses one Drawings table.
 
-A separate `DrawingRevisions` table is intentionally not used at this stage.
+Each row represents one Revision.
 
-Every Drawings row represents one revision.
-
-This avoids unnecessary multi-table complexity while still supporting revision history.
+A separate DrawingRevisions table is intentionally not used at this stage.
 
 ---
 
-# Decision 012 - One Item Has One Drawing Number
+# Decision 013 - One Item Has One Drawing Number
 
-Final Drawing relationship:
+Final relationship:
 
-`One Item -> One Drawing Number -> Many Revisions`
+One Item
+→ One Drawing Number
+→ Many Revisions
 
-Same Item cannot have another Drawing Number.
+Same Item cannot receive a second active Drawing Number.
 
-If a Drawing changes, a new Revision must be added.
-
-This decision replaced the earlier idea of allowing multiple Drawings per Item.
+Engineering changes must use Revision History.
 
 ---
 
-# Decision 013 - Drawing Number Is Permanent
+# Decision 014 - Drawing Number Is Permanent
 
 Drawing Number:
 
-- is manually entered
-- is required
-- is permanent
-- cannot be changed after creation
-- cannot be reused after deletion
-
-Drawing Number is an engineering identity.
+- Manual
+- Required
+- Immutable after Create
+- Never reused
+- Reserved after Soft Delete
 
 ---
 
-# Decision 014 - Drawing Number Similarity
-
-During Drawing Create:
+# Decision 015 - Drawing Similarity Checking
 
 Exact Drawing Number:
 
-- blocks Create
-- user is instructed to open existing Drawing and add Revision
+Block Create.
 
 Similar Drawing Number:
 
-- warning only
+Warning.
 
 Drawing Name:
 
-- exact/similar spelling warning
-- does not block Save
+Similar/exact warning only.
 
 ---
 
-# Decision 015 - Revision Number Is Auto Generated
+# Decision 016 - Revision Number Is Auto Generated
 
-Revision Number is not manually entered.
+Revision Number is system generated.
 
 Format:
 
-- RV-01
-- RV-02
-- RV-03
+RV-01
+RV-02
+RV-03
 
-Deleted revisions remain part of numbering history.
+Deleted Revision Numbers remain reserved.
 
-Revision Numbers are never reused.
-
-Legacy values such as R01/R02 are recognized while calculating the next number.
+Legacy values such as R01/R02 are recognized for sequence calculation.
 
 ---
 
-# Decision 016 - Only One Current Revision
+# Decision 017 - One Current Revision
 
-For one Drawing Number, only one Revision can be Current.
+For each Drawing Number:
 
-`IsActive = true` means Current Revision.
+Maximum one Current non-deleted revision.
 
-Historical revisions use:
+IsActive = true means Current.
 
-`IsActive = false`
-
-A filtered unique database index protects this rule.
+Historical revisions are inactive.
 
 ---
 
-# Decision 017 - Previous Revision Can Be Reactivated
+# Decision 018 - Previous Revision Can Be Reactivated
 
-Historical inactive revisions may be activated again.
+Inactive revisions can be activated.
 
-When an old revision becomes Current:
+Activation:
 
-- existing Current revision becomes Inactive
-- selected revision becomes Current
-
-Only one Current revision can exist.
-
-The switch is executed inside a database transaction.
+- deactivates Current revision
+- activates selected revision
+- executes transactionally
 
 ---
 
-# Decision 018 - Revision Soft Delete
+# Decision 019 - Revision Soft Delete
 
-Inactive revisions may be soft deleted.
+Only inactive revisions can be soft deleted.
 
-Current revision cannot be deleted directly.
-
-The user must first activate another revision.
+Current Revision must first be replaced by activating another revision.
 
 Deleted revision:
 
 - remains in database
-- disappears from normal UI
-- retains its revision number
-- retains its physical Drawing file
+- remains reserved
+- retains physical file
 
 ---
 
-# Decision 019 - Drawing Soft Delete and Restore
+# Decision 020 - Drawing Soft Delete Uses Restore
 
-Deleting the complete Drawing does not free the Drawing Number.
+Complete Drawing deletion does not free its Drawing Number.
 
-Deleted Drawings appear in a dedicated Deleted Drawings screen.
+Deleted Drawings have a dedicated Restore UI.
 
-User can Restore the Drawing.
-
-This prevents the confusing situation where:
-
-- Drawing disappears from normal UI
-- same Drawing Number remains reserved
-- user cannot understand why Create is blocked
-
-Restore is the correct recovery path.
+A deleted Drawing should be restored rather than recreated.
 
 ---
 
-# Decision 020 - Drawing Files Are Not Stored as SQL Binary
+# Decision 021 - Drawing Files Stored Outside SQL
 
-Drawing files are stored in the web file system.
+Physical files stored in:
 
-Current location:
+wwwroot/uploads/drawings
 
-`wwwroot/uploads/drawings`
-
-Database stores:
+SQL stores:
 
 - FileName
 - FilePath
@@ -312,103 +304,133 @@ File binary is not stored in SQL Server.
 
 ---
 
-# Decision 021 - Historical Drawing Files Are Preserved
+# Decision 022 - Historical Drawing Files Are Preserved
 
-Old revision files are not overwritten.
+Revision files are not overwritten or physically deleted during Soft Delete.
 
-A new revision creates a new file reference.
-
-Soft deletion does not physically remove the file.
-
-This preserves engineering history.
+Engineering history must remain available.
 
 ---
 
-# Decision 022 - IsPrimary Removed
+# Decision 023 - IsPrimary Removed
 
-The original Drawing design contained `IsPrimary`.
+IsPrimary became redundant after finalizing:
 
-After finalizing:
+One Item
+→ One Drawing Number
 
-`One Item -> One Drawing Number`
-
-the Primary concept became unnecessary.
-
-`IsPrimary` was removed from:
-
-- Domain entity
-- ViewModel
-- Service
-- Repository
-- UI
-- Database
+It was removed from the complete Drawing architecture and database.
 
 ---
 
-# Decision 023 - Supplier Master Financial Separation
+# Decision 024 - Item Details Shows Drawing Information
 
-Supplier Master stores identity/contact/tax/address/payment-term data only.
+Current Drawing information is displayed from Item Details.
 
-It does not store transaction-derived values such as:
+Displayed:
 
-- Opening Balance
-- Purchase Total
-- Pending Payment
-- Last Purchase
-- GST totals
+- Drawing Number
+- Drawing Name
+- Current Revision
+- Drawing Type
+- Drawing File
 
-These belong to future accounting/purchase modules.
-
----
-
-# Decision 024 - Supplier Duplicate Rules
-
-Supplier Name:
-
-- exact active duplicate blocked
-- similar spelling warning
-
-GSTIN:
-
-- optional
-- active unique when provided
-
-PAN:
-
-- optional
-- not unique
+Drawing modification is not performed inside Item Master.
 
 ---
 
-# Decision 025 - Item Part Number
+# Decision 025 - Item Edit Shows Drawing Read-Only
 
-PartNumber is an optional Item field.
+Item Edit may show Drawing information.
 
-It is not currently unique.
+However Drawing lifecycle remains controlled by Drawing Master.
+
+This prevents engineering revision logic from being duplicated inside Item Master.
+
+---
+
+# Decision 026 - Drawing Requires Existing Item
+
+Drawing cannot be created before Item exists.
+
+New Item flow:
+
+Create Item
+→ Save Item
+→ Open Details
+→ Add Drawing
+
+---
+
+# Decision 027 - Add Drawing Auto Selects Item
+
+When Drawing Create is opened from Item Details/Edit:
+
+ItemId is passed automatically.
+
+Drawing Create selects the correct Item.
+
+This reduces user errors.
+
+---
+
+# Decision 028 - Supplier Financial Values Are Transaction Data
+
+Supplier Master does not store:
+
+- Purchase totals
+- Pending balances
+- Opening balances
+- Last purchase values
+
+These will come from future transaction/accounting modules.
+
+---
+
+# Decision 029 - Purchase Order Is Next Module
+
+Purchase Order is selected as the next module after finalizing Item and Drawing Masters.
+
+Purchase Requisition is deferred.
 
 Reason:
 
-Manufacturer/internal part numbers may overlap across brands/sources.
+Current business flow can begin directly from Supplier Purchase Order.
+
+Purchase Requisition may be introduced later if required.
 
 ---
 
-# Decision 026 - Item Image
+# Decision 030 - Purchase Order Must Generate PDF
 
-Item should support a primary image.
+Purchase Order must support professional PDF generation.
 
-Current design:
+The PDF will be shared with the Supplier.
 
-`Items.ImagePath`
+Therefore Purchase Order design must consider:
 
-Image binary will not be stored in SQL Server.
+- Company information
+- Supplier information
+- PO Number
+- PO Date
+- Item lines
+- Quantity
+- UOM
+- Rate
+- Taxes
+- Total
+- Delivery Terms
+- Payment Terms
+- Remarks
+- Authorized/Company presentation
 
-Actual Item image upload/display integration is the next Item Master enhancement.
+Exact PDF layout will be finalized during Purchase Order module design.
 
 ---
 
-# Decision 027 - Production Workflow Is Database Driven
+# Decision 031 - Production Workflow Will Be Database Driven
 
-Future Production workflow will be database driven.
+Future Production flow will be database driven.
 
 Planned statuses:
 
@@ -419,18 +441,4 @@ Planned statuses:
 - On Hold
 - Cancelled
 
-Future production history should capture:
-
-- Operator
-- Machine
-- Start Time
-- End Time
-- Duration
-- Good Quantity
-- Reject Quantity
-- Rework Quantity
-- Remarks
-- Current Stage
-- Overall Progress
-
-Production coding is deferred until its module phase.
+Production remains deferred until its module phase.

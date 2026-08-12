@@ -1,147 +1,94 @@
-# Component Library
+﻿# 11 - Component Library
 
-## Purpose
+## Ajay Industries ERP
 
-Reusable UI components used across the ERP.
-
----
-
-## Layout Components
-
-- Sidebar
-- Top Navbar
-- Page Header
-- Footer
-- Content Container
+This document records reusable application and UI patterns.
 
 ---
 
-## Form Components
+# 1. Shared Search Bar
 
-- Textbox
-- TextArea
-- Dropdown
-- Checkbox
-- Switch
-- Date Picker (Future)
-- File Upload (Future)
+File:
+
+Views/Shared/Components/_SearchBar.cshtml
+
+Used for Master list searching.
 
 ---
 
-## Validation Components
+# 2. Shared Pagination
 
-- Validation Summary
-- Field Validation Message
-- Required Field Indicator
+File:
 
----
+Views/Shared/Components/_Pagination.cshtml
 
-## Table Components
+Application model:
 
-- Bootstrap Table
-- Search Box
-- Pagination
-- Empty Data Message
-- Status Badge
-- Action Buttons
+Application.Common.PagedResult<T>
 
----
+Supports:
 
-## Action Buttons
-
-- Add
-- Save
-- Update
-- Cancel
-- Back
-- Details
-- Edit
-- Delete
+- PageNumber
+- PageSize
+- TotalRecords
+- TotalPages
+- HasPrevious
+- HasNext
 
 ---
 
-## Card Components
+# 3. Delete Confirmation
 
-- Dashboard Card
-- Form Card
-- Table Card
-- Statistics Card (Future)
+File:
 
----
+Views/Shared/Components/_ConfirmDeleteModal.cshtml
 
-## Status Components
+JavaScript:
 
-Active
+confirmDelete()
 
-- Green Badge
-
-Inactive
-
-- Red Badge
+Business modules normally use Soft Delete.
 
 ---
 
-## Notification Components
+# 4. Toast Notifications
 
-Current
+File:
 
-- TempData Success Message
+Views/Shared/Components/_ToastNotification.cshtml
 
-Future
+Toastr is used for:
 
-- Toast Notification
-- Error Notification
+- Success
+- Error
+- Warning
 
----
-
-## Modal Components
-
-Future
-
-- Delete Confirmation
-- Information Popup
+Controllers commonly use TempData.
 
 ---
 
-## Dashboard Components
+# 5. Name Similarity Pattern
 
-- Summary Cards
-- Quick Links
-- Recent Activities (Future)
+Helper:
 
----
+Application/Common/NameSimilarityHelper.cs
 
-## Icons
+Supports:
 
-Use only one icon library consistently.
+- Normalize
+- Exact Match
+- Similar Match
+- Levenshtein
+- Live Search Match
+- Ranked Suggestions
 
-Approved Libraries
-
-- Bootstrap Icons
-- Font Awesome
-
----
-
-## Reference Module
-
-Company Master
-
-All reusable UI components will be designed based on the Company module.
-
-# Component Library Update
-
-Last Updated: 08-Aug-2026
+Used for Master duplicate/spelling assistance.
 
 ---
 
-## Quick Add Master Modal
+# 6. Quick Add Master Modal
 
-Purpose:
-
-Allows reusable Master records to be created without leaving the current
-form.
-
-Current supported types:
+Reusable Item form Quick Add supports:
 
 - Category
 - Brand
@@ -153,121 +100,295 @@ Features:
 
 - Bootstrap Modal
 - AJAX Save
-- Anti-forgery token
-- Live similar-name suggestions
-- Exact duplicate prevention
-- Similar-name confirmation
-- Existing record selection
-- Newly created record auto-selection
+- Select2
+- Similar Name Warning
+- Exact Duplicate Handling
+- New Record Auto Select
 
 ---
 
-## Searchable Master Select
+# 7. Select2 Pattern
 
-Technology:
+Select2 is used for searchable dropdowns.
 
-Select2
+Current examples:
 
-Reusable CSS class:
+- Item Master dropdowns
+- Drawing Item dropdown
 
-js-master-select
+Drawing Item display may include:
 
-Typical metadata:
-
-data-master-type
-data-placeholder
-data-add-label
-
-Behavior:
-
-- Search records
-- Clear selection where permitted
-- Open Quick Add when no record is found
-- Auto-select newly created Master
+- ItemCode
+- ItemName
+- PartNumber
+- Shape
+- Specifications
 
 ---
 
-## Name Similarity Helper
+# 8. Dynamic Item Specification Row
 
-Shared application utility:
+Pattern:
 
-NameSimilarityHelper
-
-Purpose:
-
-Provides common duplicate/similar-name behavior to name-based Masters.
+Specification
+| Value
+| Optional UOM
+| Remove
 
 Supports:
 
-- Normalization
-- Exact match
-- Prefix/contains matching
-- Fuzzy matching
-- Levenshtein-based similarity
-- Ordered live suggestions
+- Add row
+- Remove row
+- Explicit collection indexes
+- SortOrder
+- Select2
+- Quick Add Specification
+- Quick Add UOM
 
 ---
 
-## Dynamic Child Row Pattern
+# 9. Item Three-Column Details Pattern
 
-First implemented in Item Specifications.
+Item Details uses equal-width bordered information cards.
 
-Row structure:
+Desktop layout:
 
-Specification | Value | Optional UOM | Remove
-
-Features:
-
-- Add Row
-- Remove Row
-- Select2 inside dynamic rows
-- Explicit MVC collection index
-- Dynamic SortOrder
-- Duplicate Specification prevention
-- Existing row restoration during Edit
-
-MVC posting pattern:
-
-ItemSpecifications.Index
-
-ItemSpecifications[key].ItemSpecificationId
-ItemSpecifications[key].SpecificationId
-ItemSpecifications[key].SpecificationValue
-ItemSpecifications[key].UomId
-ItemSpecifications[key].SortOrder
-
-This pattern can be reused for future child-row forms.
-
----
-
-## Optional UOM Pattern
-
-Some technical values require a UOM.
+3 columns per row.
 
 Example:
 
-Diameter = 25 MM
+Item Code
+| Item Name
+| Part Number
 
-Some do not.
+Category
+| Brand
+| UOM
 
-Example:
+Shape
+| Status
+| Description
 
-Grade = EN8
-
-Therefore child Specification UOM is nullable.
+This layout may be reused for future Master Details pages.
 
 ---
 
-## Configuration Duplicate Validation
+# 10. Item Specification Badge Pattern
 
-UI duplicate prevention is not considered sufficient.
+Item Index displays compact Specification badges.
 
-Final Item duplicate validation is always executed in Application
-Service.
+Example:
 
-Duplicate identity:
+Diameter: 25 MM
+Length: 500 MM
+Grade: EN8
 
-ItemName + Shape + Complete Specification Set
+Maximum first three Specifications shown inline.
 
-This protects the system even when requests bypass browser-side
-JavaScript.
+Remaining count shown as:
+
++N more
+
+---
+
+# 11. Dynamic Drawing Revision Row
+
+Drawing Edit supports dynamic Revision input.
+
+Fields:
+
+- Revision = Auto
+- Drawing File
+- Remarks
+- Remove
+
+Collection binding uses:
+
+NewRevisions.Index
+
+---
+
+# 12. Drawing Revision History Table
+
+Columns:
+
+- Revision
+- File
+- Remarks
+- Status
+- Created On
+- Created By
+- Actions
+
+Status:
+
+- Current
+- Inactive
+
+Historical actions:
+
+- Activate
+- Delete
+
+---
+
+# 13. Drawing Revision Activation
+
+Server-side POST action.
+
+Behavior:
+
+- Existing Current revision is deactivated.
+- Selected historical revision becomes Current.
+- Operation uses a database transaction.
+- Only one Current revision remains.
+
+---
+
+# 14. Drawing Revision Delete
+
+Rules:
+
+- Inactive revision only
+- Soft Delete
+- Current revision protected
+- Revision Number remains reserved
+- Physical file retained
+
+---
+
+# 15. Deleted Drawing Restore Pattern
+
+Dedicated Deleted Drawings screen.
+
+Displays one row per deleted Drawing Number.
+
+Supports Restore.
+
+This pattern may later be reused for important recoverable ERP records.
+
+---
+
+# 16. Drawing File Upload Pattern
+
+Supported:
+
+- PDF
+- JPG
+- JPEG
+- PNG
+- DWG
+- DXF
+
+Maximum:
+
+25 MB
+
+Physical storage:
+
+wwwroot/uploads/drawings
+
+Database stores:
+
+- FileName
+- FilePath
+
+---
+
+# 17. Permanent Identity Pattern
+
+Drawing Edit demonstrates read-only permanent identity fields.
+
+Permanent after Create:
+
+- Item
+- Drawing Number
+
+Protection exists in:
+
+- UI
+- Application Service
+
+Posted tampered values are not trusted.
+
+---
+
+# 18. Item to Drawing Summary Component Pattern
+
+Item Details/Edit display read-only Drawing information.
+
+Fields:
+
+- Drawing Number
+- Drawing Name
+- Current Revision
+- Drawing Type
+- Drawing File
+
+Available actions:
+
+- View Drawing File
+- Open Drawing Details
+- Add Drawing when none exists
+
+Drawing editing remains inside the Drawing module.
+
+---
+
+# 19. Save-Then-Child Pattern
+
+Item Create demonstrates a useful parent-child workflow.
+
+Flow:
+
+Create Parent
+→ Save Parent
+→ Redirect to Details
+→ Create dependent record
+
+Current use:
+
+Create Item
+→ Save
+→ Item Details
+→ Add Drawing
+
+This ensures the ItemId exists before Drawing creation.
+
+---
+
+# 20. Auto-Selected Related Master Pattern
+
+When Add Drawing is started from Item Details/Edit:
+
+ItemId is passed in the URL.
+
+Drawing Create:
+
+- receives ItemId
+- automatically selects that Item
+
+This reduces user selection errors.
+
+---
+
+# 21. Audit Display Pattern
+
+Typical audit fields:
+
+- CreatedOn
+- CreatedBy
+- ModifiedOn
+- ModifiedBy
+
+For multi-line Razor expressions use explicit wrapping.
+
+Example:
+
+@(
+    Model.CreatedOn
+        .ToLocalTime()
+        .ToString("dd-MMM-yyyy hh:mm tt")
+)
+
+This avoids Razor property-chain rendering issues.
