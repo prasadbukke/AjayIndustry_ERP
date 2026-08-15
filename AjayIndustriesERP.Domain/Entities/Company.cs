@@ -31,5 +31,7 @@ namespace AjayIndustriesERP.Domain.Entities
         public string Country { get; set; } = "India";
 
         public string? PostalCode { get; set; }
+
+        public string? PurchaseOrderTermsAndConditions { get; set; }
     }
 }

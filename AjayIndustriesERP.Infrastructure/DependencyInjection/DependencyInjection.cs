@@ -55,6 +55,9 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
             services.AddScoped<IDrawingRepository, DrawingRepository>();
             services.AddScoped<IDrawingService, DrawingService>();
 
+            services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
+            services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+
             return services;
         }
     }

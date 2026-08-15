@@ -6,17 +6,7 @@ Module      : Company
 
 Purpose     : Contains complete Company business logic.
 
-Flow
 
-MVC View
-    ↓
-Controller
-    ↓
-Service
-    ↓
-Repository
-    ↓
-SQL Server
 
 Author      : Prasad Bukke
 Project     : Ajay Industries ERP
@@ -61,8 +51,15 @@ namespace AjayIndustriesERP.Application.Services
         /// </summary>
         public async Task CreateAsync(Company company)
         {
-            company.CompanyName = company.CompanyName.Trim();
-            company.GstNumber = company.GstNumber.Trim().ToUpper();
+            company.CompanyName =company.CompanyName.Trim();
+
+            company.GstNumber =
+                string.IsNullOrWhiteSpace(
+                    company.GstNumber)
+                    ? string.Empty
+                    : company.GstNumber
+                        .Trim()
+                        .ToUpperInvariant();
 
             if (!string.IsNullOrWhiteSpace(company.PanNumber))
                 company.PanNumber = company.PanNumber.Trim().ToUpper();
@@ -91,8 +88,25 @@ namespace AjayIndustriesERP.Application.Services
             if (!string.IsNullOrWhiteSpace(company.Country))
                 company.Country = company.Country.Trim();
 
-            if (!string.IsNullOrWhiteSpace(company.PostalCode))
-                company.PostalCode = company.PostalCode.Trim();
+            if (!string.IsNullOrWhiteSpace(
+    company.PostalCode))
+            {
+                company.PostalCode =
+                    company.PostalCode.Trim();
+            }
+
+
+            if (!string.IsNullOrWhiteSpace(
+                company.PurchaseOrderTermsAndConditions))
+            {
+                company.PurchaseOrderTermsAndConditions =
+                    company.PurchaseOrderTermsAndConditions.Trim();
+            }
+            else
+            {
+                company.PurchaseOrderTermsAndConditions =
+                    null;
+            }
 
             if (await _companyRepository.ExistsByCompanyNameAsync(company.CompanyName))
                 throw new BusinessException("Company Name already exists.");
@@ -109,8 +123,15 @@ namespace AjayIndustriesERP.Application.Services
                 throw new BusinessException("Website already exists.");
             }
 
-            if (await _companyRepository.ExistsByGstAsync(company.GstNumber))
-                throw new BusinessException("GST Number already exists.");
+            if (!string.IsNullOrWhiteSpace(
+        company.GstNumber) &&
+    await _companyRepository
+        .ExistsByGstAsync(
+            company.GstNumber))
+            {
+                throw new BusinessException(
+                    "GST Number already exists.");
+            }
 
             if (!string.IsNullOrWhiteSpace(company.Email) &&
     await _companyRepository.ExistsByEmailAsync(company.Email, company.CompanyId))
@@ -141,8 +162,16 @@ namespace AjayIndustriesERP.Application.Services
         {
             var existingCompany = await _companyRepository.GetByIdAsync(company.CompanyId);
 
-            company.CompanyName = company.CompanyName.Trim();
-            company.GstNumber = company.GstNumber.Trim().ToUpper();
+            company.CompanyName =
+    company.CompanyName.Trim();
+
+            company.GstNumber =
+                string.IsNullOrWhiteSpace(
+                    company.GstNumber)
+                    ? string.Empty
+                    : company.GstNumber
+                        .Trim()
+                        .ToUpperInvariant();
 
             if (!string.IsNullOrWhiteSpace(company.PanNumber))
                 company.PanNumber = company.PanNumber.Trim().ToUpper();
@@ -174,6 +203,18 @@ namespace AjayIndustriesERP.Application.Services
             if (!string.IsNullOrWhiteSpace(company.PostalCode))
                 company.PostalCode = company.PostalCode.Trim();
 
+            if (!string.IsNullOrWhiteSpace(
+    company.PurchaseOrderTermsAndConditions))
+            {
+                company.PurchaseOrderTermsAndConditions =
+                    company.PurchaseOrderTermsAndConditions.Trim();
+            }
+            else
+            {
+                company.PurchaseOrderTermsAndConditions =
+                    null;
+            }
+
             if (existingCompany == null)
                 throw new BusinessException("Company not found.");
 
@@ -203,19 +244,37 @@ namespace AjayIndustriesERP.Application.Services
                 throw new BusinessException("Website already exists.");
             }
 
-            if (await _companyRepository.ExistsByGstAsync(company.GstNumber, company.CompanyId))
-                throw new BusinessException("GST Number already exists.");
-
-            if (!string.IsNullOrWhiteSpace(company.Email) &&
-    await _companyRepository.ExistsByEmailAsync(company.Email))
+            if (!string.IsNullOrWhiteSpace(
+         company.GstNumber) &&
+     await _companyRepository
+         .ExistsByGstAsync(
+             company.GstNumber,
+             company.CompanyId))
             {
-                throw new BusinessException("Email already exists.");
+                throw new BusinessException(
+                    "GST Number already exists.");
             }
 
-            if (!string.IsNullOrWhiteSpace(company.PhoneNumber) &&
-                await _companyRepository.ExistsByPhoneAsync(company.PhoneNumber))
+            if (!string.IsNullOrWhiteSpace(
+        company.Email) &&
+    await _companyRepository
+        .ExistsByEmailAsync(
+            company.Email,
+            company.CompanyId))
             {
-                throw new BusinessException("Phone Number already exists.");
+                throw new BusinessException(
+                    "Email already exists.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(
+        company.PhoneNumber) &&
+    await _companyRepository
+        .ExistsByPhoneAsync(
+            company.PhoneNumber,
+            company.CompanyId))
+            {
+                throw new BusinessException(
+                    "Phone Number already exists.");
             }
 
             existingCompany.CompanyCode = company.CompanyCode;
@@ -231,6 +290,7 @@ namespace AjayIndustriesERP.Application.Services
             existingCompany.State = company.State;
             existingCompany.Country = company.Country;
             existingCompany.PostalCode = company.PostalCode;
+            existingCompany.PurchaseOrderTermsAndConditions = company.PurchaseOrderTermsAndConditions;
             existingCompany.IsActive = company.IsActive;
 
             existingCompany.ModifiedOn = DateTime.UtcNow;

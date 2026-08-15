@@ -84,17 +84,24 @@ namespace AjayIndustriesERP.Web.Controllers
             {
                 CompanyCode = model.CompanyCode,
                 CompanyName = model.CompanyName,
+
                 GstNumber = model.GstNumber,
+
                 PanNumber = model.PanNumber,
                 PhoneNumber = model.PhoneNumber,
                 Email = model.Email,
                 Website = model.Website,
                 ContactPerson = model.ContactPerson,
+
                 Address = model.Address,
                 City = model.City,
                 State = model.State,
                 Country = model.Country,
                 PostalCode = model.PostalCode,
+
+                PurchaseOrderTermsAndConditions =
+        model.PurchaseOrderTermsAndConditions,
+
                 IsActive = model.IsActive
             };
 
@@ -140,17 +147,24 @@ namespace AjayIndustriesERP.Web.Controllers
                 CompanyId = company.CompanyId,
                 CompanyCode = company.CompanyCode,
                 CompanyName = company.CompanyName,
+
                 GstNumber = company.GstNumber,
+
                 PanNumber = company.PanNumber,
                 PhoneNumber = company.PhoneNumber,
                 Email = company.Email,
                 Website = company.Website,
                 ContactPerson = company.ContactPerson,
+
                 Address = company.Address,
                 City = company.City,
                 State = company.State,
                 Country = company.Country,
                 PostalCode = company.PostalCode,
+
+                PurchaseOrderTermsAndConditions =
+        company.PurchaseOrderTermsAndConditions,
+
                 IsActive = company.IsActive
             };
 
@@ -174,20 +188,51 @@ namespace AjayIndustriesERP.Web.Controllers
                 var company = new Company
                 {
                     CompanyId = model.CompanyId,
-                    CompanyCode = model.CompanyCode ?? string.Empty,
-                    CompanyName = model.CompanyName,
-                    GstNumber = model.GstNumber,
-                    PanNumber = model.PanNumber,
-                    PhoneNumber = model.PhoneNumber,
-                    Email = model.Email,
-                    Website = model.Website,
-                    ContactPerson = model.ContactPerson,
-                    Address = model.Address,
-                    City = model.City,
-                    State = model.State,
-                    Country = model.Country,
-                    PostalCode = model.PostalCode,
-                    IsActive = model.IsActive
+                    CompanyCode =
+        model.CompanyCode ??
+        string.Empty,
+
+                    CompanyName =
+        model.CompanyName,
+
+                    GstNumber =
+        model.GstNumber,
+
+                    PanNumber =
+        model.PanNumber,
+
+                    PhoneNumber =
+        model.PhoneNumber,
+
+                    Email =
+        model.Email,
+
+                    Website =
+        model.Website,
+
+                    ContactPerson =
+        model.ContactPerson,
+
+                    Address =
+        model.Address,
+
+                    City =
+        model.City,
+
+                    State =
+        model.State,
+
+                    Country =
+        model.Country,
+
+                    PostalCode =
+        model.PostalCode,
+
+                    PurchaseOrderTermsAndConditions =
+        model.PurchaseOrderTermsAndConditions,
+
+                    IsActive =
+        model.IsActive
                 };
 
                 await _companyService.UpdateAsync(company);

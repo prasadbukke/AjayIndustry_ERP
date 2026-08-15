@@ -61,6 +61,9 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
             builder.Property(x => x.PostalCode)
                 .HasMaxLength(10);
 
+            builder.Property(x => x.PurchaseOrderTermsAndConditions)
+    .HasMaxLength(4000);
+
             builder.Property(x => x.CreatedBy)
                 .HasMaxLength(100);
 

@@ -14,11 +14,11 @@ namespace AjayIndustriesERP.Web.ViewModels.Company
         [Display(Name = "Company Name")]
         public string CompanyName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "GST Number is required.")]
-        [RegularExpression(@"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$",
-            ErrorMessage = "Invalid GST Number.")]
+        [RegularExpression(
+    @"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$",
+    ErrorMessage = "Invalid GST Number.")]
         [Display(Name = "GST Number")]
-        public string GstNumber { get; set; } = string.Empty;
+        public string? GstNumber { get; set; }
 
         [RegularExpression(@"^[A-Z]{5}[0-9]{4}[A-Z]{1}$",
             ErrorMessage = "Invalid PAN Number.")]
@@ -59,12 +59,21 @@ namespace AjayIndustriesERP.Web.ViewModels.Company
         [Required(ErrorMessage = "Country is required.")]
         [StringLength(100)]
         public string Country { get; set; } = "India";
+            
+                
 
         [Required(ErrorMessage = "Postal Code is required.")]
-        [RegularExpression(@"^\d{6}$",  ErrorMessage = "Postal Code must be 6 digits.")]
+        [RegularExpression(@"^\d{6}$", ErrorMessage = "Postal Code must be 6 digits.")]
         [Display(Name = "Postal Code")]
         public string PostalCode { get; set; } = string.Empty;
 
+        [StringLength(4000, ErrorMessage = "Purchase Order Terms & Conditions cannot exceed 4000 characters.")]
+        [Display(Name = "Purchase Order Terms & Conditions")]
+        public string? PurchaseOrderTermsAndConditions
+        {
+            get;
+            set;
+        }
         public bool IsActive { get; set; } = true;
     }
 }

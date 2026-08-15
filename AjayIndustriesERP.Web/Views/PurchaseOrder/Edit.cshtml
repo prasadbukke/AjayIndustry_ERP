@@ -1,0 +1,24 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.PurchaseOrder.PurchaseOrderViewModel
+
+@{
+    ViewData["Title"] = "Edit Purchase Order";
+}
+
+<h3>Edit Purchase Order</h3>
+
+<hr />
+
+<form asp-action="Edit" method="post">
+
+    <input type="hidden"
+           asp-for="Id" />
+
+    <partial name="_Form" model="Model" />
+
+</form>
+
+@section Scripts {
+
+    <partial name="_ValidationScriptsPartial" />
+
+}

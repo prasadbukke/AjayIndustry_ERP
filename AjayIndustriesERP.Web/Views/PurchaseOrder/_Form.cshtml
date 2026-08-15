@@ -1,0 +1,2551 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.PurchaseOrder.PurchaseOrderViewModel
+
+@{
+    var isEdit = Model.Id > 0;
+}
+
+
+<input type="hidden"
+       asp-for="Code" />
+
+<input type="hidden"
+       asp-for="Status" />
+
+<input type="hidden"
+       asp-for="IsActive" />
+
+
+<!-- =========================================================
+     REGION 1 — VALIDATION
+========================================================== -->
+
+<div asp-validation-summary="ModelOnly"
+     class="text-danger mb-3">
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — PURCHASE ORDER INFORMATION
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid
+                          fa-file-invoice
+                          me-1">
+                </i>
+
+                Purchase Order Information
+
+            </span>
+
+
+            <div>
+
+                <span class="text-muted me-1">
+                    PO Number:
+                </span>
+
+                @if (isEdit &&
+                                !string.IsNullOrWhiteSpace(
+                                Model.Code))
+                {
+                    <span class="fw-bold">
+                        @Model.Code
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">
+                        Auto Generated
+                    </span>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+
+            <!-- Company -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="CompanyId"
+                       class="form-label">
+                </label>
+
+                <select asp-for="CompanyId"
+                        asp-items="Model.Companies"
+                        class="form-select">
+
+                    <option value="">
+                        -- Select Company --
+                    </option>
+
+                </select>
+
+                <span asp-validation-for="CompanyId"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- Supplier -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="SupplierId"
+                       class="form-label">
+                </label>
+
+                <select asp-for="SupplierId"
+                        asp-items="Model.Suppliers"
+                        class="form-select">
+
+                    <option value="">
+                        -- Select Supplier --
+                    </option>
+
+                </select>
+
+                <span asp-validation-for="SupplierId"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- PO Date -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="PODate"
+                       class="form-label">
+                </label>
+
+                <input asp-for="PODate"
+                       type="date"
+                       class="form-control" />
+
+                <span asp-validation-for="PODate"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- Expected Delivery -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="ExpectedDeliveryDate"
+                       class="form-label">
+                </label>
+
+                <input asp-for="ExpectedDeliveryDate"
+                       type="date"
+                       class="form-control" />
+
+                <span asp-validation-for="ExpectedDeliveryDate"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- Payment Terms -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="PaymentTerms"
+                       class="form-label">
+                </label>
+
+                <input asp-for="PaymentTerms"
+                       class="form-control"
+                       placeholder="Example: 30 Days" />
+
+                <span asp-validation-for="PaymentTerms"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- Delivery Terms -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="DeliveryTerms"
+                       class="form-label">
+                </label>
+
+                <input asp-for="DeliveryTerms"
+                       class="form-control"
+                       placeholder="Enter delivery terms" />
+
+                <span asp-validation-for="DeliveryTerms"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- Delivery Address -->
+
+            <div class="col-lg-8">
+
+                <label asp-for="DeliveryAddress"
+                       class="form-label">
+                </label>
+
+                <textarea asp-for="DeliveryAddress"
+                          class="form-control"
+                          rows="2"
+                          placeholder="Leave blank to use Company address"></textarea>
+
+                <span asp-validation-for="DeliveryAddress"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- Remarks -->
+
+            <div class="col-lg-4">
+
+                <label asp-for="Remarks"
+                       class="form-label">
+                </label>
+
+                <textarea asp-for="Remarks"
+                          class="form-control"
+                          rows="2"
+                          placeholder="Optional remarks"></textarea>
+
+                <span asp-validation-for="Remarks"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 3 — PURCHASE ORDER ITEMS
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid
+                          fa-boxes-stacked
+                          me-1">
+                </i>
+
+                Purchase Order Items
+
+            </span>
+
+
+            <button type="button"
+                    id="addItemRow"
+                    class="btn
+                           btn-sm
+                           btn-outline-primary">
+
+                <i class="fa-solid
+                          fa-plus
+                          me-1">
+                </i>
+
+                Add Item
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-bordered
+                          align-middle
+                          mb-0"
+                   id="purchaseOrderItemsTable">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th style="min-width:260px;">
+                            Item
+                        </th>
+
+                        <th style="min-width:180px;">
+                            Drawing
+                        </th>
+
+                        <th style="min-width:110px;">
+                            HSN
+                        </th>
+
+                        <th style="min-width:95px;">
+                            Qty
+                        </th>
+
+                        <th style="min-width:80px;">
+                            UOM
+                        </th>
+
+                        <th style="min-width:120px;">
+                            Rate
+                        </th>
+
+                        <th style="min-width:90px;">
+                            GST %
+                        </th>
+
+                        <th class="text-end"
+                            style="min-width:130px;">
+
+                            Line Total
+
+                        </th>
+
+                        <th class="text-center"
+                            style="width:55px;">
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="purchaseOrderItemsBody">
+
+                    @for (var index = 0;
+                                        index < Model.Items.Count;
+                                        index++)
+                    {
+                        <tr class="po-item-row">
+
+
+                            <!-- Item -->
+
+                            <td>
+
+                                <input type="hidden"
+                                       asp-for="Items[index].Id"
+                                       class="item-id" />
+
+
+                                <select asp-for="Items[index].ItemId"
+                                        asp-items="Model.ItemOptions"
+                                        class="form-select
+                                                   form-select-sm
+                                                   item-select">
+
+                                    <option value="">
+                                        -- Select Item --
+                                    </option>
+
+                                </select>
+
+                                <span asp-validation-for="Items[index].ItemId"
+                                      class="text-danger small">
+                                </span>
+
+
+                                <div class="mt-2
+                                                small
+                                                text-muted
+                                                item-information">
+
+
+                                    <div class="item-code-row
+                                                    @(string.IsNullOrWhiteSpace(
+                                                                                             Model.Items[index].ItemCode)
+                                                                                             ? "d-none"
+                                                                                             : "")">
+
+                                        <strong>
+                                            Code:
+                                        </strong>
+
+                                        <span class="item-code">
+                                            @Model.Items[index].ItemCode
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="item-specification-row
+                                                    @(string.IsNullOrWhiteSpace(
+                                                                                             Model.Items[index].Specification)
+                                                                                             ? "d-none"
+                                                                                             : "")">
+
+                                    <strong>
+                                        Spec:
+                                    </strong>
+
+                                        <span class="item-specification">
+                                            @Model.Items[index].Specification
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            <!-- Drawing -->
+
+                            <td>
+
+                                <select asp-for="Items[index].DrawingId"
+                                        asp-items="Model.Items[index].DrawingOptions"
+                                        class="form-select
+                                                   form-select-sm
+                                                   drawing-select">
+
+                                    <option value="">
+                                        -- No Drawing --
+                                    </option>
+
+                                </select>
+
+
+                                <div class="small
+                                                text-muted
+                                                mt-1
+                                                drawing-revision">
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                                                Model.Items[index].DrawingRevision))
+                                    {
+                                        <span>
+                                            Rev:
+                                            @Model.Items[index].DrawingRevision
+                                        </span>
+                                    }
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- HSN -->
+
+                        <td>
+
+                            <input asp-for="Items[index].HSNCode"
+                                   class="form-control
+                                              form-control-sm"
+                                   placeholder="HSN" />
+
+                            <span asp-validation-for="Items[index].HSNCode"
+                                  class="text-danger small">
+                            </span>
+
+                        </td>
+
+
+                        <!-- Quantity -->
+
+                        <td>
+
+                            <input asp-for="Items[index].Quantity"
+                                   type="number"
+                                   step="0.001"
+                                   min="0.001"
+                                   class="form-control
+                                              form-control-sm
+                                              text-end
+                                              calc-field
+                                              quantity-input" />
+
+                            <span asp-validation-for="Items[index].Quantity"
+                                  class="text-danger small">
+                            </span>
+
+                        </td>
+
+
+                        <!-- UOM -->
+
+                        <td class="text-center">
+
+                            <span class="badge
+                                             bg-light
+                                             text-dark
+                                             border
+                                             item-uom">
+
+                                @(string.IsNullOrWhiteSpace(
+                                                                Model.Items[index].UnitName)
+                                                                ? "-"
+                                                                : Model.Items[index].UnitName)
+
+                            </span>
+
+                            </td>
+
+
+                            <!-- Rate -->
+
+                            <td>
+
+                                <input asp-for="Items[index].UnitPrice"
+                                       type="number"
+                                       step="0.01"
+                                       min="0"
+                                       class="form-control
+                                                  form-control-sm
+                                                  text-end
+                                                  calc-field
+                                                  rate-input" />
+
+                                <span asp-validation-for="Items[index].UnitPrice"
+                                      class="text-danger small">
+                                </span>
+
+                            </td>
+
+
+                            <!-- GST -->
+
+                            <td>
+
+                                <input asp-for="Items[index].GSTPercent"
+                                       type="number"
+                                       step="0.01"
+                                       min="0"
+                                       max="100"
+                                       class="form-control
+                                                  form-control-sm
+                                                  text-end
+                                                  calc-field
+                                                  gst-input" />
+
+                                <span asp-validation-for="Items[index].GSTPercent"
+                                      class="text-danger small">
+                                </span>
+
+                            </td>
+
+
+                            <!-- Line Total -->
+
+                            <td class="text-end">
+
+                                <span class="fw-semibold
+                                                 line-total">
+
+                                    @Model.Items[index]
+                                    .LineTotal
+                                    .ToString("N2")
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- Remove -->
+
+                            <td class="text-center">
+
+                                <button type="button"
+                                        class="btn
+                                                   btn-sm
+                                                   btn-outline-danger
+                                                   remove-item-row"
+                                        title="Remove Item">
+
+                                    <i class="fa-solid fa-xmark">
+                                    </i>
+
+                                </button>
+
+                            </td>
+
+                        </tr>
+                                        }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 4 — TERMS & CONDITIONS / AMOUNT SUMMARY
+========================================================== -->
+
+<div class="row g-4 mb-4">
+
+
+    <!-- Terms & Conditions -->
+
+    <div class="col-lg-7">
+
+        <div class="card
+                    shadow-sm
+                    border-0
+                    h-100">
+
+            <div class="card-header bg-light">
+
+                <span class="fw-semibold">
+
+                    <i class="fa-solid
+                              fa-file-contract
+                              me-1">
+                    </i>
+
+                    Terms & Conditions
+
+                </span>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <p class="text-muted mb-2">
+
+                    Standard Purchase Order Terms & Conditions
+                    configured in Company Master will be applied
+                    automatically to this Purchase Order.
+
+                </p>
+
+                <p class="text-muted small mb-0">
+
+                    The Terms & Conditions are saved as a
+                    Purchase Order snapshot and will appear
+                    on Purchase Order Details and PDF.
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Amount Summary -->
+
+    <div class="col-lg-5">
+
+        <div class="card
+                    shadow-sm
+                    border-0">
+
+            <div class="card-header bg-light">
+
+                <span class="fw-semibold">
+
+                    <i class="fa-solid
+                              fa-calculator
+                              me-1">
+                    </i>
+
+                    Amount Summary
+
+                </span>
+
+            </div>
+
+
+            <div class="card-body">
+
+
+                <!-- Sub Total -->
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-2">
+
+                    <span class="text-muted">
+                        Sub Total
+                    </span>
+
+                    <span id="summarySubTotal">
+                        ₹ @Model.SubTotal.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <!-- Taxable -->
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-2">
+
+                    <span class="text-muted">
+                        Taxable Amount
+                    </span>
+
+                    <span id="summaryTaxable">
+                        ₹ @Model.TaxableAmount.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <!-- CGST -->
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-2">
+
+                    <span class="text-muted"
+                          id="summaryCGSTLabel">
+
+                        CGST (9%)
+
+                    </span>
+
+                    <span id="summaryCGST">
+                        ₹ @Model.CGSTAmount.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <!-- SGST -->
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-2">
+
+                    <span class="text-muted"
+                          id="summarySGSTLabel">
+
+                        SGST (9%)
+
+                    </span>
+
+                    <span id="summarySGST">
+                        ₹ @Model.SGSTAmount.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <!-- IGST -->
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-3">
+
+                    <span class="text-muted"
+                          id="summaryIGSTLabel">
+
+                        IGST (18%)
+
+                    </span>
+
+                    <span id="summaryIGST">
+                        ₹ @Model.IGSTAmount.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <hr />
+
+
+                <!-- Transport Charges -->
+
+                <div class="row
+                            align-items-center
+                            g-2
+                            mb-2">
+
+                    <div class="col">
+
+                        <label asp-for="TransportCharges"
+                               class="form-label mb-0">
+                        </label>
+
+                    </div>
+
+                    <div class="col-5">
+
+                        <input asp-for="TransportCharges"
+                               type="number"
+                               step="0.01"
+                               min="0"
+                               class="form-control
+                                      form-control-sm
+                                      text-end
+                                      header-calc-field" />
+
+                    </div>
+
+                </div>
+
+                <span asp-validation-for="TransportCharges"
+                      class="text-danger small">
+                </span>
+
+
+                <!-- Other Charges -->
+
+                <div class="row
+                            align-items-center
+                            g-2
+                            mb-2">
+
+                    <div class="col">
+
+                        <label asp-for="OtherCharges"
+                               class="form-label mb-0">
+                        </label>
+
+                    </div>
+
+                    <div class="col-5">
+
+                        <input asp-for="OtherCharges"
+                               type="number"
+                               step="0.01"
+                               min="0"
+                               class="form-control
+                                      form-control-sm
+                                      text-end
+                                      header-calc-field" />
+
+                    </div>
+
+                </div>
+
+                <span asp-validation-for="OtherCharges"
+                      class="text-danger small">
+                </span>
+
+
+                <hr />
+
+
+                <!-- Grand Total -->
+
+                <div class="d-flex
+                            justify-content-between
+                            align-items-center">
+
+                    <span class="fw-bold fs-5">
+                        Grand Total
+                    </span>
+
+                    <span id="summaryGrandTotal"
+                          class="fw-bold fs-5">
+
+                        ₹ @Model.GrandTotal.ToString("N2")
+
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 5 — ACTION BUTTONS
+========================================================== -->
+
+<div class="d-flex
+            justify-content-end
+            gap-2
+            mb-4">
+
+    <a asp-action="Index"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid
+                  fa-arrow-left
+                  me-1">
+        </i>
+
+        Back
+
+    </a>
+
+
+    <button type="submit"
+            class="btn btn-primary">
+
+        <i class="fa-solid
+                  fa-floppy-disk
+                  me-1">
+        </i>
+
+        @(isEdit
+                ? "Update Purchase Order"
+                : "Save Purchase Order")
+
+    </button>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 6 — NEW ITEM ROW TEMPLATE
+========================================================== -->
+
+<template id="purchaseOrderItemTemplate">
+
+    <tr class="po-item-row">
+
+
+        <!-- Item -->
+
+        <td>
+
+            <input type="hidden"
+                   name="Items[__index__].Id"
+                   value="0"
+                   class="item-id" />
+
+
+            <select name="Items[__index__].ItemId"
+                    class="form-select
+                           form-select-sm
+                           item-select"
+                    required>
+
+                <option value="">
+                    -- Select Item --
+                </option>
+
+
+                @foreach (var itemOption
+                                in Model.ItemOptions)
+                {
+                    <option value="@itemOption.Value">
+                        @itemOption.Text
+                    </option>
+                }
+
+            </select>
+
+
+            <div class="mt-2
+                        small
+                        text-muted
+                        item-information">
+
+                <div class="item-code-row d-none">
+
+                    <strong>
+                        Code:
+                    </strong>
+
+                    <span class="item-code">
+                    </span>
+
+                </div>
+
+
+                <div class="item-specification-row d-none">
+
+                    <strong>
+                        Spec:
+                    </strong>
+
+                    <span class="item-specification">
+                    </span>
+
+                </div>
+
+            </div>
+
+        </td>
+
+
+        <!-- Drawing -->
+
+        <td>
+
+            <select name="Items[__index__].DrawingId"
+                    class="form-select
+                           form-select-sm
+                           drawing-select">
+
+                <option value="">
+                    -- No Drawing --
+                </option>
+
+            </select>
+
+            <div class="small
+                        text-muted
+                        mt-1
+                        drawing-revision">
+            </div>
+
+        </td>
+
+
+        <!-- HSN -->
+
+        <td>
+
+            <input name="Items[__index__].HSNCode"
+                   class="form-control
+                          form-control-sm"
+                   maxlength="50"
+                   placeholder="HSN" />
+
+        </td>
+
+
+        <!-- Quantity -->
+
+        <td>
+
+            <input name="Items[__index__].Quantity"
+                   type="number"
+                   value="1"
+                   step="0.001"
+                   min="0.001"
+                   class="form-control
+                          form-control-sm
+                          text-end
+                          calc-field
+                          quantity-input"
+                   required />
+
+        </td>
+
+
+        <!-- UOM -->
+
+        <td class="text-center">
+
+            <span class="badge
+                         bg-light
+                         text-dark
+                         border
+                         item-uom">
+
+                -
+
+            </span>
+
+        </td>
+
+
+        <!-- Rate -->
+
+        <td>
+
+            <input name="Items[__index__].UnitPrice"
+                   type="number"
+                   value="0"
+                   step="0.01"
+                   min="0"
+                   class="form-control
+                          form-control-sm
+                          text-end
+                          calc-field
+                          rate-input"
+                   required />
+
+        </td>
+
+
+        <!-- GST -->
+
+        <td>
+
+            <input name="Items[__index__].GSTPercent"
+                   type="number"
+                   value="18"
+                   step="0.01"
+                   min="0"
+                   max="100"
+                   class="form-control
+                          form-control-sm
+                          text-end
+                          calc-field
+                          gst-input" />
+
+        </td>
+
+
+        <!-- Line Total -->
+
+        <td class="text-end">
+
+            <span class="fw-semibold
+                         line-total">
+
+                0.00
+
+            </span>
+
+        </td>
+
+
+        <!-- Remove -->
+
+        <td class="text-center">
+
+            <button type="button"
+                    class="btn
+                           btn-sm
+                           btn-outline-danger
+                           remove-item-row"
+                    title="Remove Item">
+
+                <i class="fa-solid fa-xmark">
+                </i>
+
+            </button>
+
+        </td>
+
+    </tr>
+
+</template>
+
+
+<!-- =========================================================
+     REGION 7 — SCRIPT
+========================================================== -->
+
+<script>
+
+    (function initializePurchaseOrderForm() {
+
+        // =====================================================
+        // REGION 7.1 — DOM REFERENCES
+        // =====================================================
+
+        const itemsBody =
+            document.getElementById(
+                "purchaseOrderItemsBody");
+
+        const addItemButton =
+            document.getElementById(
+                "addItemRow");
+
+        const itemTemplate =
+            document.getElementById(
+                "purchaseOrderItemTemplate");
+
+        const companySelect =
+            document.getElementById(
+                "CompanyId");
+
+        const supplierSelect =
+            document.getElementById(
+                "SupplierId");
+
+
+        /*
+         * Defensive guard.
+         *
+         * Prevents:
+         * Cannot read properties of null
+         * (reading 'addEventListener')
+         */
+        if (!itemsBody) {
+
+            console.error(
+                "Purchase Order Items body not found.");
+
+            return;
+        }
+
+
+        if (!itemTemplate) {
+
+            console.error(
+                "Purchase Order Item template not found.");
+
+            return;
+        }
+
+
+        const itemInfoUrl =
+            '@Url.Action(
+                                "GetItemInfo",
+                                "PurchaseOrder")';
+
+
+        const taxTypeUrl =
+            '@Url.Action(
+                                "GetTaxType",
+                                "PurchaseOrder")';
+
+
+        /*
+         * true
+         * = Same State
+         * = CGST + SGST
+         *
+         * false
+         * = Different State
+         * = IGST
+         *
+         * null
+         * = Tax type not resolved yet
+         */
+        let isIntraState =
+            null;
+
+
+        // =====================================================
+        // REGION 7.2 — NUMBER HELPERS
+        // =====================================================
+
+        function getNumber(value) {
+
+            const number =
+                parseFloat(
+                    value);
+
+            return Number.isFinite(
+                number)
+                ? number
+                : 0;
+        }
+
+
+        function formatAmount(value) {
+
+            return new Intl.NumberFormat(
+                "en-IN",
+                {
+                    minimumFractionDigits:
+                        2,
+
+                    maximumFractionDigits:
+                        2
+                })
+                .format(
+                    value);
+        }
+
+
+        function formatRate(value) {
+
+            return Number.isInteger(
+                value)
+                ? value.toString()
+                : value
+                    .toFixed(2)
+                    .replace(
+                        /0+$/,
+                        "")
+                    .replace(
+                        /\.$/,
+                        "");
+        }
+
+
+        // =====================================================
+        // REGION 7.3 — GST TYPE
+        // =====================================================
+
+        async function refreshTaxType() {
+
+            const companyId =
+                companySelect?.value;
+
+            const supplierId =
+                supplierSelect?.value;
+
+
+            /*
+             * Company / Supplier not selected yet.
+             */
+            if (!companyId ||
+                !supplierId) {
+
+                isIntraState =
+                    null;
+
+                calculateSummary();
+
+                return;
+            }
+
+
+            try {
+
+                const url =
+                    taxTypeUrl +
+                    "?companyId=" +
+                    encodeURIComponent(
+                        companyId) +
+                    "&supplierId=" +
+                    encodeURIComponent(
+                        supplierId) +
+                    "&_=" +
+                    Date.now();
+
+
+                const response =
+                    await fetch(
+                        url,
+                        {
+                            cache:
+                                "no-store"
+                        });
+
+
+                if (!response.ok) {
+
+                    isIntraState =
+                        null;
+
+                    calculateSummary();
+
+                    return;
+                }
+
+
+                const result =
+                    await response.json();
+
+
+                if (!result.success) {
+
+                    isIntraState =
+                        null;
+
+                    calculateSummary();
+
+                    return;
+                }
+
+
+                isIntraState =
+                    result.isIntraState ===
+                    true;
+
+
+                calculateSummary();
+            }
+            catch (error) {
+
+                console.error(
+                    "Unable to determine GST tax type.",
+                    error);
+
+
+                /*
+                 * Final calculation is still
+                 * validated by Service Layer.
+                 */
+                isIntraState =
+                    null;
+
+                calculateSummary();
+            }
+        }
+
+
+        // =====================================================
+        // REGION 7.4 — ROW CALCULATION
+        // =====================================================
+
+        function calculateRow(row) {
+
+            const quantity =
+                getNumber(
+                    row.querySelector(
+                        ".quantity-input")
+                        ?.value);
+
+
+            const rate =
+                getNumber(
+                    row.querySelector(
+                        ".rate-input")
+                        ?.value);
+
+
+            const gstPercent =
+                getNumber(
+                    row.querySelector(
+                        ".gst-input")
+                        ?.value);
+
+
+            /*
+             * Purchase Order has no Discount.
+             *
+             * Quantity × Rate
+             * = Taxable Amount
+             */
+            const taxableAmount =
+                quantity *
+                rate;
+
+
+            const gstAmount =
+                taxableAmount *
+                gstPercent /
+                100;
+
+
+            /*
+             * GST total is same whether
+             * CGST + SGST or IGST.
+             */
+            const lineTotal =
+                taxableAmount +
+                gstAmount;
+
+
+            row.dataset.grossAmount =
+                taxableAmount;
+
+            row.dataset.taxableAmount =
+                taxableAmount;
+
+            row.dataset.gstAmount =
+                gstAmount;
+
+            row.dataset.lineTotal =
+                lineTotal;
+
+
+            const lineTotalElement =
+                row.querySelector(
+                    ".line-total");
+
+
+            if (lineTotalElement) {
+
+                lineTotalElement.textContent =
+                    formatAmount(
+                        lineTotal);
+            }
+        }
+
+
+        // =====================================================
+        // REGION 7.5 — GST RATE LABELS
+        // =====================================================
+
+        function updateGSTRateLabels() {
+
+            const gstInputs =
+                Array.from(
+                    itemsBody
+                        .querySelectorAll(
+                            ".gst-input"));
+
+
+            const gstRates =
+                gstInputs.map(
+                    function (input) {
+
+                        return getNumber(
+                            input.value);
+                    });
+
+
+            const uniqueRates =
+                [...new Set(
+                    gstRates.map(
+                        function (rate) {
+
+                            return Number(
+                                rate.toFixed(
+                                    4));
+                        })
+                )];
+
+
+            const cgstLabel =
+                document.getElementById(
+                    "summaryCGSTLabel");
+
+            const sgstLabel =
+                document.getElementById(
+                    "summarySGSTLabel");
+
+            const igstLabel =
+                document.getElementById(
+                    "summaryIGSTLabel");
+
+
+            /*
+             * No Item rows.
+             */
+            if (uniqueRates.length ===
+                0) {
+
+                if (cgstLabel) {
+
+                    cgstLabel.textContent =
+                        "CGST (0%)";
+                }
+
+
+                if (sgstLabel) {
+
+                    sgstLabel.textContent =
+                        "SGST (0%)";
+                }
+
+
+                if (igstLabel) {
+
+                    igstLabel.textContent =
+                        "IGST (0%)";
+                }
+
+
+                return;
+            }
+
+
+            /*
+             * One common GST rate.
+             */
+            if (uniqueRates.length ===
+                1) {
+
+                const gstRate =
+                    uniqueRates[0];
+
+
+                const halfGST =
+                    gstRate /
+                    2;
+
+
+                if (cgstLabel) {
+
+                    cgstLabel.textContent =
+                        "CGST (" +
+                        formatRate(
+                            halfGST) +
+                        "%)";
+                }
+
+
+                if (sgstLabel) {
+
+                    sgstLabel.textContent =
+                        "SGST (" +
+                        formatRate(
+                            halfGST) +
+                        "%)";
+                }
+
+
+                if (igstLabel) {
+
+                    igstLabel.textContent =
+                        "IGST (" +
+                        formatRate(
+                            gstRate) +
+                        "%)";
+                }
+
+
+                return;
+            }
+
+
+            /*
+             * Multiple GST rates.
+             */
+            if (cgstLabel) {
+
+                cgstLabel.textContent =
+                    "CGST (Mixed)";
+            }
+
+
+            if (sgstLabel) {
+
+                sgstLabel.textContent =
+                    "SGST (Mixed)";
+            }
+
+
+            if (igstLabel) {
+
+                igstLabel.textContent =
+                    "IGST (Mixed)";
+            }
+        }
+
+
+        // =====================================================
+        // REGION 7.6 — AMOUNT SUMMARY
+        // =====================================================
+
+        function calculateSummary() {
+
+            updateGSTRateLabels();
+
+
+            let subTotal =
+                0;
+
+            let taxable =
+                0;
+
+            let cgst =
+                0;
+
+            let sgst =
+                0;
+
+            let igst =
+                0;
+
+
+            itemsBody
+                .querySelectorAll(
+                    ".po-item-row")
+                .forEach(
+                    function (row) {
+
+                        calculateRow(
+                            row);
+
+
+                        subTotal +=
+                            getNumber(
+                                row.dataset
+                                    .grossAmount);
+
+
+                        taxable +=
+                            getNumber(
+                                row.dataset
+                                    .taxableAmount);
+
+
+                        const rowGST =
+                            getNumber(
+                                row.dataset
+                                    .gstAmount);
+
+
+                        /*
+                         * Same State
+                         *
+                         * GST 18
+                         * => CGST 9
+                         * + SGST 9
+                         */
+                        if (isIntraState ===
+                            true) {
+
+                            cgst +=
+                                rowGST /
+                                2;
+
+                            sgst +=
+                                rowGST /
+                                2;
+                        }
+
+
+                        /*
+                         * Different State
+                         *
+                         * GST 18
+                         * => IGST 18
+                         */
+                        else if (
+                            isIntraState ===
+                            false) {
+
+                            igst +=
+                                rowGST;
+                        }
+                    });
+
+
+            const transportCharges =
+                getNumber(
+                    document.getElementById(
+                        "TransportCharges")
+                        ?.value);
+
+
+            const otherCharges =
+                getNumber(
+                    document.getElementById(
+                        "OtherCharges")
+                        ?.value);
+
+
+            /*
+             * No Discount.
+             * No Round Off.
+             */
+            const grandTotal =
+                taxable +
+                cgst +
+                sgst +
+                igst +
+                transportCharges +
+                otherCharges;
+
+
+            const summarySubTotal =
+                document.getElementById(
+                    "summarySubTotal");
+
+            const summaryTaxable =
+                document.getElementById(
+                    "summaryTaxable");
+
+            const summaryCGST =
+                document.getElementById(
+                    "summaryCGST");
+
+            const summarySGST =
+                document.getElementById(
+                    "summarySGST");
+
+            const summaryIGST =
+                document.getElementById(
+                    "summaryIGST");
+
+            const summaryGrandTotal =
+                document.getElementById(
+                    "summaryGrandTotal");
+
+
+            if (summarySubTotal) {
+
+                summarySubTotal.textContent =
+                    "₹ " +
+                    formatAmount(
+                        subTotal);
+            }
+
+
+            if (summaryTaxable) {
+
+                summaryTaxable.textContent =
+                    "₹ " +
+                    formatAmount(
+                        taxable);
+            }
+
+
+            if (summaryCGST) {
+
+                summaryCGST.textContent =
+                    "₹ " +
+                    formatAmount(
+                        cgst);
+            }
+
+
+            if (summarySGST) {
+
+                summarySGST.textContent =
+                    "₹ " +
+                    formatAmount(
+                        sgst);
+            }
+
+
+            if (summaryIGST) {
+
+                summaryIGST.textContent =
+                    "₹ " +
+                    formatAmount(
+                        igst);
+            }
+
+
+            if (summaryGrandTotal) {
+
+                summaryGrandTotal.textContent =
+                    "₹ " +
+                    formatAmount(
+                        grandTotal);
+            }
+        }
+
+
+        // =====================================================
+        // REGION 7.7 — ITEM INFORMATION
+        // =====================================================
+
+        async function loadItemInfo(
+            row,
+            itemId) {
+
+            const itemCodeRow =
+                row.querySelector(
+                    ".item-code-row");
+
+            const itemCode =
+                row.querySelector(
+                    ".item-code");
+
+            const specificationRow =
+                row.querySelector(
+                    ".item-specification-row");
+
+            const specification =
+                row.querySelector(
+                    ".item-specification");
+
+            const uom =
+                row.querySelector(
+                    ".item-uom");
+
+            const drawingSelect =
+                row.querySelector(
+                    ".drawing-select");
+
+            const drawingRevision =
+                row.querySelector(
+                    ".drawing-revision");
+
+
+            /*
+             * Item cleared.
+             */
+            if (!itemId) {
+
+                if (itemCode) {
+
+                    itemCode.textContent =
+                        "";
+                }
+
+
+                itemCodeRow
+                    ?.classList
+                    .add(
+                        "d-none");
+
+
+                if (specification) {
+
+                    specification.textContent =
+                        "";
+                }
+
+
+                specificationRow
+                    ?.classList
+                    .add(
+                        "d-none");
+
+
+                if (uom) {
+
+                    uom.textContent =
+                        "-";
+                }
+
+
+                if (drawingSelect) {
+
+                    drawingSelect.innerHTML =
+                        '<option value="">' +
+                        '-- No Drawing --' +
+                        '</option>';
+                }
+
+
+                if (drawingRevision) {
+
+                    drawingRevision.textContent =
+                        "";
+                }
+
+
+                return;
+            }
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        itemInfoUrl +
+                        "?itemId=" +
+                        encodeURIComponent(
+                            itemId),
+                        {
+                            cache:
+                                "no-store"
+                        });
+
+
+                if (!response.ok) {
+
+                    return;
+                }
+
+
+                const result =
+                    await response.json();
+
+
+                if (!result.success) {
+
+                    return;
+                }
+
+
+                // ---------------------------------------------
+                // Item Code
+                // ---------------------------------------------
+
+                if (itemCode) {
+
+                    itemCode.textContent =
+                        result.itemCode ??
+                        "";
+                }
+
+
+                itemCodeRow
+                    ?.classList
+                    .toggle(
+                        "d-none",
+                        !result.itemCode);
+
+
+                // ---------------------------------------------
+                // Specification
+                // ---------------------------------------------
+
+                if (specification) {
+
+                    specification.textContent =
+                        result.specification ??
+                        "";
+                }
+
+
+                specificationRow
+                    ?.classList
+                    .toggle(
+                        "d-none",
+                        !result.specification);
+
+
+                // ---------------------------------------------
+                // UOM
+                // ---------------------------------------------
+
+                if (uom) {
+
+                    uom.textContent =
+                        result.unitName ||
+                        "-";
+                }
+
+
+                // ---------------------------------------------
+                // Drawing
+                // ---------------------------------------------
+
+                if (drawingSelect) {
+
+                    drawingSelect.innerHTML =
+                        '<option value="">' +
+                        '-- No Drawing --' +
+                        '</option>';
+
+
+                    if (result.drawing) {
+
+                        const option =
+                            document.createElement(
+                                "option");
+
+
+                        option.value =
+                            result.drawing
+                                .drawingId;
+
+
+                        option.textContent =
+                            result.drawing
+                                .drawingNumber +
+                            " - " +
+                            result.drawing
+                                .revisionNumber;
+
+
+                        /*
+                         * Current Drawing selected
+                         * automatically.
+                         */
+                        option.selected =
+                            true;
+
+
+                        drawingSelect
+                            .appendChild(
+                                option);
+
+
+                        if (drawingRevision) {
+
+                            drawingRevision
+                                .textContent =
+                                "Rev: " +
+                                result.drawing
+                                    .revisionNumber;
+                        }
+                    }
+                    else {
+
+                        if (drawingRevision) {
+
+                            drawingRevision
+                                .textContent =
+                                "";
+                        }
+                    }
+                }
+            }
+            catch (error) {
+
+                console.error(
+                    "Unable to load Item information.",
+                    error);
+
+                /*
+                 * Service Layer still performs
+                 * authoritative validation.
+                 */
+            }
+        }
+
+
+        // =====================================================
+        // REGION 7.8 — ADD ITEM ROW
+        // =====================================================
+
+        function addItemRow() {
+
+            const index =
+                itemsBody
+                    .querySelectorAll(
+                        ".po-item-row")
+                    .length;
+
+
+            const templateHtml =
+                itemTemplate
+                    .innerHTML
+                    .replaceAll(
+                        "__index__",
+                        index.toString());
+
+
+            itemsBody
+                .insertAdjacentHTML(
+                    "beforeend",
+                    templateHtml);
+
+
+            /*
+             * Template already has GST = 18.
+             *
+             * Defensive check only.
+             */
+            const rows =
+                itemsBody
+                    .querySelectorAll(
+                        ".po-item-row");
+
+
+            const newRow =
+                rows[
+                    rows.length -
+                    1
+                ];
+
+
+            const gstInput =
+                newRow
+                    ?.querySelector(
+                        ".gst-input");
+
+
+            if (gstInput &&
+                gstInput.value ===
+                "") {
+
+                gstInput.value =
+                    "18";
+            }
+
+
+            calculateSummary();
+        }
+
+
+        // =====================================================
+        // REGION 7.9 — REINDEX ROWS
+        // =====================================================
+
+        function reindexRows() {
+
+            const rows =
+                itemsBody
+                    .querySelectorAll(
+                        ".po-item-row");
+
+
+            rows.forEach(
+                function (
+                    row,
+                    index) {
+
+                    // -----------------------------------------
+                    // Name
+                    // -----------------------------------------
+
+                    row
+                        .querySelectorAll(
+                            "[name]")
+                        .forEach(
+                            function (
+                                element) {
+
+                                element.name =
+                                    element.name
+                                        .replace(
+                                            /Items\[\d+\]/g,
+                                            "Items[" +
+                                            index +
+                                            "]");
+                            });
+
+
+                    // -----------------------------------------
+                    // Id
+                    // -----------------------------------------
+
+                    row
+                        .querySelectorAll(
+                            "[id]")
+                        .forEach(
+                            function (
+                                element) {
+
+                                element.id =
+                                    element.id
+                                        .replace(
+                                            /Items_\d+__/g,
+                                            "Items_" +
+                                            index +
+                                            "__");
+                            });
+
+
+                    // -----------------------------------------
+                    // Validation
+                    // -----------------------------------------
+
+                    row
+                        .querySelectorAll(
+                            "[data-valmsg-for]")
+                        .forEach(
+                            function (
+                                element) {
+
+                                const value =
+                                    element
+                                        .getAttribute(
+                                            "data-valmsg-for");
+
+
+                                if (!value) {
+
+                                    return;
+                                }
+
+
+                                element
+                                    .setAttribute(
+                                        "data-valmsg-for",
+                                        value.replace(
+                                            /Items\[\d+\]/g,
+                                            "Items[" +
+                                            index +
+                                            "]"));
+                            });
+                });
+        }
+
+
+        // =====================================================
+        // REGION 7.10 — ADD ITEM BUTTON EVENT
+        // =====================================================
+
+        addItemButton
+            ?.addEventListener(
+                "click",
+                function () {
+
+                    addItemRow();
+                });
+
+
+        // =====================================================
+        // REGION 7.11 — ITEM CHANGE EVENT
+        // =====================================================
+
+        itemsBody
+            .addEventListener(
+                "change",
+                async function (
+                    event) {
+
+                    const target =
+                        event.target;
+
+
+                    if (!(target instanceof
+                        HTMLElement)) {
+
+                        return;
+                    }
+
+
+                    const row =
+                        target.closest(
+                            ".po-item-row");
+
+
+                    if (!row) {
+
+                        return;
+                    }
+
+
+                    /*
+                     * Item changed.
+                     */
+                    if (target
+                        .classList
+                        .contains(
+                            "item-select")) {
+
+                        await loadItemInfo(
+                            row,
+                            target.value);
+                    }
+
+
+                    calculateSummary();
+                });
+
+
+        // =====================================================
+        // REGION 7.12 — LIVE CALCULATION EVENT
+        // =====================================================
+
+        itemsBody
+            .addEventListener(
+                "input",
+                function (
+                    event) {
+
+                    const target =
+                        event.target;
+
+
+                    if (!(target instanceof
+                        HTMLElement)) {
+
+                        return;
+                    }
+
+
+                    /*
+                     * Qty / Rate / GST
+                     */
+                    if (!target
+                        .classList
+                        .contains(
+                            "calc-field")) {
+
+                        return;
+                    }
+
+
+                    calculateSummary();
+                });
+
+
+        // =====================================================
+        // REGION 7.13 — REMOVE ITEM EVENT
+        // =====================================================
+
+        itemsBody
+            .addEventListener(
+                "click",
+                function (
+                    event) {
+
+                    const target =
+                        event.target;
+
+
+                    if (!(target instanceof
+                        HTMLElement)) {
+
+                        return;
+                    }
+
+
+                    const removeButton =
+                        target.closest(
+                            ".remove-item-row");
+
+
+                    if (!removeButton) {
+
+                        return;
+                    }
+
+
+                    const rows =
+                        itemsBody
+                            .querySelectorAll(
+                                ".po-item-row");
+
+
+                    /*
+                     * At least one Item row
+                     * must remain.
+                     */
+                    if (rows.length <=
+                        1) {
+
+                        return;
+                    }
+
+
+                    removeButton
+                        .closest(
+                            ".po-item-row")
+                        ?.remove();
+
+
+                    reindexRows();
+
+                    calculateSummary();
+                });
+
+
+        // =====================================================
+        // REGION 7.14 — ADDITIONAL CHARGES EVENTS
+        // =====================================================
+
+        document
+            .querySelectorAll(
+                ".header-calc-field")
+            .forEach(
+                function (
+                    element) {
+
+                    element
+                        .addEventListener(
+                            "input",
+                            calculateSummary);
+                });
+
+
+        // =====================================================
+        // REGION 7.15 — COMPANY STATE EVENT
+        // =====================================================
+
+        companySelect
+            ?.addEventListener(
+                "change",
+                async function () {
+
+                    await refreshTaxType();
+                });
+
+
+        // =====================================================
+        // REGION 7.16 — SUPPLIER STATE EVENT
+        // =====================================================
+
+        supplierSelect
+            ?.addEventListener(
+                "change",
+                async function () {
+
+                    await refreshTaxType();
+                });
+
+
+        // =====================================================
+        // REGION 7.17 — DRAWING REVISION EVENT
+        // =====================================================
+
+        itemsBody
+            .addEventListener(
+                "change",
+                function (
+                    event) {
+
+                    const target =
+                        event.target;
+
+
+                    if (!(target instanceof
+                        HTMLSelectElement)) {
+
+                        return;
+                    }
+
+
+                    if (!target
+                        .classList
+                        .contains(
+                            "drawing-select")) {
+
+                        return;
+                    }
+
+
+                    const row =
+                        target.closest(
+                            ".po-item-row");
+
+
+                    const revisionElement =
+                        row?.querySelector(
+                            ".drawing-revision");
+
+
+                    if (!revisionElement) {
+
+                        return;
+                    }
+
+
+                    const selectedText =
+                        target
+                            .selectedOptions[0]
+                            ?.textContent ??
+                        "";
+
+
+                    if (!target.value) {
+
+                        revisionElement
+                            .textContent =
+                            "";
+
+                        return;
+                    }
+
+
+                    const separatorIndex =
+                        selectedText
+                            .lastIndexOf(
+                                " - ");
+
+
+                    revisionElement
+                        .textContent =
+                        separatorIndex >=
+                        0
+                            ? "Rev: " +
+                              selectedText
+                                  .substring(
+                                      separatorIndex +
+                                      3)
+                            : "";
+                });
+
+
+        // =====================================================
+        // REGION 7.18 — INITIAL CALCULATION
+        // =====================================================
+
+        /*
+         * Works for both:
+         *
+         * Create
+         * Edit
+         *
+         * First detects State based GST type,
+         * then calculates totals.
+         */
+        refreshTaxType();
+
+    })();
+
+</script>

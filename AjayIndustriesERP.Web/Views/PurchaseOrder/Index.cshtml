@@ -1,0 +1,476 @@
+﻿@model List<AjayIndustriesERP.Domain.Entities.PurchaseOrder>
+
+@using AjayIndustriesERP.Domain.Enums
+
+@*
+==============================================================
+
+File : Index.cshtml
+
+Purpose :
+Displays Purchase Order list.
+
+Features :
+- Search
+- Pagination
+- PO Number
+- PO Date
+- Supplier
+- Expected Delivery Date
+- Status
+- Taxable Amount
+- Grand Total
+- Details / Edit / Delete actions
+
+==============================================================
+*@
+
+@{
+    ViewData["Title"] = "Purchase Orders";
+}
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Purchase Orders
+        </h2>
+
+        <p class="text-muted mb-0">
+            Manage supplier Purchase Orders.
+        </p>
+
+    </div>
+
+    <a asp-action="Create"
+       class="btn btn-primary">
+
+        <i class="fa-solid fa-plus me-1"></i>
+
+        Create Purchase Order
+
+    </a>
+
+</div>
+
+
+<!-- =========================================================
+     SEARCH
+========================================================== -->
+
+<partial name="Components/_SearchBar"
+         model='@(ViewBag.SearchText as string ?? "")' />
+
+
+<!-- =========================================================
+     PURCHASE ORDER LIST
+========================================================== -->
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th>
+                            #
+                        </th>
+
+                        <th>
+                            PO Number
+                        </th>
+
+                        <th>
+                            PO Date
+                        </th>
+
+                        <th>
+                            Supplier
+                        </th>
+
+                        <th>
+                            Expected Delivery
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th class="text-end">
+                            Taxable Amount
+                        </th>
+
+                        <th class="text-end">
+                            Grand Total
+                        </th>
+
+                        <th class="text-center"
+                            style="width:170px;">
+
+                            Actions
+
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @if (Model.Any())
+                    {
+                        var pageNumber =
+                            (int)ViewBag.PageNumber;
+
+                        var pageSize =
+                            (int)ViewBag.PageSize;
+
+                        var serialNumber =
+                            ((pageNumber - 1) *
+                             pageSize) + 1;
+
+
+                        foreach (var purchaseOrder
+                            in Model)
+                        {
+                            <tr>
+
+                                <!-- Serial Number -->
+
+                                <td>
+                                    @serialNumber
+                                </td>
+
+
+                                <!-- PO Number -->
+
+                                <td style="min-width:170px;">
+
+                                    <a asp-action="Details"
+                                       asp-route-id="@purchaseOrder.Id"
+                                       class="text-decoration-none
+                                              fw-semibold">
+
+                                        @purchaseOrder.Code
+
+                                    </a>
+
+                                </td>
+
+
+                                <!-- PO Date -->
+
+                                <td style="min-width:110px;">
+    @purchaseOrder.PODate.ToString("dd-MM-yyyy")
+</td>
+
+
+                                <!-- Supplier -->
+
+                                <td style="min-width:200px;">
+
+                                    <div class="fw-semibold">
+
+                                        @purchaseOrder.SupplierName
+
+                                    </div>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        purchaseOrder.SupplierGSTIN))
+                                    {
+                                        <small class="text-muted">
+
+                                            GSTIN:
+                                            @purchaseOrder.SupplierGSTIN
+
+                                        </small>
+                                    }
+
+                                </td>
+
+
+                                <!-- Expected Delivery -->
+
+                                <!-- Expected Delivery -->
+
+<td style="min-width:140px;">
+
+    @if (purchaseOrder.ExpectedDeliveryDate.HasValue)
+    {
+        @(purchaseOrder.ExpectedDeliveryDate.Value.ToString("dd-MM-yyyy"))
+    }
+    else
+    {
+        <span class="text-muted">
+            -
+        </span>
+    }
+
+</td>
+
+
+                                <!-- Status -->
+
+                                <td>
+
+                                    @switch (purchaseOrder.Status)
+                                    {
+                                        case PurchaseOrderStatus.Draft:
+
+                                            <span class="badge
+                                                         bg-secondary">
+
+                                                Draft
+
+                                            </span>
+
+                                            break;
+
+
+                                        case PurchaseOrderStatus.Confirmed:
+
+                                            <span class="badge
+                                                         bg-primary">
+
+                                                Confirmed
+
+                                            </span>
+
+                                            break;
+
+
+                                        case PurchaseOrderStatus.Sent:
+
+                                            <span class="badge
+                                                         bg-info
+                                                         text-dark">
+
+                                                Sent
+
+                                            </span>
+
+                                            break;
+
+
+                                        case PurchaseOrderStatus.PartiallyReceived:
+
+                                            <span class="badge
+                                                         bg-warning
+                                                         text-dark">
+
+                                                Partially Received
+
+                                            </span>
+
+                                            break;
+
+
+                                        case PurchaseOrderStatus.Received:
+
+                                            <span class="badge
+                                                         bg-success">
+
+                                                Received
+
+                                            </span>
+
+                                            break;
+
+
+                                        case PurchaseOrderStatus.Closed:
+
+                                            <span class="badge
+                                                         bg-dark">
+
+                                                Closed
+
+                                            </span>
+
+                                            break;
+
+
+                                        case PurchaseOrderStatus.Cancelled:
+
+                                            <span class="badge
+                                                         bg-danger">
+
+                                                Cancelled
+
+                                            </span>
+
+                                            break;
+
+
+                                        default:
+
+                                            <span class="badge
+                                                         bg-secondary">
+
+                                                @purchaseOrder.Status
+
+                                            </span>
+
+                                            break;
+                                    }
+
+                                </td>
+
+
+                                <!-- Taxable Amount -->
+
+                                <td class="text-end"
+    style="min-width:130px;">
+
+    ₹ @purchaseOrder.TaxableAmount.ToString("N2")
+
+</td>
+
+
+                                <!-- Grand Total -->
+
+                                <td class="text-end"
+    style="min-width:140px;">
+
+    <span class="fw-bold">
+        ₹ @purchaseOrder.GrandTotal.ToString("N2")
+    </span>
+
+</td>
+
+
+                                <!-- Actions -->
+
+                                <td class="text-center">
+
+                                    <div class="d-flex
+                                                justify-content-center
+                                                gap-1">
+
+
+                                        <!-- Details -->
+
+                                        <a asp-action="Details"
+                                           asp-route-id="@purchaseOrder.Id"
+                                           class="btn
+                                                  btn-sm
+                                                  btn-outline-info"
+                                           title="View">
+
+                                            <i class="fa-solid
+                                                      fa-eye">
+                                            </i>
+
+                                        </a>
+
+
+                                        <!-- Edit only Draft -->
+
+                                        @if (purchaseOrder.Status ==
+                                            PurchaseOrderStatus.Draft)
+                                        {
+                                            <a asp-action="Edit"
+                                               asp-route-id="@purchaseOrder.Id"
+                                               class="btn
+                                                      btn-sm
+                                                      btn-outline-warning"
+                                               title="Edit">
+
+                                                <i class="fa-solid
+                                                          fa-pen">
+                                                </i>
+
+                                            </a>
+
+
+                                            <!-- Delete only Draft -->
+
+                                            <button type="button"
+                                                    class="btn
+                                                           btn-sm
+                                                           btn-outline-danger"
+                                                    title="Delete"
+                                                    onclick="confirmDelete(
+                                                        '@Url.Action(
+                                                            "Delete",
+                                                            "PurchaseOrder",
+                                                            new
+                                                            {
+                                                                id =
+                                                                    purchaseOrder.Id
+                                                            })')">
+
+                                                <i class="fa-solid
+                                                          fa-trash">
+                                                </i>
+
+                                            </button>
+                                        }
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                            serialNumber++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="9"
+                                class="text-center
+                                       text-muted
+                                       py-5">
+
+                                <i class="fa-solid
+                                          fa-file-invoice
+                                          fa-2x
+                                          mb-2">
+                                </i>
+
+                                <div>
+                                    No Purchase Order records found.
+                                </div>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     PAGINATION
+========================================================== -->
+
+<partial name="Components/_Pagination"
+         model='(
+             (int)ViewBag.PageNumber,
+             (int)ViewBag.PageSize
+         )' />
