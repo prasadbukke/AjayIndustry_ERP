@@ -1,4 +1,4 @@
-﻿# 11 - Component Library
+# 11 - Component Library
 
 ## Ajay Industries ERP
 
@@ -392,3 +392,115 @@ Example:
 )
 
 This avoids Razor property-chain rendering issues.
+
+---
+
+# 22. Dynamic Purchase Order Line Pattern
+
+Purchase Order Create/Edit uses a dynamic line table.
+
+Fields include:
+
+- Item
+- Drawing
+- HSN
+- Quantity
+- UOM
+- Rate
+- GST %
+- Line Total
+
+Features:
+
+- Add row
+- Remove row
+- Reindex collection names
+- Item AJAX lookup
+- Specification display
+- UOM display
+- Current Drawing auto-selection
+- Default GST 18%
+- Live line calculation
+
+This is the reference pattern for future transaction line-entry screens.
+
+---
+
+# 23. State-Based GST Preview Pattern
+
+Purchase Order UI calls a lightweight Controller action to determine:
+
+Company.State
+vs
+Supplier.State
+
+Result:
+
+- Same State → CGST + SGST
+- Different State → IGST
+
+UI calculation is only a preview.
+
+Application Service performs the authoritative calculation on Save.
+
+GSTIN is not used to determine the tax type.
+
+---
+
+# 24. Transaction Snapshot Pattern
+
+Purchase Order stores transaction snapshots for historical stability.
+
+Examples:
+
+- Company
+- Supplier
+- Item
+- Specification
+- Drawing Number
+- Drawing Revision
+- Terms & Conditions
+
+This pattern should be considered for future Sales, Purchase Invoice and other external documents.
+
+---
+
+# 25. Transaction Action Consistency Pattern
+
+Purchase Order Index keeps a consistent action layout.
+
+Typical actions:
+
+- Details
+- PDF
+- Edit
+- Delete
+
+For non-Draft Purchase Orders:
+
+- Edit disabled
+- Delete disabled
+
+This prevents row alignment from changing based on transaction status.
+
+---
+
+# 26. Purchase Order PDF Pattern
+
+Purchase Order PDF uses QuestPDF.
+
+Approved structure:
+
+- Company logo + company information
+- Purchase Order number/date
+- Supplier & Delivery details grid
+- Item table
+- Remarks + totals
+- Terms & Conditions
+- Prepared / Checked By
+- Authorized Signatory
+- Footer / page number
+
+The PDF uses the saved Purchase Order snapshot, not live Master values.
+
+Purchase Order status is intentionally omitted from the supplier PDF.

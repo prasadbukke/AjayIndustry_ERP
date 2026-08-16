@@ -49,13 +49,17 @@ namespace AjayIndustriesERP.Web.Controllers
         private readonly IDrawingService
             _drawingService;
 
+        private readonly IPurchaseOrderPdfService
+    _purchaseOrderPdfService;
+
 
         public PurchaseOrderController(
             IPurchaseOrderService purchaseOrderService,
             ICompanyService companyService,
             ISupplierService supplierService,
             IItemService itemService,
-            IDrawingService drawingService)
+            IDrawingService drawingService,
+            IPurchaseOrderPdfService purchaseOrderPdfService)
         {
             _purchaseOrderService =
                 purchaseOrderService;
@@ -71,6 +75,9 @@ namespace AjayIndustriesERP.Web.Controllers
 
             _drawingService =
                 drawingService;
+
+            _purchaseOrderPdfService =
+    purchaseOrderPdfService;
         }
 
 
@@ -1241,6 +1248,70 @@ namespace AjayIndustriesERP.Web.Controllers
                    drawingId.Value > 0
                 ? drawingId.Value
                 : null;
+        }
+
+        #endregion
+
+        #region Purchase Order PDF
+
+        [HttpGet]
+        public async Task<IActionResult> DownloadPdf(
+            int id)
+        {
+            try
+            {
+                var purchaseOrder =
+                    await _purchaseOrderService
+                        .GetByIdAsync(
+                            id);
+
+
+                if (purchaseOrder == null)
+                {
+                    return NotFound();
+                }
+
+
+                var pdfBytes =
+                    _purchaseOrderPdfService
+                        .GeneratePdf(
+                            purchaseOrder);
+
+
+                var fileName =
+                    string.IsNullOrWhiteSpace(
+                        purchaseOrder.Code)
+                        ? $"Purchase-Order-{purchaseOrder.Id}.pdf"
+                        : purchaseOrder.Code
+                            .Replace(
+                                "/",
+                                "-") +
+                          ".pdf";
+
+
+                return File(
+                    pdfBytes,
+                    "application/pdf",
+                    fileName);
+            }
+            catch (BusinessException ex)
+            {
+                TempData["Error"] =
+                    ex.Message;
+            }
+            catch (Exception)
+            {
+                TempData["Error"] =
+                    "Unable to generate Purchase Order PDF.";
+            }
+
+
+            return RedirectToAction(
+                nameof(Details),
+                new
+                {
+                    id
+                });
         }
 
         #endregion

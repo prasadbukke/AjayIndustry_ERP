@@ -1,203 +1,145 @@
-﻿# API Design
+# 05 - API Design
 
 ## Purpose
 
-The ERP follows a reusable architecture.
+The ERP currently uses ASP.NET Core MVC.
 
-Business logic is written once in the Application Layer.
-
-Initially the application is delivered using ASP.NET Core MVC.
-
-In future the same business logic will be exposed through ASP.NET Core Web API without changing the Service or Repository layer.
+Business logic is kept in the Application Layer so the same Services can later be reused by ASP.NET Core Web API.
 
 ---
 
-# API Version
+# Current API Status
 
-v1
+Web API is **planned**, not the primary current delivery layer.
 
----
+Current production-facing implementation in this project is MVC.
 
-# Base URL
-
-/api
+Do not treat the routes in this document as already implemented unless a dedicated API controller exists in code.
 
 ---
 
-# Company API
+# Planned API Version
+
+`v1`
+
+Planned base URL:
+
+`/api`
+
+---
+
+# Planned Company API
 
 ## Get All Companies
 
-GET
-
-/api/company
-
----
+`GET /api/company`
 
 ## Get Company By Id
 
-GET
-
-/ api/company/{id}
-
----
+`GET /api/company/{id}`
 
 ## Create Company
 
-POST
+`POST /api/company`
 
-/ api/company
+Business validation should match the Application Service.
 
-Validation
+Current Company rules relevant to future API:
 
-- Company Name Required
-- GST Number Required
-- GST Number Unique
-- Company Code Auto Generated
-
----
+- Company Name required
+- Company Code auto generated
+- GST Number optional
+- GST Number validated when provided
+- State required
+- Purchase Order Terms & Conditions optional
 
 ## Update Company
 
-PUT
-
-/ api/company/{id}
-
----
+`PUT /api/company/{id}`
 
 ## Delete Company
 
-DELETE
+Soft Delete.
 
-/ api/company/{id}
+## Search / Pagination
 
-Delete Type
-
-Soft Delete
+Future API should expose the same search/pagination behavior already available through Application Services.
 
 ---
 
-## Search Company
+# Planned Master APIs
 
-GET
-
-/api/company?searchText=abc
-
-Search Fields
-
-- Company Code
-- Company Name
-- GST Number
-
----
-
-## Pagination
-
-GET
-
-/api/company?pageNumber=1&pageSize=10
+- Employee
+- Customer
+- Supplier
+- Warehouse
+- UOM
+- Item Category
+- Brand
+- Shape
+- Specification
+- Item
+- Drawing
+- Machine
+- Bill Of Material
 
 ---
 
-# Future APIs
+# Planned Purchase APIs
 
-## Masters
+- Purchase Order
+- Goods Receipt Note
+- Purchase Invoice
+- Purchase Return
 
-- Employee API
-- Customer API
-- Supplier API
-- Warehouse API
-- Unit API
-- Category API
-- Item API
-- Machine API
-- Bill Of Material API
+Purchase Requisition remains deferred.
 
----
+Future Purchase Order API must reuse the same business rules already enforced by `IPurchaseOrderService` / `PurchaseOrderService`, including:
 
-## Purchase
+- Financial-year PO number generation
+- Company/Supplier validation
+- State-based GST type
+- Item/Drawing snapshot validation
+- Draft-only edit/delete rules
+- Service-authoritative total calculation
 
-- Purchase Requisition API
-- Purchase Order API
-- Goods Receipt API
-- Purchase Invoice API
-- Purchase Return API
+PDF generation may later be exposed through an API endpoint using the existing Purchase Order PDF service.
 
 ---
 
-## Inventory
+# Planned Inventory APIs
 
-- Stock API
-- Stock Adjustment API
-- Stock Transfer API
-- Warehouse Stock API
-- Stock Ledger API
-
----
-
-## Production
-
-- Production Order API
-- Material Issue API
-- Material Return API
-- Production Entry API
-- Finished Goods API
+- Stock
+- Stock Adjustment
+- Stock Transfer
+- Warehouse Stock
+- Stock Ledger
 
 ---
 
-## Sales
+# Planned Production APIs
 
-- Quotation API
-- Sales Order API
-- Delivery Challan API
-- Sales Invoice API
-- Sales Return API
-
----
-
-## Finance
-
-- Payment API
-- Receipt API
-- Expense API
-- Outstanding Payment API
+- Production Order
+- Material Issue
+- Material Return
+- Production Entry
+- Finished Goods
 
 ---
 
-Status
+# Planned Sales APIs
 
-MVC Completed
+- Quotation
+- Sales Order
+- Delivery Challan
+- Sales Invoice
+- Sales Return
 
-Web API Planned
+---
 
-Employee CRUD API
-Employee Search
-Employee Pagination
+# Planned Finance APIs
 
-## Employee APIs
-
-GET
-
-/api/Employee
-
-GET
-
-/api/Employee/{id}
-
-POST
-
-/api/Employee
-
-PUT
-
-/api/Employee
-
-POST
-
-/api/Employee/Delete/{id}
-
-Features
-
-- Search
-- Pagination
-- Auto Employee Code
+- Payment
+- Receipt
+- Expense
+- Outstanding Payment

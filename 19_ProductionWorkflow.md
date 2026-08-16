@@ -1,10 +1,14 @@
-﻿# Production Workflow
+# 19 - Production Workflow
 
-Status
+## Status
 
-✅ LOCKED
+Future design - approved direction, not yet implemented.
+
+Production should remain deferred until the Purchase/Inventory foundation required by production material movement is available.
 
 ---
+
+# Production Flow
 
 Production Order
 
@@ -66,63 +70,46 @@ Production Complete
 
 ---
 
-Each Stage Stores
+# Each Stage May Store
 
-Operation
+- Operation
+- Machine
+- Operator
+- Start Time
+- End Time
+- Duration
+- Good Qty
+- Reject Qty
+- Rework Qty
+- Remarks
 
-Machine
-
-Operator
-
-Start Time
-
-End Time
-
-Duration
-
-Good Qty
-
-Reject Qty
-
-Rework Qty
-
-Remarks
+Exact schema will be finalized during Production module design.
 
 ---
 
-Status
+# Planned Statuses
 
-Pending
-
-Running
-
-Completed
-
-Rejected
-
-On Hold
-
-Cancelled
+- Pending
+- Running
+- Completed
+- Rejected
+- On Hold
+- Cancelled
 
 ---
 
-Status
+# Dependency Direction
 
-✅ APPROVED
+Production will depend on future:
 
-Current Status
+- Item
+- Drawing
+- BOM
+- Warehouse / Inventory
+- Material availability
+- Stock Ledger
+- Machine
+- Employee / Operator
+- Quality
 
-Current ERP Foundation
-
-Completed
-
-✔ Company
-✔ Employee
-✔ UOM
-✔ Warehouse
-✔ Item Category
-✔ Brand
-
-Next
-
-Item Master
+Current next module is GRN, not Production.

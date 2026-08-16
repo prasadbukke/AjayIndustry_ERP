@@ -43,6 +43,8 @@ namespace AjayIndustriesERP.Domain.Entities
 
         public string? CompanyEmail { get; set; }
 
+        public string? CompanyWebsite { get; set; }
+
 
         // Supplier Snapshot
         public string SupplierName { get; set; } = string.Empty;

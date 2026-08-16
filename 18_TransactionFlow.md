@@ -1,30 +1,56 @@
-﻿# ERP Transaction Flow
+# 18 - ERP Transaction Flow
 
-Status
+## Status
 
-✅ LOCKED
+Current purchase flow is implemented through Purchase Order.
+
+Downstream receipt/inventory flow is planned and will be finalized during GRN design.
 
 ---
 
-Purchase
+# Purchase Transaction Lifecycle
 
-Purchase Requisition
-
-↓
-
-Purchase Order
+Purchase Order Draft
 
 ↓
 
-Approval
+Validate Company / Supplier / Items
 
 ↓
 
-Goods Receipt Note
+Calculate GST / Totals
 
 ↓
 
-Quality Check
+Save Purchase Order Snapshot
+
+↓
+
+Confirm
+
+↓
+
+Mark as Sent
+
+↓
+
+GRN - Next Module
+
+↓
+
+Partial or Full Material Receipt
+
+↓
+
+PO receipt status update
+
+↓
+
+Inventory Stock Transaction
+
+↓
+
+Warehouse Stock / Stock Ledger
 
 ↓
 
@@ -32,13 +58,39 @@ Purchase Invoice
 
 ↓
 
-Payment
+Supplier Payment
+
+Important:
+
+Purchase Order itself has **no stock impact**.
 
 ---
 
-Inventory
+# Purchase Order Status Handoff
 
-Material Receipt
+Implemented:
+
+Draft
+→ Confirmed
+→ Sent
+
+Planned through GRN:
+
+Sent
+→ PartiallyReceived
+→ Received
+
+No separate Cancel action is currently implemented.
+
+---
+
+# Inventory Transaction Direction
+
+GRN / Opening Stock
+
+↓
+
+Stock Transaction
 
 ↓
 
@@ -50,15 +102,18 @@ Stock Ledger
 
 ↓
 
-Batch / Serial
-
-↓
-
 Available Stock
+
+Future outward/movement transactions:
+
+- Production Material Issue
+- Stock Transfer
+- Stock Adjustment
+- Sales Dispatch
 
 ---
 
-Production
+# Production Transaction Direction
 
 Sales Order
 
@@ -80,7 +135,7 @@ Material Issue
 
 ↓
 
-Production
+Production / Operations
 
 ↓
 
@@ -88,15 +143,17 @@ Quality Inspection
 
 ↓
 
-Finished Goods
+Finished Goods Receipt
 
 ↓
 
 Inventory Update
 
+Production remains deferred.
+
 ---
 
-Sales
+# Sales Transaction Direction
 
 Quotation
 
@@ -122,28 +179,20 @@ Receipt
 
 ---
 
-Finance
+# Finance Transaction Direction
 
-Receipt
-
-↓
-
-Payment
+Purchase Invoice / Sales Invoice
 
 ↓
 
-Journal
+Payment / Receipt
 
 ↓
 
-Ledger
+Journal / Ledger
 
 ↓
 
 Reports
 
----
-
-Status
-
-✅ APPROVED
+Exact accounting design is deferred.

@@ -1136,6 +1136,8 @@ namespace AjayIndustriesERP.Application.Services
             purchaseOrder.CompanyEmail =
                 company.Email;
 
+            purchaseOrder.CompanyWebsite =
+                company.Website;
 
             purchaseOrder.CompanyAddress =
                 BuildAddress(
@@ -1231,6 +1233,7 @@ namespace AjayIndustriesERP.Application.Services
             purchaseOrder.SupplierEmail =
                 supplier.Email;
 
+            
 
             purchaseOrder.SupplierAddress =
                 BuildAddress(

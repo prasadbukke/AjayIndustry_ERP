@@ -1,4 +1,4 @@
-﻿# 04 - Database Design
+# 04 - Database Design
 
 ## Project
 
@@ -535,33 +535,339 @@ This allows Drawing creation only after a valid ItemId exists.
 
 ---
 
-# 23. Current Next Transaction Module
+---
 
-The next module selected for development is:
+# 23. Company Purchase Order Additions
 
-Purchase Order
+Company Master now supports Purchase-related reusable presentation data.
 
-Purchase Order will depend primarily on:
+Relevant fields include:
 
-- Company
-- Supplier
-- Item
-- UOM
+- State
+- optional GstNumber
+- Website
+- PurchaseOrderTermsAndConditions
 
-A professional Purchase Order PDF must be generated for sharing with the Supplier.
+Rules:
 
-Detailed Purchase Order database design will be finalized before coding begins.
+- GST Number is optional.
+- Company State is required for Purchase Order GST type.
+- Standard Purchase Order Terms & Conditions are maintained once in Company Master.
 
 ---
 
-# 24. Deferred Database Areas
+# 24. Purchase Order Header Table
+
+## PurchaseOrders
+
+Important fields:
+
+- Id
+- Code
+- PODate
+- ExpectedDeliveryDate
+- Status
+- CompanyId
+- CompanyName
+- CompanyAddress
+- CompanyState
+- CompanyGSTIN
+- CompanyPhone
+- CompanyEmail
+- CompanyWebsite
+- SupplierId
+- SupplierName
+- SupplierAddress
+- SupplierGSTIN
+- SupplierContactPerson
+- SupplierPhone
+- SupplierEmail
+- DeliveryAddress
+- PaymentTerms
+- DeliveryTerms
+- Remarks
+- TermsAndConditions
+- SubTotal
+- DiscountAmount
+- TaxableAmount
+- CGSTAmount
+- SGSTAmount
+- IGSTAmount
+- TransportCharges
+- OtherCharges
+- RoundOffAmount
+- GrandTotal
+- ConfirmedOn
+- SentToSupplierOn
+- ClosedOn
+- CancelledOn
+- CancellationReason
+- BaseEntity audit/status fields
+
+Business compatibility note:
+
+- `DiscountAmount` remains in the schema but is forced to `0`.
+- `RoundOffAmount` remains in the schema but is forced to `0`.
+- Current UI/business flow does not use Purchase Order Discount or Round Off.
+
+---
+
+# 25. Purchase Order Number
+
+Format:
+
+`AI/PO/26-27/00001`
+
+Rules:
+
+- Generated in PurchaseOrderService.
+- Financial Year is April to March.
+- Five-digit sequence.
+- Unique.
+- Deleted Purchase Order numbers are not reused.
+- Repository last-code lookup is prefix-based by Financial Year.
+
+---
+
+# 26. Purchase Order Item Table
+
+## PurchaseOrderItems
+
+Important fields:
+
+- Id
+- Code
+- PurchaseOrderId
+- ItemId
+- ItemCode
+- ItemName
+- Description
+- Specification
+- UnitName
+- HSNCode
+- DrawingId (nullable)
+- DrawingNumber
+- DrawingRevision
+- Quantity
+- UnitPrice
+- DiscountPercent
+- DiscountAmount
+- TaxableAmount
+- GSTPercent
+- CGSTAmount
+- SGSTAmount
+- IGSTAmount
+- LineTotal
+- RequiredDate
+- Remarks
+- BaseEntity audit/status fields
+
+Compatibility note:
+
+- `DiscountPercent` and line `DiscountAmount` remain in the schema but are forced to `0`.
+
+---
+
+# 27. Purchase Order Relationships
+
+PurchaseOrders:
+
+- CompanyId → Companies
+- SupplierId → Suppliers
+
+PurchaseOrderItems:
+
+- PurchaseOrderId → PurchaseOrders
+- ItemId → Items
+- DrawingId → Drawings (optional)
+
+Master foreign keys use Restrict where historical transaction integrity requires it.
+
+PurchaseOrder → PurchaseOrderItems is a parent-child relationship.
+
+Application behavior uses Soft Delete.
+
+---
+
+# 28. Purchase Order Snapshot Strategy
+
+Purchase Order stores historical snapshots.
+
+Company snapshot:
+
+- Name
+- Address
+- State
+- optional GSTIN
+- Phone
+- Email
+- Website
+
+Supplier snapshot:
+
+- Name
+- Address
+- optional GSTIN
+- Contact Person
+- Phone
+- Email
+
+Item line snapshot:
+
+- Item Code
+- Item Name
+- Description
+- Specification
+- UOM name
+- Drawing Number / Revision where selected
+
+Terms snapshot:
+
+Company.PurchaseOrderTermsAndConditions
+→ PurchaseOrder.TermsAndConditions
+
+Reason:
+
+Historical PO and PDF output must remain stable even when Master data changes later.
+
+---
+
+# 29. Purchase Order GST Design
+
+GST rate is stored per Purchase Order line.
+
+Default UI value:
+
+18%
+
+Tax type is determined from:
+
+Company.State
+vs
+Supplier.State
+
+Same State:
+
+CGST + SGST
+
+Different State:
+
+IGST
+
+GSTIN is optional and is not used to determine GST type.
+
+Final values are calculated in PurchaseOrderService.
+
+---
+
+# 30. Purchase Order Calculation
+
+Line:
+
+Quantity × UnitPrice
+= TaxableAmount
+
+Tax is calculated from TaxableAmount.
+
+LineTotal:
+
+TaxableAmount
++ CGST
++ SGST
++ IGST
+
+Header GrandTotal:
+
+TaxableAmount
++ CGSTAmount
++ SGSTAmount
++ IGSTAmount
++ TransportCharges
++ OtherCharges
+
+Current rule:
+
+- no Purchase Order Discount
+- no Round Off
+- no separate GST on Transport / Other Charges
+
+---
+
+# 31. Purchase Order Workflow Fields
+
+Implemented workflow:
+
+Draft
+→ Confirmed
+→ Sent
+
+Receipt-related enum values exist for future GRN integration:
+
+- PartiallyReceived
+- Received
+
+Additional enum/workflow fields may exist for future lifecycle support, but no separate Cancel action is currently implemented in the UI/business flow.
+
+Only Draft Purchase Orders can currently be Soft Deleted.
+
+---
+
+# 32. Purchase Order PDF
+
+PDF generation is implemented using QuestPDF.
+
+PDF reads the saved Purchase Order transaction/snapshot data.
+
+Supplier-facing PDF includes:
+
+- Company logo/details
+- PO number/date
+- Supplier/delivery details
+- Item/specification/drawing
+- HSN
+- quantity/UOM/rate
+- GST
+- taxable/line total
+- tax summary
+- transport/other charges
+- grand total
+- remarks
+- Terms & Conditions
+- authorized signatory
+
+Status is intentionally not printed on the supplier PDF.
+
+---
+
+# 33. Current Next Transaction Module
+
+Next selected module:
+
+**GRN - Goods Receipt Note**
+
+GRN will be responsible for future:
+
+- material receipt against Purchase Order
+- partial/full receipt
+- received/pending quantity
+- Warehouse receipt
+- PO receipt status update
+- Inventory Stock Transaction
+- Stock Ledger integration
+
+Detailed GRN database design is not yet finalized.
+
+---
+
+# 34. Deferred Database Areas
 
 Deferred:
 
 - Purchase Requisition
-- Goods Receipt / GRN
+- Purchase Invoice
+- Purchase Return
+- Full Warehouse Stock
 - Stock Ledger
-- Warehouse Stock
 - Opening Stock
 - Minimum / Maximum Stock
 - BOM
@@ -569,6 +875,6 @@ Deferred:
 - Quality
 - Sales
 - Accounting
-- GST transaction calculations
+- GST reporting
 - Supplier balances
 - Full Drawing approval workflow

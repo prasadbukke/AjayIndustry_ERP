@@ -1,10 +1,8 @@
-﻿# Ajay Industries ERP
+# Ajay Industries ERP
 
 ## Client
 
 Manufacturing Workshop
-
----
 
 ## Business
 
@@ -12,7 +10,7 @@ Manufacturing of Machinery Parts
 
 ---
 
-# Modules
+# Functional Scope
 
 ## Dashboard
 
@@ -23,45 +21,83 @@ Manufacturing of Machinery Parts
 ## Masters
 
 - Company ✅
-- Employees
-- Customers
-- Suppliers
-- Warehouses
-- Units
-- Categories
-- Items
-- Machines
-- Bill Of Materials
+- Employee ✅
+- Customer ⏳
+- Supplier ✅
+- Warehouse ✅
+- UOM ✅
+- Item Category ✅
+- Brand ✅
+- Shape ✅
+- Specification ✅
+- Item ✅
+- Drawing ✅
+- Machine ⏳
+- Bill Of Materials ⏳
 
 ---
 
 ## Purchase
 
-- Purchase Requisition
-- Purchase Order
-- Goods Receipt
-- Purchase Invoice
-- Purchase Return
+- Purchase Requisition - Deferred / Optional
+- Purchase Order ✅
+- Goods Receipt Note (GRN) - Next
+- Purchase Invoice ⏳
+- Purchase Return ⏳
+
+Purchase Order current requirements include:
+
+- Company
+- Supplier
+- PO Date
+- Expected Delivery Date
+- Delivery Address
+- Payment Terms
+- Delivery Terms
+- Remarks
+- Multiple Item lines
+- Item snapshot
+- Specification snapshot
+- Optional Drawing / Revision snapshot
+- HSN
+- Quantity
+- UOM
+- Rate
+- GST
+- Transport Charges
+- Other Charges
+- Grand Total
+- Status lifecycle
+- Terms & Conditions snapshot
+- Supplier-ready PDF
 
 ---
 
 ## Inventory
 
-- Stock
+- Current Stock
+- Stock Transactions
+- Warehouse Stock
 - Stock Adjustment
 - Stock Transfer
-- Warehouse Stock
 - Stock Ledger
+- Opening Stock
+- Minimum / Maximum Stock
+
+Inventory values are not stored in Item Master.
 
 ---
 
 ## Production
 
+- Production Planning
 - Production Order
+- Material Reservation
 - Material Issue
 - Material Return
 - Production Entry
-- Finished Goods
+- Quality Inspection
+- Finished Goods Receipt
 
 ---
 
@@ -73,6 +109,8 @@ Manufacturing of Machinery Parts
 - Sales Invoice
 - Sales Return
 
+Sales/Finished Goods billing is the future area where commercial discount rules may be introduced.
+
 ---
 
 ## Finance
@@ -81,6 +119,7 @@ Manufacturing of Machinery Parts
 - Receipt Entry
 - Expenses
 - Outstanding Payments
+- Supplier / Customer accounting integration
 
 ---
 
@@ -105,14 +144,27 @@ Manufacturing of Machinery Parts
 
 ---
 
-## Current Progress
+# Cross-Module Requirements
 
-Completed
+- Soft Delete for business data where appropriate
+- Permanent business codes
+- Audit fields
+- Search and pagination for list modules
+- Service-layer business validation
+- Repository-only database access
+- Historical transaction snapshots where Master changes must not alter old transactions
+- State-based GST split for Purchase Order
+- GSTIN may be optional
+- Professional transaction PDF/print output where required
 
-- Login UI
-- Dashboard UI
-- Company Master
+---
 
-Pending
+# Current Development Position
 
-- Remaining ERP Modules
+Completed through:
+
+Purchase Order
+
+Next:
+
+GRN - Goods Receipt Note

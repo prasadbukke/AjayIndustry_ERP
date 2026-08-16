@@ -1,4 +1,4 @@
-﻿# 13 - Project State
+# 13 - Project State
 
 ## Project
 
@@ -8,11 +8,11 @@ Ajay Industries ERP
 
 Master-data foundation is stable.
 
-Item Master and Drawing Master have been finalized and committed.
+Item Master, Drawing Master and Purchase Order are finalized to the current business scope.
 
-Next selected module:
+Current next module:
 
-Purchase Order
+**GRN - Goods Receipt Note**
 
 ---
 
@@ -25,9 +25,10 @@ Purchase Order
 - Clean Architecture
 - Repository + Service Pattern
 - Bootstrap
-- jQuery
+- JavaScript / jQuery
 - Select2
 - Toastr
+- QuestPDF
 
 ---
 
@@ -38,21 +39,28 @@ Purchase Order
 3. Infrastructure
 4. Web
 
+Runtime flow:
+
+MVC View
+→ Controller
+→ Application Service
+→ Repository
+→ DbContext
+→ SQL Server
+
 ---
 
 # EF Core Configuration
 
 Entity configurations use:
 
-IEntityTypeConfiguration<T>
+`IEntityTypeConfiguration<T>`
 
 Location:
 
-Infrastructure/Configurations
+`Infrastructure/Configurations`
 
-DbContext applies configurations using:
-
-ApplyConfigurationsFromAssembly
+DbContext applies configurations from the Infrastructure assembly.
 
 ---
 
@@ -60,9 +68,9 @@ ApplyConfigurationsFromAssembly
 
 Infrastructure registrations are maintained in:
 
-Infrastructure/DependencyInjection/DependencyInjection.cs
+`Infrastructure/DependencyInjection/DependencyInjection.cs`
 
-Program.cs is not used as the main location for module registrations.
+Program.cs calls the Infrastructure registration method.
 
 ---
 
@@ -78,7 +86,7 @@ Available:
 
 ---
 
-# Shared UI Components
+# Shared UI Components / Patterns
 
 Available:
 
@@ -89,6 +97,11 @@ Available:
 - common.js
 - Select2
 - Quick Add Master Modal
+- Dynamic Item Specification rows
+- Drawing revision history/actions
+- Dynamic Purchase Order line rows
+- State-based GST preview
+- Purchase Order PDF download
 
 ---
 
@@ -107,6 +120,19 @@ Finalized:
 - Supplier
 - Item
 - Drawing
+
+---
+
+# Company Master Current State
+
+Company includes standard business/contact/address fields.
+
+Current Purchase-related additions:
+
+- GST Number is optional.
+- State is required and is used for Purchase Order GST type.
+- PurchaseOrderTermsAndConditions stores standard PO terms.
+- Company Website is available for company/PDF presentation where configured.
 
 ---
 
@@ -132,7 +158,7 @@ Item supports:
 
 ItemCode:
 
-ITM00001
+`ITM00001`
 
 System generated and never reused.
 
@@ -154,104 +180,7 @@ PartNumber does not participate in duplicate identity.
 
 ---
 
-# PartNumber
-
-Final rules:
-
-- Optional
-- Maximum 100 characters
-- Not unique
-- Searchable
-- Create/Edit supported
-- Index visible
-- Details visible
-
----
-
-# Item Image
-
-Item Image support is not used.
-
-ImagePath was removed from Entity and Database.
-
-Technical Item identification uses Drawing and structured Item information instead.
-
----
-
-# Item Specifications
-
-Dynamic child collection.
-
-Supports:
-
-- Specification
-- Value
-- Optional UOM
-- SortOrder
-- Add
-- Remove
-- Quick Add Specification
-- Quick Add UOM
-
-Same Specification cannot appear twice on one active Item.
-
----
-
-# Item UI
-
-Item Index:
-
-- Item Code
-- Item Name
-- Part Number
-- Category
-- Brand
-- UOM
-- Shape
-- Specification summary
-- Status
-- Actions
-
-Item Details:
-
-Three-column information layout.
-
-Item Edit:
-
-Supports complete Item editing and read-only Drawing summary.
-
----
-
-# Supplier Master Final State
-
-Supplier supports:
-
-- SupplierCode
-- SupplierName
-- ContactPerson
-- Mobile
-- Alternate Mobile
-- Email
-- GSTIN
-- PAN
-- Address
-- City
-- State
-- Pincode
-- PaymentTermsDays
-- Description
-- Active/Inactive
-- Soft Delete
-- Search
-- Similar Name Detection
-
-SupplierCode format:
-
-SUP00001
-
----
-
-# Drawing Master Final State
+# Item / Drawing Engineering State
 
 Final relationship:
 
@@ -272,10 +201,6 @@ Revision:
 - RV-01, RV-02, ...
 - Never reused
 
----
-
-# Drawing Revision Workflow
-
 Supports:
 
 - Add Revision
@@ -284,152 +209,323 @@ Supports:
 - Activate Previous Revision
 - Soft Delete Inactive Revision
 - Current Revision Delete Protection
+- Complete Drawing Soft Delete
+- Deleted Drawing Restore
+- Drawing file history
+
+Item Details/Edit shows read-only Current Drawing information.
 
 ---
 
-# Drawing Delete and Restore
+# Supplier Master Final State
 
-Complete Drawing supports:
+Supplier supports:
 
+- SupplierCode
+- SupplierName
+- ContactPerson
+- Mobile
+- Alternate Mobile
+- Email
+- Optional GSTIN
+- PAN
+- Address
+- City
+- State
+- Pincode
+- PaymentTermsDays
+- Description
+- Active/Inactive
 - Soft Delete
-- Deleted Drawings screen
-- Restore
+- Search
+- Similar Name Detection
 
-Deleted Drawing Number remains reserved.
+SupplierCode:
 
-Historical files remain preserved.
+`SUP00001`
 
----
-
-# Drawing Files
-
-Supported:
-
-- PDF
-- JPG
-- JPEG
-- PNG
-- DWG
-- DXF
-
-Maximum:
-
-25 MB
-
-Storage:
-
-wwwroot/uploads/drawings
+Supplier transaction values are not stored in Supplier Master.
 
 ---
 
-# Item and Drawing Integration
+# Purchase Order Module Final State
 
-Item Details displays Current Drawing information.
+Purchase Order uses header + lines.
 
-Displayed:
+## Header
 
-- Drawing Number
-- Drawing Name
-- Current Revision
-- Drawing Type
-- Current Drawing File
-- Open Drawing Details
+Important fields/business data:
 
-If no Drawing exists:
+- Id
+- Code
+- PODate
+- ExpectedDeliveryDate
+- Status
+- CompanyId
+- Company snapshot
+- SupplierId
+- Supplier snapshot
+- DeliveryAddress
+- PaymentTerms
+- DeliveryTerms
+- Remarks
+- TermsAndConditions snapshot
+- SubTotal
+- TaxableAmount
+- CGSTAmount
+- SGSTAmount
+- IGSTAmount
+- TransportCharges
+- OtherCharges
+- GrandTotal
+- workflow timestamps
+- audit fields
 
-Add Drawing button is displayed.
+Legacy compatibility fields:
+
+- DiscountAmount = forced 0
+- RoundOffAmount = forced 0
+
+## Lines
+
+PurchaseOrderItem stores:
+
+- ItemId
+- Item snapshot
+- Specification snapshot
+- UnitName snapshot
+- HSNCode
+- optional DrawingId
+- DrawingNumber snapshot
+- DrawingRevision snapshot
+- Quantity
+- UnitPrice
+- GSTPercent
+- TaxableAmount
+- CGSTAmount
+- SGSTAmount
+- IGSTAmount
+- LineTotal
+- RequiredDate
+- Remarks
+- audit fields
+
+Legacy compatibility fields:
+
+- DiscountPercent = forced 0
+- DiscountAmount = forced 0
 
 ---
 
-# Item Edit Drawing Integration
+# Purchase Order Number
 
-Item Edit shows Drawing summary.
+Format:
 
-Drawing data is read-only.
+`AI/PO/26-27/00001`
 
-Drawing revision lifecycle remains managed by Drawing Master.
+Financial Year:
+
+April to March
+
+Sequence:
+
+Five digits.
+
+PO Number generation belongs to PurchaseOrderService.
+
+Deleted numbers are not reused.
 
 ---
 
-# New Item to Drawing Flow
+# Purchase Order GST
 
-Create Item
-→ Save
-→ Redirect to Item Details
-→ Add Drawing
-→ Drawing Create
-→ Item automatically selected
+Default new line GST:
+
+18%
+
+GST rate may be changed manually.
+
+Tax type:
+
+Company.State
+vs
+Supplier.State
+
+Same State:
+
+CGST + SGST
+
+Different State:
+
+IGST
+
+GSTIN is optional and is not used for tax-type determination.
+
+UI provides live preview.
+
+Service performs authoritative calculation.
+
+---
+
+# Purchase Order Calculation
+
+Final current rule:
+
+Quantity × UnitPrice
+= Taxable Amount
+
+Taxable Amount
++ CGST / SGST or IGST
++ Transport Charges
++ Other Charges
+= Grand Total
+
+No Purchase Order Discount.
+
+No Purchase Order Round Off.
+
+No separate GST on Transport/Other Charges at the current business-rule version.
+
+---
+
+# Purchase Order Terms & Conditions
+
+Company Master stores standard PO Terms & Conditions.
+
+During Draft Create/Update:
+
+Company.PurchaseOrderTermsAndConditions
+→ PurchaseOrder.TermsAndConditions
+
+The Purchase Order stores a historical snapshot.
+
+---
+
+# Purchase Order Workflow
+
+Implemented:
+
+Draft
+→ Confirmed
+→ Sent
+
+Rules:
+
+Draft:
+- Edit allowed
+- Delete allowed
+- Confirm allowed
+
+Confirmed:
+- Edit blocked
+- Delete blocked
+- Mark as Sent allowed
+
+Sent:
+- Edit blocked
+- Delete blocked
+
+No separate Cancel action is implemented.
+
+Future GRN integration will use:
+
+- PartiallyReceived
+- Received
+
+---
+
+# Purchase Order PDF
+
+Implemented using QuestPDF.
+
+PDF is supplier-facing and includes:
+
+- Company logo
+- Company details
+- PO Number / Date
+- Supplier + Delivery details
+- Item / Specification / Drawing
+- HSN
+- Quantity / UOM / Rate
+- GST
+- Taxable / Line Total
+- GST totals
+- Transport / Other Charges
+- Grand Total
+- Remarks
+- Terms & Conditions
+- Prepared / Checked By
+- Authorized Signatory
+- footer/page number
+
+Supplier PDF intentionally does not show Purchase Order Status.
+
+---
+
+# Purchase Order Stock Rule
+
+Purchase Order does not increase stock.
+
+Inventory impact will start from GRN/material receipt.
+
+---
+
+# Database Migrations Added During Purchase Order Work
+
+Confirmed Purchase Order work includes migrations for:
+
+- Purchase Order module
+- Company reference/snapshot in Purchase Order
+- Purchase Order Terms & Conditions
+- Company/Purchase Order website snapshot support where applied
+
+Exact migration class names should remain in source control as the database history of record.
 
 ---
 
 # Git State
 
-Drawing Master milestone committed.
+Core Purchase Order workflow/GST/T&C milestone has been committed.
 
-Item Master + Drawing integration milestone committed.
+Current milestone being finalized:
 
-Latest functional milestone commit:
+- Purchase Order PDF
+- final Purchase Order documentation
+- documentation cleanup
 
-Finalize item master with part number and drawing integration
-
-Documentation update should be committed separately.
+After this documentation update, commit the completed Purchase Order milestone.
 
 ---
 
 # Current Next Module
 
-## Purchase Order
+## GRN - Goods Receipt Note
 
-Purchase Order is the next development module.
+Before coding finalize:
 
-Main goals:
-
-- Select Supplier
-- Create PO Header
-- Add multiple Item lines
-- Quantity
-- UOM
-- Rate
-- Tax calculations
-- Delivery information
-- Payment Terms
-- Remarks
-- PO status/lifecycle
-- Professional Purchase Order PDF
-- PDF suitable for sending to Supplier
-
----
-
-# Purchase Order Design Status
-
-Coding has not started.
-
-Before coding, finalize:
-
-- PO Number format
-- Header fields
-- Line fields
-- GST/tax structure
-- Supplier address snapshot strategy
-- Company details strategy
-- Delivery terms
-- Payment terms
-- Status
-- Revision/amendment requirements
-- PDF layout
-- Delete/cancel rules
+- GRN Number format
+- PO reference rule
+- Supplier reference/snapshot needs
+- multiple GRNs against one PO
+- partial receipt
+- received/pending quantity logic
+- warehouse
+- receipt date
+- challan/invoice reference requirements
+- accepted/rejected quantity if required
+- PO status update
+- stock transaction design
+- stock ledger design
+- delete/reversal rules
 
 ---
 
 # Deferred Modules
 
-Deferred:
-
 - Purchase Requisition
-- GRN
-- Purchase Receipt
-- Warehouse Stock
-- Stock Ledger
+- Purchase Invoice
+- Purchase Return
+- Full Inventory / Stock Ledger
 - Opening Stock
 - Minimum / Maximum Stock
 - BOM
@@ -438,6 +534,8 @@ Deferred:
 - Sales
 - Accounting
 - GST reporting
+- Supplier balances
+- Full Drawing approval workflow
 
 ---
 
@@ -445,8 +543,13 @@ Deferred:
 
 Before starting coding for a new major module:
 
-1. Finalize business rules.
-2. Finalize Entity/table design.
-3. Finalize workflow.
-4. Update architecture decisions if required.
-5. Then implement using the standard module pattern.
+1. Finalize requirement.
+2. Finalize business flow.
+3. Finalize entity/table design.
+4. Finalize business rules.
+5. Finalize workflow/status transitions.
+6. Finalize UI.
+7. Implement using the frozen architecture.
+8. Test.
+9. Update canonical documentation.
+10. Git commit.

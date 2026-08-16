@@ -355,75 +355,105 @@ Features :
 
                                 <!-- Actions -->
 
-                                <td class="text-center">
+                                <td class="text-nowrap">
 
-                                    <div class="d-flex
-                                                justify-content-center
-                                                gap-1">
+    <!-- Details -->
 
+    <a asp-action="Details"
+       asp-route-id="@purchaseOrder.Id"
+       class="btn
+              btn-sm
+              btn-outline-info"
+       title="Details">
 
-                                        <!-- Details -->
+        <i class="fa-solid fa-eye"></i>
 
-                                        <a asp-action="Details"
-                                           asp-route-id="@purchaseOrder.Id"
-                                           class="btn
-                                                  btn-sm
-                                                  btn-outline-info"
-                                           title="View">
-
-                                            <i class="fa-solid
-                                                      fa-eye">
-                                            </i>
-
-                                        </a>
+    </a>
 
 
-                                        <!-- Edit only Draft -->
+    <!-- PDF -->
 
-                                        @if (purchaseOrder.Status ==
-                                            PurchaseOrderStatus.Draft)
-                                        {
-                                            <a asp-action="Edit"
-                                               asp-route-id="@purchaseOrder.Id"
-                                               class="btn
-                                                      btn-sm
-                                                      btn-outline-warning"
-                                               title="Edit">
+    <a asp-action="DownloadPdf"
+       asp-route-id="@purchaseOrder.Id"
+       class="btn
+              btn-sm
+              btn-outline-danger"
+       title="Download PDF">
 
-                                                <i class="fa-solid
-                                                          fa-pen">
-                                                </i>
+        <i class="fa-solid fa-file-pdf"></i>
 
-                                            </a>
+    </a>
 
 
-                                            <!-- Delete only Draft -->
+    <!-- Edit -->
 
-                                            <button type="button"
-                                                    class="btn
-                                                           btn-sm
-                                                           btn-outline-danger"
-                                                    title="Delete"
-                                                    onclick="confirmDelete(
-                                                        '@Url.Action(
-                                                            "Delete",
-                                                            "PurchaseOrder",
-                                                            new
-                                                            {
-                                                                id =
-                                                                    purchaseOrder.Id
-                                                            })')">
+    @if (purchaseOrder.Status ==
+         PurchaseOrderStatus.Draft)
+    {
+        <a asp-action="Edit"
+           asp-route-id="@purchaseOrder.Id"
+           class="btn
+                  btn-sm
+                  btn-outline-warning"
+           title="Edit">
 
-                                                <i class="fa-solid
-                                                          fa-trash">
-                                                </i>
+            <i class="fa-solid fa-pen"></i>
 
-                                            </button>
-                                        }
+        </a>
+    }
+    else
+    {
+        <button type="button"
+                class="btn
+                       btn-sm
+                       btn-outline-warning"
+                title="Only Draft Purchase Orders can be edited."
+                disabled>
 
-                                    </div>
+            <i class="fa-solid fa-pen"></i>
 
-                                </td>
+        </button>
+    }
+
+
+    <!-- Delete -->
+
+    @if (purchaseOrder.Status ==
+         PurchaseOrderStatus.Draft)
+    {
+        <button type="button"
+                class="btn
+                       btn-sm
+                       btn-outline-danger"
+                title="Delete"
+                onclick="confirmDelete(
+                    '@Url.Action(
+                        "Delete",
+                        "PurchaseOrder",
+                        new
+                        {
+                            id = purchaseOrder.Id
+                        })')">
+
+            <i class="fa-solid fa-trash"></i>
+
+        </button>
+    }
+    else
+    {
+        <button type="button"
+                class="btn
+                       btn-sm
+                       btn-outline-danger"
+                title="Only Draft Purchase Orders can be deleted."
+                disabled>
+
+            <i class="fa-solid fa-trash"></i>
+
+        </button>
+    }
+
+</td>
 
                             </tr>
 

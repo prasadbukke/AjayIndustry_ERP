@@ -1,4 +1,4 @@
-﻿# Coding Standards
+# 07 - Coding Standards
 
 ## Architecture
 
@@ -6,92 +6,105 @@
 - Repository Pattern
 - Service Pattern
 - Dependency Injection
+- BusinessException for business validation
 
 ---
 
 ## Project Structure
 
-Domain
+- Domain
+- Application
+- Infrastructure
+- Web
 
-↓
+Future:
 
-Application
-
-↓
-
-Infrastructure
-
-↓
-
-Web (MVC)
-
-↓
-
-Web API (Future)
+- ASP.NET Core Web API may reuse Application Services.
 
 ---
 
 ## File Standard
 
-Every C# file must contain
+C# files should use:
 
-- File Header Comment
-- XML Comments
-- Regions
-- Proper Naming
+- Clear file name
+- Appropriate namespace
+- Regions for large modules
+- XML comments for public methods where useful
+- Consistent naming
+- No unrelated rewrites during a focused change
 
 ---
 
 ## Controller Rules
 
-Controller contains
+Controller contains:
 
-- HTTP Request Handling
-- Model Validation
-- Service Calls
-- Redirects
+- HTTP request handling
+- ModelState handling
+- ViewModel/entity coordination
+- Service calls
+- TempData messages
+- Redirects / responses
 
-Controller must NOT contain
+Controller must not contain:
 
-- Business Logic
-- Entity Framework Code
-- SQL Queries
+- Entity Framework queries
+- SQL
+- core business rules
+- authoritative financial calculation
 
 ---
 
 ## Service Rules
 
-Service contains
+Service contains:
 
-- Business Rules
-- Validation
-- Mapping
-- Workflow
+- Business rules
+- Business validation
+- Transaction workflow rules
+- Snapshot rules
+- Authoritative calculations
+- Code generation
 
-Service must NOT access DbContext directly.
+Service must not access `DbContext` directly.
 
 ---
 
 ## Repository Rules
 
-Repository contains
+Repository contains:
 
-- Entity Framework Queries
-- CRUD Operations
+- Entity Framework queries
+- Includes
+- CRUD persistence
 - Search
 - Pagination
+- existence checks
+- last-code lookup
+- SaveChanges
 
-Repository must NOT contain business logic.
+Repository must not contain business workflow rules.
+
+---
+
+## EF Core Mapping Rule
+
+EF Core entity mapping belongs in:
+
+`Infrastructure/Configurations`
+
+Use:
+
+`IEntityTypeConfiguration<T>`
+
+Do not move module-specific EF configuration into Controllers or Services.
 
 ---
 
 ## Entity Rules
 
-Every Entity inherits
-
-BaseEntity
-
-Contains
+Business entities use `BaseEntity` audit fields where applicable:
 
 - IsActive
 - IsDeleted
@@ -100,153 +113,217 @@ Contains
 - ModifiedOn
 - ModifiedBy
 
+Entity-specific identity/code fields are defined by the entity; do not assume every table has the same `Id` or `Code` property name.
+
 ---
 
 ## Delete Rule
 
-Soft Delete Only
+Soft Delete is the default for business data.
 
-Never physically delete records.
+Physical delete should be avoided unless explicitly approved for a non-business/transient record.
+
+For important transactions, delete permission may depend on status.
+
+Example:
+
+Purchase Order can be deleted only while Draft.
 
 ---
 
 ## Async Rule
 
-Use async / await for
+Use async / await for:
 
-- Database
-- Repository
-- Service
+- Repository database operations
+- Application Service operations that depend on repositories
+- Controller actions that call async services
 
 ---
 
 ## Validation Rule
 
-Use
+Validation layers:
 
-- DataAnnotations
-- Service Validation
-- Duplicate Validation
+DataAnnotations / UI validation
+
+↓
+
+Application Service business validation
+
+↓
+
+Repository/database constraints as additional protection
+
+Controller catches `BusinessException` and shows a user-safe error.
 
 ---
 
 ## Naming Convention
 
-Entity
+Examples:
 
-Company
+Entity:
+`Company`
 
-Repository
+Repository:
+`CompanyRepository`
 
-CompanyRepository
+Repository Interface:
+`ICompanyRepository`
 
-Interface
+Service:
+`CompanyService`
 
-ICompanyRepository
+Service Interface:
+`ICompanyService`
 
-Service
+Controller:
+`CompanyController`
 
-CompanyService
+ViewModel:
+`CompanyViewModel`
 
-Interface
+---
 
-ICompanyService
+## Create / Edit Partial Rule
 
-Controller
+Shared form pattern:
 
-CompanyController
+`Create.cshtml`
+- owns `<form>`
+- renders `_Form`
+- renders `_ValidationScriptsPartial`
 
-ViewModel
+`Edit.cshtml`
+- owns `<form>`
+- renders `_Form`
+- renders `_ValidationScriptsPartial`
 
-CompanyViewModel
+`_Form.cshtml`
+- contains common fields/UI only
+- should not own the outer form tag
+
+---
+
+## Transaction Module Rule
+
+Transaction modules generally use:
+
+Header
+
+↓
+
+Lines
+
+↓
+
+Validation
+
+↓
+
+Snapshot preparation
+
+↓
+
+Calculation
+
+↓
+
+Status
+
+↓
+
+Audit
+
+↓
+
+Output / PDF
+
+Purchase Order is the current reference transaction module.
+
+---
+
+## Business Snapshot Rule
+
+If a historical transaction must not change when Master data changes later, store a transaction snapshot.
+
+Current Purchase Order examples:
+
+- Company details
+- Supplier details
+- Item details
+- Specification
+- Drawing Number / Revision
+- Terms & Conditions
 
 ---
 
 ## Module Development Flow
 
-Entity
+1. Requirement
+2. Business Flow
+3. Database Design
+4. Business Rules
+5. UI
+6. Coding
+7. Build
+8. Runtime Testing
+9. Documentation
+10. Git Commit
 
-↓
+---
 
-Configuration
+## Change Delivery Standard
 
-↓
+When making a focused code change:
 
-Migration
+- identify exact file
+- identify exact region
+- use FIND / ADD / REPLACE instructions when patching
+- for large unstable files, prefer one complete ready-to-paste version instead of repeated partial patches
+- do not change architecture/folder conventions casually
 
-↓
+---
 
-Repository
+## Documentation Update Standard
 
-↓
+At module completion update:
 
-Service
+- Project Progress
+- Sprint Log
+- Project State
+- Roadmap
 
-↓
+Also update when relevant:
 
-Dependency Injection
+- Database Design
+- Database Relationship
+- Decision Log
+- Business Flow
+- Transaction Flow
+- UI Standards
+- Component Library
+- Module Blueprint
 
-↓
+See `00_DocumentationIndex.md`.
 
-Controller
+---
 
-↓
+## Reference Modules
 
-Views
-
-↓
-
-Create
-
-↓
-
-List
-
-↓
-
-Details
-
-↓
-
-Edit
-
-↓
-
-Delete
-
-↓
-
-Search
-
-↓
-
-Pagination
-
-↓
-
-Documentation
-
-↓
-
-Git Commit
-
-----
-
-## Reference Module
+CRUD reference:
 
 Company Master
 
-All future ERP modules must follow the Company Master coding pattern.
+Dynamic engineering reference:
 
-Small lookup masters should never redirect
-the user away from the transaction screen.
+Item + Drawing
 
-Use the reusable Quick Master Modal.
+Transaction reference:
 
-Required Features
+Purchase Order
 
-- Live Search
-- Similar Name Detection
-- Exact Duplicate Blocking
-- AJAX Save
-- Auto Select
+Small lookup masters:
+
+Reusable Quick Master Modal with live search, duplicate protection, AJAX save and auto-select.

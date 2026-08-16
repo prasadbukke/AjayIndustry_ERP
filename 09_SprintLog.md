@@ -1,4 +1,4 @@
-﻿# 09 - Sprint Log
+# 09 - Sprint Log
 
 ## Ajay Industries ERP
 
@@ -302,25 +302,212 @@ Finalize item master with part number and drawing integration
 
 ---
 
+---
+
+# Purchase Order Design Sprint
+
+Final Purchase Order architecture was designed and implemented as:
+
+PurchaseOrder
+→ Header
+
+PurchaseOrderItem
+→ Multiple lines
+
+Implemented business design:
+
+- Company reference + snapshot
+- Supplier reference + snapshot
+- Item reference + snapshot
+- Specification snapshot
+- Optional Drawing reference + Drawing Number / Revision snapshot
+- Purchase-specific HSN
+- Quantity
+- UOM snapshot
+- Unit Price
+- GST
+- Transport Charges
+- Other Charges
+- Grand Total
+- Terms & Conditions snapshot
+
+PO Number format:
+
+`AI/PO/26-27/00001`
+
+Financial Year:
+
+April to March
+
+Sequence uses five digits and PO numbers are never reused.
+
+---
+
+# Purchase Order GST Sprint
+
+Implemented:
+
+- Default GST 18%
+- Manual GST percentage change per line
+- Company.State vs Supplier.State tax-type detection
+- Same State → CGST + SGST
+- Different State → IGST
+- Live Create/Edit GST preview
+- Service-layer authoritative GST calculation
+
+GSTIN is optional and is not used to determine GST type.
+
+---
+
+# Purchase Order Commercial Rule Cleanup
+
+Final Purchase Order rules:
+
+- Discount is not used.
+- Round Off is not used.
+- Existing database fields are retained for compatibility and forced to zero.
+- Line Total remains.
+- Transport Charges remain.
+- Other Charges remain.
+- No separate GST is currently calculated on Transport / Other Charges.
+
+Final amount logic:
+
+Quantity × Rate
+→ Taxable Amount
+→ GST
+→ Transport Charges
+→ Other Charges
+→ Grand Total
+
+---
+
+# Purchase Order Terms & Conditions Sprint
+
+Company Master was extended with standard Purchase Order Terms & Conditions.
+
+Flow:
+
+Company.PurchaseOrderTermsAndConditions
+→ PurchaseOrder.TermsAndConditions snapshot
+
+Historical Purchase Orders keep their saved Terms & Conditions even if Company Master changes later.
+
+Company GST Number was made optional.
+
+---
+
+# Purchase Order Workflow Sprint
+
+Implemented workflow:
+
+Draft
+→ Confirmed
+→ Sent
+
+Rules:
+
+- Draft can be edited.
+- Draft can be soft deleted.
+- Confirmed/Sent cannot be edited.
+- Confirmed/Sent cannot be deleted through current workflow.
+- No separate Cancel action is currently implemented.
+- PartiallyReceived / Received are reserved for GRN integration.
+
+Purchase Order does not update inventory stock.
+
+---
+
+# Purchase Order PDF Sprint
+
+Professional supplier PDF implemented using QuestPDF.
+
+PDF includes:
+
+- Company logo
+- Company information
+- PO Number / PO Date
+- Supplier & Delivery grid
+- Item / Specification / Drawing
+- HSN
+- Qty / UOM / Rate
+- GST %
+- Taxable / Line Total
+- CGST / SGST / IGST
+- Transport Charges
+- Other Charges
+- Grand Total
+- Remarks
+- Terms & Conditions
+- Prepared / Checked By
+- Authorized Signatory
+- Footer / page number
+
+PDF status is intentionally not displayed.
+
+PDF layout was compared against the approved Purchase Order format and refined.
+
+---
+
+# Purchase Order Testing
+
+Successfully tested during implementation:
+
+- Create
+- Edit Draft
+- Details
+- Draft delete
+- Confirm
+- Mark as Sent
+- Item add/remove
+- Drawing / no Drawing
+- Specification display
+- Default GST
+- Manual GST rate change
+- Same-state GST split
+- Different-state GST split
+- Supplier change live tax-type refresh
+- Transport Charges
+- Other Charges
+- Terms & Conditions snapshot
+- PDF generation
+- PDF download
+
+---
+
+# Git Milestones
+
+Completed earlier:
+
+- Drawing Master milestone
+- Item Master + Drawing integration milestone
+- Purchase Order core workflow/GST/T&C milestone
+
+Current documentation milestone:
+
+Finalize Purchase Order module documentation and PDF milestone.
+
+---
+
 # Next Sprint
 
 Next selected module:
 
+**GRN - Goods Receipt Note**
+
+GRN design must begin with:
+
+Requirement
+→ Business Flow
+→ Database Design
+→ Business Rules
+→ UI
+→ Coding
+
+Main future purpose:
+
 Purchase Order
-
-Primary requirements:
-
-- Supplier-based Purchase Order
-- Multiple Item lines
-- Quantity
-- Rate
-- Tax structure
-- Delivery details
-- Terms
-- PO lifecycle
-- Professional Purchase Order PDF
-- PDF suitable for sending to Supplier
-
-Purchase Requisition is deferred for now.
-
-Detailed Purchase Order design will be finalized before coding.
+→ Material Receipt
+→ Partial / Full Receipt
+→ PO receipt status
+→ Inventory Stock Transaction

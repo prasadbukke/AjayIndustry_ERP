@@ -1,4 +1,4 @@
-﻿# 17 - Module Blueprint
+# 17 - Module Blueprint
 
 ## Ajay Industries ERP
 
@@ -361,97 +361,237 @@ Header
 
 ---
 
-# 21. Next Module - Purchase Order
+---
 
-Purchase Order is the next selected module.
+# 21. Purchase Order Module Blueprint
 
-Before coding, finalize:
+Purchase Order is the completed reference transaction module.
 
-## Header
+Architecture:
 
-Potential fields:
+PurchaseOrder
+→ Header
 
-- PurchaseOrderId
-- PurchaseOrderNumber
-- PurchaseOrderDate
-- Company
-- Supplier
-- Supplier Address Snapshot
-- Supplier GSTIN
+PurchaseOrderItem
+→ Lines
+
+Implementation order followed:
+
+1. Domain entities/enums
+2. EF configurations
+3. DbSets
+4. Migration
+5. Repository interface
+6. Repository implementation
+7. Service interface
+8. Service implementation
+9. Dependency Injection
+10. ViewModels
+11. Controller
+12. Index
+13. Create/Edit shared form
+14. Details
+15. Workflow actions
+16. PDF service
+17. Runtime testing
+18. Documentation
+19. Git commit
+
+---
+
+# 22. Purchase Order Header Blueprint
+
+Current header responsibilities:
+
+- PO Number
+- PO Date
+- Expected Delivery
+- Status
+- Company reference + snapshot
+- Supplier reference + snapshot
 - Delivery Address
 - Payment Terms
 - Delivery Terms
 - Remarks
+- Terms & Conditions snapshot
+- GST totals
+- Transport Charges
+- Other Charges
+- Grand Total
+- workflow timestamps
+- audit fields
+
+PO Number:
+
+`AI/PO/YY-YY/00001`
+
+Financial Year:
+
+April to March
+
+---
+
+# 23. Purchase Order Line Blueprint
+
+Current line responsibilities:
+
+- ItemId
+- ItemCode snapshot
+- ItemName snapshot
+- Description snapshot
+- Specification snapshot
+- UnitName snapshot
+- HSNCode
+- optional DrawingId
+- DrawingNumber snapshot
+- DrawingRevision snapshot
+- Quantity
+- UnitPrice
+- GSTPercent
+- TaxableAmount
+- CGSTAmount
+- SGSTAmount
+- IGSTAmount
+- LineTotal
+- RequiredDate
+- Remarks
+- audit fields
+
+Discount fields remain compatibility-only and are forced to zero.
+
+---
+
+# 24. Purchase Order Calculation Blueprint
+
+Line:
+
+Quantity × Unit Price
+→ Taxable Amount
+
+Tax:
+
+Same State
+→ CGST + SGST
+
+Different State
+→ IGST
+
+Header:
+
+Taxable
++ tax
++ Transport Charges
++ Other Charges
+→ Grand Total
+
+Rules:
+
+- Default GST 18%
+- GST editable
+- no Purchase Order Discount
+- no Round Off
+- no separate GST on Transport/Other Charges currently
+
+---
+
+# 25. Purchase Order Snapshot Blueprint
+
+Before persistence, Service validates related Masters and copies required historical values.
+
+Snapshot sources:
+
+Company
+Supplier
+Item
+Drawing
+Company Terms & Conditions
+
+The PDF reads Purchase Order snapshots, not live Master values.
+
+---
+
+# 26. Purchase Order Workflow Blueprint
+
+Draft
+→ Confirmed
+→ Sent
+
+Service methods own transitions.
+
+Controller exposes explicit POST actions.
+
+Edit/Delete are blocked after Draft.
+
+Future GRN owns receipt transitions.
+
+---
+
+# 27. Purchase Order PDF Blueprint
+
+Interface:
+
+`IPurchaseOrderPdfService`
+
+Implementation:
+
+`PurchaseOrderPdfService`
+
+Library:
+
+QuestPDF
+
+Approved content:
+
+- Company logo/details
+- PO number/date
+- Supplier & Delivery grid
+- Item table
+- Remarks/totals
+- Terms & Conditions
+- signatory
+- footer/page number
+
+Status is not printed on supplier PDF.
+
+---
+
+# 28. Next Transaction Blueprint - GRN
+
+Before GRN coding finalize:
+
+Header candidates:
+
+- GRN Id / Code
+- GRN Date
+- PurchaseOrderId
+- Supplier
+- Warehouse
+- Supplier Challan reference
+- Supplier Invoice reference if required
+- Remarks
 - Status
 
-Exact fields are not yet locked.
+Line candidates:
 
-## Lines
-
-Potential fields:
-
-- PurchaseOrderLineId
-- PurchaseOrderId
+- PurchaseOrderItemId
 - ItemId
-- UomId
-- Quantity
-- Rate
-- Discount
-- Tax
-- Amount
+- Ordered Quantity
+- Previously Received Quantity
+- Current Received Quantity
+- Accepted Quantity
+- Rejected Quantity if required
+- Pending Quantity
+- UOM
+- Batch/Heat/Lot if required later
 
-Exact fields are not yet locked.
+Business rules to finalize:
 
----
+- multiple GRNs per PO
+- no over-receipt unless explicitly allowed
+- partial receipt
+- full receipt
+- PO status update
+- stock transaction
+- reversal/delete behavior
 
-# 22. Purchase Order Workflow Goal
-
-Expected basic workflow:
-
-Create PO
-→ Select Supplier
-→ Add Items
-→ Quantity / Rate
-→ Tax Calculation
-→ Terms
-→ Save
-→ Generate PDF
-→ Share PDF with Supplier
-
----
-
-# 23. Purchase Order PDF Requirement
-
-Purchase Order must generate a professional PDF.
-
-PDF should be suitable for:
-
-- Printing
-- Email
-- WhatsApp/file sharing
-- Supplier communication
-
-PDF design will be finalized during Purchase Order module design.
-
----
-
-# 24. Purchase Requisition Decision
-
-Purchase Requisition is not required before the first Purchase Order implementation.
-
-It is deferred.
-
-It may be added later if the business workflow requires internal purchase approval/request processing.
-
----
-
-# 25. Future Transaction Direction
-
-Expected future sequence:
-
-Purchase Order
-→ GRN / Purchase Receipt
-→ Warehouse / Stock
-→ Supplier Transaction / Accounting
-
-Further modules will be finalized one at a time.
+These fields are planning candidates only until GRN design is approved.

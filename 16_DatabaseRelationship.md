@@ -1,4 +1,4 @@
-﻿# 16 - Database Relationship
+# 16 - Database Relationship
 
 ## Ajay Industries ERP
 
@@ -112,25 +112,15 @@ Items
 *
 Drawings
 
-This is one-to-many physically because every Drawing Revision is stored as a separate row.
+One-to-many physically because each Drawing Revision is a separate row.
 
 ---
 
 # 9. Item to Drawing Business Relationship
 
-Business relationship:
-
 ONE Item
 → ONE Drawing Number
 → MANY Revision Rows
-
-Example:
-
-ItemId 1006
-→ DRG-1001
-   → RV-01
-   → RV-02
-   → RV-03
 
 Every revision row uses the same ItemId and DrawingNumber.
 
@@ -138,82 +128,25 @@ Every revision row uses the same ItemId and DrawingNumber.
 
 # 10. Current Drawing Revision
 
-Example:
+For one Drawing Number:
 
-RV-01  IsActive = false
-RV-02  IsActive = false
-RV-03  IsActive = true
+maximum one non-deleted row with `IsActive = true`.
 
-Filtered uniqueness:
-
-DrawingNumber
-WHERE IsActive = 1
-AND IsDeleted = 0
-
-Maximum one Current revision.
+Historical revisions are inactive.
 
 ---
 
-# 11. One Current Drawing Per Item
-
-Filtered uniqueness:
-
-ItemId
-WHERE IsActive = 1
-AND IsDeleted = 0
-
-This prevents two active Drawing identities for the same Item.
-
-Historical revisions remain valid because they are inactive.
-
----
-
-# 12. Drawing Revision Identity
+# 11. Drawing Revision Identity
 
 Permanent unique pair:
 
 DrawingNumber + RevisionNumber
 
-This index includes deleted records.
-
-Deleted Revision Numbers cannot be reused.
+Deleted Revision Numbers remain reserved.
 
 ---
 
-# 13. Revision Soft Delete
-
-Inactive revision:
-
-IsDeleted = true
-IsActive = false
-
-The row remains in the database.
-
-Physical Drawing file remains stored.
-
----
-
-# 14. Complete Drawing Soft Delete
-
-Complete Drawing:
-
-IsDeleted = true
-
-for its revision history.
-
-Normal queries exclude deleted rows.
-
-Drawing Number remains reserved.
-
-Restore is supported.
-
----
-
-# 15. Supplier Current Relationship
-
-Supplier is currently a standalone Master.
-
-Future physical relationship:
+# 12. Supplier to Purchase Order
 
 Suppliers
 1
@@ -221,13 +154,17 @@ Suppliers
 *
 PurchaseOrders
 
-This table does not yet exist.
+PurchaseOrder contains `SupplierId`.
+
+Delete behavior:
+
+Restrict for the physical foreign key.
+
+Purchase Order also stores Supplier snapshot fields.
 
 ---
 
-# 16. Purchase Order Planned Relationship
-
-Next planned transaction structure:
+# 13. Company to Purchase Order
 
 Companies
 1
@@ -235,64 +172,168 @@ Companies
 *
 PurchaseOrders
 
-Suppliers
-1
-|
-*
-PurchaseOrders
+PurchaseOrder contains `CompanyId`.
+
+Delete behavior:
+
+Restrict.
+
+Purchase Order also stores Company snapshot fields and Terms & Conditions snapshot.
+
+---
+
+# 14. Purchase Order to Purchase Order Items
 
 PurchaseOrders
 1
 |
 *
-PurchaseOrderLines
+PurchaseOrderItems
+
+`PurchaseOrderItem.PurchaseOrderId`
+→ `PurchaseOrder.Id`
+
+The current EF configuration uses cascade behavior for physical parent-child delete semantics, while the application normally uses Soft Delete and marks child rows deleted with the Purchase Order.
+
+---
+
+# 15. Item to Purchase Order Item
 
 Items
 1
 |
 *
-PurchaseOrderLines
+PurchaseOrderItems
 
-UOMs
+PurchaseOrderItem contains `ItemId`.
+
+Delete behavior:
+
+Restrict.
+
+The line also stores Item snapshot fields.
+
+---
+
+# 16. Drawing to Purchase Order Item
+
+Drawings
 1
 |
 *
-PurchaseOrderLines
+PurchaseOrderItems
 
-This is a planning relationship only.
+PurchaseOrderItem.DrawingId is optional.
 
-Exact schema will be finalized before Purchase Order coding.
+Delete behavior:
 
----
+Restrict.
 
-# 17. Future Purchase Flow
+Business rule at Draft Create/Edit:
 
-Supplier
-→ Purchase Order
-→ Purchase Order Lines
-→ Item
-
-Later:
-
-Purchase Order
-→ GRN / Purchase Receipt
-→ Warehouse / Stock
+- Drawing must belong to the selected Item.
+- Drawing revision must be Current.
+- Drawing Number and Revision are copied to snapshot fields.
 
 ---
 
-# 18. Delete Behavior
+# 17. UOM in Purchase Order
+
+PurchaseOrderItem does not depend on a separate UOM foreign key for historical display.
+
+The Item's current UOM name is copied to:
+
+`PurchaseOrderItem.UnitName`
+
+This is a transaction snapshot.
+
+---
+
+# 18. Purchase Order Snapshot Principle
+
+Physical foreign keys provide current relational integrity.
+
+Snapshot fields preserve historical transaction presentation.
+
+Current PO snapshots include:
+
+- Company
+- Supplier
+- Item
+- Specification
+- UOM name
+- Drawing Number / Revision
+- Terms & Conditions
+
+---
+
+# 19. Purchase Order Status / GRN Relationship
+
+Current PO workflow:
+
+Draft
+→ Confirmed
+→ Sent
+
+Future GRN will drive:
+
+Sent / PartiallyReceived
+→ PartiallyReceived
+→ Received
+
+Exact GRN physical relationships are not yet created.
+
+---
+
+# 20. Future GRN Relationship
+
+Planned:
+
+PurchaseOrders
+1
+|
+*
+GRNs
+
+GRNs
+1
+|
+*
+GRNItems
+
+PurchaseOrderItems
+1
+|
+*
+GRNItems
+
+Items
+1
+|
+*
+GRNItems
+
+Warehouse relationship will be finalized during GRN design.
+
+This is planning only until GRN schema is approved.
+
+---
+
+# 21. Delete Behavior
 
 Master foreign keys generally use:
 
 DeleteBehavior.Restrict
 
-Business history should not be physically cascade deleted.
+Business history should not be physically deleted.
 
 Soft Delete is preferred.
 
+Transaction parent-child configuration may use cascade only for physical relational integrity while application behavior remains Soft Delete.
+
 ---
 
-# 19. Future Engineering Relationship
+# 22. Future Engineering Relationship
 
 Drawing may later be referenced by:
 

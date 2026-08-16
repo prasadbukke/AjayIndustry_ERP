@@ -1,16 +1,18 @@
-﻿# 15 - Master Dependency
+# 15 - Master Dependency
 
 ## Ajay Industries ERP
 
-This document describes Master dependencies and their future transaction usage.
+This document describes Master dependencies and their transaction usage.
 
 ---
 
 # 1. Dependency Principle
 
-Master data should contain stable identity/configuration information.
+Master data contains stable identity/configuration information.
 
-Transaction-derived values should remain in transaction modules.
+Transaction-derived values belong to transaction modules.
+
+When historical transactions must remain unchanged after Master edits, the transaction stores a snapshot.
 
 ---
 
@@ -108,7 +110,7 @@ PartNumber is not part of duplicate identity.
 
 Drawing depends on Item.
 
-Final business relationship:
+Final relationship:
 
 Item
 → Drawing Number
@@ -123,110 +125,112 @@ Rules:
 
 ---
 
-# 6. Drawing Revision Dependency
+# 6. Supplier Dependency
 
-All revisions share:
-
-- ItemId
-- DrawingNumber
-- DrawingName
-- DrawingType
-
-Revision-specific fields:
-
-- RevisionNumber
-- FileName
-- FilePath
-- Description
-- Current/Inactive state
-
----
-
-# 7. Item to Drawing UI Dependency
-
-Item Details/Edit may display the Current Drawing.
-
-However:
-
-Item does not own Drawing revision business logic.
-
-Drawing Master remains responsible for:
-
-- Revision creation
-- Revision activation
-- Revision deletion
-- Drawing deletion
-- Drawing restore
-
----
-
-# 8. Supplier Dependency
-
-Supplier is currently independent Master data.
-
-Future use:
+Supplier is used by Purchase Order.
 
 Supplier
-→ Purchase Order
+1
+→ many
+Purchase Orders
 
-Supplier will provide Purchase Order data such as:
+Purchase Order stores Supplier snapshot fields so historical POs do not change when Supplier Master changes.
+
+Current snapshot usage includes:
 
 - Supplier Name
-- GSTIN
 - Address
-- Contact
-- Payment Terms
+- optional GSTIN
+- Contact Person
+- Phone
+- Email
 
-Exact snapshot behavior will be finalized during Purchase Order design.
+Supplier State is used with Company State for Purchase Order GST type.
+
+PaymentTermsDays may provide the default Purchase Order Payment Terms.
 
 ---
 
-# 9. Company Dependency
+# 7. Company Dependency
 
-Company will be required by Purchase Order.
-
-Future use:
+Company is used by Purchase Order.
 
 Company
-→ Purchase Order
+1
+→ many
+Purchase Orders
 
-Company information may be used on Purchase Order PDF.
+Current PO usage:
+
+- Company Name
+- Address
+- State
+- optional GSTIN
+- Phone
+- Email
+- Website where configured
+- Standard Purchase Order Terms & Conditions
+
+Purchase Order stores a Company snapshot.
+
+Company State is authoritative for Purchase Order intra/inter-state comparison.
 
 ---
 
-# 10. Item Dependency in Purchase Order
+# 8. Item Dependency in Purchase Order
 
-Purchase Order will use Item.
+Purchase Order line depends on Item.
 
-Future relationship:
-
-Purchase Order
-→ Purchase Order Lines
+PurchaseOrder
+→ PurchaseOrderItem
 → Item
 
-Likely line-level usage:
+At save time Purchase Order stores:
 
-- Item
-- UOM
+- ItemCode
+- ItemName
+- Description
+- Specification snapshot
+- UnitName snapshot
+
+Purchase-specific values stay on PurchaseOrderItem:
+
+- HSN
 - Quantity
 - Rate
-- Tax
-- Amount
-
-Exact design is pending.
+- GST
+- Taxable
+- tax amounts
+- Line Total
 
 ---
 
-# 11. UOM Dependency
+# 9. Drawing Dependency in Purchase Order
 
-UOM is currently used by:
+Drawing is optional on a Purchase Order line.
+
+If selected:
+
+- Drawing must belong to the selected Item.
+- Drawing must be the Current active revision.
+- Purchase Order stores Drawing Number and Revision snapshot.
+
+Historical PO does not depend on later Drawing revision changes for its printed value.
+
+---
+
+# 10. UOM Dependency
+
+UOM is used by:
 
 - Item
 - ItemSpecifications
 
-Future use:
+Purchase Order derives/stores the Item UOM as a line snapshot (`UnitName`).
 
-- Purchase Order
+Future modules:
+
+- GRN
 - Inventory
 - BOM
 - Production
@@ -234,26 +238,19 @@ Future use:
 
 ---
 
-# 12. Warehouse Dependency
+# 11. Warehouse Dependency
 
-Warehouse is currently standalone Master data.
+Warehouse is currently a completed standalone Master.
 
-Future:
+Next major transaction use:
 
-Warehouse
-→ Inventory / Stock Transactions
+GRN / Inventory receipt.
 
-Warehouse is not currently part of Item Master.
+Purchase Order itself does not create Warehouse stock.
 
 ---
 
-# 13. Next Transaction Dependency
-
-Next module:
-
-Purchase Order
-
-Expected high-level dependency:
+# 12. Purchase Order Current Dependency
 
 Company
    ↓
@@ -263,23 +260,54 @@ Supplier
 
 Purchase Order
    ↓
-Purchase Order Lines
+Purchase Order Items
    ↓
 Item
    ↓
-UOM
+Specification / UOM snapshot
+
+Optional:
+
+Item
+↓
+Current Drawing
+↓
+Drawing Number / Revision snapshot
+
+---
+
+# 13. Next Transaction Dependency
+
+Next module:
+
+GRN
+
+Planned dependency direction:
+
+Purchase Order
+↓
+GRN
+↓
+GRN Lines
+↓
+Item
+↓
+Warehouse / Stock Transaction
+
+GRN will also drive future Purchase Order receipt status:
+
+- PartiallyReceived
+- Received
 
 ---
 
 # 14. Future Dependency Direction
 
-Expected future flow:
-
 Supplier
 → Purchase Order
-→ GRN / Purchase Receipt
+→ GRN
 → Warehouse Stock
-→ Inventory
+→ Inventory / Stock Ledger
 
 Item
 → BOM

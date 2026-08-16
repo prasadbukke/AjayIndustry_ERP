@@ -1,41 +1,72 @@
-﻿# Architecture
+# 10 - Architecture
 
-## Architecture Style
+## Project
 
-Clean Architecture
+Ajay Industries ERP
+
+## Status
+
+**ERP Architecture Freeze v1.0 - LOCKED**
 
 ---
 
-## Technology Stack
+# 1. Architecture Style
 
-Presentation
+Clean Architecture with:
 
-- ASP.NET Core MVC (.NET 8)
+- Domain
+- Application
+- Infrastructure
+- Web
 
-API
+Current presentation:
 
-- ASP.NET Core Web API (.NET 8) (Future)
+ASP.NET Core MVC .NET 8
 
-Application
+Future:
 
-- Services
-- Interfaces
-- Contracts
+ASP.NET Core Web API may reuse Application Services.
 
-Infrastructure
+---
+
+# 2. Technology Stack
+
+## Web
+
+- ASP.NET Core MVC .NET 8
+- Razor Views
+- Bootstrap
+- JavaScript / jQuery
+- Select2
+- Toastr
+
+## Application
+
+- Service interfaces
+- Service implementations
+- Business rules
+- BusinessException
+- PagedResult
+- Helpers
+- PDF service contract/implementation currently follows the project Service convention
+
+## Infrastructure
 
 - Entity Framework Core
-- Repositories
+- Repository implementations
 - SQL Server
+- Entity configurations
+- Dependency Injection registration
 
-Domain
+## Domain
 
 - Entities
-- Common
+- Enums
+- Common business/audit base types
 
 ---
 
-## Layer Flow
+# 3. Runtime Request Flow
 
 MVC View
 
@@ -49,98 +80,11 @@ Application Service
 
 ↓
 
-Repository
+Repository Interface / Repository Implementation
 
 ↓
 
-DbContext
-
-↓
-
-SQL Server
-
----
-
-## Future Flow
-
-MVC
-
-↓
-
-Web API
-
-↓
-
-Application
-
-↓
-
-Infrastructure
-
-↓
-
-Domain
-
-↓
-
-SQL Server
-
-Business logic will be reused by both MVC and Web API.
-
----
-
-## Dependency Rule
-
-Web
-
-↓
-
-Application
-
-↓
-
-Infrastructure
-
-↓
-
-Domain
-
-Dependencies are always inward.
-
----
-
-## Business Rules
-
-- Business logic only in Service Layer.
-- Database access only through Repository.
-- Controllers handle only requests and responses.
-- Domain contains only business entities.
-
----
-
-## Data Flow
-
-User
-
-↓
-
-MVC View
-
-↓
-
-Controller
-
-↓
-
-Service
-
-↓
-
-Repository
-
-↓
-
-Entity Framework Core
+ApplicationDbContext
 
 ↓
 
@@ -154,170 +98,263 @@ Response
 
 MVC View
 
----
-
-## Reference Module
-
-Company Master
-
-The Company module is the reference implementation for all future ERP modules.
-
-
-
-# ERP Architecture Freeze v1.0
-
-Project
-
-Ajay Industries ERP
-
-Status
-
-✅ LOCKED
+This is the runtime/business execution flow.
 
 ---
 
-Architecture
+# 4. Project Dependency Intent
 
-Clean Architecture
+Domain is the core business-data layer.
 
-Web
+Application depends on Domain.
 
-↓
+Infrastructure implements persistence/repository concerns used by Application contracts and depends on the required Application/Domain contracts.
 
-Application
+Web is the composition/presentation layer and wires Application + Infrastructure through Dependency Injection.
 
-↓
-
-Domain
-
-↓
-
-Infrastructure
+Do not confuse runtime call direction with project-reference direction.
 
 ---
 
-Patterns
+# 5. Business Rule Boundaries
+
+Controller:
+
+- request/response coordination
+- ModelState
+- TempData
+- redirects
+
+Application Service:
+
+- business validation
+- calculations
+- transaction workflow
+- snapshot logic
+- code generation
+
+Repository:
+
+- EF Core database access
+- Includes
+- CRUD persistence
+- search/pagination
+- existence checks
+
+Domain:
+
+- entities
+- enums
+- common business data
+
+---
+
+# 6. EF Core Configuration
+
+Entity mapping belongs in:
+
+`AjayIndustriesERP.Infrastructure/Configurations`
+
+Pattern:
+
+`IEntityTypeConfiguration<T>`
+
+DbContext applies configurations from the Infrastructure assembly.
+
+Inline module mapping inside Controllers/Services is not allowed.
+
+---
+
+# 7. Dependency Injection
+
+Main registration location:
+
+`Infrastructure/DependencyInjection/DependencyInjection.cs`
+
+Program.cs calls the Infrastructure registration method and acts as the application composition root.
+
+Module registrations should follow the existing DI pattern instead of being scattered through Controllers.
+
+---
+
+# 8. Shared Architecture Patterns
 
 - Repository Pattern
 - Service Pattern
 - Dependency Injection
-- Business Exception
-- Shared Components
-
----
-
-Shared Components
-
-- Search
-- Pagination
+- BusinessException
+- Soft Delete
+- PagedResult
+- Shared Search
+- Shared Pagination
 - Delete Confirmation Modal
 - Toast Notification
+- Quick Master pattern
+- Historical transaction snapshot pattern
 
 ---
 
-Controller Standard
+# 9. Controller Standard
 
-Index
+Typical Master:
 
-Details
+- Index
+- Details
+- Create GET
+- Create POST
+- Edit GET
+- Edit POST
+- Delete POST
 
-Create (GET)
+Transaction modules may additionally contain:
 
-Create (POST)
+- workflow POST actions
+- PDF/print GET actions
+- lightweight AJAX helper actions
 
-Edit (GET)
-
-Edit (POST)
-
-Delete (POST)
-
----
-
-Repository Standard
-
-GetAllAsync
-
-GetByIdAsync
-
-SearchAsync
-
-GetPagedAsync
-
-CreateAsync
-
-UpdateAsync
-
-DeleteAsync
-
-SaveChangesAsync
+Business logic still remains in Services.
 
 ---
 
-Service Standard
+# 10. Repository Standard
 
-GetAllAsync
+Typical operations:
 
-GetByIdAsync
+- GetAllAsync
+- GetByIdAsync
+- SearchAsync
+- GetPagedAsync
+- Add/Create
+- Update
+- Delete
+- Exists checks
+- SaveChangesAsync
 
-SearchAsync
+Additional repository methods are allowed when required by a business module, for example:
 
-GetPagedAsync
-
-CreateAsync
-
-UpdateAsync
-
-DeleteAsync
+- last business-code lookup
+- prefix-based Purchase Order sequence lookup
 
 ---
 
-Validation Standard
+# 11. Service Standard
 
-UI
+Typical operations:
 
-DataAnnotations
+- GetAllAsync
+- GetByIdAsync
+- SearchAsync
+- GetPagedAsync
+- CreateAsync
+- UpdateAsync
+- DeleteAsync
+
+Transactions may add explicit workflow methods.
+
+Purchase Order examples:
+
+- ConfirmAsync
+- MarkAsSentAsync
+- IsIntraStateAsync
+
+---
+
+# 12. Validation Standard
+
+UI / DataAnnotations
 
 ↓
 
-Service
-
-Business Rules
+Application Service business rules
 
 ↓
 
-Controller
-
-BusinessException
+Repository / Database constraints
 
 ↓
 
-Toast Notification
+Controller catches BusinessException
+
+↓
+
+Toast / validation feedback
 
 ---
 
-Database Standard
+# 13. Database Standard
 
-Every table contains
+BaseEntity provides common audit/status fields:
 
-Id
+- IsActive
+- IsDeleted
+- CreatedOn
+- CreatedBy
+- ModifiedOn
+- ModifiedBy
 
-Code
+Identity and business-code property names are entity-specific.
 
-IsActive
+Rules:
 
-IsDeleted
-
-CreatedBy
-
-CreatedOn
-
-ModifiedBy
-
-ModifiedOn
+- Business codes are permanent.
+- Deleted codes are not reused.
+- Soft Delete is preferred.
+- Restrict is preferred for important Master foreign keys unless a specific transaction relationship requires another behavior.
+- Breaking database changes require explicit approval.
 
 ---
 
-Development Rule
+# 14. Item Master Domain Separation
+
+Status: LOCKED
+
+Item Master stores stable master/configuration data.
+
+Purchase Module owns transaction-specific:
+
+- Purchase Rate
+- GST
+- HSN
+- Supplier purchase transaction values
+
+Inventory owns:
+
+- Current Stock
+- Stock Transactions
+- Stock Ledger
+
+Reason:
+
+Single Responsibility and historical transaction accuracy.
+
+---
+
+# 15. Purchase Order Transaction Architecture
+
+Purchase Order is the first completed header-line transaction reference.
+
+Flow:
+
+PurchaseOrderController
+→ IPurchaseOrderService
+→ PurchaseOrderService
+→ IPurchaseOrderRepository
+→ PurchaseOrderRepository
+→ ApplicationDbContext
+
+PDF flow:
+
+PurchaseOrderController
+→ IPurchaseOrderPdfService
+→ PurchaseOrderPdfService
+→ QuestPDF
+→ PDF file response
+
+Purchase Order snapshots Master information so historical PDFs do not change when Master records are later edited.
+
+---
+
+# 16. Development Rule
 
 Requirement
 
@@ -355,81 +392,34 @@ Git Commit
 
 ---
 
-Change Policy
+# 17. Change Policy
 
-Architecture Changes
+Architecture breaking change:
 
-❌ Not Allowed
+Not allowed without explicit review.
 
-Database Breaking Changes
+Database breaking change:
 
-❌ Not Allowed
+Not allowed without explicit review.
 
-Folder Structure Changes
+Folder/layer convention change:
 
-❌ Not Allowed
+Not allowed casually.
 
-Only Business Rules can grow.
+Business rules may grow while preserving the frozen architecture.
 
-Status
+---
 
-✅ APPROVED
+# 18. Reference Modules
 
-Decision : Item Master Domain Separation
+Baseline CRUD:
 
-Status : LOCKED
+Company Master
 
-Item Master stores only master information.
+Dynamic master/engineering:
 
-Purchase Module owns:
-- Purchase Price
-- GST
-- HSN
-- Supplier Pricing
+Item + Drawing
 
-Inventory Module owns:
-- Current Stock
-- Stock Transactions
-- Stock Ledger
+Transaction header-lines / PDF:
 
-Reason:
-Single Responsibility Principle.
-Avoid duplicate data.
-Production ERP design.
-
-Decision
-
-Brand and Item Category are independent Master Modules.
-
-Reason
-
-Both modules are referenced by Item Master through Foreign Keys.
-
-Status
-
-LOCKED
-
-Reusable Quick Master Framework
-
-Purpose
-
-Provides a common framework for creating
-small master records without leaving the
-current transaction screen.
-
-Current Masters
-
-- Item Category
-- Brand
-- UOM
-
-Future
-
-- Supplier Type
-- Customer Type
-- Machine Type
-- Department
-- Designation
-- Payment Terms
-- Tax Group
-- Warehouse Type
+Purchase Order

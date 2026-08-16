@@ -65,6 +65,9 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
             builder.Property(x => x.TermsAndConditions)
                   .HasMaxLength(4000);
 
+            builder.Property(x => x.CompanyWebsite)
+                 .HasMaxLength(250);
+
             builder.Property(x => x.Remarks)
                 .HasMaxLength(1000);
 

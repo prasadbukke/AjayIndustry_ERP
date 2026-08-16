@@ -1,42 +1,38 @@
-﻿# Workflow Engine
+# 20 - Workflow Engine
 
-Status
+## Status
 
-✅ LOCKED
+Future architecture direction.
 
----
+Not yet implemented as a generic ERP workflow engine.
 
-Workflow
-
-Database Driven
-
-No Hardcoded Steps
+Current Purchase Order workflow is enforced directly by PurchaseOrderService.
 
 ---
 
-Every Workflow Contains
+# Future Goal
 
-Stage
+Database-driven workflow.
 
-Sequence
-
-Status
-
-Assigned User
-
-Assigned Machine
-
-Start Time
-
-End Time
-
-Duration
-
-Remarks
+Avoid hardcoding complex production stages when a configurable workflow becomes necessary.
 
 ---
 
-Pipeline Status
+# Every Future Workflow May Contain
+
+- Stage
+- Sequence
+- Status
+- Assigned User
+- Assigned Machine
+- Start Time
+- End Time
+- Duration
+- Remarks
+
+---
+
+# Generic Pipeline
 
 Pending
 
@@ -54,72 +50,61 @@ Next Stage
 
 ---
 
-Supported Actions
+# Supported Future Actions
 
-Start
+- Start
+- Pause
+- Resume
+- Complete
+- Reject
+- Rework
+- Cancel
+- Hold
 
-Pause
-
-Resume
-
-Complete
-
-Reject
-
-Rework
-
-Cancel
-
-Hold
+These are future generic workflow actions and should not be assumed to exist on every transaction.
 
 ---
 
-Tracking
+# Current Purchase Order Exception
 
-Stage History
+Purchase Order currently uses explicit service-enforced transitions:
 
-Audit Trail
+Draft
+→ Confirmed
+→ Sent
 
-Current Stage
+Future GRN will drive receipt states.
 
-Overall Progress
-
-Expected Completion
-
-Delay
+Purchase Order does not currently use the generic Workflow Engine.
 
 ---
 
-Dashboard
+# Future Tracking
 
-Running Orders
-
-Completed Orders
-
-Pending Orders
-
-Delayed Orders
-
-Rejected Orders
-
-Machine Utilization
-
-Operator Utilization
+- Stage History
+- Audit Trail
+- Current Stage
+- Overall Progress
+- Expected Completion
+- Delay
 
 ---
 
-Future
+# Future Dashboard
 
-Workflow Designer
-
-Approval Engine
-
-Notifications
-
-Escalation
+- Running Orders
+- Completed Orders
+- Pending Orders
+- Delayed Orders
+- Rejected Orders
+- Machine Utilization
+- Operator Utilization
 
 ---
 
-Status
+# Future Extensions
 
-✅ APPROVED
+- Workflow Designer
+- Approval Engine
+- Notifications
+- Escalation

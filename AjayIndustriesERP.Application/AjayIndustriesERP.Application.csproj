@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="16.2.0" />
+    <PackageReference Include="QuestPDF" Version="2026.7.3" />
   </ItemGroup>
 
   <ItemGroup>
