@@ -108,3 +108,16 @@ Purchase Order does not currently use the generic Workflow Engine.
 - Approval Engine
 - Notifications
 - Escalation
+
+ACTION: ADD DECISION
+
+Production Pipeline:
+- Pipeline generated against Customer PO / PO Item
+- Initially execution steps are Pending
+- Operator manually updates each step
+- Grey   = Pending
+- Yellow = Running
+- Green  = Completed
+- Red    = Failed / Rejected
+- Each step is clickable
+- Machine, operator, start/end time, duration and history tracked

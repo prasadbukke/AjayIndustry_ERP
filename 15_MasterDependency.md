@@ -329,3 +329,17 @@ ACTION: UPDATE
 ADD:
 - Customer Master completed
 - Customer PO / Sales Order next
+
+ACTION: ADD / UPDATE
+
+Customer
+   ↓
+Customer Purchase Order
+   ↓
+Customer Purchase Order Item
+   ↓
+Existing Item Master
+   ↓
+Production Job
+   ↓
+Production Pipeline

@@ -28,6 +28,18 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
         public DbSet<GoodsReceiptNote> GoodsReceiptNotes { get; set; }
         public DbSet<GoodsReceiptNoteItem> GoodsReceiptNoteItems { get; set; }
         public DbSet<Customer> Customers { get; set; }
+
+        #region Customer Purchase Order
+
+        public DbSet<CustomerPurchaseOrder>
+            CustomerPurchaseOrders
+        { get; set; }
+
+        public DbSet<CustomerPurchaseOrderItem>
+            CustomerPurchaseOrderItems
+        { get; set; }
+
+        #endregion
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

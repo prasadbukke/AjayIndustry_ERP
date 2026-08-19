@@ -891,3 +891,11 @@ ADD:
 - GSTIN unique for active records
 - Email unique for active records
 - Mobile indexes / duplicate validation rules
+
+ACTION: ADD
+- CustomerPurchaseOrders
+- CustomerPurchaseOrderItems
+- Customer relationship
+- Item Master relationship
+- snapshot fields
+- CustomerId + CustomerPurchaseOrderNumber uniqueness

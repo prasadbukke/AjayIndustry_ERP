@@ -1,0 +1,1935 @@
+﻿@*
+    ============================================================
+    File: _Form.cshtml
+
+    Purpose:
+    Reusable Customer Purchase Order form used by Create/Edit.
+
+    Responsibilities:
+    - Display Customer PO header information.
+    - Load Customer Master selection.
+    - Manage multiple Customer PO Item rows.
+    - Load trusted Item Master display information through AJAX.
+    - Allow Customer-specific Item / Drawing references.
+    - Allow Ordered Quantity entry.
+    - Allow optional line Delivery Date override.
+    - Allow optional line Priority override.
+    - Collapse previously entered Item blocks to reduce scrolling.
+    - Support dynamic Add / Remove Item operations.
+
+    Important:
+    - This partial DOES NOT contain a <form> tag.
+    - Create.cshtml and Edit.cshtml own the actual <form>.
+    - Existing Customer Master and Item Master are reused.
+    - Item display snapshots posted from browser are NOT trusted.
+      Application Service reloads Item Master before saving.
+    - Same Item may appear on multiple PO lines because Revision,
+      Delivery Date or Customer Drawing may differ.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.CustomerPurchaseOrder.CustomerPurchaseOrderFormViewModel
+
+@using AjayIndustriesERP.Domain.Enums
+
+@{
+    var isEditMode = Model.Id > 0;
+}
+
+
+<!-- =========================================================
+     REGION 1 — ITEM COLLAPSE STYLE
+========================================================== -->
+
+<style>
+
+    .customer-po-item-row {
+        transition: all 0.2s ease;
+    }
+
+    .customer-po-item-row.is-collapsed {
+        padding-top: 0.85rem !important;
+        padding-bottom: 0.85rem !important;
+    }
+
+    .customer-po-item-row.is-collapsed .item-row-body {
+        display: none;
+    }
+
+    .item-toggle-button {
+        color: inherit;
+        min-width: 0;
+    }
+
+    .item-toggle-button:hover,
+    .item-toggle-button:focus {
+        color: inherit;
+    }
+
+    .item-row-summary {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .item-toggle-icon {
+        transition: transform 0.2s ease;
+    }
+
+    .customer-po-item-row:not(.is-collapsed)
+    .item-toggle-icon {
+        transform: rotate(180deg);
+    }
+
+</style>
+
+
+<!-- =========================================================
+     REGION 2 — CUSTOMER PO INFORMATION
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid fa-file-lines me-1"></i>
+
+            Customer Purchase Order Information
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+
+            <!-- =============================================
+                 INTERNAL ORDER NUMBER
+            ============================================== -->
+
+            @if (isEditMode)
+            {
+                <div class="col-lg-4 col-md-6">
+
+                    <label asp-for="Code"
+                           class="form-label fw-semibold">
+                    </label>
+
+                    <input asp-for="Code"
+                           class="form-control"
+                           readonly />
+
+                </div>
+
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label class="form-label fw-semibold">
+                        Status
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@Model.Status"
+                           readonly />
+
+                </div>
+            }
+
+
+            <!-- =============================================
+                 CUSTOMER
+            ============================================== -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="CustomerId"
+                       class="form-label fw-semibold">
+                </label>
+
+                <span class="text-danger">*</span>
+
+                <select asp-for="CustomerId"
+                        asp-items="Model.Customers"
+                        class="form-select">
+
+                    <option value="">
+                        -- Select Customer --
+                    </option>
+
+                </select>
+
+                <span asp-validation-for="CustomerId"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =============================================
+                 CUSTOMER PO NUMBER
+            ============================================== -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="CustomerPurchaseOrderNumber"
+                       class="form-label fw-semibold">
+                </label>
+
+                <span class="text-danger">*</span>
+
+                <input asp-for="CustomerPurchaseOrderNumber"
+                       class="form-control"
+                       maxlength="100"
+                       placeholder="Enter Customer PO Number" />
+
+                <span asp-validation-for="CustomerPurchaseOrderNumber"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =============================================
+                 CUSTOMER PO DATE
+            ============================================== -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="CustomerPurchaseOrderDate"
+                       class="form-label fw-semibold">
+                </label>
+
+                <span class="text-danger">*</span>
+
+                <input asp-for="CustomerPurchaseOrderDate"
+                       type="date"
+                       class="form-control" />
+
+                <span asp-validation-for="CustomerPurchaseOrderDate"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =============================================
+                 RECEIVED DATE
+            ============================================== -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="ReceivedDate"
+                       class="form-label fw-semibold">
+                </label>
+
+                <span class="text-danger">*</span>
+
+                <input asp-for="ReceivedDate"
+                       type="date"
+                       class="form-control" />
+
+                <span asp-validation-for="ReceivedDate"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =============================================
+                 REQUIRED DELIVERY DATE
+            ============================================== -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="RequiredDeliveryDate"
+                       class="form-label fw-semibold">
+                </label>
+
+                <span class="text-danger">*</span>
+
+                <input asp-for="RequiredDeliveryDate"
+                       type="date"
+                       class="form-control" />
+
+                <span asp-validation-for="RequiredDeliveryDate"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =============================================
+                 PRIORITY
+            ============================================== -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="Priority"
+                       class="form-label fw-semibold">
+                </label>
+
+                <span class="text-danger">*</span>
+
+                <select asp-for="Priority"
+                        asp-items="Html.GetEnumSelectList<CustomerPurchaseOrderPriority>()"
+                        class="form-select">
+                </select>
+
+                <span asp-validation-for="Priority"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =============================================
+                 CUSTOMER REFERENCE
+            ============================================== -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="CustomerReference"
+                       class="form-label fw-semibold">
+                </label>
+
+                <input asp-for="CustomerReference"
+                       class="form-control"
+                       maxlength="200"
+                       placeholder="Optional customer reference" />
+
+                <span asp-validation-for="CustomerReference"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =============================================
+                 REMARKS
+            ============================================== -->
+
+            <div class="col-lg-8 col-md-12">
+
+                <label asp-for="Remarks"
+                       class="form-label fw-semibold">
+                </label>
+
+                <textarea asp-for="Remarks"
+                          class="form-control"
+                          rows="2"
+                          maxlength="1000"
+                          placeholder="Enter remarks"></textarea>
+
+                <span asp-validation-for="Remarks"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 3 — CUSTOMER PO ITEMS
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header
+                bg-light
+                d-flex
+                justify-content-between
+                align-items-center
+                flex-wrap
+                gap-2">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-boxes-stacked
+                      me-1">
+            </i>
+
+            Customer PO Items
+
+        </span>
+
+
+        <button type="button"
+                id="btnAddItem"
+                class="btn btn-sm btn-primary">
+
+            <i class="fa-solid fa-plus me-1"></i>
+
+            Add Item
+
+        </button>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <!-- =================================================
+             REGION 4 — EXISTING / POSTED ITEM ROWS
+        ================================================== -->
+
+        <div id="customerPoItemsContainer">
+
+            @for (var i = 0; i < Model.Items.Count; i++)
+            {
+                <div class="customer-po-item-row
+                            border
+                            rounded
+                            p-3
+                            mb-3"
+                     data-index="@i">
+
+
+                    <!-- =====================================
+                         ITEM ROW HEADER
+                    ====================================== -->
+
+                    <div class="d-flex
+                                justify-content-between
+                                align-items-center
+                                gap-2
+                                item-row-header">
+
+                        <button type="button"
+                                class="btn
+                                       btn-link
+                                       text-decoration-none
+                                       text-start
+                                       p-0
+                                       flex-grow-1
+                                       item-toggle-button">
+
+                            <span class="fw-semibold
+                                         item-row-title">
+
+                                Item @(i + 1)
+
+                            </span>
+
+
+                            <span class="text-muted
+                                         small
+                                         ms-2
+                                         item-row-summary">
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    Model.Items[i].ItemName))
+                                {
+                                    @($"{Model.Items[i].ItemCode} - {Model.Items[i].ItemName}")
+                                }
+
+                            </span>
+
+
+                            <i class="fa-solid
+                                      fa-chevron-down
+                                      ms-2
+                                      item-toggle-icon">
+                            </i>
+
+                        </button>
+
+
+                        <button type="button"
+                                class="btn
+                                       btn-sm
+                                       btn-outline-danger
+                                       btn-remove-item"
+                                title="Remove Item">
+
+                            <i class="fa-solid fa-trash"></i>
+
+                        </button>
+
+                    </div>
+
+
+                    <!-- =====================================
+                         ITEM ROW BODY
+                    ====================================== -->
+
+                    <div class="item-row-body mt-3">
+
+
+                        <!-- =================================
+                             HIDDEN LINE DATA
+                        ================================== -->
+
+                        <input asp-for="Items[i].Id"
+                               type="hidden"
+                               class="item-line-id" />
+
+
+                        <input asp-for="Items[i].ItemCode"
+                               type="hidden"
+                               class="item-code-hidden" />
+
+
+                        <input asp-for="Items[i].ItemName"
+                               type="hidden"
+                               class="item-name-hidden" />
+
+
+                        <input asp-for="Items[i].Specification"
+                               type="hidden"
+                               class="item-specification-hidden" />
+
+
+                        <input asp-for="Items[i].UnitName"
+                               type="hidden"
+                               class="item-unit-hidden" />
+
+
+                        <!-- =================================
+                             ITEM MASTER INFORMATION
+                        ================================== -->
+
+                        <div class="row g-3">
+
+                            <div class="col-lg-4 col-md-6">
+
+                                <label class="form-label fw-semibold">
+                                    Item
+                                </label>
+
+                                <span class="text-danger">*</span>
+
+                                <select asp-for="Items[i].ItemId"
+                                        asp-items="Model.AvailableItems"
+                                        class="form-select item-select">
+
+                                    <option value="">
+                                        -- Select Item --
+                                    </option>
+
+                                </select>
+
+                                <span asp-validation-for="Items[i].ItemId"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-lg-4 col-md-6">
+
+                                <label class="form-label fw-semibold">
+                                    Item Code
+                                </label>
+
+                                <input type="text"
+                                       class="form-control
+                                              item-code-display"
+                                       value="@Model.Items[i].ItemCode"
+                                       readonly />
+
+                            </div>
+
+
+                            <div class="col-lg-4 col-md-6">
+
+                                <label class="form-label fw-semibold">
+                                    Unit
+                                </label>
+
+                                <input type="text"
+                                       class="form-control
+                                              item-unit-display"
+                                       value="@Model.Items[i].UnitName"
+                                       readonly />
+
+                            </div>
+
+
+                            <div class="col-12">
+
+                                <label class="form-label fw-semibold">
+                                    Specification
+                                </label>
+
+                                <textarea class="form-control
+                                                 item-specification-display"
+                                          rows="2"
+                                          readonly>@Model.Items[i].Specification</textarea>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- =================================
+                             CUSTOMER ITEM REFERENCES
+                        ================================== -->
+
+                        <div class="row g-3 mt-1">
+
+                            <div class="col-lg-4 col-md-6">
+
+                                <label asp-for="Items[i].CustomerItemCode"
+                                       class="form-label fw-semibold">
+                                </label>
+
+                                <input asp-for="Items[i].CustomerItemCode"
+                                       class="form-control"
+                                       maxlength="100"
+                                       placeholder="Optional" />
+
+                                <span asp-validation-for="Items[i].CustomerItemCode"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-lg-4 col-md-6">
+
+                                <label asp-for="Items[i].CustomerDrawingNumber"
+                                       class="form-label fw-semibold">
+                                </label>
+
+                                <input asp-for="Items[i].CustomerDrawingNumber"
+                                       class="form-control"
+                                       maxlength="150"
+                                       placeholder="Optional" />
+
+                                <span asp-validation-for="Items[i].CustomerDrawingNumber"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-lg-4 col-md-6">
+
+                                <label asp-for="Items[i].Revision"
+                                       class="form-label fw-semibold">
+                                </label>
+
+                                <input asp-for="Items[i].Revision"
+                                       class="form-control"
+                                       maxlength="50"
+                                       placeholder="Optional" />
+
+                                <span asp-validation-for="Items[i].Revision"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- =================================
+                             QUANTITY / DELIVERY / PRIORITY
+                        ================================== -->
+
+                        <div class="row g-3 mt-1">
+
+                            <div class="col-lg-4 col-md-6">
+
+                                <label asp-for="Items[i].OrderedQuantity"
+                                       class="form-label fw-semibold">
+                                </label>
+
+                                <span class="text-danger">*</span>
+
+                                <input asp-for="Items[i].OrderedQuantity"
+                                       type="number"
+                                       min="0.001"
+                                       step="0.001"
+                                       class="form-control
+                                              item-quantity-input"
+                                       placeholder="Enter quantity" />
+
+                                <span asp-validation-for="Items[i].OrderedQuantity"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-lg-4 col-md-6">
+
+                                <label asp-for="Items[i].RequiredDeliveryDate"
+                                       class="form-label fw-semibold">
+                                </label>
+
+                                <input asp-for="Items[i].RequiredDeliveryDate"
+                                       type="date"
+                                       class="form-control" />
+
+                                <span asp-validation-for="Items[i].RequiredDeliveryDate"
+                                      class="text-danger small">
+                                </span>
+
+                                <div class="form-text">
+                                    Leave blank to use PO delivery date.
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-lg-4 col-md-6">
+
+                                <label asp-for="Items[i].Priority"
+                                       class="form-label fw-semibold">
+                                </label>
+
+                                <select asp-for="Items[i].Priority"
+                                        asp-items="Html.GetEnumSelectList<CustomerPurchaseOrderPriority>()"
+                                        class="form-select">
+
+                                    <option value="">
+                                        Use PO Priority
+                                    </option>
+
+                                </select>
+
+                                <span asp-validation-for="Items[i].Priority"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-12">
+
+                                <label asp-for="Items[i].Remarks"
+                                       class="form-label fw-semibold">
+                                </label>
+
+                                <textarea asp-for="Items[i].Remarks"
+                                          class="form-control"
+                                          rows="2"
+                                          maxlength="1000"
+                                          placeholder="Optional item remarks"></textarea>
+
+                                <span asp-validation-for="Items[i].Remarks"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+
+
+        <!-- =================================================
+             REGION 5 — EMPTY ITEM MESSAGE
+        ================================================== -->
+
+        <div id="emptyItemMessage"
+             class="text-center
+                    text-muted
+                    py-4
+                    d-none">
+
+            <i class="fa-solid
+                      fa-box-open
+                      fa-2x
+                      mb-2">
+            </i>
+
+            <div>
+                No Items added.
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 6 — NEW ITEM TEMPLATE
+========================================================== -->
+
+<template id="customerPoItemTemplate">
+
+    <div class="customer-po-item-row
+                border
+                rounded
+                p-3
+                mb-3"
+         data-index="__index__">
+
+
+        <!-- =============================================
+             TEMPLATE HEADER
+        ============================================== -->
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    gap-2
+                    item-row-header">
+
+            <button type="button"
+                    class="btn
+                           btn-link
+                           text-decoration-none
+                           text-start
+                           p-0
+                           flex-grow-1
+                           item-toggle-button">
+
+                <span class="fw-semibold item-row-title">
+
+                    Item __number__
+
+                </span>
+
+
+                <span class="text-muted
+                             small
+                             ms-2
+                             item-row-summary">
+                </span>
+
+
+                <i class="fa-solid
+                          fa-chevron-down
+                          ms-2
+                          item-toggle-icon">
+                </i>
+
+            </button>
+
+
+            <button type="button"
+                    class="btn
+                           btn-sm
+                           btn-outline-danger
+                           btn-remove-item"
+                    title="Remove Item">
+
+                <i class="fa-solid fa-trash"></i>
+
+            </button>
+
+        </div>
+
+
+        <!-- =============================================
+             TEMPLATE BODY
+        ============================================== -->
+
+        <div class="item-row-body mt-3">
+
+
+            <!-- =========================================
+                 HIDDEN FIELDS
+            ========================================== -->
+
+            <input type="hidden"
+                   name="Items[__index__].Id"
+                   value="0"
+                   class="item-line-id" />
+
+
+            <input type="hidden"
+                   name="Items[__index__].ItemCode"
+                   class="item-code-hidden" />
+
+
+            <input type="hidden"
+                   name="Items[__index__].ItemName"
+                   class="item-name-hidden" />
+
+
+            <input type="hidden"
+                   name="Items[__index__].Specification"
+                   class="item-specification-hidden" />
+
+
+            <input type="hidden"
+                   name="Items[__index__].UnitName"
+                   class="item-unit-hidden" />
+
+
+            <!-- =========================================
+                 ITEM MASTER
+            ========================================== -->
+
+            <div class="row g-3">
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label class="form-label fw-semibold">
+                        Item
+                    </label>
+
+                    <span class="text-danger">*</span>
+
+
+                    <select name="Items[__index__].ItemId"
+                            class="form-select item-select"
+                            data-val="true"
+                            data-val-range="Please select an Item."
+                            data-val-range-min="1"
+                            data-val-range-max="2147483647">
+
+                        <option value="">
+                            -- Select Item --
+                        </option>
+
+
+                        @foreach (var option
+                            in Model.AvailableItems)
+                        {
+                            <option value="@option.Value">
+                                @option.Text
+                            </option>
+                        }
+
+                    </select>
+
+
+                    <span class="text-danger small field-validation-valid"
+                          data-valmsg-for="Items[__index__].ItemId"
+                          data-valmsg-replace="true">
+                    </span>
+
+                </div>
+
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label class="form-label fw-semibold">
+                        Item Code
+                    </label>
+
+                    <input type="text"
+                           class="form-control
+                                  item-code-display"
+                           readonly />
+
+                </div>
+
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label class="form-label fw-semibold">
+                        Unit
+                    </label>
+
+                    <input type="text"
+                           class="form-control
+                                  item-unit-display"
+                           readonly />
+
+                </div>
+
+
+                <div class="col-12">
+
+                    <label class="form-label fw-semibold">
+                        Specification
+                    </label>
+
+                    <textarea class="form-control
+                                     item-specification-display"
+                              rows="2"
+                              readonly></textarea>
+
+                </div>
+
+            </div>
+
+
+            <!-- =========================================
+                 CUSTOMER ITEM REFERENCES
+            ========================================== -->
+
+            <div class="row g-3 mt-1">
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label class="form-label fw-semibold">
+                        Customer Item Code
+                    </label>
+
+                    <input name="Items[__index__].CustomerItemCode"
+                           class="form-control"
+                           maxlength="100"
+                           placeholder="Optional" />
+
+                </div>
+
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label class="form-label fw-semibold">
+                        Customer Drawing Number
+                    </label>
+
+                    <input name="Items[__index__].CustomerDrawingNumber"
+                           class="form-control"
+                           maxlength="150"
+                           placeholder="Optional" />
+
+                </div>
+
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label class="form-label fw-semibold">
+                        Revision
+                    </label>
+
+                    <input name="Items[__index__].Revision"
+                           class="form-control"
+                           maxlength="50"
+                           placeholder="Optional" />
+
+                </div>
+
+            </div>
+
+
+            <!-- =========================================
+                 QUANTITY / DELIVERY / PRIORITY
+            ========================================== -->
+
+            <div class="row g-3 mt-1">
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label class="form-label fw-semibold">
+                        Ordered Quantity
+                    </label>
+
+                    <span class="text-danger">*</span>
+
+
+                    <input name="Items[__index__].OrderedQuantity"
+                           type="number"
+                           min="0.001"
+                           step="0.001"
+                           class="form-control item-quantity-input"
+                           placeholder="Enter quantity"
+                           data-val="true"
+                           data-val-range="Ordered Quantity must be greater than zero."
+                           data-val-range-min="0.001"
+                           data-val-range-max="999999999999999.999" />
+
+
+                    <span class="text-danger small field-validation-valid"
+                          data-valmsg-for="Items[__index__].OrderedQuantity"
+                          data-valmsg-replace="true">
+                    </span>
+
+                </div>
+
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label class="form-label fw-semibold">
+                        Required Delivery Date
+                    </label>
+
+                    <input name="Items[__index__].RequiredDeliveryDate"
+                           type="date"
+                           class="form-control" />
+
+                    <div class="form-text">
+                        Leave blank to use PO delivery date.
+                    </div>
+
+                </div>
+
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label class="form-label fw-semibold">
+                        Priority
+                    </label>
+
+
+                    <select name="Items[__index__].Priority"
+                            class="form-select">
+
+                        <option value="">
+                            Use PO Priority
+                        </option>
+
+
+                        @foreach (var priority
+                            in Html.GetEnumSelectList<CustomerPurchaseOrderPriority>())
+                        {
+                            <option value="@priority.Value">
+                                @priority.Text
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+
+                <div class="col-12">
+
+                    <label class="form-label fw-semibold">
+                        Remarks
+                    </label>
+
+                    <textarea name="Items[__index__].Remarks"
+                              class="form-control"
+                              rows="2"
+                              maxlength="1000"
+                              placeholder="Optional item remarks"></textarea>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</template>
+
+
+<!-- =========================================================
+     REGION 7 — ITEM FORM SCRIPT
+========================================================== -->
+
+<script>
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            // =================================================
+            // REGION 7.1 — ELEMENT REFERENCES
+            // =================================================
+
+            const container =
+                document.getElementById(
+                    "customerPoItemsContainer"
+                );
+
+            const template =
+                document.getElementById(
+                    "customerPoItemTemplate"
+                );
+
+            const addButton =
+                document.getElementById(
+                    "btnAddItem"
+                );
+
+            const emptyMessage =
+                document.getElementById(
+                    "emptyItemMessage"
+                );
+
+
+            if (!container ||
+                !template ||
+                !addButton ||
+                !emptyMessage) {
+
+                return;
+            }
+
+
+            // =================================================
+            // REGION 7.2 — EMPTY STATE
+            // =================================================
+
+            function updateEmptyState() {
+
+                const rows =
+                    container.querySelectorAll(
+                        ".customer-po-item-row"
+                    );
+
+
+                if (rows.length === 0) {
+
+                    emptyMessage.classList.remove(
+                        "d-none"
+                    );
+                }
+                else {
+
+                    emptyMessage.classList.add(
+                        "d-none"
+                    );
+                }
+            }
+
+
+            // =================================================
+            // REGION 7.3 — COLLAPSE / EXPAND
+            // =================================================
+
+            function collapseRow(
+                row) {
+
+                if (!row) {
+                    return;
+                }
+
+
+                row.classList.add(
+                    "is-collapsed"
+                );
+            }
+
+
+            function expandRow(
+                row) {
+
+                if (!row) {
+                    return;
+                }
+
+
+                row.classList.remove(
+                    "is-collapsed"
+                );
+            }
+
+
+            function collapseAllExcept(
+                activeRow) {
+
+                const rows =
+                    container.querySelectorAll(
+                        ".customer-po-item-row"
+                    );
+
+
+                rows.forEach(
+                    function (row) {
+
+                        if (row === activeRow) {
+
+                            expandRow(row);
+                        }
+                        else {
+
+                            collapseRow(row);
+                        }
+                    }
+                );
+            }
+
+
+            // =================================================
+            // REGION 7.4 — ITEM SUMMARY
+            // =================================================
+
+            function updateRowSummary(
+                row,
+                itemCode,
+                itemName) {
+
+                const summary =
+                    row.querySelector(
+                        ".item-row-summary"
+                    );
+
+
+                if (!summary) {
+                    return;
+                }
+
+
+                if (!itemCode &&
+                    !itemName) {
+
+                    summary.textContent =
+                        "";
+
+                    return;
+                }
+
+
+                if (itemCode &&
+                    itemName) {
+
+                    summary.textContent =
+                        itemCode +
+                        " - " +
+                        itemName;
+                }
+                else {
+
+                    summary.textContent =
+                        itemCode ||
+                        itemName ||
+                        "";
+                }
+            }
+
+
+            // =================================================
+            // REGION 7.5 — REINDEX ITEM ROWS
+            // =================================================
+
+            function reindexRows() {
+
+                const rows =
+                    container.querySelectorAll(
+                        ".customer-po-item-row"
+                    );
+
+
+                rows.forEach(
+                    function (
+                        row,
+                        index) {
+
+                        row.dataset.index =
+                            index;
+
+
+                        // =====================================
+                        // TITLE
+                        // =====================================
+
+                        const title =
+                            row.querySelector(
+                                ".item-row-title"
+                            );
+
+
+                        if (title) {
+
+                            title.textContent =
+                                "Item " +
+                                (index + 1);
+                        }
+
+
+                        // =====================================
+                        // NAME ATTRIBUTES
+                        // =====================================
+
+                        row.querySelectorAll(
+                            "[name]"
+                        ).forEach(
+                            function (element) {
+
+                                element.name =
+                                    element.name.replace(
+                                        /Items\[\d+\]/g,
+                                        "Items[" +
+                                        index +
+                                        "]"
+                                    );
+                            }
+                        );
+
+
+                        // =====================================
+                        // ID ATTRIBUTES
+                        // =====================================
+
+                        row.querySelectorAll(
+                            "[id]"
+                        ).forEach(
+                            function (element) {
+
+                                element.id =
+                                    element.id.replace(
+                                        /Items_\d+__/g,
+                                        "Items_" +
+                                        index +
+                                        "__"
+                                    );
+                            }
+                        );
+
+
+                        // =====================================
+                        // LABEL FOR ATTRIBUTES
+                        // =====================================
+
+                        row.querySelectorAll(
+                            "label[for]"
+                        ).forEach(
+                            function (label) {
+
+                                label.htmlFor =
+                                    label.htmlFor.replace(
+                                        /Items_\d+__/g,
+                                        "Items_" +
+                                        index +
+                                        "__"
+                                    );
+                            }
+                        );
+
+
+                        // =====================================
+                        // VALIDATION MESSAGE TARGETS
+                        // =====================================
+
+                        row.querySelectorAll(
+                            "[data-valmsg-for]"
+                        ).forEach(
+                            function (element) {
+
+                                const current =
+                                    element.getAttribute(
+                                        "data-valmsg-for"
+                                    );
+
+
+                                if (!current) {
+                                    return;
+                                }
+
+
+                                element.setAttribute(
+                                    "data-valmsg-for",
+                                    current.replace(
+                                        /Items\[\d+\]/g,
+                                        "Items[" +
+                                        index +
+                                        "]"
+                                    )
+                                );
+                            }
+                        );
+                    }
+                );
+
+
+                updateEmptyState();
+            }
+
+
+            // =================================================
+            // REGION 7.6 — REPARSE VALIDATION
+            // =================================================
+
+            function reparseValidation() {
+
+                if (
+                    typeof $ === "undefined" ||
+                    !$.validator ||
+                    !$.validator.unobtrusive
+                ) {
+
+                    return;
+                }
+
+
+                const form =
+                    document.getElementById(
+                        "customerPurchaseOrderForm"
+                    );
+
+
+                if (!form) {
+                    return;
+                }
+
+
+                $(form)
+                    .removeData(
+                        "validator"
+                    )
+                    .removeData(
+                        "unobtrusiveValidation"
+                    );
+
+
+                $.validator
+                    .unobtrusive
+                    .parse(form);
+            }
+
+
+            // =================================================
+            // REGION 7.7 — LOAD ITEM DATA
+            // =================================================
+
+            async function loadItemData(
+                row,
+                itemId) {
+
+                const codeDisplay =
+                    row.querySelector(
+                        ".item-code-display"
+                    );
+
+                const unitDisplay =
+                    row.querySelector(
+                        ".item-unit-display"
+                    );
+
+                const specificationDisplay =
+                    row.querySelector(
+                        ".item-specification-display"
+                    );
+
+
+                const codeHidden =
+                    row.querySelector(
+                        ".item-code-hidden"
+                    );
+
+                const nameHidden =
+                    row.querySelector(
+                        ".item-name-hidden"
+                    );
+
+                const specificationHidden =
+                    row.querySelector(
+                        ".item-specification-hidden"
+                    );
+
+                const unitHidden =
+                    row.querySelector(
+                        ".item-unit-hidden"
+                    );
+
+
+                if (!itemId) {
+
+                    codeDisplay.value =
+                        "";
+
+                    unitDisplay.value =
+                        "";
+
+                    specificationDisplay.value =
+                        "";
+
+
+                    codeHidden.value =
+                        "";
+
+                    nameHidden.value =
+                        "";
+
+                    specificationHidden.value =
+                        "";
+
+                    unitHidden.value =
+                        "";
+
+
+                    updateRowSummary(
+                        row,
+                        "",
+                        ""
+                    );
+
+
+                    return;
+                }
+
+
+                try {
+
+                    const response =
+                        await fetch(
+                            '@Url.Action(
+                                "GetItemData",
+                                "CustomerPurchaseOrder")'
+                            +
+                            "?itemId=" +
+                            encodeURIComponent(
+                                itemId
+                            )
+                        );
+
+
+                    const data =
+                        await response.json();
+
+
+                    if (!data.success) {
+
+                        if (window.showAppToast) {
+
+                            window.showAppToast(
+                                "error",
+                                data.message ||
+                                "Unable to load Item."
+                            );
+                        }
+
+
+                        return;
+                    }
+
+
+                    // =========================================
+                    // DISPLAY VALUES
+                    // =========================================
+
+                    codeDisplay.value =
+                        data.itemCode || "";
+
+                    unitDisplay.value =
+                        data.unitName || "";
+
+                    specificationDisplay.value =
+                        data.specification || "";
+
+
+                    // =========================================
+                    // HIDDEN POST VALUES
+                    // =========================================
+
+                    codeHidden.value =
+                        data.itemCode || "";
+
+                    nameHidden.value =
+                        data.itemName || "";
+
+                    specificationHidden.value =
+                        data.specification || "";
+
+                    unitHidden.value =
+                        data.unitName || "";
+
+
+                    // =========================================
+                    // COLLAPSED ROW SUMMARY
+                    // =========================================
+
+                    updateRowSummary(
+                        row,
+                        data.itemCode || "",
+                        data.itemName || ""
+                    );
+                }
+                catch (error) {
+
+                    if (window.showAppToast) {
+
+                        window.showAppToast(
+                            "error",
+                            "Unable to load Item information."
+                        );
+                    }
+                }
+            }
+
+
+            // =================================================
+            // REGION 7.8 — ADD ITEM
+            // =================================================
+
+            function addItemRow() {
+
+                const rowsBeforeAdd =
+                    container.querySelectorAll(
+                        ".customer-po-item-row"
+                    );
+
+
+                const index =
+                    rowsBeforeAdd.length;
+
+
+                const number =
+                    index + 1;
+
+
+                const html =
+                    template.innerHTML
+                        .replaceAll(
+                            "__index__",
+                            index
+                        )
+                        .replaceAll(
+                            "__number__",
+                            number
+                        );
+
+
+                container.insertAdjacentHTML(
+                    "beforeend",
+                    html
+                );
+
+
+                reindexRows();
+
+
+                const rows =
+                    container.querySelectorAll(
+                        ".customer-po-item-row"
+                    );
+
+
+                const newRow =
+                    rows[
+                        rows.length - 1
+                    ];
+
+
+                /*
+                 * Important UX:
+                 *
+                 * New Item add केल्यावर previous
+                 * Item blocks collapse होतील.
+                 *
+                 * फक्त latest/new Item open राहील.
+                 */
+
+                collapseAllExcept(
+                    newRow
+                );
+
+
+                reparseValidation();
+
+
+                if (newRow) {
+
+                    newRow.scrollIntoView({
+                        behavior:
+                            "smooth",
+
+                        block:
+                            "nearest"
+                    });
+                }
+            }
+
+
+            // =================================================
+            // REGION 7.9 — ADD BUTTON
+            // =================================================
+
+            addButton.addEventListener(
+                "click",
+                function () {
+
+                    addItemRow();
+                }
+            );
+
+
+            // =================================================
+            // REGION 7.10 — ITEM ROW CLICK EVENTS
+            // =================================================
+
+            container.addEventListener(
+                "click",
+                function (event) {
+
+                    // =========================================
+                    // COLLAPSE / EXPAND
+                    // =========================================
+
+                    const toggleButton =
+                        event.target.closest(
+                            ".item-toggle-button"
+                        );
+
+
+                    if (toggleButton) {
+
+                        const row =
+                            toggleButton.closest(
+                                ".customer-po-item-row"
+                            );
+
+
+                        if (!row) {
+                            return;
+                        }
+
+
+                        if (
+                            row.classList.contains(
+                                "is-collapsed"
+                            )
+                        ) {
+
+                            collapseAllExcept(
+                                row
+                            );
+                        }
+                        else {
+
+                            collapseRow(
+                                row
+                            );
+                        }
+
+
+                        return;
+                    }
+
+
+                    // =========================================
+                    // REMOVE ITEM
+                    // =========================================
+
+                    const removeButton =
+                        event.target.closest(
+                            ".btn-remove-item"
+                        );
+
+
+                    if (!removeButton) {
+                        return;
+                    }
+
+
+                    const row =
+                        removeButton.closest(
+                            ".customer-po-item-row"
+                        );
+
+
+                    if (!row) {
+                        return;
+                    }
+
+
+                    row.remove();
+
+
+                    reindexRows();
+
+                    reparseValidation();
+
+
+                    const remainingRows =
+                        container.querySelectorAll(
+                            ".customer-po-item-row"
+                        );
+
+
+                    if (
+                        remainingRows.length > 0
+                    ) {
+
+                        const lastRow =
+                            remainingRows[
+                                remainingRows.length - 1
+                            ];
+
+
+                        collapseAllExcept(
+                            lastRow
+                        );
+                    }
+                }
+            );
+
+
+            // =================================================
+            // REGION 7.11 — ITEM SELECTION CHANGE
+            // =================================================
+
+            container.addEventListener(
+                "change",
+                function (event) {
+
+                    if (
+                        !event.target.classList.contains(
+                            "item-select"
+                        )
+                    ) {
+
+                        return;
+                    }
+
+
+                    const row =
+                        event.target.closest(
+                            ".customer-po-item-row"
+                        );
+
+
+                    if (!row) {
+                        return;
+                    }
+
+
+                    loadItemData(
+                        row,
+                        event.target.value
+                    );
+                }
+            );
+
+
+            // =================================================
+            // REGION 7.12 — INITIALIZATION
+            // =================================================
+
+            let initialRows =
+                container.querySelectorAll(
+                    ".customer-po-item-row"
+                );
+
+
+            /*
+             * Create page:
+             * No row from server → create one blank row.
+             */
+
+            if (initialRows.length === 0) {
+
+                addItemRow();
+
+                return;
+            }
+
+
+            /*
+             * Edit / validation-return page:
+             *
+             * Existing rows remain in the model.
+             * Previous rows collapse.
+             * Last row stays open.
+             */
+
+            const lastInitialRow =
+                initialRows[
+                    initialRows.length - 1
+                ];
+
+
+            collapseAllExcept(
+                lastInitialRow
+            );
+
+
+            reindexRows();
+
+            updateEmptyState();
+
+        }
+    );
+
+</script>

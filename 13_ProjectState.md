@@ -560,3 +560,9 @@ ACTION: UPDATE Current State
 ADD:
 - Customer Master = Completed
 - Next Module = Customer PO / Sales Order
+
+ACTION: UPDATE
+
+Customer Master          = Completed
+Customer Purchase Order  = Completed
+Next Module              = Machine Master

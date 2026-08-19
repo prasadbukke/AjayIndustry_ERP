@@ -155,3 +155,15 @@ ADD:
 - GSTIN / Mobile / Email validation
 - Shared Toast integration
 - Soft Delete
+
+ACTION: Customer Purchase Order → Completed
+
+ADD:
+- Customer PO Create / Edit / Details / Index
+- Multiple Item lines using existing Item Master
+- FY code AI/CPO/26-27/00001
+- Draft → Confirmed workflow
+- Same Customer + Same Customer PO Number duplicate block
+- Search + Pagination
+- Soft Delete + Deleted Orders + Restore
+- Item blocks collapse for compact multi-item entry

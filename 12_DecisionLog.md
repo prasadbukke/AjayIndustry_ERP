@@ -698,3 +698,18 @@ ADD:
 - GSTIN optional
 - Credit Limit deferred
 - Duplicate GSTIN / Email / Mobile blocked
+
+ACTION: ADD
+
+- Customer PO is main incoming business transaction
+- Existing Item Master is reused
+- No separate Product Master
+- Same Customer + Same PO Number blocked
+- Customer PO Code uses Financial Year
+- Same Item may appear on multiple lines
+- Draft only editable
+- Confirmed PO can still be soft-deleted
+- Deleted POs are shown on separate Deleted Orders page
+- Restore preserves original Draft / Confirmed status
+- Production/Machine fields are NOT stored directly on Customer PO
+- Production Pipeline will be linked from Customer PO Item

@@ -198,3 +198,21 @@ Reports
 Exact accounting design is deferred.
 → PO Sent → GRN Receipt
 → Stock update marked as next integration
+
+ACTION: ADD
+
+Customer
+   ↓
+Customer PO
+   ↓
+PO Items
+   ↓
+Production Planning
+   ↓
+Production Pipeline
+   ↓
+QC
+   ↓
+Dispatch
+   ↓
+Invoice

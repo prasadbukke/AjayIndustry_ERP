@@ -516,3 +516,6 @@ GRN development milestone entry
 ACTION: ADD Customer Master completion entry
 ADD:
 - Customer Master implemented and runtime tested
+
+ACTION: ADD
+- Customer PO Phase 1 completed and runtime tested

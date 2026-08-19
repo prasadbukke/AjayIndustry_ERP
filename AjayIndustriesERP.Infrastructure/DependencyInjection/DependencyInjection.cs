@@ -219,6 +219,20 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
 
             #endregion
 
+            #region Customer Purchase Order
+
+            services.AddScoped<
+                ICustomerPurchaseOrderRepository,
+                CustomerPurchaseOrderRepository>();
+
+            services.AddScoped<
+                ICustomerPurchaseOrderService,
+                CustomerPurchaseOrderService>();
+
+            #endregion
+
+
+
             return services;
         }
     }

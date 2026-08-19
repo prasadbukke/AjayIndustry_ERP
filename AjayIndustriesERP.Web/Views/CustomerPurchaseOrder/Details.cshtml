@@ -1,0 +1,730 @@
+﻿@*
+    ============================================================
+    File: Details.cshtml
+
+    Purpose:
+    Displays complete read-only Customer Purchase Order details.
+
+    Responsibilities:
+    - Display Customer PO header information.
+    - Display Customer and Customer PO references.
+    - Display Priority and transaction Status.
+    - Display all ordered Items.
+    - Display Item Master snapshots.
+    - Display Customer Item / Drawing references.
+    - Display effective Delivery Date and Priority.
+    - Allow Draft Edit and Confirm workflow.
+
+    Important:
+    - This page is read-only.
+    - Only Draft Customer POs can be edited.
+    - Confirmed Customer PO becomes production-ready for the
+      future Production Job / Pipeline module.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Domain.Entities.CustomerPurchaseOrder
+
+@using AjayIndustriesERP.Domain.Enums
+
+@{
+    ViewData["Title"] = "Customer PO Details";
+}
+
+
+<!-- =========================================================
+     REGION 1 — PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            gap-2
+            flex-wrap">
+
+    <a asp-action="Index"
+       class="btn btn-outline-secondary">
+        <i class="fa-solid fa-arrow-left me-1"></i>
+        Back
+    </a>
+
+    @if (!Model.IsDeleted)
+    {
+        @if (Model.Status == CustomerPurchaseOrderStatus.Draft)
+        {
+            <a asp-action="Edit"
+               asp-route-id="@Model.Id"
+               class="btn btn-outline-warning">
+                <i class="fa-solid fa-pen me-1"></i>
+                Edit
+            </a>
+
+            <form asp-action="Confirm"
+                  method="post"
+                  class="d-inline">
+                @Html.AntiForgeryToken()
+
+                <input type="hidden"
+                       name="id"
+                       value="@Model.Id" />
+
+                <button type="submit"
+                        class="btn btn-primary"
+                        onclick="return confirm('Confirm this Customer Purchase Order? After confirmation it cannot be edited.')">
+                    <i class="fa-solid fa-circle-check me-1"></i>
+                    Confirm
+                </button>
+            </form>
+        }
+
+        <button type="button"
+                class="btn btn-outline-danger"
+                onclick="confirmDelete('@Url.Action("Delete", "CustomerPurchaseOrder", new { id = Model.Id })')">
+            <i class="fa-solid fa-trash me-1"></i>
+            Delete
+        </button>
+    }
+    else
+    {
+        <form asp-action="Restore"
+              method="post"
+              class="d-inline">
+            @Html.AntiForgeryToken()
+
+            <input type="hidden"
+                   name="id"
+                   value="@Model.Id" />
+
+            <button type="submit"
+                    class="btn btn-outline-primary">
+                <i class="fa-solid fa-rotate-left me-1"></i>
+                Restore
+            </button>
+        </form>
+    }
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — CUSTOMER PO INFORMATION
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid
+                          fa-file-lines
+                          me-1">
+                </i>
+
+                Customer PO Information
+
+            </span>
+
+
+            <!-- STATUS -->
+
+            <div>
+
+                @switch (Model.Status)
+                {
+                    case CustomerPurchaseOrderStatus.Draft:
+
+                        <span class="badge bg-secondary">
+                            Draft
+                        </span>
+
+                        break;
+
+
+                    case CustomerPurchaseOrderStatus.Confirmed:
+
+                        <span class="badge bg-primary">
+                            Confirmed
+                        </span>
+
+                        break;
+
+
+                    case CustomerPurchaseOrderStatus.Closed:
+
+                        <span class="badge bg-success">
+                            Closed
+                        </span>
+
+                        break;
+
+
+                    case CustomerPurchaseOrderStatus.Cancelled:
+
+                        <span class="badge bg-danger">
+                            Cancelled
+                        </span>
+
+                        break;
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-4">
+
+            <!-- INTERNAL CODE -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small">
+                    Internal Order No
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.Code
+                </div>
+
+            </div>
+
+
+            <!-- CUSTOMER -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small">
+                    Customer
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.CustomerName
+                </div>
+
+                @if (Model.Customer != null)
+                {
+                    <div class="small text-muted">
+                        @Model.Customer.Code
+                    </div>
+                }
+
+            </div>
+
+
+            <!-- CUSTOMER PO NUMBER -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small">
+                    Customer PO Number
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.CustomerPurchaseOrderNumber
+                </div>
+
+            </div>
+
+
+            <!-- CUSTOMER PO DATE -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small">
+                    Customer PO Date
+                </div>
+
+                <div class="fw-semibold">
+                    @(Model.CustomerPurchaseOrderDate
+                        .ToString("dd-MM-yyyy"))
+                </div>
+
+            </div>
+
+
+            <!-- RECEIVED DATE -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small">
+                    PO Received Date
+                </div>
+
+                <div class="fw-semibold">
+                    @(Model.ReceivedDate
+                        .ToString("dd-MM-yyyy"))
+                </div>
+
+            </div>
+
+
+            <!-- REQUIRED DELIVERY -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small">
+                    Required Delivery Date
+                </div>
+
+                <div class="fw-semibold">
+                    @(Model.RequiredDeliveryDate
+                        .ToString("dd-MM-yyyy"))
+                </div>
+
+            </div>
+
+
+            <!-- PRIORITY -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Priority
+                </div>
+
+                @switch (Model.Priority)
+                {
+                    case CustomerPurchaseOrderPriority.Normal:
+
+                        <span class="badge bg-secondary">
+                            Normal
+                        </span>
+
+                        break;
+
+
+                    case CustomerPurchaseOrderPriority.High:
+
+                        <span class="badge
+                                     bg-warning
+                                     text-dark">
+
+                            High
+
+                        </span>
+
+                        break;
+
+
+                    case CustomerPurchaseOrderPriority.Urgent:
+
+                        <span class="badge
+                                     bg-warning
+                                     text-dark">
+
+                            Urgent
+
+                        </span>
+
+                        break;
+
+
+                    case CustomerPurchaseOrderPriority.Critical:
+
+                        <span class="badge bg-danger">
+                            Critical
+                        </span>
+
+                        break;
+                }
+
+            </div>
+
+
+            <!-- CUSTOMER REFERENCE -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small">
+                    Customer Reference
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.CustomerReference)
+                        ? "-"
+                        : Model.CustomerReference)
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 3 — CUSTOMER PO ITEMS
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-boxes-stacked
+                      me-1">
+            </i>
+
+            Ordered Items
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0"
+                   style="min-width:1250px;">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                       <th style="width:50px;" class="text-nowrap">#</th>
+
+
+                        <th style="min-width:200px;" class="text-nowrap">Item</th>
+
+                        <th style="min-width:240px;" class="text-nowrap">Specification</th>
+
+
+                        <th class="text-end text-nowrap">Ordered Qty</th>
+
+                        <th class="text-nowrap">Customer Item Code</th>
+                        <th class="text-nowrap">Customer Drawing</th>
+                        <th class="text-nowrap">Revision</th>
+                        <th class="text-nowrap">Delivery Date</th>
+                        <th class="text-nowrap">Priority</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @{
+                        var itemNumber = 1;
+
+                        var activeItems =
+                            Model.Items
+                                .Where(x =>
+                                    !x.IsDeleted &&
+                                    x.IsActive)
+                                .OrderBy(x => x.Id)
+                                .ToList();
+                    }
+
+
+                    @foreach (var item in activeItems)
+                    {
+                        var effectiveDeliveryDate =
+                            item.RequiredDeliveryDate
+                            ?? Model.RequiredDeliveryDate;
+
+                        var effectivePriority =
+                            item.Priority
+                            ?? Model.Priority;
+
+
+                        <tr>
+
+                            <!-- SERIAL -->
+
+                            <td>
+                                @itemNumber
+                            </td>
+
+
+                            <!-- ITEM -->
+
+                            <td>
+
+                                <div class="fw-semibold">
+                                    @item.ItemName
+                                </div>
+
+                                <div class="small text-muted">
+                                    @item.ItemCode
+                                </div>
+
+                            </td>
+
+
+                            <!-- SPECIFICATION -->
+
+                            <td>
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    item.Specification))
+                                {
+                                    <div class="small">
+                                        @item.Specification
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        -
+                                    </span>
+                                }
+
+                            </td>
+
+
+                            <!-- QUANTITY -->
+
+                            <td class="text-end text-nowrap">
+    @(item.OrderedQuantity.ToString("0.###")) @item.UnitName
+</td>
+
+
+                            <!-- CUSTOMER ITEM CODE -->
+
+                            <td>
+
+                                @(string.IsNullOrWhiteSpace(
+                                    item.CustomerItemCode)
+                                    ? "-"
+                                    : item.CustomerItemCode)
+
+                            </td>
+
+
+                            <!-- DRAWING -->
+
+                            <td>
+
+                                @(string.IsNullOrWhiteSpace(
+                                    item.CustomerDrawingNumber)
+                                    ? "-"
+                                    : item.CustomerDrawingNumber)
+
+                            </td>
+
+
+                            <!-- REVISION -->
+
+                            <td>
+
+                                @(string.IsNullOrWhiteSpace(
+                                    item.Revision)
+                                    ? "-"
+                                    : item.Revision)
+
+                            </td>
+
+
+                            <!-- EFFECTIVE DELIVERY DATE -->
+
+                            <td class="text-nowrap">
+
+                                @(effectiveDeliveryDate
+                                    .ToString("dd-MM-yyyy"))
+
+                                @if (!item.RequiredDeliveryDate.HasValue)
+                                {
+                                    <div class="small text-muted">
+                                        PO Date
+                                    </div>
+                                }
+
+                            </td>
+
+
+                            <!-- EFFECTIVE PRIORITY -->
+
+                            <td>
+
+                                @switch (effectivePriority)
+                                {
+                                    case CustomerPurchaseOrderPriority.Normal:
+
+                                        <span class="badge bg-secondary">
+                                            Normal
+                                        </span>
+
+                                        break;
+
+
+                                    case CustomerPurchaseOrderPriority.High:
+
+                                        <span class="badge
+                                                     bg-warning
+                                                     text-dark">
+
+                                            High
+
+                                        </span>
+
+                                        break;
+
+
+                                    case CustomerPurchaseOrderPriority.Urgent:
+
+                                        <span class="badge
+                                                     bg-warning
+                                                     text-dark">
+
+                                            Urgent
+
+                                        </span>
+
+                                        break;
+
+
+                                    case CustomerPurchaseOrderPriority.Critical:
+
+                                        <span class="badge bg-danger">
+                                            Critical
+                                        </span>
+
+                                        break;
+                                }
+
+
+                                @if (!item.Priority.HasValue)
+                                {
+                                    <div class="small text-muted mt-1">
+                                        PO Priority
+                                    </div>
+                                }
+
+                            </td>
+
+                        </tr>
+
+                        itemNumber++;
+                    }
+
+
+                    @if (!activeItems.Any())
+                    {
+                        <tr>
+
+                            <td colspan="9"
+                                class="text-center
+                                       text-muted
+                                       py-5">
+
+                                No Customer PO Items found.
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 4 — REMARKS
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-note-sticky
+                      me-1">
+            </i>
+
+            Remarks
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        @if (!string.IsNullOrWhiteSpace(
+            Model.Remarks))
+        {
+            <div>
+                @Model.Remarks
+            </div>
+        }
+        else
+        {
+            <span class="text-muted">
+                No remarks.
+            </span>
+        }
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 5 — FUTURE PRODUCTION PIPELINE PLACEHOLDER
+========================================================== -->
+
+@if (Model.Status !=
+    CustomerPurchaseOrderStatus.Draft)
+{
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-light">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid
+                          fa-diagram-project
+                          me-1">
+                </i>
+
+                Production Pipeline
+
+            </span>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="text-muted">
+
+                Production Pipeline will become available
+                when Production Job planning is implemented.
+
+            </div>
+
+        </div>
+
+    </div>
+}
