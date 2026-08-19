@@ -1,0 +1,1958 @@
+﻿@*
+    ============================================================
+    File: _Form.cshtml
+    Purpose:
+    Shared Goods Receipt Note (GRN) form used by both
+    Create.cshtml and Edit.cshtml.
+
+    Responsibilities:
+    - Select Purchase Order during Create.
+    - Lock Purchase Order during Edit.
+    - Auto-load Supplier from Purchase Order.
+    - Load all Purchase Order items through AJAX.
+    - Display Ordered Quantity.
+    - Display Previous Received + Balance only when the item
+      has receipt history from earlier GRNs.
+    - Capture Receipt Status:
+          Not Received
+          Partial Received
+          Full Received
+    - Show Received Now + Pending ONLY for Partial Received.
+    - Hide Received Now + Pending for Full Received.
+    - Show Material Status only when material is received.
+    - Restore existing receipt/material values during Edit.
+    - Prevent receipt entry against an already fully received item.
+
+    Create Flow:
+    PO Select
+        ↓
+    Supplier Auto
+        ↓
+    PO Items Auto Load
+        ↓
+    Receipt Status / Material Status
+        ↓
+    Save GRN
+
+    Edit Flow:
+    Existing GRN
+        ↓
+    Purchase Order Locked
+        ↓
+    Existing GRN Items Auto Load
+        ↓
+    Existing Receipt / Material Status restored
+        ↓
+    Update GRN
+
+    Important:
+    JavaScript calculations are only for UI convenience.
+
+    Final Previous Received, Balance, Received and Pending
+    quantities are recalculated and validated again inside
+    GoodsReceiptNoteService.
+
+    Business logic does NOT belong in this View.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.GoodsReceiptNote.GoodsReceiptNoteCreateViewModel
+
+@using AjayIndustriesERP.Domain.Enums
+
+
+<!-- =========================================================
+     REGION 1 — GRN INFORMATION
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-white py-3">
+
+        <h5 class="fw-bold mb-0">
+            <i class="fa-solid fa-file-lines me-2"></i>
+            GRN Information
+        </h5>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+
+            <!-- =================================================
+                 GRN DATE
+            ================================================== -->
+
+            <div class="col-md-4">
+
+                <label asp-for="GRNDate"
+                       class="form-label fw-semibold">
+                </label>
+
+                <input asp-for="GRNDate"
+                       type="date"
+                       class="form-control" />
+
+                <span asp-validation-for="GRNDate"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =================================================
+                 PURCHASE ORDER
+            ================================================== -->
+
+            <div class="col-md-4">
+
+                <label asp-for="PurchaseOrderId"
+                       class="form-label fw-semibold">
+                </label>
+
+
+                @if (Model.Id > 0)
+                {
+                    <!--
+                        EDIT MODE
+
+                        Purchase Order is transaction identity.
+                        Once GRN is created, PO cannot be changed.
+                    -->
+
+                    <select asp-for="PurchaseOrderId"
+                            asp-items="ViewBag.PurchaseOrders"
+                            id="purchaseOrderSelect"
+                            class="form-select bg-light"
+                            disabled>
+                    </select>
+
+
+                    <!--
+                        Disabled fields are not submitted by browser,
+                        therefore hidden PurchaseOrderId is required.
+                    -->
+
+                    <input asp-for="PurchaseOrderId"
+                           type="hidden" />
+
+
+                    <div class="form-text">
+                        Purchase Order cannot be changed after GRN creation.
+                    </div>
+                }
+                else
+                {
+                    <!-- CREATE MODE -->
+
+                    <select asp-for="PurchaseOrderId"
+                            asp-items="ViewBag.PurchaseOrders"
+                            id="purchaseOrderSelect"
+                            class="form-select">
+
+                        <option value="">
+                            -- Select Purchase Order --
+                        </option>
+
+                    </select>
+                }
+
+
+                <span asp-validation-for="PurchaseOrderId"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =================================================
+                 SUPPLIER
+            ================================================== -->
+
+            <div class="col-md-4">
+
+                <label class="form-label fw-semibold">
+                    Supplier
+                </label>
+
+                <input type="text"
+                       id="supplierDisplay"
+                       class="form-control bg-light"
+                       value="@Model.SupplierName"
+                       placeholder="Auto from Purchase Order"
+                       readonly />
+
+
+                <input asp-for="SupplierId"
+                       type="hidden"
+                       id="supplierId" />
+
+
+                <input asp-for="SupplierName"
+                       type="hidden"
+                       id="supplierName" />
+
+            </div>
+
+
+            <!-- =================================================
+                 SUPPLIER CHALLAN NUMBER
+            ================================================== -->
+
+            <div class="col-md-4">
+
+                <label asp-for="SupplierChallanNumber"
+                       class="form-label fw-semibold">
+                </label>
+
+                <input asp-for="SupplierChallanNumber"
+                       class="form-control"
+                       placeholder="Enter supplier challan no" />
+
+                <span asp-validation-for="SupplierChallanNumber"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =================================================
+                 SUPPLIER CHALLAN DATE
+            ================================================== -->
+
+            <div class="col-md-4">
+
+                <label asp-for="SupplierChallanDate"
+                       class="form-label fw-semibold">
+                </label>
+
+                <input asp-for="SupplierChallanDate"
+                       type="date"
+                       class="form-control" />
+
+                <span asp-validation-for="SupplierChallanDate"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =================================================
+                 REMARKS
+            ================================================== -->
+
+            <div class="col-md-4">
+
+                <label asp-for="Remarks"
+                       class="form-label fw-semibold">
+                </label>
+
+                <input asp-for="Remarks"
+                       class="form-control"
+                       placeholder="Optional GRN remarks" />
+
+                <span asp-validation-for="Remarks"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — PURCHASE ORDER ITEMS
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-white py-3">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center">
+
+            <div>
+
+                <h5 class="fw-bold mb-1">
+
+                    <i class="fa-solid fa-boxes-stacked me-2"></i>
+
+                    Purchase Order Items
+
+                </h5>
+
+                <small class="text-muted">
+                    Select receipt status for each Purchase Order item.
+                </small>
+
+            </div>
+
+
+            <span id="itemCountBadge"
+                  class="badge bg-secondary"
+                  style="display:none;">
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body">
+
+
+        <!-- =====================================================
+             EMPTY STATE
+        ====================================================== -->
+
+        <div id="emptyItemsMessage"
+             class="text-center text-muted py-5">
+
+            <i class="fa-solid
+                      fa-box-open
+                      fa-2x
+                      mb-3">
+            </i>
+
+            <div class="fw-semibold">
+                Select Purchase Order
+            </div>
+
+            <small>
+                Purchase Order items will appear here.
+            </small>
+
+        </div>
+
+
+        <!-- =====================================================
+             LOADING STATE
+        ====================================================== -->
+
+        <div id="itemsLoading"
+             class="text-center py-5"
+             style="display:none;">
+
+            <div class="spinner-border
+                        spinner-border-sm
+                        me-2"
+                 role="status">
+            </div>
+
+            Loading Purchase Order items...
+
+        </div>
+
+
+        <!-- =====================================================
+             AJAX ERROR
+        ====================================================== -->
+
+        <div id="itemsError"
+             class="alert alert-danger mb-0"
+             style="display:none;">
+        </div>
+
+
+        <!-- =====================================================
+             DYNAMIC ITEM CARDS
+        ====================================================== -->
+
+        <div id="itemsContainer">
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 3 — ACTION BUTTONS
+========================================================== -->
+
+<div class="d-flex justify-content-end gap-2 mb-4">
+
+    @if (Model.Id > 0)
+    {
+        <a asp-action="Details"
+           asp-route-id="@Model.Id"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid fa-xmark me-1"></i>
+
+            Cancel
+
+        </a>
+
+
+        <button type="submit"
+                class="btn btn-primary"
+                id="saveGrnButton">
+
+            <i class="fa-solid fa-floppy-disk me-1"></i>
+
+            Update GRN
+
+        </button>
+    }
+    else
+    {
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid fa-xmark me-1"></i>
+
+            Cancel
+
+        </a>
+
+
+        <button type="submit"
+                class="btn btn-primary"
+                id="saveGrnButton">
+
+            <i class="fa-solid fa-floppy-disk me-1"></i>
+
+            Save GRN
+
+        </button>
+    }
+
+</div>
+
+
+<script>
+
+    // =========================================================
+    // File Section:
+    // GRN Form Client-Side Logic
+    //
+    // Purpose:
+    // Handles dynamic UI only.
+    //
+    // Important:
+    // All authoritative receipt calculations and validations
+    // are repeated inside GoodsReceiptNoteService.
+    // =========================================================
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+
+            // =================================================
+            // DOM REFERENCES
+            // =================================================
+
+            const purchaseOrderSelect =
+                document.getElementById(
+                    "purchaseOrderSelect");
+
+
+            const supplierDisplay =
+                document.getElementById(
+                    "supplierDisplay");
+
+
+            const supplierId =
+                document.getElementById(
+                    "supplierId");
+
+
+            const supplierName =
+                document.getElementById(
+                    "supplierName");
+
+
+            const itemsContainer =
+                document.getElementById(
+                    "itemsContainer");
+
+
+            const emptyItemsMessage =
+                document.getElementById(
+                    "emptyItemsMessage");
+
+
+            const itemsLoading =
+                document.getElementById(
+                    "itemsLoading");
+
+
+            const itemsError =
+                document.getElementById(
+                    "itemsError");
+
+
+            const itemCountBadge =
+                document.getElementById(
+                    "itemCountBadge");
+
+
+            if (!purchaseOrderSelect ||
+                !supplierDisplay ||
+                !supplierId ||
+                !supplierName ||
+                !itemsContainer) {
+
+                return;
+            }
+
+
+            // =================================================
+            // PAGE MODE
+            // =================================================
+
+            const isEditMode =
+                @((Model.Id > 0)
+                    .ToString()
+                    .ToLowerInvariant());
+
+
+            const currentGrnId =
+                @Model.Id;
+
+
+            // =================================================
+            // C# ENUM VALUES
+            // =================================================
+
+            const receiptStatus = {
+
+                notReceived:
+                    @((int)GoodsReceiptStatus.NotReceived),
+
+                partialReceived:
+                    @((int)GoodsReceiptStatus.PartialReceived),
+
+                fullReceived:
+                    @((int)GoodsReceiptStatus.FullReceived)
+            };
+
+
+            const materialStatus = {
+
+                approved:
+                    @((int)GoodsReceiptMaterialStatus.Approved),
+
+                rejected:
+                    @((int)GoodsReceiptMaterialStatus.Rejected),
+
+                failure:
+                    @((int)GoodsReceiptMaterialStatus.Failure),
+
+                returnMaterial:
+                    @((int)GoodsReceiptMaterialStatus.Return)
+            };
+
+
+            // =================================================
+            // AJAX URLS
+            // =================================================
+
+            const purchaseOrderDataUrl =
+                '@Url.Action(
+                    "GetPurchaseOrderData",
+                    "GoodsReceiptNote")';
+
+
+            const editDataUrl =
+                '@Url.Action(
+                    "GetEditData",
+                    "GoodsReceiptNote")';
+
+
+            // =================================================
+            // CREATE MODE - PURCHASE ORDER CHANGE
+            // =================================================
+
+            if (!isEditMode) {
+
+                purchaseOrderSelect.addEventListener(
+                    "change",
+                    async function () {
+
+                        clearPurchaseOrderData();
+
+
+                        const purchaseOrderId =
+                            parseInt(
+                                this.value || "0");
+
+
+                        if (purchaseOrderId <= 0) {
+
+                            showEmptyState();
+
+                            return;
+                        }
+
+
+                        await loadPurchaseOrder(
+                            purchaseOrderId);
+                    });
+            }
+
+
+            // =================================================
+            // LOAD PURCHASE ORDER FOR CREATE
+            // =================================================
+
+            async function loadPurchaseOrder(
+                purchaseOrderId) {
+
+                showLoading();
+
+
+                try {
+
+                    const url =
+                        purchaseOrderDataUrl
+                        + "?purchaseOrderId="
+                        + encodeURIComponent(
+                            purchaseOrderId);
+
+
+                    const response =
+                        await fetch(
+                            url,
+                            {
+                                method: "GET",
+
+                                headers: {
+
+                                    "Accept":
+                                        "application/json"
+                                }
+                            });
+
+
+                    let data = null;
+
+
+                    try {
+
+                        data =
+                            await response.json();
+                    }
+                    catch {
+
+                        data = null;
+                    }
+
+
+                    if (!response.ok) {
+
+                        throw new Error(
+                            data?.message ||
+                            "Unable to load Purchase Order.");
+                    }
+
+
+                    supplierDisplay.value =
+                        data.supplierName || "";
+
+
+                    supplierId.value =
+                        data.supplierId || "0";
+
+
+                    supplierName.value =
+                        data.supplierName || "";
+
+
+                    renderItems(
+                        data.items || []);
+                }
+                catch (error) {
+
+                    clearPurchaseOrderData();
+
+
+                    showError(
+                        error.message ||
+                        "Unable to load Purchase Order.");
+                }
+            }
+
+
+            // =================================================
+            // LOAD EXISTING GRN FOR EDIT
+            // =================================================
+
+            async function loadEditData(
+                grnId) {
+
+                showLoading();
+
+
+                try {
+
+                    const url =
+                        editDataUrl
+                        + "?id="
+                        + encodeURIComponent(
+                            grnId);
+
+
+                    const response =
+                        await fetch(
+                            url,
+                            {
+                                method: "GET",
+
+                                headers: {
+
+                                    "Accept":
+                                        "application/json"
+                                }
+                            });
+
+
+                    let data = null;
+
+
+                    try {
+
+                        data =
+                            await response.json();
+                    }
+                    catch {
+
+                        data = null;
+                    }
+
+
+                    if (!response.ok) {
+
+                        throw new Error(
+                            data?.message ||
+                            "Unable to load GRN.");
+                    }
+
+
+                    supplierDisplay.value =
+                        data.supplierName || "";
+
+
+                    supplierId.value =
+                        data.supplierId || "0";
+
+
+                    supplierName.value =
+                        data.supplierName || "";
+
+
+                    renderItems(
+                        data.items || []);
+                }
+                catch (error) {
+
+                    showError(
+                        error.message ||
+                        "Unable to load GRN.");
+                }
+            }
+
+
+            // =================================================
+            // RENDER ALL ITEMS
+            // =================================================
+
+            function renderItems(
+                items) {
+
+                itemsLoading.style.display =
+                    "none";
+
+
+                itemsError.style.display =
+                    "none";
+
+
+                itemsContainer.innerHTML =
+                    "";
+
+
+                if (!items ||
+                    items.length === 0) {
+
+                    showEmptyState(
+                        "No Purchase Order items found.");
+
+                    return;
+                }
+
+
+                emptyItemsMessage.style.display =
+                    "none";
+
+
+                itemCountBadge.textContent =
+                    `${items.length} ` +
+                    `${items.length === 1
+                        ? "Item"
+                        : "Items"}`;
+
+
+                itemCountBadge.style.display =
+                    "inline-block";
+
+
+                items.forEach(
+                    function (
+                        item,
+                        index) {
+
+                        const card =
+                            createItemCard(
+                                item,
+                                index);
+
+
+                        itemsContainer.appendChild(
+                            card);
+
+
+                        // =====================================
+                        // RESTORE EXISTING STATUS UI
+                        //
+                        // Mainly used during Edit.
+                        // =====================================
+
+                        const selectedStatus =
+                            parseInt(
+                                item.receiptStatus ??
+                                receiptStatus.notReceived);
+
+
+                        const balance =
+                            toNumber(
+                                item.balanceQuantity);
+
+
+                        if (balance > 0) {
+
+                            updateReceiptStatusUI(
+                                index,
+                                selectedStatus,
+                                balance);
+                        }
+                    });
+            }
+
+
+            // =================================================
+            // CREATE ONE ITEM CARD
+            // =================================================
+
+            function createItemCard(
+                item,
+                index) {
+
+                const orderedQuantity =
+                    toNumber(
+                        item.orderedQuantity);
+
+
+                const previousQuantity =
+                    toNumber(
+                        item.previouslyReceivedQuantity);
+
+
+                const balanceQuantity =
+                    toNumber(
+                        item.balanceQuantity);
+
+
+                const hasPreviousReceipt =
+                    previousQuantity > 0;
+
+
+                const alreadyFullyReceived =
+                    balanceQuantity <= 0;
+
+
+                const selectedReceiptStatus =
+                    parseInt(
+                        item.receiptStatus ??
+                        receiptStatus.notReceived);
+
+
+                const selectedMaterialStatus =
+                    item.materialStatus != null
+                        ? parseInt(
+                            item.materialStatus)
+                        : null;
+
+
+                const existingReceivedQuantity =
+                    toNumber(
+                        item.receivedQuantity);
+
+
+                const existingRemarks =
+                    item.remarks || "";
+
+
+                const card =
+                    document.createElement(
+                        "div");
+
+
+                card.className =
+                    "border rounded-3 p-3 mb-3";
+
+
+                card.innerHTML = `
+
+                    <!-- ======================================
+                         POST KEYS
+                    ======================================= -->
+
+                    <input type="hidden"
+                           name="Items[${index}].PurchaseOrderItemId"
+                           value="${item.purchaseOrderItemId}" />
+
+
+                    <input type="hidden"
+                           name="Items[${index}].ItemId"
+                           value="${item.itemId}" />
+
+
+                    <!-- ======================================
+                         ITEM MAIN ROW
+                    ======================================= -->
+
+                    <div class="row g-3 align-items-start">
+
+
+                        <!-- ITEM INFORMATION -->
+
+                        <div class="col-lg-4">
+
+                            <div class="d-flex">
+
+                                <div class="me-3">
+
+                                    <span class="badge
+                                                 bg-light
+                                                 text-dark
+                                                 border">
+
+                                        ${index + 1}
+
+                                    </span>
+
+                                </div>
+
+
+                                <div>
+
+                                    <div class="fw-bold">
+
+                                        ${escapeHtml(
+                                            item.itemName)}
+
+                                    </div>
+
+
+                                    ${
+                                        item.itemCode
+                                            ? `
+
+                                                <div class="small
+                                                            text-muted">
+
+                                                    Code:
+                                                    ${escapeHtml(
+                                                        item.itemCode)}
+
+                                                </div>
+
+                                              `
+                                            : ""
+                                    }
+
+
+                                    ${
+                                        item.specification
+                                            ? `
+
+                                                <div class="small
+                                                            text-muted
+                                                            mt-1">
+
+                                                    ${escapeHtml(
+                                                        item.specification)}
+
+                                                </div>
+
+                                              `
+                                            : ""
+                                    }
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- QUANTITY INFORMATION -->
+
+                        <div class="col-lg-4">
+
+                            ${
+                                hasPreviousReceipt
+
+                                    ? `
+
+                                        <div class="row g-2">
+
+                                            <!-- ORDERED -->
+
+                                            <div class="col-4">
+
+                                                <div class="small
+                                                            text-muted">
+
+                                                    Ordered Qty
+
+                                                </div>
+
+                                                <div class="fw-semibold">
+
+                                                    ${formatQty(
+                                                        orderedQuantity)}
+
+                                                    ${escapeHtml(
+                                                        item.unitName)}
+
+                                                </div>
+
+                                            </div>
+
+
+                                            <!-- PREVIOUS -->
+
+                                            <div class="col-4">
+
+                                                <div class="small
+                                                            text-muted">
+
+                                                    Previously Received
+
+                                                </div>
+
+                                                <div class="fw-semibold">
+
+                                                    ${formatQty(
+                                                        previousQuantity)}
+
+                                                    ${escapeHtml(
+                                                        item.unitName)}
+
+                                                </div>
+
+                                            </div>
+
+
+                                            <!-- BALANCE -->
+
+                                            <div class="col-4">
+
+                                                <div class="small
+                                                            text-muted">
+
+                                                    Balance Qty
+
+                                                </div>
+
+                                                <div class="fw-semibold">
+
+                                                    ${formatQty(
+                                                        balanceQuantity)}
+
+                                                    ${escapeHtml(
+                                                        item.unitName)}
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                      `
+
+                                    : `
+
+                                        <div class="small
+                                                    text-muted">
+
+                                            Ordered Qty
+
+                                        </div>
+
+                                        <div class="fw-semibold">
+
+                                            ${formatQty(
+                                                orderedQuantity)}
+
+                                            ${escapeHtml(
+                                                item.unitName)}
+
+                                        </div>
+
+                                      `
+                            }
+
+                        </div>
+
+
+                        <!-- RECEIPT STATUS -->
+
+                        <div class="col-lg-4">
+
+                            ${
+                                alreadyFullyReceived
+
+                                    ? `
+
+                                        <div class="alert
+                                                    alert-success
+                                                    py-2
+                                                    px-3
+                                                    mb-0">
+
+                                            <i class="fa-solid
+                                                      fa-circle-check
+                                                      me-1">
+                                            </i>
+
+                                            Already fully received
+
+                                        </div>
+
+
+                                        <input type="hidden"
+                                               name="Items[${index}].ReceiptStatus"
+                                               value="${receiptStatus.notReceived}" />
+
+
+                                        <input type="hidden"
+                                               name="Items[${index}].ReceivedQuantity"
+                                               value="0" />
+
+                                      `
+
+                                    : `
+
+                                        <label class="form-label
+                                                      fw-semibold">
+
+                                            Receipt Status
+
+                                        </label>
+
+
+                                        <select name="Items[${index}].ReceiptStatus"
+                                                class="form-select
+                                                       receipt-status"
+                                                data-index="${index}">
+
+                                            <option value="${receiptStatus.notReceived}"
+                                                ${selectedReceiptStatus === receiptStatus.notReceived
+                                                    ? "selected"
+                                                    : ""}>
+
+                                                Not Received
+
+                                            </option>
+
+
+                                            <option value="${receiptStatus.partialReceived}"
+                                                ${selectedReceiptStatus === receiptStatus.partialReceived
+                                                    ? "selected"
+                                                    : ""}>
+
+                                                Partial Received
+
+                                            </option>
+
+
+                                            <option value="${receiptStatus.fullReceived}"
+                                                ${selectedReceiptStatus === receiptStatus.fullReceived
+                                                    ? "selected"
+                                                    : ""}>
+
+                                                Full Received
+
+                                            </option>
+
+                                        </select>
+
+                                      `
+                            }
+
+                        </div>
+
+                    </div>
+
+
+                    ${
+                        alreadyFullyReceived
+
+                            ? ""
+
+                            : `
+
+                                <!-- ===========================
+                                     PARTIAL RECEIPT FIELDS
+
+                                     Visible ONLY when:
+                                     Receipt Status = Partial
+                                ============================ -->
+
+                                <div id="partialFields_${index}"
+                                     class="partial-fields
+                                            border-top
+                                            mt-3
+                                            pt-3"
+                                     style="display:none;">
+
+                                    <div class="row g-3">
+
+
+                                        <!-- RECEIVED NOW -->
+
+                                        <div class="col-md-4">
+
+                                            <label class="form-label
+                                                          fw-semibold">
+
+                                                Received Now
+
+                                            </label>
+
+
+                                            <div class="input-group">
+
+                                                <input type="number"
+                                                       id="receivedQuantity_${index}"
+                                                       name="Items[${index}].ReceivedQuantity"
+                                                       class="form-control
+                                                              received-quantity"
+                                                       min="0"
+                                                       step="0.001"
+                                                       value="${formatRawQty(
+                                                           existingReceivedQuantity)}" />
+
+
+                                                <span class="input-group-text">
+
+                                                    ${escapeHtml(
+                                                        item.unitName)}
+
+                                                </span>
+
+                                            </div>
+
+
+                                            <div class="form-text">
+
+                                                Must be greater than 0
+                                                and less than Balance Qty.
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <!-- PENDING -->
+
+                                        <div class="col-md-4">
+
+                                            <label class="form-label
+                                                          fw-semibold">
+
+                                                Pending
+
+                                            </label>
+
+
+                                            <div class="input-group">
+
+                                                <input type="number"
+                                                       id="pendingQuantity_${index}"
+                                                       class="form-control
+                                                              bg-light"
+                                                       value="${formatRawQty(
+                                                           item.pendingQuantity != null
+                                                               ? item.pendingQuantity
+                                                               : balanceQuantity)}"
+                                                       readonly />
+
+
+                                                <span class="input-group-text">
+
+                                                    ${escapeHtml(
+                                                        item.unitName)}
+
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- ===========================
+                                     MATERIAL INFORMATION
+
+                                     Visible when:
+                                     Partial Received
+                                     OR
+                                     Full Received
+                                ============================ -->
+
+                                <div id="materialFields_${index}"
+                                     class="material-fields
+                                            border-top
+                                            mt-3
+                                            pt-3"
+                                     style="display:none;">
+
+                                    <div class="row g-3">
+
+
+                                        <!-- MATERIAL STATUS -->
+
+                                        <div class="col-md-4">
+
+                                            <label class="form-label
+                                                          fw-semibold">
+
+                                                Material Status
+
+                                            </label>
+
+
+                                            <select id="materialStatus_${index}"
+                                                    name="Items[${index}].MaterialStatus"
+                                                    class="form-select">
+
+                                                <option value="">
+                                                    -- Select Material Status --
+                                                </option>
+
+
+                                                <option value="${materialStatus.approved}"
+                                                    ${selectedMaterialStatus === materialStatus.approved
+                                                        ? "selected"
+                                                        : ""}>
+
+                                                    Approved
+
+                                                </option>
+
+
+                                                <option value="${materialStatus.rejected}"
+                                                    ${selectedMaterialStatus === materialStatus.rejected
+                                                        ? "selected"
+                                                        : ""}>
+
+                                                    Rejected
+
+                                                </option>
+
+
+                                                <option value="${materialStatus.failure}"
+                                                    ${selectedMaterialStatus === materialStatus.failure
+                                                        ? "selected"
+                                                        : ""}>
+
+                                                    Failure
+
+                                                </option>
+
+
+                                                <option value="${materialStatus.returnMaterial}"
+                                                    ${selectedMaterialStatus === materialStatus.returnMaterial
+                                                        ? "selected"
+                                                        : ""}>
+
+                                                    Return
+
+                                                </option>
+
+                                            </select>
+
+                                        </div>
+
+
+                                        <!-- ITEM REMARKS -->
+
+                                        <div class="col-md-8">
+
+                                            <label class="form-label
+                                                          fw-semibold">
+
+                                                Item Remarks
+
+                                            </label>
+
+
+                                            <input type="text"
+                                                   name="Items[${index}].Remarks"
+                                                   class="form-control"
+                                                   maxlength="1000"
+                                                   value="${escapeAttribute(
+                                                       existingRemarks)}"
+                                                   placeholder="Optional item remarks" />
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                              `
+                    }
+                `;
+
+
+                // =============================================
+                // ATTACH EVENTS
+                // =============================================
+
+                if (!alreadyFullyReceived) {
+
+                    const statusSelect =
+                        card.querySelector(
+                            ".receipt-status");
+
+
+                    const receivedInput =
+                        card.querySelector(
+                            ".received-quantity");
+
+
+                    if (statusSelect) {
+
+                        statusSelect.addEventListener(
+                            "change",
+                            function () {
+
+                                updateReceiptStatusUI(
+                                    index,
+                                    parseInt(
+                                        this.value || "0"),
+                                    balanceQuantity);
+                            });
+                    }
+
+
+                    if (receivedInput) {
+
+                        receivedInput.addEventListener(
+                            "input",
+                            function () {
+
+                                calculatePending(
+                                    index,
+                                    balanceQuantity);
+                            });
+                    }
+                }
+
+
+                return card;
+            }
+
+
+            // =================================================
+            // RECEIPT STATUS UI
+            // =================================================
+
+            function updateReceiptStatusUI(
+                index,
+                status,
+                balanceQuantity) {
+
+                const partialFields =
+                    document.getElementById(
+                        `partialFields_${index}`);
+
+
+                const materialFields =
+                    document.getElementById(
+                        `materialFields_${index}`);
+
+
+                const receivedInput =
+                    document.getElementById(
+                        `receivedQuantity_${index}`);
+
+
+                const pendingInput =
+                    document.getElementById(
+                        `pendingQuantity_${index}`);
+
+
+                const materialSelect =
+                    document.getElementById(
+                        `materialStatus_${index}`);
+
+
+                if (!partialFields ||
+                    !materialFields ||
+                    !receivedInput ||
+                    !pendingInput ||
+                    !materialSelect) {
+
+                    return;
+                }
+
+
+                // =============================================
+                // NOT RECEIVED
+                // =============================================
+
+                if (status ===
+                    receiptStatus.notReceived) {
+
+                    partialFields.style.display =
+                        "none";
+
+
+                    materialFields.style.display =
+                        "none";
+
+
+                    receivedInput.value =
+                        "0";
+
+
+                    receivedInput.required =
+                        false;
+
+
+                    receivedInput.setCustomValidity(
+                        "");
+
+
+                    pendingInput.value =
+                        formatRawQty(
+                            balanceQuantity);
+
+
+                    materialSelect.value =
+                        "";
+
+
+                    materialSelect.required =
+                        false;
+
+
+                    return;
+                }
+
+
+                // =============================================
+                // PARTIAL RECEIVED
+                // =============================================
+
+                if (status ===
+                    receiptStatus.partialReceived) {
+
+                    partialFields.style.display =
+                        "block";
+
+
+                    materialFields.style.display =
+                        "block";
+
+
+                    receivedInput.required =
+                        true;
+
+
+                    materialSelect.required =
+                        true;
+
+
+                    calculatePending(
+                        index,
+                        balanceQuantity);
+
+
+                    return;
+                }
+
+
+                // =============================================
+                // FULL RECEIVED
+                // =============================================
+
+                if (status ===
+                    receiptStatus.fullReceived) {
+
+                    // Full Received quantity is calculated
+                    // automatically inside Service Layer.
+
+                    partialFields.style.display =
+                        "none";
+
+
+                    materialFields.style.display =
+                        "block";
+
+
+                    receivedInput.value =
+                        "0";
+
+
+                    receivedInput.required =
+                        false;
+
+
+                    receivedInput.setCustomValidity(
+                        "");
+
+
+                    pendingInput.value =
+                        "0";
+
+
+                    materialSelect.required =
+                        true;
+                }
+            }
+
+
+            // =================================================
+            // PARTIAL RECEIPT PENDING CALCULATION
+            // =================================================
+
+            function calculatePending(
+                index,
+                balanceQuantity) {
+
+                const receivedInput =
+                    document.getElementById(
+                        `receivedQuantity_${index}`);
+
+
+                const pendingInput =
+                    document.getElementById(
+                        `pendingQuantity_${index}`);
+
+
+                if (!receivedInput ||
+                    !pendingInput) {
+
+                    return;
+                }
+
+
+                const receivedQuantity =
+                    toNumber(
+                        receivedInput.value);
+
+
+                // =============================================
+                // CLIENT-SIDE PARTIAL VALIDATION
+                // =============================================
+
+                if (receivedQuantity <= 0) {
+
+                    receivedInput.setCustomValidity(
+                        "Received Now must be greater than zero.");
+                }
+                else if (
+                    receivedQuantity >=
+                    balanceQuantity) {
+
+                    receivedInput.setCustomValidity(
+                        "Partial quantity must be less than Balance Quantity. Select Full Received for complete receipt.");
+                }
+                else {
+
+                    receivedInput.setCustomValidity(
+                        "");
+                }
+
+
+                let pending =
+                    balanceQuantity -
+                    receivedQuantity;
+
+
+                if (pending < 0) {
+
+                    pending = 0;
+                }
+
+
+                pendingInput.value =
+                    formatRawQty(
+                        pending);
+            }
+
+
+            // =================================================
+            // CLEAR CURRENT PO DATA
+            // =================================================
+
+            function clearPurchaseOrderData() {
+
+                supplierDisplay.value =
+                    "";
+
+
+                supplierId.value =
+                    "0";
+
+
+                supplierName.value =
+                    "";
+
+
+                itemsContainer.innerHTML =
+                    "";
+
+
+                itemsError.style.display =
+                    "none";
+
+
+                itemCountBadge.style.display =
+                    "none";
+            }
+
+
+            // =================================================
+            // EMPTY STATE
+            // =================================================
+
+            function showEmptyState(
+                message) {
+
+                itemsLoading.style.display =
+                    "none";
+
+
+                itemsError.style.display =
+                    "none";
+
+
+                itemsContainer.innerHTML =
+                    "";
+
+
+                itemCountBadge.style.display =
+                    "none";
+
+
+                emptyItemsMessage.style.display =
+                    "block";
+
+
+                if (message) {
+
+                    emptyItemsMessage.innerHTML = `
+
+                        <i class="fa-solid
+                                  fa-box-open
+                                  fa-2x
+                                  mb-3">
+                        </i>
+
+                        <div class="fw-semibold">
+
+                            ${escapeHtml(
+                                message)}
+
+                        </div>
+                    `;
+                }
+            }
+
+
+            // =================================================
+            // LOADING STATE
+            // =================================================
+
+            function showLoading() {
+
+                emptyItemsMessage.style.display =
+                    "none";
+
+
+                itemsError.style.display =
+                    "none";
+
+
+                itemsContainer.innerHTML =
+                    "";
+
+
+                itemCountBadge.style.display =
+                    "none";
+
+
+                itemsLoading.style.display =
+                    "block";
+            }
+
+
+            // =================================================
+            // AJAX ERROR STATE
+            // =================================================
+
+            function showError(
+                message) {
+
+                itemsLoading.style.display =
+                    "none";
+
+
+                emptyItemsMessage.style.display =
+                    "none";
+
+
+                itemsContainer.innerHTML =
+                    "";
+
+
+                itemCountBadge.style.display =
+                    "none";
+
+
+                itemsError.textContent =
+                    message;
+
+
+                itemsError.style.display =
+                    "block";
+            }
+
+
+            // =================================================
+            // NUMBER HELPERS
+            // =================================================
+
+            function toNumber(
+                value) {
+
+                const number =
+                    parseFloat(
+                        value);
+
+
+                return Number.isFinite(
+                    number)
+                    ? number
+                    : 0;
+            }
+
+
+            function formatQty(
+                value) {
+
+                return Number(
+                    toNumber(value)
+                        .toFixed(3))
+                    .toString();
+            }
+
+
+            function formatRawQty(
+                value) {
+
+                return toNumber(
+                    value)
+                    .toFixed(3);
+            }
+
+
+            // =================================================
+            // SAFE HTML HELPERS
+            // =================================================
+
+            function escapeHtml(
+                value) {
+
+                return String(
+                    value ?? "")
+                    .replaceAll(
+                        "&",
+                        "&amp;")
+                    .replaceAll(
+                        "<",
+                        "&lt;")
+                    .replaceAll(
+                        ">",
+                        "&gt;")
+                    .replaceAll(
+                        "\"",
+                        "&quot;")
+                    .replaceAll(
+                        "'",
+                        "&#039;");
+            }
+
+
+            function escapeAttribute(
+                value) {
+
+                return escapeHtml(
+                    value);
+            }
+
+
+            // =================================================
+            // INITIAL PAGE LOAD
+            // =================================================
+            //
+            // CREATE:
+            // If selected PO exists after a server-side return,
+            // reload Purchase Order.
+            //
+            // EDIT:
+            // Load actual existing GRN values through GetEditData.
+            // =================================================
+
+            const initialPurchaseOrderId =
+                parseInt(
+                    purchaseOrderSelect.value || "0");
+
+
+            if (isEditMode &&
+                currentGrnId > 0) {
+
+                loadEditData(
+                    currentGrnId);
+            }
+            else if (
+                initialPurchaseOrderId > 0) {
+
+                loadPurchaseOrder(
+                    initialPurchaseOrderId);
+            }
+
+        });
+
+</script>

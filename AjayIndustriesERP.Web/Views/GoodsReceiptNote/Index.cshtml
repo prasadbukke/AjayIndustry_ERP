@@ -1,0 +1,664 @@
+﻿@*
+==============================================================
+
+File : Index.cshtml
+
+Purpose :
+Displays Goods Receipt Notes grouped by Purchase Order.
+
+Main UI Rule :
+One Purchase Order = One parent row.
+
+Multiple GRNs created against the same Purchase Order are shown
+inside expandable GRN History instead of repeating the PO on
+multiple main rows.
+
+Features :
+- Shared Search component
+- Shared Pagination component
+- Pagination by Purchase Order group
+- Search by GRN / PO / Supplier / Challan
+- Expandable GRN History
+- GRN Date / Challan information
+- Details action
+- Only latest GRN has active Edit action
+- Older GRNs keep visible disabled Edit button for stable UI
+
+Important :
+Database structure is unchanged.
+Every GRN remains an individual transaction record.
+
+==============================================================
+*@
+
+@model List<AjayIndustriesERP.Web.ViewModels.GoodsReceiptNote.GoodsReceiptNoteIndexViewModel>
+
+@{
+    ViewData["Title"] =
+        "Goods Receipt Notes";
+}
+
+
+<!-- =========================================================
+     PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Goods Receipt Notes
+        </h2>
+
+        <p class="text-muted mb-0">
+            Manage material receipts against Purchase Orders.
+        </p>
+
+    </div>
+
+
+    <a asp-action="Create"
+       class="btn btn-primary">
+
+        <i class="fa-solid
+                  fa-plus
+                  me-1">
+        </i>
+
+        Create GRN
+
+    </a>
+
+</div>
+
+
+<!-- =========================================================
+     SEARCH
+========================================================== -->
+
+<partial name="Components/_SearchBar"
+         model='@(ViewBag.SearchText as string ?? "")' />
+
+
+<!-- =========================================================
+     PURCHASE ORDER / GRN GROUP LIST
+========================================================== -->
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th style="width:60px;">
+                            #
+                        </th>
+
+                        <th>
+                            PO Number
+                        </th>
+
+                        <th>
+                            Supplier
+                        </th>
+
+                        <th class="text-center">
+                            GRNs
+                        </th>
+
+                        <th>
+                            Latest GRN
+                        </th>
+
+                        <th>
+                            Latest Receipt Date
+                        </th>
+
+<th class="text-center">
+    Status
+</th>
+
+                        <th class="text-center"
+                            style="width:150px;">
+
+                            Actions
+
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model.Any())
+                    {
+                        var pageNumber =
+                            (int)ViewBag.PageNumber;
+
+                        var pageSize =
+                            (int)ViewBag.PageSize;
+
+                        var serialNumber =
+                            ((pageNumber - 1) *
+                             pageSize) + 1;
+
+
+                        foreach (var group in Model)
+                        {
+                            var historyId =
+                                $"grnHistory_{group.PurchaseOrderId}";
+
+
+                            <!-- ==============================
+                                 PURCHASE ORDER PARENT ROW
+                            =============================== -->
+
+                            <tr>
+
+                                <!-- SERIAL -->
+
+                                <td>
+                                    @serialNumber
+                                </td>
+
+
+                                <!-- PO NUMBER -->
+
+                                <td>
+
+                                    <span class="fw-semibold">
+                                        @group.PurchaseOrderCode
+                                    </span>
+
+                                </td>
+
+
+                                <!-- SUPPLIER -->
+
+                                <td>
+                                    @group.SupplierName
+                                </td>
+
+
+                                <!-- GRN COUNT -->
+
+                                <td class="text-center">
+
+                                    <span class="badge
+                                                 bg-secondary">
+
+                                        @group.TotalGoodsReceiptNotes
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- LATEST GRN -->
+
+                                <td>
+
+                                    <a asp-action="Details"
+                                       asp-route-id="@group.LatestGoodsReceiptNoteId"
+                                       class="text-decoration-none
+                                              fw-semibold">
+
+                                        @group.LatestGoodsReceiptNoteCode
+
+                                    </a>
+
+                                </td>
+
+
+                                <!-- LATEST DATE -->
+
+                                <td>
+
+                                    @(group.LatestGoodsReceiptNoteDate.ToString("dd-MM-yyyy"))
+
+                                </td>
+
+<!-- RECEIPT STATUS -->
+
+<td class="text-center">
+
+    @if (group.IsReceiptComplete)
+    {
+        <span class="badge bg-success">
+
+            <i class="fa-solid
+                      fa-circle-check
+                      me-1">
+            </i>
+
+            Complete
+
+        </span>
+    }
+    else
+    {
+        <span class="badge
+                     bg-warning
+                     text-dark">
+
+            <i class="fa-solid
+                      fa-clock
+                      me-1">
+            </i>
+
+            Pending
+
+        </span>
+    }
+
+</td>
+
+
+                                <!-- ACTIONS -->
+
+                                <td class="text-center">
+
+    <div class="d-flex
+                justify-content-center
+                gap-1">
+
+        <!-- HISTORY -->
+
+        <button type="button"
+                class="btn
+                       btn-sm
+                       btn-outline-secondary"
+                data-bs-toggle="collapse"
+                data-bs-target="#@historyId"
+                aria-expanded="false"
+                aria-controls="@historyId"
+                title="View GRN History">
+
+            <i class="fa-solid
+                      fa-clock-rotate-left">
+            </i>
+
+        </button>
+
+
+        <!-- CREATE NEXT GRN -->
+
+        @if (!group.IsReceiptComplete)
+        {
+            <a asp-action="Create"
+               asp-route-purchaseOrderId="@group.PurchaseOrderId"
+               class="btn
+                      btn-sm
+                      btn-outline-primary"
+               title="Create Next GRN">
+
+                <i class="fa-solid fa-plus"></i>
+
+            </a>
+        }
+        else
+        {
+            <button type="button"
+                    class="btn
+                           btn-sm
+                           btn-outline-primary"
+                    title="Purchase Order receipt is complete."
+                    disabled>
+
+                <i class="fa-solid fa-plus"></i>
+
+            </button>
+        }
+
+    </div>
+
+</td>
+
+                            </tr>
+
+
+                            <!-- ==============================
+                                 GRN HISTORY COLLAPSE ROW
+                            =============================== -->
+
+                            <tr>
+
+                                <td colspan="7"
+                                    class="p-0
+                                           border-0">
+
+                                    <div class="collapse"
+                                         id="@historyId">
+
+                                        <div class="p-3
+                                                    bg-light
+                                                    border-top
+                                                    border-bottom">
+
+                                            <div class="d-flex
+                                                        justify-content-between
+                                                        align-items-center
+                                                        mb-3">
+
+                                                <div>
+
+                                                    <div class="fw-semibold">
+
+                                                        GRN History
+
+                                                    </div>
+
+                                                    <div class="small
+                                                                text-muted">
+
+                                                        @group.PurchaseOrderCode
+
+                                                    </div>
+
+                                                </div>
+
+
+                                                <span class="badge
+                                                             bg-light
+                                                             text-dark
+                                                             border">
+
+                                                    @group.TotalGoodsReceiptNotes
+                                                    GRN@(group.TotalGoodsReceiptNotes == 1
+                                                        ? ""
+                                                        : "s")
+
+                                                </span>
+
+                                            </div>
+
+
+                                            <div class="table-responsive">
+
+                                                <table class="table
+                                                              table-sm
+                                                              table-bordered
+                                                              align-middle
+                                                              bg-white
+                                                              mb-0">
+
+                                                    <thead class="table-light">
+
+                                                        <tr>
+
+                                                            <th style="width:55px;">
+                                                                #
+                                                            </th>
+
+                                                            <th>
+                                                                GRN Number
+                                                            </th>
+
+                                                            <th>
+                                                                GRN Date
+                                                            </th>
+
+                                                            <th>
+                                                                Challan No
+                                                            </th>
+
+                                                            <th>
+                                                                Challan Date
+                                                            </th>
+
+                                                            <th class="text-center"
+                                                                style="width:130px;">
+
+                                                                Actions
+
+                                                            </th>
+
+                                                        </tr>
+
+                                                    </thead>
+
+
+                                                    <tbody>
+
+                                                        @{
+                                                            var historySerial =
+                                                                1;
+                                                        }
+
+
+                                                        @foreach (var history
+                                                            in group.History)
+                                                        {
+                                                            <tr>
+
+                                                                <!-- HISTORY SERIAL -->
+
+                                                                <td>
+                                                                    @historySerial
+                                                                </td>
+
+
+                                                                <!-- GRN NUMBER -->
+
+                                                                <td>
+
+                                                                    <div class="d-flex
+                                                                                align-items-center
+                                                                                gap-2">
+
+                                                                        <a asp-action="Details"
+                                                                           asp-route-id="@history.Id"
+                                                                           class="text-decoration-none
+                                                                                  fw-semibold">
+
+                                                                            @history.Code
+
+                                                                        </a>
+
+
+                                                                        @if (history.IsLatest)
+                                                                        {
+                                                                            <span class="badge
+                                                                                         bg-success">
+
+                                                                                Latest
+
+                                                                            </span>
+                                                                        }
+
+                                                                    </div>
+
+                                                                </td>
+
+
+                                                                <!-- GRN DATE -->
+
+                                                                <td>
+
+                                                                    @(history.GRNDate.ToString("dd-MM-yyyy"))
+
+                                                                </td>
+
+
+                                                                <!-- CHALLAN NUMBER -->
+
+                                                                <td>
+
+                                                                    @if (!string.IsNullOrWhiteSpace(
+                                                                        history.SupplierChallanNumber))
+                                                                    {
+                                                                        @history.SupplierChallanNumber
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="text-muted">
+                                                                            -
+                                                                        </span>
+                                                                    }
+
+                                                                </td>
+
+
+                                                                <!-- CHALLAN DATE -->
+
+                                                                <td>
+
+                                                                    @if (history.SupplierChallanDate.HasValue)
+                                                                    {
+                                                                        @(history.SupplierChallanDate.Value.ToString("dd-MM-yyyy"))
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="text-muted">
+                                                                            -
+                                                                        </span>
+                                                                    }
+
+                                                                </td>
+
+
+                                                                <!-- ACTIONS -->
+
+                                                                <td class="text-center">
+
+                                                                    <div class="d-flex
+                                                                                justify-content-center
+                                                                                gap-1">
+
+                                                                        <!-- DETAILS -->
+
+                                                                        <a asp-action="Details"
+                                                                           asp-route-id="@history.Id"
+                                                                           class="btn
+                                                                                  btn-sm
+                                                                                  btn-outline-info"
+                                                                           title="Details">
+
+                                                                            <i class="fa-solid
+                                                                                      fa-eye">
+                                                                            </i>
+
+                                                                        </a>
+
+
+                                                                        <!-- EDIT -->
+
+                                                                        @if (history.IsLatest)
+                                                                        {
+                                                                            <a asp-action="Edit"
+                                                                               asp-route-id="@history.Id"
+                                                                               class="btn
+                                                                                      btn-sm
+                                                                                      btn-outline-warning"
+                                                                               title="Edit">
+
+                                                                                <i class="fa-solid
+                                                                                          fa-pen">
+                                                                                </i>
+
+                                                                            </a>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <button type="button"
+                                                                                    class="btn
+                                                                                           btn-sm
+                                                                                           btn-outline-warning"
+                                                                                    title="Only the latest GRN can be edited."
+                                                                                    disabled>
+
+                                                                                <i class="fa-solid
+                                                                                          fa-pen">
+                                                                                </i>
+
+                                                                            </button>
+                                                                        }
+
+                                                                    </div>
+
+                                                                </td>
+
+                                                            </tr>
+
+                                                            historySerial++;
+                                                        }
+
+                                                    </tbody>
+
+                                                </table>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+
+                            serialNumber++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="7"
+                                class="text-center
+                                       text-muted
+                                       py-5">
+
+                                <i class="fa-solid
+                                          fa-box-open
+                                          fa-2x
+                                          mb-2">
+                                </i>
+
+                                <div>
+                                    No Goods Receipt Note records found.
+                                </div>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     PAGINATION
+========================================================== -->
+
+<partial name="Components/_Pagination"
+         model='(
+             (int)ViewBag.PageNumber,
+             (int)ViewBag.PageSize
+         )' />

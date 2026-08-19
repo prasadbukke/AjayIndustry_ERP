@@ -511,3 +511,5 @@ Purchase Order
 → Partial / Full Receipt
 → PO receipt status
 → Inventory Stock Transaction
+
+GRN development milestone entry

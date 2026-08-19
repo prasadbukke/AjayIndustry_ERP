@@ -1,0 +1,95 @@
+﻿@*
+    ============================================================
+    File: Edit.cshtml
+    Purpose:
+    Displays the Edit Goods Receipt Note page.
+
+    Responsibilities:
+    - Own the Edit HTML form.
+    - Display Edit page heading.
+    - Render the shared _Form.cshtml partial.
+    - Load validation scripts.
+
+    Important:
+    Actual GRN fields and receipt UI are maintained only in
+    _Form.cshtml so Create and Edit follow the same ERP pattern.
+
+    Business validation remains inside GoodsReceiptNoteService.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.GoodsReceiptNote.GoodsReceiptNoteCreateViewModel
+
+@{
+    ViewData["Title"] = "Edit GRN";
+}
+
+
+<!-- =========================================================
+     REGION 1 — PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Edit Goods Receipt Note
+        </h2>
+
+        <p class="text-muted mb-0">
+            Update Goods Receipt Note information.
+        </p>
+
+    </div>
+
+
+    <a asp-action="Details"
+       asp-route-id="@Model.Id"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid
+                  fa-arrow-left
+                  me-1">
+        </i>
+
+        Back
+
+    </a>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — EDIT FORM
+========================================================== -->
+
+<form asp-action="Edit"
+      asp-route-id="@Model.Id"
+      method="post"
+      id="grnForm">
+
+    <input asp-for="Id"
+           type="hidden" />
+
+
+    <div asp-validation-summary="ModelOnly"
+         class="text-danger mb-3">
+    </div>
+
+
+    <partial name="_Form"
+             model="Model" />
+
+</form>
+
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -553,3 +553,5 @@ Before starting coding for a new major module:
 8. Test.
 9. Update canonical documentation.
 10. Git commit.
+→ GRN Phase 1 completed
+→ Next = Inventory / Stock Ledger

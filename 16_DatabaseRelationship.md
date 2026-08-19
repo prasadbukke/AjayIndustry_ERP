@@ -343,3 +343,5 @@ Drawing may later be referenced by:
 - Inspection
 
 Exact relationships will be designed when those modules are started.
+→ PurchaseOrder → GoodsReceiptNotes
+→ PurchaseOrderItem → GoodsReceiptNoteItems

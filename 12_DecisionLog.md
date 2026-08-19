@@ -681,3 +681,12 @@ GRN will be responsible for future:
 - warehouse receipt
 - stock transaction
 - stock ledger integration
+
+→ One PO → Multiple GRNs
+→ Index one PO parent row + GRN History
+→ Partial / Full / Not Received rules
+→ Material Status values
+→ Same Supplier + Same Challan duplicate not allowed
+→ Only latest GRN editable
+→ PO cannot change after GRN creation
+→ Stock effect intentionally pending

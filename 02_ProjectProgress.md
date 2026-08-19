@@ -145,3 +145,5 @@ Primary goals to design next:
 - Stock ledger integration
 
 GRN business rules and database design must be finalized before coding.
+
+GRN Phase 1 = Completed

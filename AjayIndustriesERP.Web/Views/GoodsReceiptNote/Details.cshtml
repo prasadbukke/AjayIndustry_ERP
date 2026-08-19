@@ -1,0 +1,762 @@
+﻿@*
+    ============================================================
+    File: Details.cshtml
+    Purpose:
+    Displays complete read-only Goods Receipt Note information.
+
+    Responsibilities:
+    - Display GRN header information.
+    - Display Purchase Order and Supplier information.
+    - Display Supplier Challan details.
+    - Display every Purchase Order item.
+    - Display Ordered / Previous / Balance quantities.
+    - Display current GRN Received Now quantity.
+    - Display cumulative Overall Receipt Status.
+    - Display Material Status.
+    - Display complete item-wise Receipt History with:
+          Receipt Date
+          Received Quantity
+    - Display GRN and item-level remarks.
+
+    Important:
+    Receipt History allows the latest GRN to provide a complete
+    receipt picture of the Purchase Order without opening every
+    previous GRN separately.
+
+    The page is read-only.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.GoodsReceiptNote.GoodsReceiptNoteDetailsViewModel
+
+@using AjayIndustriesERP.Domain.Enums
+
+@{
+    ViewData["Title"] = "GRN Details";
+
+    var grn = Model.GoodsReceiptNote;
+}
+
+
+<!-- =========================================================
+     REGION 1 — PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Goods Receipt Note Details
+        </h2>
+
+        <p class="text-muted mb-0">
+            @grn.Code
+        </p>
+
+    </div>
+
+
+    <div class="d-flex gap-2">
+
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid
+                      fa-arrow-left
+                      me-1">
+            </i>
+
+            Back
+
+        </a>
+
+
+        <a asp-action="Edit"
+           asp-route-id="@grn.Id"
+           class="btn btn-outline-warning">
+
+            <i class="fa-solid
+                      fa-pen
+                      me-1">
+            </i>
+
+            Edit
+
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — GRN INFORMATION
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-file-circle-check
+                      me-1">
+            </i>
+
+            GRN Information
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-4">
+
+
+            <!-- GRN NUMBER -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small">
+                    GRN Number
+                </div>
+
+                <div class="fw-semibold">
+                    @grn.Code
+                </div>
+
+            </div>
+
+
+            <!-- GRN DATE -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small">
+                    GRN Date
+                </div>
+
+                <div class="fw-semibold">
+                    @(grn.GRNDate.ToString("dd-MM-yyyy"))
+                </div>
+
+            </div>
+
+
+            <!-- PURCHASE ORDER -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small">
+                    Purchase Order
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(grn.PurchaseOrder?.Code ?? "-")
+
+                </div>
+
+            </div>
+
+
+            <!-- SUPPLIER -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small">
+                    Supplier
+                </div>
+
+                <div class="fw-semibold">
+                    @grn.SupplierName
+                </div>
+
+            </div>
+
+
+            <!-- CHALLAN NUMBER -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small">
+                    Supplier Challan No
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(
+                        string.IsNullOrWhiteSpace(
+                            grn.SupplierChallanNumber)
+                            ? "-"
+                            : grn.SupplierChallanNumber
+                    )
+
+                </div>
+
+            </div>
+
+
+            <!-- CHALLAN DATE -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small">
+                    Supplier Challan Date
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(
+                        grn.SupplierChallanDate.HasValue
+                            ? grn.SupplierChallanDate.Value
+                                .ToString("dd-MM-yyyy")
+                            : "-"
+                    )
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 3 — GRN ITEMS
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-boxes-stacked
+                      me-1">
+            </i>
+
+            Received Items
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th style="width:50px;">
+                            #
+                        </th>
+
+                        <th style="min-width:180px;">
+                            Item
+                        </th>
+
+                        <th class="text-end">
+                            Ordered
+                        </th>
+
+                        <th class="text-end">
+                            Previous
+                        </th>
+
+                        <th class="text-end">
+                            Balance
+                        </th>
+
+                        <th>
+                            Overall Status
+                        </th>
+
+                        <th class="text-end">
+                            Received Now
+                        </th>
+
+                        <th class="text-end">
+                            Pending
+                        </th>
+
+                        <th>
+                            Material Status
+                        </th>
+
+                        <th style="min-width:220px;">
+                            Receipt History
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @{
+                        var itemNumber = 1;
+                    }
+
+
+                    @foreach (var item in grn.Items)
+                    {
+                        var totalReceived =
+                            item.PreviouslyReceivedQuantity +
+                            item.ReceivedQuantity;
+
+                        var overallPending =
+                            item.OrderedQuantity -
+                            totalReceived;
+
+                        if (overallPending < 0)
+                        {
+                            overallPending = 0;
+                        }
+
+
+                        <tr>
+
+                            <!-- ===============================
+                                 SERIAL NUMBER
+                            ================================ -->
+
+                            <td>
+                                @itemNumber
+                            </td>
+
+
+                            <!-- ===============================
+                                 ITEM INFORMATION
+                            ================================ -->
+
+                            <td>
+
+                                <div class="fw-semibold">
+                                    @item.ItemName
+                                </div>
+
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    item.ItemCode))
+                                {
+                                    <div class="small text-muted">
+
+                                        Code:
+                                        @item.ItemCode
+
+                                    </div>
+                                }
+
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    item.Specification))
+                                {
+                                    <div class="small
+                                                text-muted
+                                                mt-1">
+
+                                        @item.Specification
+
+                                    </div>
+                                }
+
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    item.Remarks))
+                                {
+                                    <div class="small mt-1">
+
+                                        <span class="text-muted">
+                                            Remarks:
+                                        </span>
+
+                                        @item.Remarks
+
+                                    </div>
+                                }
+
+                            </td>
+
+
+                            <!-- ===============================
+                                 ORDERED QUANTITY
+                            ================================ -->
+
+                            <td class="text-end text-nowrap">
+
+                                @item.OrderedQuantity.ToString("0.###")
+                                @item.UnitName
+
+                            </td>
+
+
+                            <!-- ===============================
+                                 PREVIOUSLY RECEIVED
+                            ================================ -->
+
+                            <td class="text-end text-nowrap">
+
+                                @if (item.PreviouslyReceivedQuantity > 0)
+                                {
+                                    @item.PreviouslyReceivedQuantity.ToString("0.###")
+
+                                    @: @item.UnitName
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        -
+                                    </span>
+                                }
+
+                            </td>
+
+
+                            <!-- ===============================
+                                 BALANCE AT START OF THIS GRN
+                            ================================ -->
+
+                            <td class="text-end text-nowrap">
+
+                                @item.BalanceQuantity.ToString("0.###")
+                                @item.UnitName
+
+                            </td>
+
+
+                            <!-- ===============================
+                                 OVERALL RECEIPT STATUS
+                            ================================ -->
+
+                            <td>
+
+                                @if (totalReceived >=
+                                    item.OrderedQuantity)
+                                {
+                                    <span class="badge bg-success">
+
+                                        Full Received
+
+                                    </span>
+                                }
+                                else if (totalReceived > 0)
+                                {
+                                    <span class="badge
+                                                 bg-warning
+                                                 text-dark">
+
+                                        Partial Received
+
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">
+
+                                        Not Received
+
+                                    </span>
+                                }
+
+                            </td>
+
+
+                            <!-- ===============================
+                                 RECEIVED NOW
+                            ================================ -->
+
+                            <td class="text-end text-nowrap">
+
+                                @if (item.ReceivedQuantity > 0)
+                                {
+                                    @item.ReceivedQuantity.ToString("0.###")
+
+                                    @: @item.UnitName
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        -
+                                    </span>
+                                }
+
+                            </td>
+
+
+                            <!-- ===============================
+                                 OVERALL PENDING
+                            ================================ -->
+
+                            <td class="text-end text-nowrap">
+
+                                @overallPending.ToString("0.###")
+                                @item.UnitName
+
+                            </td>
+
+
+                            <!-- ===============================
+                                 MATERIAL STATUS
+                            ================================ -->
+
+                            <!-- ===============================
+     MATERIAL STATUS
+
+     Purpose:
+     Shows material status from actual receipt history.
+
+     Important:
+     If the item was received in an earlier GRN and is not
+     received again in the current GRN, the previous material
+     status is still displayed.
+
+     If multiple receipts have different material statuses,
+     all distinct statuses are shown.
+================================ -->
+
+<td class="text-nowrap">
+
+    @if (
+        Model.ReceiptHistory.TryGetValue(
+            item.PurchaseOrderItemId,
+            out var materialHistory)
+        &&
+        materialHistory.Any())
+    {
+        var materialStatuses =
+            materialHistory
+                .Where(x =>
+                    x.ReceivedQuantity > 0 &&
+                    x.MaterialStatus.HasValue)
+                .Select(x =>
+                    x.MaterialStatus!.Value)
+                .Distinct()
+                .ToList();
+
+
+        @if (materialStatuses.Any())
+        {
+            <div class="d-flex
+                        flex-column
+                        align-items-start
+                        gap-1">
+
+                @foreach (var status in materialStatuses)
+                {
+                    switch (status)
+                    {
+                        case GoodsReceiptMaterialStatus.Approved:
+
+                            <span class="badge bg-success">
+                                Approved
+                            </span>
+
+                            break;
+
+
+                        case GoodsReceiptMaterialStatus.Rejected:
+
+                            <span class="badge bg-danger">
+                                Rejected
+                            </span>
+
+                            break;
+
+
+                        case GoodsReceiptMaterialStatus.Failure:
+
+                            <span class="badge
+                                         bg-warning
+                                         text-dark">
+
+                                Failure
+
+                            </span>
+
+                            break;
+
+
+                        case GoodsReceiptMaterialStatus.Return:
+
+                            <span class="badge bg-dark">
+                                Return
+                            </span>
+
+                            break;
+                    }
+                }
+
+            </div>
+        }
+        else
+        {
+            <span class="text-muted">
+                -
+            </span>
+        }
+    }
+    else
+    {
+        <span class="text-muted">
+            -
+        </span>
+    }
+
+</td>
+
+
+                            <!-- ===============================
+                                 RECEIPT HISTORY
+                            ================================ -->
+
+       <!-- ===============================
+     RECEIPT HISTORY
+
+     Purpose:
+     Shows only the date(s) on which this exact
+     Purchase Order item was physically received.
+
+     Format:
+     18-08-2026 (Tuesday)
+
+     If the same item was received on multiple dates,
+     all unique receipt dates are displayed.
+================================ -->
+
+<td class="col-history">
+
+    @if (
+        Model.ReceiptHistory.TryGetValue(
+            item.PurchaseOrderItemId,
+            out var itemHistory)
+        &&
+        itemHistory.Any())
+    {
+        var receiptDates =
+            itemHistory
+                .Where(x =>
+                    x.ReceivedQuantity > 0)
+                .Select(x =>
+                    x.GoodsReceiptNote.GRNDate.Date)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToList();
+
+
+        @if (receiptDates.Any())
+        {
+            <div class="d-flex
+                        flex-column
+                        gap-1">
+
+                @foreach (var receiptDate in receiptDates)
+                {
+                    <div class="small">
+
+                        @(receiptDate.ToString("dd-MM-yyyy"))
+
+                        <span class="text-muted">
+                            (@receiptDate.ToString("dddd"))
+                        </span>
+
+                    </div>
+                }
+
+            </div>
+        }
+        else
+        {
+            <span class="text-muted">
+                -
+            </span>
+        }
+    }
+    else
+    {
+        <span class="text-muted">
+            -
+        </span>
+    }
+
+</td>
+
+                        </tr>
+
+                        itemNumber++;
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 4 — REMARKS
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-note-sticky
+                      me-1">
+            </i>
+
+            Remarks
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        @if (!string.IsNullOrWhiteSpace(
+            grn.Remarks))
+        {
+            <div>
+                @grn.Remarks
+            </div>
+        }
+        else
+        {
+            <span class="text-muted">
+                No remarks.
+            </span>
+        }
+
+    </div>
+
+</div>

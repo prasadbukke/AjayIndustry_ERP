@@ -196,3 +196,5 @@ Journal / Ledger
 Reports
 
 Exact accounting design is deferred.
+→ PO Sent → GRN Receipt
+→ Stock update marked as next integration

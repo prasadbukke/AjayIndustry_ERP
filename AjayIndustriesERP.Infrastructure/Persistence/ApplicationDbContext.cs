@@ -25,6 +25,8 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
         public DbSet<Drawing> Drawings =>  Set<Drawing>();
         public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
         public DbSet<PurchaseOrderItem> PurchaseOrderItems { get; set; }
+        public DbSet<GoodsReceiptNote> GoodsReceiptNotes { get; set; }
+        public DbSet<GoodsReceiptNoteItem> GoodsReceiptNoteItems { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

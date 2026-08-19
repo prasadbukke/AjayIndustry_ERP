@@ -595,3 +595,4 @@ Business rules to finalize:
 - reversal/delete behavior
 
 These fields are planning candidates only until GRN design is approved.
+→ GRN finalized implementation blueprint

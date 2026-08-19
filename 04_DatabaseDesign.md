@@ -878,3 +878,8 @@ Deferred:
 - GST reporting
 - Supplier balances
 - Full Drawing approval workflow
+
+→ GoodsReceiptNotes
+→ GoodsReceiptNoteItems
+→ Supplier + Challan uniqueness rule
+→ PO/POItem relationships

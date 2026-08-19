@@ -204,6 +204,9 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
                         new PurchaseOrderPdfService(
                             webRootPath));
 
+            services.AddScoped<IGoodsReceiptNoteRepository, GoodsReceiptNoteRepository>();
+            services.AddScoped<IGoodsReceiptNoteService, GoodsReceiptNoteService>();
+
 
             return services;
         }
