@@ -883,3 +883,11 @@ Deferred:
 → GoodsReceiptNoteItems
 → Supplier + Challan uniqueness rule
 → PO/POItem relationships
+
+ACTION: ADD Customer table
+ADD:
+- Customer fields
+- Customer Code unique
+- GSTIN unique for active records
+- Email unique for active records
+- Mobile indexes / duplicate validation rules

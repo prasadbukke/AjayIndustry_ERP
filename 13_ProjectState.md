@@ -555,3 +555,8 @@ Before starting coding for a new major module:
 10. Git commit.
 → GRN Phase 1 completed
 → Next = Inventory / Stock Ledger
+
+ACTION: UPDATE Current State
+ADD:
+- Customer Master = Completed
+- Next Module = Customer PO / Sales Order

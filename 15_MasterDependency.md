@@ -316,3 +316,16 @@ Item
 
 Drawing
 → Production / Quality engineering reference
+
+ACTION: ADD Customer Master dependency
+ADD:
+Customer
+   ↓
+Customer PO / Sales Order
+   ↓
+Production Job / Pipeline
+
+ACTION: UPDATE
+ADD:
+- Customer Master completed
+- Customer PO / Sales Order next

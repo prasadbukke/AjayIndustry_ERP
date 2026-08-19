@@ -1,27 +1,440 @@
-﻿@if (TempData["Success"] != null)
-{
-    <script>
-        toastr.success('@TempData["Success"]');
-    </script>
+﻿@*
+    ============================================================
+    File: _ToastNotification.cshtml
+
+    Purpose:
+    Shared Toast Notification component for the complete ERP.
+
+    Responsibilities:
+    - Display Success / Error / Warning / Information messages.
+    - Support current and legacy TempData keys.
+    - Provide showAppToast() for client-side notifications.
+    - Maintain readable colors in light/dark UI.
+
+    Supported TempData Keys:
+
+    Current:
+    - SuccessMessage
+    - ErrorMessage
+    - WarningMessage
+    - InfoMessage
+
+    Legacy Compatible:
+    - Success
+    - Error
+    - Warning
+    - Info
+
+    Generic:
+    - ToastMessage
+    - ToastType
+
+    Important:
+    This is a GLOBAL shared component.
+    Do not make module-specific changes here.
+    ============================================================
+*@
+
+@using System.Text.Json
+
+@{
+    // =========================================================
+    // REGION 1 — RESOLVE SERVER TOAST
+    // =========================================================
+
+    var toastType = "";
+    var toastMessage = "";
+
+
+    if (TempData["SuccessMessage"] is string successMessage &&
+        !string.IsNullOrWhiteSpace(successMessage))
+    {
+        toastType = "success";
+        toastMessage = successMessage;
+    }
+    else if (TempData["ErrorMessage"] is string errorMessage &&
+             !string.IsNullOrWhiteSpace(errorMessage))
+    {
+        toastType = "error";
+        toastMessage = errorMessage;
+    }
+    else if (TempData["WarningMessage"] is string warningMessage &&
+             !string.IsNullOrWhiteSpace(warningMessage))
+    {
+        toastType = "warning";
+        toastMessage = warningMessage;
+    }
+    else if (TempData["InfoMessage"] is string infoMessage &&
+             !string.IsNullOrWhiteSpace(infoMessage))
+    {
+        toastType = "info";
+        toastMessage = infoMessage;
+    }
+
+    // =========================================================
+    // REGION 2 — LEGACY TEMP DATA SUPPORT
+    // =========================================================
+
+    else if (TempData["Success"] is string legacySuccess &&
+             !string.IsNullOrWhiteSpace(legacySuccess))
+    {
+        toastType = "success";
+        toastMessage = legacySuccess;
+    }
+    else if (TempData["Error"] is string legacyError &&
+             !string.IsNullOrWhiteSpace(legacyError))
+    {
+        toastType = "error";
+        toastMessage = legacyError;
+    }
+    else if (TempData["Warning"] is string legacyWarning &&
+             !string.IsNullOrWhiteSpace(legacyWarning))
+    {
+        toastType = "warning";
+        toastMessage = legacyWarning;
+    }
+    else if (TempData["Info"] is string legacyInfo &&
+             !string.IsNullOrWhiteSpace(legacyInfo))
+    {
+        toastType = "info";
+        toastMessage = legacyInfo;
+    }
+
+    // =========================================================
+    // REGION 3 — GENERIC TOAST SUPPORT
+    // =========================================================
+
+    else if (TempData["ToastMessage"] is string genericMessage &&
+             !string.IsNullOrWhiteSpace(genericMessage))
+    {
+        toastMessage = genericMessage;
+
+        toastType =
+            TempData["ToastType"]?.ToString()?.ToLowerInvariant()
+            ?? "info";
+    }
+
+
+    var serializedToastMessage =
+        JsonSerializer.Serialize(toastMessage);
+
+    var serializedToastType =
+        JsonSerializer.Serialize(toastType);
 }
 
-@if (TempData["Error"] != null)
-{
-    <script>
-        toastr.error('@TempData["Error"]');
-    </script>
-}
 
-@if (TempData["Warning"] != null)
-{
-    <script>
-        toastr.warning('@TempData["Warning"]');
-    </script>
-}
+<!-- =========================================================
+     REGION 4 — TOAST STYLE
+========================================================== -->
 
-@if (TempData["Info"] != null)
-{
-    <script>
-        toastr.info('@TempData["Info"]');
-    </script>
-}
+<style>
+
+    #erpGlobalToast {
+        min-width: 320px;
+        max-width: 420px;
+        background-color: #ffffff;
+        color: #212529;
+    }
+
+        #erpGlobalToast .toast-header {
+            background-color: #f8f9fa;
+            color: #212529;
+        }
+
+        #erpGlobalToast .toast-body {
+            background-color: #ffffff;
+            color: #212529 !important;
+            font-weight: 500;
+            line-height: 1.45;
+        }
+
+        #erpGlobalToast.toast-success {
+            border-left: 5px solid #198754 !important;
+        }
+
+        #erpGlobalToast.toast-error {
+            border-left: 5px solid #dc3545 !important;
+        }
+
+        #erpGlobalToast.toast-warning {
+            border-left: 5px solid #ffc107 !important;
+        }
+
+        #erpGlobalToast.toast-info {
+            border-left: 5px solid #0d6efd !important;
+        }
+
+</style>
+
+
+<!-- =========================================================
+     REGION 5 — TOAST CONTAINER
+========================================================== -->
+
+<div class="toast-container
+            position-fixed
+            top-0
+            end-0
+            p-3"
+     style="z-index: 1095;">
+
+    <div id="erpGlobalToast"
+         class="toast shadow"
+         role="alert"
+         aria-live="assertive"
+         aria-atomic="true">
+
+        <div class="toast-header">
+
+            <i id="erpToastIcon"
+               class="fa-solid fa-circle-info me-2">
+            </i>
+
+
+            <strong id="erpToastTitle"
+                    class="me-auto">
+
+                Notification
+
+            </strong>
+
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="toast"
+                    aria-label="Close">
+            </button>
+
+        </div>
+
+
+        <div id="erpToastMessage"
+             class="toast-body">
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 6 — GLOBAL TOAST FUNCTION
+========================================================== -->
+
+<script>
+
+    window.showAppToast = function (type, message) {
+
+        if (!message) {
+            return;
+        }
+
+
+        const toastElement =
+            document.getElementById(
+                "erpGlobalToast"
+            );
+
+        const titleElement =
+            document.getElementById(
+                "erpToastTitle"
+            );
+
+        const iconElement =
+            document.getElementById(
+                "erpToastIcon"
+            );
+
+        const messageElement =
+            document.getElementById(
+                "erpToastMessage"
+            );
+
+
+        if (!toastElement ||
+            !titleElement ||
+            !iconElement ||
+            !messageElement) {
+
+            return;
+        }
+
+
+        // =====================================================
+        // RESET
+        // =====================================================
+
+        toastElement.classList.remove(
+            "toast-success",
+            "toast-error",
+            "toast-warning",
+            "toast-info"
+        );
+
+
+        titleElement.className =
+            "me-auto fw-semibold";
+
+
+        iconElement.className =
+            "fa-solid me-2";
+
+
+        const normalizedType =
+            (type || "info")
+                .toLowerCase();
+
+
+        // =====================================================
+        // SUCCESS
+        // =====================================================
+
+        if (normalizedType === "success") {
+
+            toastElement.classList.add(
+                "toast-success"
+            );
+
+            titleElement.textContent =
+                "Success";
+
+            titleElement.classList.add(
+                "text-success"
+            );
+
+            iconElement.classList.add(
+                "fa-circle-check",
+                "text-success"
+            );
+        }
+
+        // =====================================================
+        // ERROR
+        // =====================================================
+
+        else if (
+            normalizedType === "error" ||
+            normalizedType === "danger") {
+
+            toastElement.classList.add(
+                "toast-error"
+            );
+
+            titleElement.textContent =
+                "Error";
+
+            titleElement.classList.add(
+                "text-danger"
+            );
+
+            iconElement.classList.add(
+                "fa-circle-xmark",
+                "text-danger"
+            );
+        }
+
+        // =====================================================
+        // WARNING
+        // =====================================================
+
+        else if (normalizedType === "warning") {
+
+            toastElement.classList.add(
+                "toast-warning"
+            );
+
+            titleElement.textContent =
+                "Warning";
+
+            titleElement.classList.add(
+                "text-dark"
+            );
+
+            iconElement.classList.add(
+                "fa-triangle-exclamation",
+                "text-warning"
+            );
+        }
+
+        // =====================================================
+        // INFORMATION
+        // =====================================================
+
+        else {
+
+            toastElement.classList.add(
+                "toast-info"
+            );
+
+            titleElement.textContent =
+                "Information";
+
+            titleElement.classList.add(
+                "text-primary"
+            );
+
+            iconElement.classList.add(
+                "fa-circle-info",
+                "text-primary"
+            );
+        }
+
+
+        // =====================================================
+        // MESSAGE
+        // =====================================================
+
+        messageElement.textContent =
+            message;
+
+
+        // =====================================================
+        // SHOW
+        // =====================================================
+
+        if (typeof bootstrap === "undefined") {
+            return;
+        }
+
+
+        const toast =
+            bootstrap.Toast.getOrCreateInstance(
+                toastElement,
+                {
+                    delay: 5000,
+                    autohide: true
+                }
+            );
+
+
+        toast.show();
+    };
+
+
+    // =========================================================
+    // REGION 7 — SERVER TEMP DATA TOAST
+    // =========================================================
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            const serverToastType =
+                @Html.Raw(serializedToastType);
+
+            const serverToastMessage =
+                @Html.Raw(serializedToastMessage);
+
+
+            if (serverToastMessage) {
+
+                window.showAppToast(
+                    serverToastType,
+                    serverToastMessage
+                );
+            }
+
+        }
+    );
+
+</script>

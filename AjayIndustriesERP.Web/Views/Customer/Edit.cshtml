@@ -1,0 +1,145 @@
+﻿@*
+    ============================================================
+    File: Edit.cshtml
+
+    Purpose:
+    Edits an existing Customer Master record.
+
+    Responsibilities:
+    - Own the Edit form element.
+    - Preserve Customer Id.
+    - Render reusable Customer _Form partial.
+    - Display Update and Cancel actions.
+    - Enable client-side validation.
+
+    Important:
+    Customer Code is read-only and cannot be changed.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.Customer.CustomerFormViewModel
+
+@{
+    ViewData["Title"] = "Edit Customer";
+}
+
+
+<!-- =========================================================
+     REGION 1 — PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Edit Customer
+        </h2>
+
+        <p class="text-muted mb-0">
+            @Model.Code
+        </p>
+
+    </div>
+
+
+    <a asp-action="Index"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid fa-arrow-left me-1"></i>
+        Back
+
+    </a>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — EDIT FORM
+========================================================== -->
+
+<form asp-action="Edit"
+      asp-route-id="@Model.Id"
+      method="post">
+
+    @Html.AntiForgeryToken()
+
+    <input asp-for="Id"
+           type="hidden" />
+
+
+    <partial name="_Form"
+             model="Model" />
+
+
+    <!-- =====================================================
+         REGION 3 — FORM ACTIONS
+    ====================================================== -->
+
+    <div class="d-flex
+                justify-content-end
+                gap-2
+                mb-4">
+
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            Cancel
+
+        </a>
+
+
+        <button type="submit"
+                class="btn btn-warning">
+
+            <i class="fa-solid fa-floppy-disk me-1"></i>
+            Update Customer
+
+        </button>
+
+    </div>
+
+</form>
+
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+
+        $(function () {
+
+            $("form").on(
+                "invalid-form.validate",
+                function (event, validator) {
+
+                    const messages =
+                        [
+                            ...new Set(
+                                validator.errorList.map(
+                                    x => x.message
+                                )
+                            )
+                        ];
+
+
+                    if (window.showAppToast) {
+
+                        window.showAppToast(
+                            "error",
+                            messages.join(" • ")
+                        );
+                    }
+                }
+            );
+
+        });
+
+    </script>
+}

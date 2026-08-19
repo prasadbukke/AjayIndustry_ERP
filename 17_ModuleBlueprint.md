@@ -596,3 +596,11 @@ Business rules to finalize:
 
 These fields are planning candidates only until GRN design is approved.
 → GRN finalized implementation blueprint
+
+ACTION: ADD Customer Master completion/reference
+ADD:
+- Standard Master CRUD pattern
+- Search + Pagination
+- Toast
+- Validation
+- Delete confirmation

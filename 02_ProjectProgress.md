@@ -147,3 +147,11 @@ Primary goals to design next:
 GRN business rules and database design must be finalized before coding.
 
 GRN Phase 1 = Completed
+
+ACTION: Customer Master → Completed
+ADD:
+- Customer CRUD
+- Search + Pagination
+- GSTIN / Mobile / Email validation
+- Shared Toast integration
+- Soft Delete

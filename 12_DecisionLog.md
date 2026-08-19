@@ -690,3 +690,11 @@ GRN will be responsible for future:
 → Only latest GRN editable
 → PO cannot change after GRN creation
 → Stock effect intentionally pending
+
+ACTION: ADD Customer Master decisions
+ADD:
+- Customer Code = AI/CUS/00001
+- One primary contact/address in Phase 1
+- GSTIN optional
+- Credit Limit deferred
+- Duplicate GSTIN / Email / Mobile blocked

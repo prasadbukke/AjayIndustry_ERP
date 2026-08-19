@@ -207,6 +207,17 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
             services.AddScoped<IGoodsReceiptNoteRepository, GoodsReceiptNoteRepository>();
             services.AddScoped<IGoodsReceiptNoteService, GoodsReceiptNoteService>();
 
+            #region Customer Master
+
+            services.AddScoped<
+                ICustomerRepository,
+                CustomerRepository>();
+
+            services.AddScoped<
+                ICustomerService,
+                CustomerService>();
+
+            #endregion
 
             return services;
         }
