@@ -1,0 +1,304 @@
+﻿@*
+    ============================================================
+    File: Details.cshtml
+
+    Purpose:
+    Displays complete read-only Production Operation information.
+
+    Responsibilities:
+    - Display Operation Code.
+    - Display Operation Name.
+    - Display Operation Type.
+    - Display Description.
+    - Display Remarks.
+    - Provide Edit and Delete actions.
+    - Reserve space for future Item Routing usage.
+
+    Important:
+    - Setup Time and Cycle Time are NOT stored in this Master.
+    - Machine assignment is NOT stored in this Master.
+    - Delete uses the existing global confirmDelete() function.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.ProductionOperation.ProductionOperationDetailsViewModel
+
+@using AjayIndustriesERP.Domain.Enums
+
+@{
+    ViewData["Title"] =
+        "Production Operation Details";
+}
+
+
+<!-- =========================================================
+     REGION 1 — PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Production Operation Details
+        </h2>
+
+        <p class="text-muted mb-0">
+            @Model.Code
+        </p>
+
+    </div>
+
+
+    <div class="d-flex
+                gap-2
+                flex-wrap">
+
+        <a asp-action="Edit"
+           asp-route-id="@Model.Id"
+           class="btn btn-warning">
+
+            <i class="fa-solid fa-pen me-1"></i>
+
+            Edit
+
+        </a>
+
+
+        <button type="button"
+                class="btn btn-outline-danger"
+                onclick="confirmDelete(
+                    '@Url.Action(
+                        "Delete",
+                        "ProductionOperation",
+                        new
+                        {
+                            id = Model.Id
+                        })')">
+
+            <i class="fa-solid fa-trash me-1"></i>
+
+            Delete
+
+        </button>
+
+
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid fa-arrow-left me-1"></i>
+
+            Back
+
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — OPERATION INFORMATION
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid fa-gears me-1"></i>
+
+            Operation Information
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-4">
+
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Operation Code
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.Code
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Operation Name
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.OperationName
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Operation Type
+                </div>
+
+                <div>
+
+                    @switch (Model.OperationType)
+                    {
+                        case ProductionOperationType.Production:
+
+                            <span class="badge bg-primary">
+                                Production
+                            </span>
+
+                            break;
+
+
+                        case ProductionOperationType.Inspection:
+
+                            <span class="badge bg-info text-dark">
+                                Inspection
+                            </span>
+
+                            break;
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 3 — DESCRIPTION
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid fa-align-left me-1"></i>
+
+            Description
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        @if (!string.IsNullOrWhiteSpace(Model.Description))
+        {
+            <div style="white-space: pre-wrap;">
+                @Model.Description
+            </div>
+        }
+        else
+        {
+            <span class="text-muted">
+                No description.
+            </span>
+        }
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 4 — REMARKS
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid fa-note-sticky me-1"></i>
+
+            Remarks
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        @if (!string.IsNullOrWhiteSpace(Model.Remarks))
+        {
+            <div style="white-space: pre-wrap;">
+                @Model.Remarks
+            </div>
+        }
+        else
+        {
+            <span class="text-muted">
+                No remarks.
+            </span>
+        }
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 5 — FUTURE ITEM ROUTING USAGE
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid fa-route me-1"></i>
+
+            Item Process Routing Usage
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="text-muted">
+
+            Items using this Operation, routing sequence,
+            setup time, cycle time and Machine preferences
+            will appear here after the Item Process Routing
+            module is implemented.
+
+        </div>
+
+    </div>
+
+</div>

@@ -1,0 +1,205 @@
+﻿@*
+    ============================================================
+    File: _Form.cshtml
+
+    Purpose:
+    Reusable Production Operation Master form used by
+    Create and Edit pages.
+
+    Responsibilities:
+    - Display Operation Code in Edit mode.
+    - Accept Operation Name.
+    - Accept Operation Type.
+    - Accept optional Description.
+    - Accept optional Remarks.
+    - Display field-level validation messages.
+
+    Important:
+    - This partial DOES NOT contain a <form> element.
+    - Create.cshtml and Edit.cshtml own the actual <form>.
+    - Operation Code is system generated and read-only.
+    - Setup Time, Cycle Time and Machine assignment are NOT
+      part of Operation Master.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.ProductionOperation.ProductionOperationFormViewModel
+
+@using AjayIndustriesERP.Domain.Enums
+
+@{
+    var isEditMode = Model.Id > 0;
+}
+
+
+<!-- =========================================================
+     REGION 1 — OPERATION INFORMATION
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid fa-gears me-1"></i>
+
+            Operation Information
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+
+            <!-- =============================================
+                 OPERATION CODE
+            ============================================== -->
+            @if (isEditMode)
+            {
+                <div class="col-lg-4 col-md-6">
+
+                    <label asp-for="Code"
+                           class="form-label fw-semibold">
+                    </label>
+
+                    <input asp-for="Code"
+                           class="form-control"
+                           readonly />
+
+                    <div class="form-text">
+                        System generated Operation Code.
+                    </div>
+
+                </div>
+            }
+
+
+            <!-- =============================================
+                 OPERATION NAME
+            ============================================== -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="OperationName"
+                       class="form-label fw-semibold">
+                </label>
+
+                <span class="text-danger">*</span>
+
+                <input asp-for="OperationName"
+                       class="form-control"
+                       maxlength="150"
+                       autocomplete="off"
+                       placeholder="Example: Turning" />
+
+                <span asp-validation-for="OperationName"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =============================================
+                 OPERATION TYPE
+            ============================================== -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="OperationType"
+                       class="form-label fw-semibold">
+                </label>
+
+                <span class="text-danger">*</span>
+
+                <select asp-for="OperationType"
+                        asp-items="Html.GetEnumSelectList<ProductionOperationType>()"
+                        class="form-select">
+                </select>
+
+                <span asp-validation-for="OperationType"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =============================================
+                 DESCRIPTION
+            ============================================== -->
+
+            <div class="col-12">
+
+                <label asp-for="Description"
+                       class="form-label fw-semibold">
+                </label>
+
+                <textarea asp-for="Description"
+                          class="form-control"
+                          rows="3"
+                          maxlength="500"
+                          placeholder="Optional description of the operation"></textarea>
+
+                <span asp-validation-for="Description"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — REMARKS
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid fa-note-sticky me-1"></i>
+
+            Remarks
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            <div class="col-12">
+
+                <label asp-for="Remarks"
+                       class="form-label fw-semibold">
+                </label>
+
+                <textarea asp-for="Remarks"
+                          class="form-control"
+                          rows="3"
+                          maxlength="1000"
+                          placeholder="Enter remarks"></textarea>
+
+                <span asp-validation-for="Remarks"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

@@ -1,0 +1,126 @@
+﻿@*
+    ============================================================
+    File: Create.cshtml
+
+    Purpose:
+    Creates a new Production Operation Master record.
+
+    Responsibilities:
+    - Own the Create form.
+    - Render reusable Production Operation _Form partial.
+    - Display Save and Cancel actions.
+    - Enable client-side validation.
+
+    Important:
+    _Form.cshtml does not contain a <form> element.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.ProductionOperation.ProductionOperationFormViewModel
+
+@{
+    ViewData["Title"] =
+        "Create Production Operation";
+}
+
+
+<!-- =========================================================
+     REGION 1 — PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Create Production Operation
+        </h2>
+
+        <p class="text-muted mb-0">
+            Register a reusable Production Operation or Process.
+        </p>
+
+    </div>
+
+
+    <a asp-controller="ProductionOperation"
+       asp-action="Index"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid fa-arrow-left me-1"></i>
+
+        Back
+
+    </a>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — CREATE FORM
+========================================================== -->
+
+<form asp-controller="ProductionOperation"
+      asp-action="Create"
+      method="post"
+      id="productionOperationForm">
+
+    @Html.AntiForgeryToken()
+
+
+    <div asp-validation-summary="ModelOnly"
+         class="text-danger mb-3">
+    </div>
+
+
+    <partial name="_Form"
+             model="@Model" />
+
+
+    <!-- =====================================================
+         REGION 3 — FORM ACTIONS
+    ====================================================== -->
+
+    <div class="d-flex
+                justify-content-end
+                gap-2
+                mb-4">
+
+        <a asp-controller="ProductionOperation"
+           asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            Cancel
+
+        </a>
+
+
+        <button type="submit"
+                class="btn btn-primary">
+
+            <i class="fa-solid
+                      fa-floppy-disk
+                      me-1">
+            </i>
+
+            Save Operation
+
+        </button>
+
+    </div>
+
+</form>
+
+
+<!-- =========================================================
+     REGION 4 — VALIDATION
+========================================================== -->
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}

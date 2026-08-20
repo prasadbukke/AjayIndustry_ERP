@@ -46,6 +46,14 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
         public DbSet<Machine> Machines { get; set; }
 
         #endregion
+
+        #region Production Operation Master
+
+        public DbSet<ProductionOperation>
+            ProductionOperations
+        { get; set; }
+
+        #endregion
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
