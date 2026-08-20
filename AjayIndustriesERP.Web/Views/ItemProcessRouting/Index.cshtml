@@ -1,0 +1,533 @@
+﻿@*
+    ============================================================
+    File: Index.cshtml
+
+    Purpose:
+    Displays Item Process Routing records.
+
+    Responsibilities:
+    - Display all non-deleted Routing revisions.
+    - Display Item, Revision and Routing Status.
+    - Provide shared Search.
+    - Provide shared Pagination.
+    - Allow Draft Edit / Release / Delete.
+    - Allow New Revision from current Released Routing.
+    - Preserve Superseded revisions as history.
+    - Navigate to Deleted Routings.
+
+    Important:
+    - Superseded Routing is NOT deleted.
+    - Superseded revisions remain visible for history.
+    - Only Draft Routing can be deleted.
+    - Delete uses existing global confirmDelete().
+    ============================================================
+*@
+
+@model List<AjayIndustriesERP.Domain.Entities.ItemProcessRouting>
+
+@using AjayIndustriesERP.Domain.Enums
+
+@{
+    ViewData["Title"] =
+        "Item Process Routing";
+
+    var pageNumber =
+        (int)ViewBag.PageNumber;
+
+    var pageSize =
+        (int)ViewBag.PageSize;
+
+    var totalRecords =
+        (int)ViewBag.TotalRecords;
+
+    var serialNumber =
+        ((pageNumber - 1) * pageSize) + 1;
+}
+
+
+<!-- =========================================================
+     REGION 1 — PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Item Process Routing
+        </h2>
+
+        <p class="text-muted mb-0">
+            Define and manage reusable manufacturing processes for Items.
+        </p>
+
+    </div>
+
+
+    <div class="d-flex
+                gap-2
+                flex-wrap">
+
+        <a asp-action="Deleted"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid
+                      fa-trash-can-arrow-up
+                      me-1">
+            </i>
+
+            Deleted Routings
+
+        </a>
+
+
+        <a asp-action="Create"
+           class="btn btn-primary">
+
+            <i class="fa-solid fa-plus me-1"></i>
+
+            Add Routing
+
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — SEARCH
+========================================================== -->
+
+<partial name="Components/_SearchBar"
+         model='@(ViewBag.SearchText as string ?? "")' />
+
+
+<!-- =========================================================
+     REGION 3 — ROUTING TABLE
+========================================================== -->
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0"
+                   style="min-width: 1050px;">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th style="width:55px;">
+                            #
+                        </th>
+
+                        <th class="text-nowrap">
+                            Routing Code
+                        </th>
+
+                        <th class="text-nowrap">
+                            Item Code
+                        </th>
+
+                        <th style="min-width:200px;">
+                            Item Name
+                        </th>
+
+                        <th class="text-center">
+                            Revision
+                        </th>
+
+                        <th class="text-center">
+                            Status
+                        </th>
+
+                        <th class="text-nowrap">
+                            Effective From
+                        </th>
+
+                        <th class="text-center"
+                            style="min-width:190px;">
+                            Actions
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model != null &&
+                         Model.Any())
+                    {
+                        @foreach (var routing in Model)
+                        {
+                            var isDraft =
+                                routing.Status ==
+                                ItemProcessRoutingStatus.Draft;
+
+                            var isReleased =
+                                routing.Status ==
+                                ItemProcessRoutingStatus.Released;
+
+
+                            <tr>
+
+                                <!-- SERIAL -->
+
+                                <td>
+                                    @serialNumber
+                                </td>
+
+
+                                <!-- CODE -->
+
+                                <td class="text-nowrap">
+
+                                    <a asp-action="Details"
+                                       asp-route-id="@routing.Id"
+                                       class="fw-semibold
+                                              text-decoration-none">
+
+                                        @routing.Code
+
+                                    </a>
+
+                                </td>
+
+
+                                <!-- ITEM CODE -->
+
+                                <td class="text-nowrap">
+
+                                    @routing.Item?.ItemCode
+
+                                </td>
+
+
+                                <!-- ITEM NAME -->
+
+                                <td class="fw-semibold">
+
+                                    @routing.Item?.ItemName
+
+                                </td>
+
+
+                                <!-- REVISION -->
+
+                                <td class="text-center">
+
+                                    <span class="badge
+                                                 bg-light
+                                                 text-dark
+                                                 border">
+
+                                        Rev @routing.RevisionNumber
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- STATUS -->
+
+                                <td class="text-center">
+
+                                    @switch (routing.Status)
+                                    {
+                                        case ItemProcessRoutingStatus.Draft:
+
+                                            <span class="badge bg-secondary">
+                                                Draft
+                                            </span>
+
+                                            break;
+
+
+                                        case ItemProcessRoutingStatus.Released:
+
+    <div>
+        <span class="badge bg-success">
+            Released
+        </span>
+
+        <div class="small text-success fw-semibold mt-1">
+            Current / In Use
+        </div>
+    </div>
+
+    break;
+
+
+case ItemProcessRoutingStatus.Superseded:
+
+    <div>
+        <span class="badge bg-secondary">
+            Superseded
+        </span>
+
+        <div class="small text-muted mt-1">
+            Old Revision
+        </div>
+    </div>
+
+    break;
+                                    }
+
+                                </td>
+
+
+                                <!-- EFFECTIVE FROM -->
+
+                                <td class="text-nowrap">
+
+                                    @(
+                                        routing.EffectiveFrom.HasValue
+                                            ? routing.EffectiveFrom.Value
+                                                .ToString("dd-MM-yyyy")
+                                            : "-"
+                                    )
+
+                                </td>
+
+
+                                <!-- ACTIONS -->
+
+                                <td class="text-center">
+
+                                    <div class="d-flex
+                                                justify-content-center
+                                                align-items-center
+                                                gap-1">
+
+
+                                        <!-- DETAILS -->
+
+                                        <a asp-action="Details"
+                                           asp-route-id="@routing.Id"
+                                           class="btn
+                                                  btn-sm
+                                                  btn-outline-info"
+                                           title="View Routing">
+
+                                            <i class="fa-solid fa-eye"></i>
+
+                                        </a>
+
+
+                                        <!-- DRAFT EDIT -->
+
+                                        @if (isDraft)
+                                        {
+                                            <a asp-action="Edit"
+                                               asp-route-id="@routing.Id"
+                                               class="btn
+                                                      btn-sm
+                                                      btn-outline-warning"
+                                               title="Edit Draft">
+
+                                                <i class="fa-solid fa-pen"></i>
+
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <button type="button"
+                                                    class="btn
+                                                           btn-sm
+                                                           btn-outline-warning"
+                                                    title="Only Draft Routing can be edited."
+                                                    disabled>
+
+                                                <i class="fa-solid fa-pen"></i>
+
+                                            </button>
+                                        }
+
+
+                                        <!-- RELEASE -->
+
+                                        @if (isDraft)
+                                        {
+                                            <form asp-action="Release"
+                                                  method="post"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm(
+                                                      'Release this Routing?')">
+
+                                                @Html.AntiForgeryToken()
+
+
+                                                <input type="hidden"
+                                                       name="id"
+                                                       value="@routing.Id" />
+
+
+                                                <button type="submit"
+                                                        class="btn
+                                                               btn-sm
+                                                               btn-outline-success"
+                                                        title="Release Routing">
+
+                                                    <i class="fa-solid
+                                                              fa-circle-check">
+                                                    </i>
+
+                                                </button>
+
+                                            </form>
+                                        }
+
+
+                                        <!-- NEW REVISION -->
+
+                                        @if (isReleased)
+                                        {
+                                            <form asp-action="CreateRevision"
+                                                  method="post"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm(
+                                                      'Create a new Draft Revision?')">
+
+                                                @Html.AntiForgeryToken()
+
+
+                                                <input type="hidden"
+                                                       name="id"
+                                                       value="@routing.Id" />
+
+
+                                                <button type="submit"
+                                                        class="btn
+                                                               btn-sm
+                                                               btn-outline-primary"
+                                                        title="Create New Revision">
+
+                                                    <i class="fa-solid
+                                                              fa-code-branch">
+                                                    </i>
+
+                                                </button>
+
+                                            </form>
+                                        }
+
+
+                                        <!-- DELETE -->
+
+                                        @if (isDraft)
+                                        {
+                                            <button type="button"
+                                                    class="btn
+                                                           btn-sm
+                                                           btn-outline-danger"
+                                                    title="Delete Draft Routing"
+                                                    onclick="confirmDelete(
+                                                        '@Url.Action(
+                                                            "Delete",
+                                                            "ItemProcessRouting",
+                                                            new
+                                                            {
+                                                                id = routing.Id
+                                                            })')">
+
+                                                <i class="fa-solid fa-trash"></i>
+
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="button"
+                                                    class="btn
+                                                           btn-sm
+                                                           btn-outline-danger"
+                                                    title="Only Draft Routing can be deleted."
+                                                    disabled>
+
+                                                <i class="fa-solid fa-trash"></i>
+
+                                            </button>
+                                        }
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+
+                            serialNumber++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="8"
+                                class="text-center
+                                       py-5">
+
+                                <div class="text-muted">
+
+                                    <i class="fa-solid
+                                              fa-route
+                                              fa-2x
+                                              mb-3">
+                                    </i>
+
+
+                                    <div class="fw-semibold mb-1">
+                                        No Item Process Routings Found
+                                    </div>
+
+
+                                    <div class="small">
+                                        Create a Routing or change your search.
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 4 — PAGINATION
+========================================================== -->
+
+@if (totalRecords > 0)
+{
+    <div class="mt-3">
+
+        <partial name="Components/_Pagination"
+                 model='(
+                     (int)ViewBag.PageNumber,
+                     (int)ViewBag.PageSize
+                 )' />
+
+    </div>
+}

@@ -1,0 +1,1631 @@
+﻿@*
+    ============================================================
+    File: _Form.cshtml
+
+    Purpose:
+    Reusable Item Process Routing form used by Create and Edit.
+
+    Responsibilities:
+    - Select Item during initial Routing creation.
+    - Display Routing Code / Revision / Status in Edit mode.
+    - Accept optional Effective From date.
+    - Manage dynamic Routing Steps.
+    - Select Production Operation.
+    - Select optional Default Machine.
+    - Accept Setup Time and Cycle Time.
+    - Accept Operation Instruction and Remarks.
+    - Collapse previous Steps to reduce scrolling.
+
+    Important:
+    - This partial DOES NOT contain a <form> element.
+    - Create.cshtml and Edit.cshtml own the actual <form>.
+    - Same Operation may appear more than once.
+    - Default Machine is optional.
+    - Actual production execution data does NOT belong here.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.ItemProcessRouting.ItemProcessRoutingFormViewModel
+
+@using AjayIndustriesERP.Domain.Enums
+
+@{
+    var isEditMode = Model.Id > 0;
+}
+
+
+<!-- =========================================================
+     REGION 1 — ROUTING FORM STYLES
+========================================================== -->
+
+<style>
+
+    .routing-step-card {
+        transition: all 0.2s ease;
+    }
+
+    .routing-step-card.is-collapsed {
+        padding-top: 0.85rem !important;
+        padding-bottom: 0.85rem !important;
+    }
+
+    .routing-step-card.is-collapsed .routing-step-body {
+        display: none;
+    }
+
+    .routing-step-toggle {
+        color: inherit;
+        min-width: 0;
+    }
+
+    .routing-step-toggle:hover,
+    .routing-step-toggle:focus {
+        color: inherit;
+    }
+
+    .routing-step-summary {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .routing-step-toggle-icon {
+        transition: transform 0.2s ease;
+    }
+
+    .routing-step-card:not(.is-collapsed)
+    .routing-step-toggle-icon {
+        transform: rotate(180deg);
+    }
+
+</style>
+
+
+<!-- =========================================================
+     REGION 2 — ROUTING HEADER
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid fa-route me-1"></i>
+
+            Routing Information
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+
+            <!-- =============================================
+                 ROUTING CODE
+            ============================================== -->
+
+            @if (isEditMode)
+            {
+                <div class="col-lg-4 col-md-6">
+
+                    <label asp-for="Code"
+                           class="form-label fw-semibold">
+                    </label>
+
+                    <input asp-for="Code"
+                           class="form-control"
+                           readonly />
+
+                </div>
+
+
+                <input asp-for="Status"
+                       type="hidden" />
+
+                <input asp-for="RevisionNumber"
+                       type="hidden" />
+            }
+
+
+            <!-- =============================================
+                 ITEM
+            ============================================== -->
+
+            @if (!isEditMode)
+            {
+                <div class="col-lg-4 col-md-6">
+
+                    <label asp-for="ItemId"
+                           class="form-label fw-semibold">
+                    </label>
+
+                    <span class="text-danger">*</span>
+
+
+                    <select asp-for="ItemId"
+                            asp-items="Model.Items"
+                            class="form-select">
+
+                        <option value="">
+                            -- Select Item --
+                        </option>
+
+                    </select>
+
+
+                    <span asp-validation-for="ItemId"
+                          class="text-danger small">
+                    </span>
+
+                </div>
+            }
+            else
+            {
+                <input asp-for="ItemId"
+                       type="hidden" />
+
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label class="form-label fw-semibold">
+                        Item
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@($"{Model.ItemCode} - {Model.ItemName}")"
+                           readonly />
+
+                    <div class="form-text">
+                        Item cannot be changed after Routing creation.
+                    </div>
+
+                </div>
+            }
+
+
+            <!-- =============================================
+                 REVISION
+            ============================================== -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label class="form-label fw-semibold">
+                    Revision
+                </label>
+
+                <input type="text"
+                       class="form-control"
+                       value="@(Model.RevisionNumber <= 0 ? 1 : Model.RevisionNumber)"
+                       readonly />
+
+            </div>
+
+
+            <!-- =============================================
+                 STATUS
+            ============================================== -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label class="form-label fw-semibold">
+                    Status
+                </label>
+
+                <input type="text"
+                       class="form-control"
+                       value="@Model.Status"
+                       readonly />
+
+            </div>
+
+
+            <!-- =============================================
+                 EFFECTIVE FROM
+            ============================================== -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="EffectiveFrom"
+                       class="form-label fw-semibold">
+                </label>
+
+                <input asp-for="EffectiveFrom"
+                       type="date"
+                       class="form-control" />
+
+                <span asp-validation-for="EffectiveFrom"
+                      class="text-danger small">
+                </span>
+
+                <div class="form-text">
+                    Optional. If blank, Release date will be used.
+                </div>
+
+            </div>
+
+
+            <!-- =============================================
+                 ROUTING REMARKS
+            ============================================== -->
+
+            <div class="col-lg-8 col-md-12">
+
+                <label asp-for="Remarks"
+                       class="form-label fw-semibold">
+                </label>
+
+                <textarea asp-for="Remarks"
+                          class="form-control"
+                          rows="2"
+                          maxlength="1000"
+                          placeholder="Optional Routing remarks"></textarea>
+
+                <span asp-validation-for="Remarks"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 3 — ROUTING STEPS
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header
+                bg-light
+                d-flex
+                justify-content-between
+                align-items-center
+                flex-wrap
+                gap-2">
+
+        <div>
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid
+                          fa-diagram-project
+                          me-1">
+                </i>
+
+                Process Steps
+
+            </span>
+
+            <div class="small text-muted mt-1">
+                Define operations in manufacturing sequence.
+            </div>
+
+        </div>
+
+
+        <button type="button"
+                id="btnAddRoutingStep"
+                class="btn btn-sm btn-primary">
+
+            <i class="fa-solid fa-plus me-1"></i>
+
+            Add Step
+
+        </button>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div id="routingStepsContainer">
+
+            @for (var i = 0; i < Model.Steps.Count; i++)
+            {
+                var step = Model.Steps[i];
+
+                var operationText =
+                    Model.Operations
+                        .FirstOrDefault(x =>
+                            x.Value ==
+                            step.ProductionOperationId.ToString())
+                        ?.Text;
+
+                var machineText =
+                    step.DefaultMachineId.HasValue
+                        ? Model.Machines
+                            .FirstOrDefault(x =>
+                                x.Value ==
+                                step.DefaultMachineId.Value.ToString())
+                            ?.Text
+                        : null;
+
+
+                <div class="routing-step-card
+                            border
+                            rounded
+                            p-3
+                            mb-3"
+                     data-index="@i">
+
+
+                    <!-- =====================================
+                         STEP HEADER
+                    ====================================== -->
+
+                    <div class="d-flex
+                                justify-content-between
+                                align-items-center
+                                gap-2">
+
+                        <button type="button"
+                                class="btn
+                                       btn-link
+                                       text-decoration-none
+                                       text-start
+                                       p-0
+                                       flex-grow-1
+                                       routing-step-toggle">
+
+                            <span class="fw-semibold
+                                         routing-step-title">
+
+                                Step @(i + 1)
+
+                            </span>
+
+
+                            <span class="text-muted
+                                         small
+                                         ms-2
+                                         routing-step-summary">
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    operationText))
+                                {
+                                    @operationText
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        machineText))
+                                    {
+                                        <text> / @machineText</text>
+                                    }
+                                }
+
+                            </span>
+
+
+                            <i class="fa-solid
+                                      fa-chevron-down
+                                      ms-2
+                                      routing-step-toggle-icon">
+                            </i>
+
+                        </button>
+
+
+                        <button type="button"
+                                class="btn
+                                       btn-sm
+                                       btn-outline-danger
+                                       btn-remove-routing-step"
+                                title="Remove Step">
+
+                            <i class="fa-solid fa-trash"></i>
+
+                        </button>
+
+                    </div>
+
+
+                    <!-- =====================================
+                         STEP BODY
+                    ====================================== -->
+
+                    <div class="routing-step-body mt-3">
+
+
+                        <input asp-for="Steps[i].Id"
+                               type="hidden"
+                               class="routing-step-id" />
+
+
+                        <!-- =================================
+                             MAIN STEP INFORMATION
+                        ================================== -->
+
+                        <div class="row g-3">
+
+                            <div class="col-lg-2 col-md-4">
+
+                                <label asp-for="Steps[i].SequenceNumber"
+                                       class="form-label fw-semibold">
+                                </label>
+
+                                <span class="text-danger">*</span>
+
+
+                                <input asp-for="Steps[i].SequenceNumber"
+                                       type="number"
+                                       min="1"
+                                       step="1"
+                                       class="form-control
+                                              routing-sequence-input" />
+
+                                <span asp-validation-for="Steps[i].SequenceNumber"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-lg-4 col-md-8">
+
+                                <label asp-for="Steps[i].ProductionOperationId"
+                                       class="form-label fw-semibold">
+                                </label>
+
+                                <span class="text-danger">*</span>
+
+
+                                <select asp-for="Steps[i].ProductionOperationId"
+                                        asp-items="Model.Operations"
+                                        class="form-select
+                                               routing-operation-select">
+
+                                    <option value="">
+                                        -- Select Operation --
+                                    </option>
+
+                                </select>
+
+                                <span asp-validation-for="Steps[i].ProductionOperationId"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-lg-6 col-md-12">
+
+                                <label asp-for="Steps[i].DefaultMachineId"
+                                       class="form-label fw-semibold">
+                                </label>
+
+
+                                <select asp-for="Steps[i].DefaultMachineId"
+                                        asp-items="Model.Machines"
+                                        class="form-select
+                                               routing-machine-select">
+
+                                    <option value="">
+                                        -- No Default Machine --
+                                    </option>
+
+                                </select>
+
+                                <span asp-validation-for="Steps[i].DefaultMachineId"
+                                      class="text-danger small">
+                                </span>
+
+                                <div class="form-text">
+                                    Optional. Actual Machine may change during production.
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- =================================
+                             TIME ESTIMATES
+                        ================================== -->
+
+                        <div class="row g-3 mt-1">
+
+                            <div class="col-lg-3 col-md-6">
+
+                                <label asp-for="Steps[i].SetupTimeMinutes"
+                                       class="form-label fw-semibold">
+                                </label>
+
+
+                                <input asp-for="Steps[i].SetupTimeMinutes"
+                                       type="number"
+                                       min="0"
+                                       step="0.001"
+                                       class="form-control"
+                                       placeholder="Example: 15" />
+
+                                <span asp-validation-for="Steps[i].SetupTimeMinutes"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-lg-3 col-md-6">
+
+                                <label asp-for="Steps[i].CycleTimeMinutes"
+                                       class="form-label fw-semibold">
+                                </label>
+
+
+                                <input asp-for="Steps[i].CycleTimeMinutes"
+                                       type="number"
+                                       min="0"
+                                       step="0.001"
+                                       class="form-control"
+                                       placeholder="Example: 3.5" />
+
+                                <span asp-validation-for="Steps[i].CycleTimeMinutes"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-lg-6 col-md-12">
+
+                                <label asp-for="Steps[i].OperationInstruction"
+                                       class="form-label fw-semibold">
+                                </label>
+
+
+                                <textarea asp-for="Steps[i].OperationInstruction"
+                                          class="form-control"
+                                          rows="2"
+                                          maxlength="1000"
+                                          placeholder="Optional shop-floor instruction"></textarea>
+
+                                <span asp-validation-for="Steps[i].OperationInstruction"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+
+                            <div class="col-12">
+
+                                <label asp-for="Steps[i].Remarks"
+                                       class="form-label fw-semibold">
+                                </label>
+
+
+                                <textarea asp-for="Steps[i].Remarks"
+                                          class="form-control"
+                                          rows="2"
+                                          maxlength="1000"
+                                          placeholder="Optional Step remarks"></textarea>
+
+                                <span asp-validation-for="Steps[i].Remarks"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+
+
+        <!-- =================================================
+             EMPTY STATE
+        ================================================== -->
+
+        <div id="routingStepsEmptyMessage"
+             class="text-center
+                    text-muted
+                    py-4
+                    d-none">
+
+            <i class="fa-solid
+                      fa-route
+                      fa-2x
+                      mb-2">
+            </i>
+
+            <div class="fw-semibold">
+                No Routing Steps
+            </div>
+
+            <div class="small">
+                Click Add Step to define the manufacturing process.
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 4 — DYNAMIC STEP TEMPLATE
+========================================================== -->
+
+<template id="routingStepTemplate">
+
+    <div class="routing-step-card
+                border
+                rounded
+                p-3
+                mb-3"
+         data-index="__index__">
+
+
+        <!-- TEMPLATE HEADER -->
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    gap-2">
+
+            <button type="button"
+                    class="btn
+                           btn-link
+                           text-decoration-none
+                           text-start
+                           p-0
+                           flex-grow-1
+                           routing-step-toggle">
+
+                <span class="fw-semibold
+                             routing-step-title">
+
+                    Step __number__
+
+                </span>
+
+
+                <span class="text-muted
+                             small
+                             ms-2
+                             routing-step-summary">
+                </span>
+
+
+                <i class="fa-solid
+                          fa-chevron-down
+                          ms-2
+                          routing-step-toggle-icon">
+                </i>
+
+            </button>
+
+
+            <button type="button"
+                    class="btn
+                           btn-sm
+                           btn-outline-danger
+                           btn-remove-routing-step"
+                    title="Remove Step">
+
+                <i class="fa-solid fa-trash"></i>
+
+            </button>
+
+        </div>
+
+
+        <!-- TEMPLATE BODY -->
+
+        <div class="routing-step-body mt-3">
+
+            <input type="hidden"
+                   name="Steps[__index__].Id"
+                   value="0"
+                   class="routing-step-id" />
+
+
+            <div class="row g-3">
+
+                <!-- SEQUENCE -->
+
+                <div class="col-lg-2 col-md-4">
+
+                    <label class="form-label fw-semibold">
+                        Sequence
+                    </label>
+
+                    <span class="text-danger">*</span>
+
+
+                    <input name="Steps[__index__].SequenceNumber"
+                           type="number"
+                           min="1"
+                           step="1"
+                           value="__sequence__"
+                           class="form-control
+                                  routing-sequence-input"
+                           data-val="true"
+                           data-val-range="Sequence Number must be greater than zero."
+                           data-val-range-min="1"
+                           data-val-range-max="2147483647" />
+
+
+                    <span class="text-danger
+                                 small
+                                 field-validation-valid"
+                          data-valmsg-for="Steps[__index__].SequenceNumber"
+                          data-valmsg-replace="true">
+                    </span>
+
+                </div>
+
+
+                <!-- OPERATION -->
+
+                <div class="col-lg-4 col-md-8">
+
+                    <label class="form-label fw-semibold">
+                        Operation
+                    </label>
+
+                    <span class="text-danger">*</span>
+
+
+                    <select name="Steps[__index__].ProductionOperationId"
+                            class="form-select
+                                   routing-operation-select"
+                            data-val="true"
+                            data-val-range="Operation is required."
+                            data-val-range-min="1"
+                            data-val-range-max="2147483647">
+
+                        <option value="">
+                            -- Select Operation --
+                        </option>
+
+
+                        @foreach (var option
+                            in Model.Operations)
+                        {
+                            <option value="@option.Value">
+                                @option.Text
+                            </option>
+                        }
+
+                    </select>
+
+
+                    <span class="text-danger
+                                 small
+                                 field-validation-valid"
+                          data-valmsg-for="Steps[__index__].ProductionOperationId"
+                          data-valmsg-replace="true">
+                    </span>
+
+                </div>
+
+
+                <!-- DEFAULT MACHINE -->
+
+                <div class="col-lg-6 col-md-12">
+
+                    <label class="form-label fw-semibold">
+                        Default Machine
+                    </label>
+
+
+                    <select name="Steps[__index__].DefaultMachineId"
+                            class="form-select
+                                   routing-machine-select">
+
+                        <option value="">
+                            -- No Default Machine --
+                        </option>
+
+
+                        @foreach (var machine
+                            in Model.Machines)
+                        {
+                            <option value="@machine.Value">
+                                @machine.Text
+                            </option>
+                        }
+
+                    </select>
+
+
+                    <div class="form-text">
+                        Optional. Actual Machine may change during production.
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- TIME / INSTRUCTION -->
+
+            <div class="row g-3 mt-1">
+
+                <div class="col-lg-3 col-md-6">
+
+                    <label class="form-label fw-semibold">
+                        Setup Time (Min)
+                    </label>
+
+                    <input name="Steps[__index__].SetupTimeMinutes"
+                           type="number"
+                           min="0"
+                           step="0.001"
+                           class="form-control"
+                           placeholder="Example: 15" />
+
+                </div>
+
+
+                <div class="col-lg-3 col-md-6">
+
+                    <label class="form-label fw-semibold">
+                        Cycle Time / Piece (Min)
+                    </label>
+
+                    <input name="Steps[__index__].CycleTimeMinutes"
+                           type="number"
+                           min="0"
+                           step="0.001"
+                           class="form-control"
+                           placeholder="Example: 3.5" />
+
+                </div>
+
+
+                <div class="col-lg-6 col-md-12">
+
+                    <label class="form-label fw-semibold">
+                        Operation Instruction
+                    </label>
+
+                    <textarea name="Steps[__index__].OperationInstruction"
+                              class="form-control"
+                              rows="2"
+                              maxlength="1000"
+                              placeholder="Optional shop-floor instruction"></textarea>
+
+                </div>
+
+
+                <div class="col-12">
+
+                    <label class="form-label fw-semibold">
+                        Remarks
+                    </label>
+
+                    <textarea name="Steps[__index__].Remarks"
+                              class="form-control"
+                              rows="2"
+                              maxlength="1000"
+                              placeholder="Optional Step remarks"></textarea>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</template>
+
+
+<!-- =========================================================
+     REGION 5 — DYNAMIC ROUTING SCRIPT
+========================================================== -->
+
+<script>
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            // =================================================
+            // REGION 5.1 — ELEMENT REFERENCES
+            // =================================================
+
+            const container =
+                document.getElementById(
+                    "routingStepsContainer"
+                );
+
+            const template =
+                document.getElementById(
+                    "routingStepTemplate"
+                );
+
+            const addButton =
+                document.getElementById(
+                    "btnAddRoutingStep"
+                );
+
+            const emptyMessage =
+                document.getElementById(
+                    "routingStepsEmptyMessage"
+                );
+
+
+            if (!container ||
+                !template ||
+                !addButton ||
+                !emptyMessage) {
+
+                return;
+            }
+
+
+            // =================================================
+            // REGION 5.2 — EMPTY STATE
+            // =================================================
+
+            function updateEmptyState() {
+
+                const rows =
+                    container.querySelectorAll(
+                        ".routing-step-card"
+                    );
+
+
+                if (rows.length === 0) {
+
+                    emptyMessage.classList.remove(
+                        "d-none"
+                    );
+                }
+                else {
+
+                    emptyMessage.classList.add(
+                        "d-none"
+                    );
+                }
+            }
+
+
+            // =================================================
+            // REGION 5.3 — COLLAPSE / EXPAND
+            // =================================================
+
+            function collapseStep(
+                row) {
+
+                row?.classList.add(
+                    "is-collapsed"
+                );
+            }
+
+
+            function expandStep(
+                row) {
+
+                row?.classList.remove(
+                    "is-collapsed"
+                );
+            }
+
+
+            function collapseAllExcept(
+                activeRow) {
+
+                container
+                    .querySelectorAll(
+                        ".routing-step-card"
+                    )
+                    .forEach(
+                        function (row) {
+
+                            if (row === activeRow) {
+
+                                expandStep(
+                                    row
+                                );
+                            }
+                            else {
+
+                                collapseStep(
+                                    row
+                                );
+                            }
+                        }
+                    );
+            }
+
+
+            // =================================================
+            // REGION 5.4 — STEP SUMMARY
+            // =================================================
+
+            function updateStepSummary(
+                row) {
+
+                if (!row) {
+                    return;
+                }
+
+
+                const operationSelect =
+                    row.querySelector(
+                        ".routing-operation-select"
+                    );
+
+                const machineSelect =
+                    row.querySelector(
+                        ".routing-machine-select"
+                    );
+
+                const summary =
+                    row.querySelector(
+                        ".routing-step-summary"
+                    );
+
+
+                if (!summary) {
+                    return;
+                }
+
+
+                let operationText =
+                    "";
+
+
+                if (
+                    operationSelect &&
+                    operationSelect.selectedIndex > 0
+                ) {
+
+                    operationText =
+                        operationSelect
+                            .options[
+                                operationSelect.selectedIndex
+                            ]
+                            .text;
+                }
+
+
+                let machineText =
+                    "";
+
+
+                if (
+                    machineSelect &&
+                    machineSelect.selectedIndex > 0
+                ) {
+
+                    machineText =
+                        machineSelect
+                            .options[
+                                machineSelect.selectedIndex
+                            ]
+                            .text;
+                }
+
+
+                if (
+                    operationText &&
+                    machineText
+                ) {
+
+                    summary.textContent =
+                        operationText +
+                        " / " +
+                        machineText;
+                }
+                else {
+
+                    summary.textContent =
+                        operationText ||
+                        machineText ||
+                        "";
+                }
+            }
+
+
+            // =================================================
+            // REGION 5.5 — NEXT SEQUENCE
+            // =================================================
+
+            function getNextSequence() {
+
+                const sequenceInputs =
+                    container.querySelectorAll(
+                        ".routing-sequence-input"
+                    );
+
+
+                if (sequenceInputs.length === 0) {
+                    return 10;
+                }
+
+
+                let maxSequence =
+                    0;
+
+
+                sequenceInputs.forEach(
+                    function (input) {
+
+                        const value =
+                            parseInt(
+                                input.value || "0"
+                            );
+
+
+                        if (
+                            !isNaN(value) &&
+                            value > maxSequence
+                        ) {
+
+                            maxSequence =
+                                value;
+                        }
+                    }
+                );
+
+
+                if (maxSequence <= 0) {
+                    return 10;
+                }
+
+
+                return maxSequence + 10;
+            }
+
+
+            // =================================================
+            // REGION 5.6 — REINDEX
+            // =================================================
+
+            function reindexSteps() {
+
+                const rows =
+                    container.querySelectorAll(
+                        ".routing-step-card"
+                    );
+
+
+                rows.forEach(
+                    function (
+                        row,
+                        index) {
+
+                        row.dataset.index =
+                            index;
+
+
+                        const title =
+                            row.querySelector(
+                                ".routing-step-title"
+                            );
+
+
+                        if (title) {
+
+                            title.textContent =
+                                "Step " +
+                                (index + 1);
+                        }
+
+
+                        // =====================================
+                        // NAME
+                        // =====================================
+
+                        row.querySelectorAll(
+                            "[name]"
+                        ).forEach(
+                            function (element) {
+
+                                element.name =
+                                    element.name.replace(
+                                        /Steps\[\d+\]/g,
+                                        "Steps[" +
+                                        index +
+                                        "]"
+                                    );
+                            }
+                        );
+
+
+                        // =====================================
+                        // GENERATED ID
+                        // =====================================
+
+                        row.querySelectorAll(
+                            "[id]"
+                        ).forEach(
+                            function (element) {
+
+                                element.id =
+                                    element.id.replace(
+                                        /Steps_\d+__/g,
+                                        "Steps_" +
+                                        index +
+                                        "__"
+                                    );
+                            }
+                        );
+
+
+                        // =====================================
+                        // LABEL FOR
+                        // =====================================
+
+                        row.querySelectorAll(
+                            "label[for]"
+                        ).forEach(
+                            function (label) {
+
+                                label.htmlFor =
+                                    label.htmlFor.replace(
+                                        /Steps_\d+__/g,
+                                        "Steps_" +
+                                        index +
+                                        "__"
+                                    );
+                            }
+                        );
+
+
+                        // =====================================
+                        // VALIDATION TARGET
+                        // =====================================
+
+                        row.querySelectorAll(
+                            "[data-valmsg-for]"
+                        ).forEach(
+                            function (element) {
+
+                                const current =
+                                    element.getAttribute(
+                                        "data-valmsg-for"
+                                    );
+
+
+                                if (!current) {
+                                    return;
+                                }
+
+
+                                element.setAttribute(
+                                    "data-valmsg-for",
+                                    current.replace(
+                                        /Steps\[\d+\]/g,
+                                        "Steps[" +
+                                        index +
+                                        "]"
+                                    )
+                                );
+                            }
+                        );
+
+
+                        updateStepSummary(
+                            row
+                        );
+                    }
+                );
+
+
+                updateEmptyState();
+            }
+
+
+            // =================================================
+            // REGION 5.7 — REPARSE VALIDATION
+            // =================================================
+
+            function reparseValidation() {
+
+                if (
+                    typeof $ === "undefined" ||
+                    !$.validator ||
+                    !$.validator.unobtrusive
+                ) {
+
+                    return;
+                }
+
+
+                const form =
+                    document.getElementById(
+                        "itemProcessRoutingForm"
+                    );
+
+
+                if (!form) {
+                    return;
+                }
+
+
+                $(form)
+                    .removeData(
+                        "validator"
+                    )
+                    .removeData(
+                        "unobtrusiveValidation"
+                    );
+
+
+                $.validator
+                    .unobtrusive
+                    .parse(form);
+            }
+
+
+            // =================================================
+            // REGION 5.8 — ADD STEP
+            // =================================================
+
+            function addRoutingStep() {
+
+                const rows =
+                    container.querySelectorAll(
+                        ".routing-step-card"
+                    );
+
+
+                const index =
+                    rows.length;
+
+
+                const nextSequence =
+                    getNextSequence();
+
+
+                const html =
+                    template.innerHTML
+                        .replaceAll(
+                            "__index__",
+                            index
+                        )
+                        .replaceAll(
+                            "__number__",
+                            index + 1
+                        )
+                        .replaceAll(
+                            "__sequence__",
+                            nextSequence
+                        );
+
+
+                container.insertAdjacentHTML(
+                    "beforeend",
+                    html
+                );
+
+
+                reindexSteps();
+
+
+                const updatedRows =
+                    container.querySelectorAll(
+                        ".routing-step-card"
+                    );
+
+
+                const newRow =
+                    updatedRows[
+                        updatedRows.length - 1
+                    ];
+
+
+                collapseAllExcept(
+                    newRow
+                );
+
+
+                reparseValidation();
+
+
+                newRow?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "nearest"
+                });
+            }
+
+
+            // =================================================
+            // REGION 5.9 — ADD BUTTON
+            // =================================================
+
+            addButton.addEventListener(
+                "click",
+                addRoutingStep
+            );
+
+
+            // =================================================
+            // REGION 5.10 — CLICK EVENTS
+            // =================================================
+
+            container.addEventListener(
+                "click",
+                function (event) {
+
+                    // =========================================
+                    // COLLAPSE / EXPAND
+                    // =========================================
+
+                    const toggle =
+                        event.target.closest(
+                            ".routing-step-toggle"
+                        );
+
+
+                    if (toggle) {
+
+                        const row =
+                            toggle.closest(
+                                ".routing-step-card"
+                            );
+
+
+                        if (!row) {
+                            return;
+                        }
+
+
+                        if (
+                            row.classList.contains(
+                                "is-collapsed"
+                            )
+                        ) {
+
+                            collapseAllExcept(
+                                row
+                            );
+                        }
+                        else {
+
+                            collapseStep(
+                                row
+                            );
+                        }
+
+
+                        return;
+                    }
+
+
+                    // =========================================
+                    // REMOVE STEP
+                    // =========================================
+
+                    const removeButton =
+                        event.target.closest(
+                            ".btn-remove-routing-step"
+                        );
+
+
+                    if (!removeButton) {
+                        return;
+                    }
+
+
+                    const row =
+                        removeButton.closest(
+                            ".routing-step-card"
+                        );
+
+
+                    if (!row) {
+                        return;
+                    }
+
+
+                    row.remove();
+
+
+                    reindexSteps();
+
+                    reparseValidation();
+
+
+                    const remainingRows =
+                        container.querySelectorAll(
+                            ".routing-step-card"
+                        );
+
+
+                    if (remainingRows.length > 0) {
+
+                        collapseAllExcept(
+                            remainingRows[
+                                remainingRows.length - 1
+                            ]
+                        );
+                    }
+                }
+            );
+
+
+            // =================================================
+            // REGION 5.11 — DROPDOWN SUMMARY CHANGE
+            // =================================================
+
+            container.addEventListener(
+                "change",
+                function (event) {
+
+                    if (
+                        !event.target.classList.contains(
+                            "routing-operation-select"
+                        ) &&
+                        !event.target.classList.contains(
+                            "routing-machine-select"
+                        )
+                    ) {
+
+                        return;
+                    }
+
+
+                    const row =
+                        event.target.closest(
+                            ".routing-step-card"
+                        );
+
+
+                    updateStepSummary(
+                        row
+                    );
+                }
+            );
+
+
+            // =================================================
+            // REGION 5.12 — INITIALIZE
+            // =================================================
+
+            let initialRows =
+                container.querySelectorAll(
+                    ".routing-step-card"
+                );
+
+
+            if (initialRows.length === 0) {
+
+                addRoutingStep();
+
+                return;
+            }
+
+
+            initialRows.forEach(
+                function (row) {
+
+                    updateStepSummary(
+                        row
+                    );
+                }
+            );
+
+
+            collapseAllExcept(
+                initialRows[
+                    initialRows.length - 1
+                ]
+            );
+
+
+            reindexSteps();
+
+        }
+    );
+
+</script>

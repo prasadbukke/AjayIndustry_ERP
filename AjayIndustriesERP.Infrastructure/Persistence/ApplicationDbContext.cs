@@ -54,6 +54,18 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
         { get; set; }
 
         #endregion
+
+        #region Item Process Routing
+
+        public DbSet<ItemProcessRouting>
+            ItemProcessRoutings
+        { get; set; }
+
+        public DbSet<ItemProcessRoutingStep>
+            ItemProcessRoutingSteps
+        { get; set; }
+
+        #endregion
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

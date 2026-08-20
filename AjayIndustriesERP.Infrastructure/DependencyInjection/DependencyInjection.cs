@@ -255,6 +255,18 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
 
             #endregion
 
+            #region Item Process Routing
+
+            services.AddScoped<
+                IItemProcessRoutingRepository,
+                ItemProcessRoutingRepository>();
+
+            services.AddScoped<
+                IItemProcessRoutingService,
+                ItemProcessRoutingService>();
+
+            #endregion
+
 
             return services;
         }
