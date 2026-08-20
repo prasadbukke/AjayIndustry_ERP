@@ -566,3 +566,6 @@ ACTION: UPDATE
 Customer Master          = Completed
 Customer Purchase Order  = Completed
 Next Module              = Machine Master
+
+- Machine Master = Completed
+- Next Module = Operation / Process Master

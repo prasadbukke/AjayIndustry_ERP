@@ -327,3 +327,14 @@ Purchase Order
 Small lookup masters:
 
 Reusable Quick Master Modal with live search, duplicate protection, AJAX save and auto-select.
+
+07_CodingStandards.md
+
+MVC Binding Note:
+Avoid naming an action complex-model parameter "model"
+when the ViewModel itself contains a property named "Model".
+ASP.NET Core model binding is case-insensitive and this can
+cause prefix collision.
+
+Prefer:
+MachineFormViewModel viewModel

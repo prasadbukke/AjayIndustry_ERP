@@ -713,3 +713,10 @@ ACTION: ADD
 - Restore preserves original Draft / Confirmed status
 - Production/Machine fields are NOT stored directly on Customer PO
 - Production Pipeline will be linked from Customer PO Item
+
+- Machine operational status is manually maintained
+- Machine Status and Production Step Status are separate concepts
+- Machine Code format: AI/MCH/00001
+- Serial Number optional but unique when provided
+- Deleted Machines are listed separately and can be restored
+- Restore preserves previous operational status

@@ -167,3 +167,8 @@ ADD:
 - Search + Pagination
 - Soft Delete + Deleted Orders + Restore
 - Item blocks collapse for compact multi-item entry
+
+- Machine Master → Completed
+- Create / Edit / Details / Search / Pagination
+- Manual Machine Status
+- Soft Delete + Deleted Machines + Restore

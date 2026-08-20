@@ -231,6 +231,17 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
 
             #endregion
 
+            #region Machine Master
+
+            services.AddScoped<
+                IMachineRepository,
+                MachineRepository>();
+
+            services.AddScoped<
+                IMachineService,
+                MachineService>();
+
+            #endregion
 
 
             return services;
