@@ -94,9 +94,14 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 .Include(x =>
                     x.Customer)
                 .Include(x =>
-                    x.Items)
-                    .ThenInclude(x =>
-                        x.Item)
+    x.Items)
+    .ThenInclude(x =>
+        x.Item)
+    .ThenInclude(x =>
+        x.Drawings
+            .Where(drawing =>
+                !drawing.IsDeleted &&
+                drawing.IsActive))
                 .FirstOrDefaultAsync();
         }
 
@@ -318,8 +323,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
 
         public async Task<Item?>
-            GetItemForOrderAsync(
-                int itemId)
+    GetItemForOrderAsync(
+        int itemId)
         {
             return await _context.Items
                 .AsNoTracking()
@@ -340,6 +345,12 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     x.ItemSpecifications)
                     .ThenInclude(x =>
                         x.Uom)
+
+                .Include(x =>
+                    x.Drawings
+                        .Where(drawing =>
+                            !drawing.IsDeleted &&
+                            drawing.IsActive))
 
                 .FirstOrDefaultAsync();
         }

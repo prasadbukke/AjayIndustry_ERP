@@ -1,0 +1,510 @@
+﻿@*
+    ============================================================
+    File: CompleteStep.cshtml
+
+    Purpose:
+    Completes an In Progress Production Job Step.
+
+    Responsibilities:
+    - Display Job and Operation information.
+    - Display Actual Assigned Machine.
+    - Accept Good Quantity.
+    - Accept Rejected Quantity.
+    - Accept execution remarks.
+    - Complete Production Step.
+
+    Important:
+    - Only In Progress Step can be completed.
+    - Good + Rejected Quantity cannot exceed Job Quantity.
+    - Completion timestamp is generated automatically.
+    - Completing the final Step completes the Production Job.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.ProductionJob.ProductionJobCompleteStepViewModel
+
+@{
+    ViewData["Title"] = "Complete Production Step";
+}
+
+
+<!-- =========================================================
+     REGION 1 — PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Complete Production Step
+        </h2>
+
+        <p class="text-muted mb-0">
+            @Model.JobCode
+        </p>
+
+    </div>
+
+
+    <a asp-action="Details"
+       asp-route-id="@Model.ProductionJobId"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid fa-arrow-left me-1"></i>
+
+        Back to Production Job
+
+    </a>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — STEP INFORMATION
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid fa-gears me-1"></i>
+
+            Production Step
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-4">
+
+
+            <!-- JOB -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Production Job
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.JobCode
+                </div>
+
+            </div>
+
+
+            <!-- ITEM -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Item
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.ItemCode
+                </div>
+
+                <div class="small text-muted">
+                    @Model.ItemName
+                </div>
+
+            </div>
+
+
+            <!-- QUANTITY -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Job Quantity
+                </div>
+
+                <div class="fw-bold">
+
+                    @(Model.JobQuantity.ToString("0.###"))
+                    @Model.UnitName
+
+                </div>
+
+            </div>
+
+
+            <!-- SEQUENCE -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Sequence
+                </div>
+
+                <span class="badge
+                             bg-light
+                             text-dark
+                             border">
+
+                    Seq @Model.SequenceNumber
+
+                </span>
+
+            </div>
+
+
+            <!-- OPERATION -->
+
+            <div class="col-lg-6 col-md-12">
+
+                <div class="small text-muted mb-1">
+                    Operation
+                </div>
+
+                <div class="fw-semibold fs-5">
+                    @Model.OperationName
+                </div>
+
+                <div class="small text-muted">
+                    @Model.OperationCode
+                </div>
+
+            </div>
+
+
+            <!-- MACHINE -->
+
+            <div class="col-lg-6 col-md-12">
+
+                <div class="small text-muted mb-1">
+                    Actual Assigned Machine
+                </div>
+
+
+                @if (!string.IsNullOrWhiteSpace(
+                                Model.AssignedMachineName))
+                {
+                    <div class="fw-semibold">
+
+                        @Model.AssignedMachineCode -
+                        @Model.AssignedMachineName
+
+                    </div>
+                }
+                else
+                {
+                    <div class="text-muted">
+                        No Machine Assigned
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 3 — COMPLETE FORM
+========================================================== -->
+
+<form asp-controller="ProductionJob"
+      asp-action="CompleteStep"
+      method="post">
+
+    @Html.AntiForgeryToken()
+
+
+    <!-- =====================================================
+         POST IDENTIFICATION
+    ====================================================== -->
+
+    <input asp-for="ProductionJobId"
+           type="hidden" />
+
+    <input asp-for="ProductionJobStepId"
+           type="hidden" />
+
+    <input asp-for="JobCode"
+           type="hidden" />
+
+    <input asp-for="ItemCode"
+           type="hidden" />
+
+    <input asp-for="ItemName"
+           type="hidden" />
+
+    <input asp-for="JobQuantity"
+           type="hidden" />
+
+    <input asp-for="UnitName"
+           type="hidden" />
+
+    <input asp-for="SequenceNumber"
+           type="hidden" />
+
+    <input asp-for="OperationCode"
+           type="hidden" />
+
+    <input asp-for="OperationName"
+           type="hidden" />
+
+    <input asp-for="AssignedMachineCode"
+           type="hidden" />
+
+    <input asp-for="AssignedMachineName"
+           type="hidden" />
+
+
+    <div asp-validation-summary="ModelOnly"
+         class="text-danger mb-3">
+    </div>
+
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-light">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid
+                          fa-circle-check
+                          me-1">
+                </i>
+
+                Production Result
+
+            </span>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+
+                <!-- =========================================
+                     GOOD QUANTITY
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label asp-for="GoodQuantity"
+                           class="form-label fw-semibold">
+                    </label>
+
+                    <span class="text-danger">*</span>
+
+
+                    <div class="input-group">
+
+                        <input asp-for="GoodQuantity"
+                               type="number"
+                               min="0"
+                               step="0.001"
+                               class="form-control" />
+
+
+                        @if (!string.IsNullOrWhiteSpace(
+                                                Model.UnitName))
+                        {
+                            <span class="input-group-text">
+                                @Model.UnitName
+                            </span>
+                        }
+
+                    </div>
+
+
+                    <span asp-validation-for="GoodQuantity"
+                          class="text-danger small">
+                    </span>
+
+                </div>
+
+
+                <!-- =========================================
+                     REJECTED QUANTITY
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label asp-for="RejectedQuantity"
+                           class="form-label fw-semibold">
+                    </label>
+
+
+                    <div class="input-group">
+
+                        <input asp-for="RejectedQuantity"
+                               type="number"
+                               min="0"
+                               step="0.001"
+                               class="form-control" />
+
+
+                        @if (!string.IsNullOrWhiteSpace(
+                                                Model.UnitName))
+                        {
+                            <span class="input-group-text">
+                                @Model.UnitName
+                            </span>
+                        }
+
+                    </div>
+
+
+                    <span asp-validation-for="RejectedQuantity"
+                          class="text-danger small">
+                    </span>
+
+                </div>
+
+
+                <!-- =========================================
+                     JOB QUANTITY REFERENCE
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label class="form-label fw-semibold">
+                        Job Quantity
+                    </label>
+
+
+                    <input type="text"
+                           class="form-control"
+                           value="@(Model.JobQuantity.ToString("0.###")) @Model.UnitName"
+                           readonly />
+
+
+                    <div class="form-text">
+                        Good + Rejected cannot exceed Job Quantity.
+                    </div>
+
+                </div>
+
+
+                <!-- =========================================
+                     REMARKS
+                ========================================== -->
+
+                <div class="col-12">
+
+                    <label asp-for="Remarks"
+                           class="form-label fw-semibold">
+                    </label>
+
+
+                    <textarea asp-for="Remarks"
+                              class="form-control"
+                              rows="3"
+                              maxlength="1000"
+                              placeholder="Optional execution remarks"></textarea>
+
+
+                    <span asp-validation-for="Remarks"
+                          class="text-danger small">
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         REGION 4 — WARNING
+    ====================================================== -->
+
+    <div class="alert alert-light border mb-4">
+
+        <div class="d-flex
+                    align-items-start
+                    gap-2">
+
+            <i class="fa-solid
+                      fa-circle-info
+                      text-primary
+                      mt-1">
+            </i>
+
+
+            <div>
+
+                <div class="fw-semibold">
+                    Completing this Step
+                </div>
+
+                <div class="small text-muted">
+
+                    After completion, this Step becomes green in
+                    the Production Pipeline and the next Routing
+                    Step becomes available to start.
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         REGION 5 — ACTIONS
+    ====================================================== -->
+
+    <div class="d-flex
+                justify-content-end
+                gap-2
+                mb-4">
+
+        <a asp-action="Details"
+           asp-route-id="@Model.ProductionJobId"
+           class="btn btn-outline-secondary">
+
+            Cancel
+
+        </a>
+
+
+        <button type="submit"
+                class="btn btn-success">
+
+            <i class="fa-solid
+                      fa-check
+                      me-1">
+            </i>
+
+            Complete Production Step
+
+        </button>
+
+    </div>
+
+</form>
+
+
+<!-- =========================================================
+     REGION 6 — VALIDATION
+========================================================== -->
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}

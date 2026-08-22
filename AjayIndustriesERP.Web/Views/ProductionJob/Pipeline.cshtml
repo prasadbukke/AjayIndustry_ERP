@@ -1,0 +1,1697 @@
+﻿@*
+    ============================================================
+    File: Pipeline.cshtml
+
+    Purpose:
+    Provides the primary shop-floor Production Pipeline screen.
+
+    Responsibilities:
+    - Display a lightweight Production Job summary.
+    - Display clickable Production Process Steps.
+    - Open Step actions inside Bootstrap modal.
+    - Start eligible Pending Steps.
+    - Assign Actual Machine while starting a Step.
+    - Complete an In Progress Step.
+    - Cancel the entire Production Job with mandatory Reason.
+    - Link to the full Job / Step Details page.
+
+    Important:
+    - This is the primary daily Production execution screen.
+    - Full Step History is intentionally NOT displayed here.
+    - Previous Step must be Completed before next Step starts.
+    - Only one Production Step may run at a time.
+    - Cancel applies to the complete Production Job.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.ProductionJob.ProductionJobDetailsViewModel
+
+@using AjayIndustriesERP.Domain.Entities
+@using AjayIndustriesERP.Domain.Enums
+
+@{
+    ViewData["Title"] =
+        "Production Pipeline";
+
+    var machines =
+        ViewBag.ExecutionMachines
+            as List<Machine>
+        ?? new List<Machine>();
+
+    var activeJob =
+        Model.Status ==
+            ProductionJobStatus.Ready ||
+        Model.Status ==
+            ProductionJobStatus.InProgress;
+}
+
+
+<!-- =========================================================
+     REGION 1 — PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Production Pipeline
+        </h2>
+
+        <div class="text-muted">
+
+            @Model.Code
+
+        </div>
+
+    </div>
+
+
+    <div class="d-flex gap-2 flex-wrap">
+
+        <a asp-action="Details"
+           asp-route-id="@Model.Id"
+           class="btn btn-outline-info">
+
+            <i class="fa-solid
+                      fa-circle-info
+                      me-1">
+            </i>
+
+            Full Details
+
+        </a>
+
+
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid
+                      fa-arrow-left
+                      me-1">
+            </i>
+
+            Back
+
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — JOB SUMMARY
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            <!-- CUSTOMER -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted">
+                    Customer
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.CustomerName
+                </div>
+
+            </div>
+
+
+            <!-- CUSTOMER PO -->
+
+           
+
+<div class="col-lg-3 col-md-6">
+
+    <div class="small text-muted">
+        Customer PO
+    </div>
+
+
+    <div class="fw-bold">
+        @Model.CustomerPurchaseOrderNumber
+    </div>
+
+
+    <div class="small text-muted">
+        @Model.CustomerPurchaseOrderCode
+    </div>
+
+</div>
+
+
+            <!-- ITEM -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted">
+                    Item
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.ItemCode
+                </div>
+
+                <div class="small text-muted">
+                    @Model.ItemName
+                </div>
+
+            </div>
+
+
+            <!-- QUANTITY -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted">
+                    Job Quantity
+                </div>
+
+                <div class="fw-bold">
+
+                    @(Model.JobQuantity.ToString("0.###"))
+
+                    @Model.UnitName
+
+                </div>
+
+            </div>
+
+
+            <!-- ROUTING -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted">
+                    Routing
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.RoutingCode
+                </div>
+
+                <div class="small text-muted">
+                    Rev @Model.RoutingRevisionNumber
+                </div>
+
+            </div>
+
+
+            <!-- STATUS -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Job Status
+                </div>
+
+
+                @switch (Model.Status)
+                {
+                    case ProductionJobStatus.Draft:
+
+                        <span class="badge bg-secondary">
+                            Draft
+                        </span>
+
+                        break;
+
+
+                    case ProductionJobStatus.Ready:
+
+                        <span class="badge bg-primary">
+                            Ready
+                        </span>
+
+                        break;
+
+
+                    case ProductionJobStatus.InProgress:
+
+                        <span class="badge
+                                     bg-warning
+                                     text-dark">
+
+                            In Progress
+
+                        </span>
+
+                        break;
+
+
+                    case ProductionJobStatus.Completed:
+
+                        <span class="badge bg-success">
+                            Completed
+                        </span>
+
+                        break;
+
+
+                    case ProductionJobStatus.Cancelled:
+
+                        <span class="badge bg-danger">
+                            Cancelled
+                        </span>
+
+                        break;
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION — CURRENT ITEM DRAWING
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid fa-file-lines me-1"></i>
+
+            Current Item Drawing
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        @if (!string.IsNullOrWhiteSpace(
+            Model.DrawingNumber))
+        {
+            <div class="row g-3 align-items-center">
+
+                <!-- DRAWING NUMBER -->
+
+                <div class="col-lg-6 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Drawing Number
+                    </div>
+
+                    <div class="fw-semibold">
+                        @Model.DrawingNumber
+                    </div>
+
+                </div>
+
+
+                <!-- VIEW DRAWING -->
+
+                <div class="col-lg-6 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Drawing File
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(
+                        Model.DrawingFilePath))
+                    {
+                        <a href="@Model.DrawingFilePath"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="btn btn-sm btn-outline-danger"
+                           title="View Drawing">
+
+                            <i class="fa-solid fa-file-pdf fa-lg"></i>
+
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="text-muted">
+                            -
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+        }
+        else
+        {
+            <div class="text-muted">
+                No current Drawing available for this Item.
+            </div>
+        }
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 3 — JOB STATUS MESSAGE
+========================================================== -->
+
+@if (Model.Status == ProductionJobStatus.Draft)
+{
+    <div class="alert alert-secondary border mb-4">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    gap-3
+                    flex-wrap">
+
+            <div>
+
+                <div class="fw-semibold">
+                    Production Job is still Draft
+                </div>
+
+                <div class="small">
+                    Mark it Ready before starting production.
+                </div>
+
+            </div>
+
+
+            <form asp-action="MarkReady"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden"
+                       name="id"
+                       value="@Model.Id" />
+
+
+                <button type="submit"
+                        class="btn btn-success">
+
+                    <i class="fa-solid
+                              fa-circle-check
+                              me-1">
+                    </i>
+
+                    Mark Ready
+
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+}
+
+
+@if (Model.Status == ProductionJobStatus.Completed)
+{
+    <div class="alert alert-success border mb-4">
+
+        <div class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-circle-check
+                      me-1">
+            </i>
+
+            Production Job Completed
+
+        </div>
+
+        <div class="small mt-1">
+            All required Production Steps are completed.
+        </div>
+
+    </div>
+}
+
+
+@if (Model.Status == ProductionJobStatus.Cancelled)
+{
+    <div class="alert alert-danger border mb-4">
+
+        <div class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-ban
+                      me-1">
+            </i>
+
+            Production Job Cancelled
+
+        </div>
+
+
+        @if (Model.CancelledOn.HasValue)
+        {
+            <div class="small mt-2">
+
+                Cancelled:
+                @(
+                    Model.CancelledOn.Value
+                        .ToString("dd-MM-yyyy HH:mm")
+                )
+
+            </div>
+        }
+
+
+        @if (!string.IsNullOrWhiteSpace(
+            Model.CancellationReason))
+        {
+            <div class="mt-2">
+
+                <strong>Reason:</strong>
+
+                @Model.CancellationReason
+
+            </div>
+        }
+
+    </div>
+}
+
+
+<!-- =========================================================
+     REGION 4 — PRODUCTION PIPELINE
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-diagram-project
+                      me-1">
+            </i>
+
+            Production Pipeline
+
+        </div>
+
+        <div class="small text-muted mt-1">
+            Click any process Step for actions and information.
+        </div>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="d-flex
+                    align-items-start
+                    overflow-auto
+                    pb-3"
+             style="gap:0;">
+
+
+            @for (var i = 0;
+                  i < Model.Steps.Count;
+                  i++)
+            {
+                var step =
+                    Model.Steps[i];
+
+
+                var previousStepsCompleted =
+                    Model.Steps
+                        .Where(x =>
+                            x.SequenceNumber <
+                            step.SequenceNumber)
+                        .All(x =>
+                            x.Status ==
+                            ProductionJobStepStatus.Completed);
+
+
+                var anotherStepRunning =
+                    Model.Steps
+                        .Any(x =>
+                            x.Id != step.Id &&
+                            x.Status ==
+                            ProductionJobStepStatus.InProgress);
+
+
+                var canStart =
+                    activeJob &&
+                    step.Status ==
+                        ProductionJobStepStatus.Pending &&
+                    previousStepsCompleted &&
+                    !anotherStepRunning;
+
+
+                var circleClass =
+                    step.Status switch
+                    {
+                        ProductionJobStepStatus.InProgress =>
+                            "bg-warning text-dark border-warning",
+
+                        ProductionJobStepStatus.Completed =>
+                            "bg-success text-white border-success",
+
+                        ProductionJobStepStatus.Cancelled =>
+                            "bg-danger text-white border-danger",
+
+                        _ =>
+                            "bg-light text-dark border-secondary"
+                    };
+
+
+                <div class="d-flex
+                            align-items-start
+                            flex-shrink-0">
+
+
+                    <!-- =====================================
+                         CLICKABLE STEP
+                    ====================================== -->
+
+                    <button type="button"
+                            class="btn
+                                   border-0
+                                   p-0
+                                   flex-shrink-0"
+                            style="width:140px;"
+                            data-bs-toggle="modal"
+                            data-bs-target="#stepModal_@step.Id">
+
+                        <div class="rounded-circle
+                                    border
+                                    border-2
+                                    @circleClass
+                                    d-flex
+                                    align-items-center
+                                    justify-content-center
+                                    mx-auto"
+                             style="width:56px;
+                                    height:56px;">
+
+                            @switch (step.Status)
+                            {
+                                case ProductionJobStepStatus.Completed:
+
+                                    <i class="fa-solid fa-check"></i>
+
+                                    break;
+
+
+                                case ProductionJobStepStatus.InProgress:
+
+                                    <i class="fa-solid fa-play"></i>
+
+                                    break;
+
+
+                                case ProductionJobStepStatus.Cancelled:
+
+                                    <i class="fa-solid fa-ban"></i>
+
+                                    break;
+
+
+                                default:
+
+                                    <span class="fw-bold">
+                                        @(i + 1)
+                                    </span>
+
+                                    break;
+                            }
+
+                        </div>
+
+
+                        <div class="fw-semibold
+                                    small
+                                    mt-2">
+
+                            @step.OperationName
+
+                        </div>
+
+
+                        <div class="small text-muted">
+
+                            @switch (step.Status)
+                            {
+                                case ProductionJobStepStatus.InProgress:
+
+                                    <span>
+                                        In Progress
+                                    </span>
+
+                                    break;
+
+
+                                case ProductionJobStepStatus.Completed:
+
+                                    <span>
+                                        Completed
+                                    </span>
+
+                                    break;
+
+
+                                case ProductionJobStepStatus.Cancelled:
+
+                                    <span>
+                                        Cancelled
+                                    </span>
+
+                                    break;
+
+
+                                default:
+
+                                    @if (canStart)
+                                    {
+                                        <span class="text-primary">
+                                            Ready to Start
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>
+                                            Pending
+                                        </span>
+                                    }
+
+                                    break;
+                            }
+
+                        </div>
+
+                    </button>
+
+
+                    <!-- =====================================
+                         CONNECTOR
+                    ====================================== -->
+
+                    @if (i <
+                        Model.Steps.Count - 1)
+                    {
+                        var connectorCompleted =
+                            step.Status ==
+                            ProductionJobStepStatus.Completed;
+
+
+                        <div class="border-top
+                                    border-2
+                                    @(connectorCompleted
+                                        ? "border-success"
+                                        : "border-secondary")
+                                    flex-shrink-0"
+                             style="width:55px;
+                                    margin-top:28px;">
+                        </div>
+                    }
+
+                </div>
+            }
+
+        </div>
+
+
+        <!-- =================================================
+             LEGEND
+        ================================================== -->
+
+        <div class="small text-muted mt-3">
+
+            <span class="me-3">
+                ⚪ Pending
+            </span>
+
+            <span class="me-3">
+                🟡 In Progress
+            </span>
+
+            <span class="me-3">
+                🟢 Completed
+            </span>
+
+            <span>
+                🔴 Cancelled
+            </span>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 5 — STEP QUICK ACTION MODALS
+========================================================== -->
+
+@foreach (var step in
+    Model.Steps
+        .OrderBy(x =>
+            x.SequenceNumber))
+{
+    var previousStepsCompleted =
+        Model.Steps
+            .Where(x =>
+                x.SequenceNumber <
+                step.SequenceNumber)
+            .All(x =>
+                x.Status ==
+                ProductionJobStepStatus.Completed);
+
+
+    var anotherStepRunning =
+        Model.Steps
+            .Any(x =>
+                x.Id != step.Id &&
+                x.Status ==
+                ProductionJobStepStatus.InProgress);
+
+
+    var canStart =
+        activeJob &&
+        step.Status ==
+            ProductionJobStepStatus.Pending &&
+        previousStepsCompleted &&
+        !anotherStepRunning;
+
+
+    var previousStep =
+        Model.Steps
+            .Where(x =>
+                x.SequenceNumber <
+                step.SequenceNumber)
+            .OrderByDescending(x =>
+                x.SequenceNumber)
+            .FirstOrDefault();
+
+
+    <div class="modal fade"
+         id="stepModal_@step.Id"
+         tabindex="-1"
+         aria-hidden="true">
+
+        <div class="modal-dialog
+                    modal-dialog-centered
+                    modal-lg">
+
+            <div class="modal-content">
+
+
+                <!-- =========================================
+                     MODAL HEADER
+                ========================================== -->
+
+                <div class="modal-header">
+
+                    <div>
+
+                        <div class="d-flex
+                                    align-items-center
+                                    gap-2
+                                    mb-1">
+
+                            <span class="badge
+                                         bg-light
+                                         text-dark
+                                         border">
+
+                                Seq @step.SequenceNumber
+
+                            </span>
+
+
+                            <h5 class="modal-title mb-0">
+                                @step.OperationName
+                            </h5>
+
+                        </div>
+
+
+                        <div class="small text-muted">
+                            @step.OperationCode
+                        </div>
+
+                    </div>
+
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal">
+                    </button>
+
+                </div>
+
+
+                <!-- =========================================
+                     MODAL BODY
+                ========================================== -->
+
+                <div class="modal-body">
+
+
+                    <!-- =====================================
+                         STEP BASIC INFORMATION
+                    ====================================== -->
+
+                    <div class="row g-3 mb-4">
+
+                        <div class="col-md-4">
+
+                            <div class="small text-muted">
+                                Status
+                            </div>
+
+                            <div class="fw-semibold">
+                                @step.Status
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-4">
+
+                            <div class="small text-muted">
+                                Default Machine
+                            </div>
+
+
+                            @if (step.DefaultMachineId.HasValue)
+                            {
+                                <div class="fw-semibold">
+                                    @step.DefaultMachineCode
+                                </div>
+
+                                <div class="small text-muted">
+                                    @step.DefaultMachineName
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-muted">
+                                    No Default Machine
+                                </div>
+                            }
+
+                        </div>
+
+
+                        <div class="col-md-4">
+
+                            <div class="small text-muted">
+                                Assigned Machine
+                            </div>
+
+
+                            @if (step.AssignedMachineId.HasValue)
+                            {
+                                <div class="fw-semibold">
+                                    @step.AssignedMachineCode
+                                </div>
+
+                                <div class="small text-muted">
+                                    @step.AssignedMachineName
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-muted">
+                                    Not Assigned
+                                </div>
+                            }
+
+                        </div>
+
+                    </div>
+
+                    <!-- =====================================
+     JOB CANCELLATION INFORMATION
+====================================== -->
+
+@if (Model.Status ==
+    ProductionJobStatus.Cancelled)
+{
+    <div class="alert
+                alert-danger
+                border
+                mb-4">
+
+        <div class="d-flex
+                    align-items-start
+                    gap-2">
+
+            <i class="fa-solid
+                      fa-ban
+                      mt-1">
+            </i>
+
+
+            <div class="flex-grow-1">
+
+                <div class="fw-semibold mb-2">
+                    Production Job Cancelled
+                </div>
+
+
+                @if (Model.CancelledOn.HasValue)
+                {
+                    <div class="small mb-2">
+
+                        <span class="text-muted">
+                            Cancelled On:
+                        </span>
+
+                        <strong>
+                            @(
+                                Model.CancelledOn.Value
+                                    .ToString("dd-MM-yyyy HH:mm")
+                            )
+                        </strong>
+
+                    </div>
+                }
+
+
+                <div>
+
+                    <div class="small text-muted mb-1">
+                        Cancellation Reason
+                    </div>
+
+
+                    <div class="fw-semibold"
+                         style="white-space: pre-wrap;">
+
+                        @(string.IsNullOrWhiteSpace(
+                            Model.CancellationReason)
+                            ? "-"
+                            : Model.CancellationReason)
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+                    <!-- =====================================
+                         START STEP
+                    ====================================== -->
+
+                    @if (
+                        step.Status ==
+                        ProductionJobStepStatus.Pending)
+                    {
+                        @if (canStart)
+                        {
+                            <div class="border
+                                        rounded
+                                        p-3
+                                        mb-3">
+
+                                <div class="fw-semibold mb-3">
+
+                                    <i class="fa-solid
+                                              fa-circle-play
+                                              text-warning
+                                              me-1">
+                                    </i>
+
+                                    Start Production Step
+
+                                </div>
+
+
+                                <form asp-action="StartStep"
+                                      method="post">
+
+                                    @Html.AntiForgeryToken()
+
+
+                                    <input type="hidden"
+                                           name="ProductionJobId"
+                                           value="@Model.Id" />
+
+                                    <input type="hidden"
+                                           name="ProductionJobStepId"
+                                           value="@step.Id" />
+
+                                    <input type="hidden"
+                                           name="OperationName"
+                                           value="@step.OperationName" />
+
+
+                                    <div class="row g-3">
+
+                                        <div class="col-md-6">
+
+                                            <label class="form-label fw-semibold">
+                                                Actual Machine
+                                            </label>
+
+
+                                            <select name="AssignedMachineId"
+                                                    class="form-select">
+
+                                                <option value="">
+                                                    -- No Machine / Manual Operation --
+                                                </option>
+
+
+                                                @foreach (var machine
+                                                    in machines)
+                                                {
+                                                    if (
+                                                        machine.Id ==
+                                                        step.DefaultMachineId
+                                                    )
+                                                    {
+                                                        <option value="@machine.Id"
+                                                                selected>
+
+                                                            @machine.Code -
+                                                            @machine.MachineName
+
+                                                        </option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="@machine.Id">
+
+                                                            @machine.Code -
+                                                            @machine.MachineName
+
+                                                        </option>
+                                                    }
+                                                }
+
+                                            </select>
+
+
+                                            <div class="form-text">
+                                                Default Machine is selected automatically.
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="col-md-6">
+
+                                            <label class="form-label fw-semibold">
+                                                Start Remarks
+                                            </label>
+
+
+                                            <textarea name="Remarks"
+                                                      class="form-control"
+                                                      rows="2"
+                                                      maxlength="1000"
+                                                      placeholder="Optional"></textarea>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="text-end mt-3">
+
+                                        <button type="submit"
+                                                class="btn btn-warning">
+
+                                            <i class="fa-solid
+                                                      fa-play
+                                                      me-1">
+                                            </i>
+
+                                            Start Step
+
+                                        </button>
+
+                                    </div>
+
+                                </form>
+
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert
+                                        alert-secondary
+                                        border
+                                        mb-3">
+
+                                <div class="fw-semibold">
+
+                                    <i class="fa-solid
+                                              fa-lock
+                                              me-1">
+                                    </i>
+
+                                    Waiting
+
+                                </div>
+
+
+                                @if (!previousStepsCompleted &&
+                                     previousStep != null)
+                                {
+                                    <div class="small mt-1">
+
+                                        Complete
+
+                                        <strong>
+                                            @previousStep.OperationName
+                                        </strong>
+
+                                        before starting this Step.
+
+                                    </div>
+                                }
+                                else if (anotherStepRunning)
+                                {
+                                    <div class="small mt-1">
+
+                                        Another Production Step is currently
+                                        In Progress.
+
+                                    </div>
+                                }
+                                else if (!activeJob)
+                                {
+                                    <div class="small mt-1">
+
+                                        Production Job is not currently
+                                        available for execution.
+
+                                    </div>
+                                }
+
+                            </div>
+                        }
+                    }
+
+
+                    <!-- =====================================
+                         IN PROGRESS / COMPLETE
+                    ====================================== -->
+
+                    @if (
+                        step.Status ==
+                        ProductionJobStepStatus.InProgress)
+                    {
+                        <div class="border
+                                    rounded
+                                    p-3
+                                    mb-3">
+
+                            <div class="fw-semibold mb-3">
+
+                                <i class="fa-solid
+                                          fa-check
+                                          text-success
+                                          me-1">
+                                </i>
+
+                                Complete Production Step
+
+                            </div>
+
+
+                            <form asp-action="CompleteStep"
+                                  method="post">
+
+                                @Html.AntiForgeryToken()
+
+
+                                <input type="hidden"
+                                       name="ProductionJobId"
+                                       value="@Model.Id" />
+
+                                <input type="hidden"
+                                       name="ProductionJobStepId"
+                                       value="@step.Id" />
+
+                                <input type="hidden"
+                                       name="OperationName"
+                                       value="@step.OperationName" />
+
+
+                                <div class="row g-3">
+
+                                    <div class="col-md-4">
+
+                                        <label class="form-label fw-semibold">
+                                            Good Quantity
+                                        </label>
+
+
+                                        <input name="GoodQuantity"
+                                               type="number"
+                                               min="0"
+                                               max="@Model.JobQuantity"
+                                               step="0.001"
+                                               value="@Model.JobQuantity"
+                                               class="form-control"
+                                               required />
+
+                                    </div>
+
+
+                                    <div class="col-md-4">
+
+                                        <label class="form-label fw-semibold">
+                                            Rejected Quantity
+                                        </label>
+
+
+                                        <input name="RejectedQuantity"
+                                               type="number"
+                                               min="0"
+                                               max="@Model.JobQuantity"
+                                               step="0.001"
+                                               value="0"
+                                               class="form-control"
+                                               required />
+
+                                    </div>
+
+
+                                    <div class="col-md-4">
+
+                                        <label class="form-label fw-semibold">
+                                            Job Quantity
+                                        </label>
+
+
+                                        <input type="text"
+                                               class="form-control"
+                                               value="@(Model.JobQuantity.ToString("0.###")) @Model.UnitName"
+                                               readonly />
+
+                                    </div>
+
+
+                                    <div class="col-12">
+
+                                        <label class="form-label fw-semibold">
+                                            Execution Remarks
+                                        </label>
+
+
+                                        <textarea name="Remarks"
+                                                  class="form-control"
+                                                  rows="2"
+                                                  maxlength="1000"
+                                                  placeholder="Optional"></textarea>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="text-end mt-3">
+
+                                    <button type="submit"
+                                            class="btn btn-success">
+
+                                        <i class="fa-solid
+                                                  fa-check
+                                                  me-1">
+                                        </i>
+
+                                        Complete Step
+
+                                    </button>
+
+                                </div>
+
+                            </form>
+
+                        </div>
+                    }
+
+
+                    <!-- =====================================
+                         COMPLETED SUMMARY
+                    ====================================== -->
+
+                    @if (
+                        step.Status ==
+                        ProductionJobStepStatus.Completed)
+                    {
+                        <div class="alert
+                                    alert-success
+                                    border
+                                    mb-3">
+
+                            <div class="fw-semibold mb-2">
+
+                                <i class="fa-solid
+                                          fa-circle-check
+                                          me-1">
+                                </i>
+
+                                Step Completed
+
+                            </div>
+
+
+                            <div class="row g-2 small">
+
+                                <div class="col-md-4">
+
+                                    <strong>Good Qty:</strong>
+
+                                    @(step.GoodQuantity?.ToString("0.###") ?? "-")
+
+                                </div>
+
+
+                                <div class="col-md-4">
+
+                                    <strong>Rejected Qty:</strong>
+
+                                    @(step.RejectedQuantity?.ToString("0.###") ?? "-")
+
+                                </div>
+
+
+                                <div class="col-md-4">
+
+                                    <strong>Completed:</strong>
+
+                                    @(
+                                        step.CompletedOn.HasValue
+                                            ? step.CompletedOn.Value
+                                                .ToString("dd-MM-yyyy HH:mm")
+                                            : "-"
+                                    )
+
+                                </div>
+
+                            </div>
+
+                        </div>
+                    }
+
+
+                    <!-- =====================================
+                         CANCELLED STEP
+                    ====================================== -->
+
+                    @if (
+    step.Status ==
+    ProductionJobStepStatus.Cancelled)
+{
+    <div class="alert
+                alert-light
+                border
+                mb-3">
+
+        <div class="small">
+
+            <i class="fa-solid
+                      fa-circle-info
+                      text-danger
+                      me-1">
+            </i>
+
+            This Step was running when the
+            Production Job was cancelled.
+
+        </div>
+
+    </div>
+}
+
+
+                    <!-- =====================================
+                         CANCEL ENTIRE JOB
+                    ====================================== -->
+
+                    @if (activeJob)
+                    {
+                        <div class="border-top pt-3 mt-3">
+
+                            <button type="button"
+                                    class="btn
+                                           btn-sm
+                                           btn-outline-danger
+                                           btn-toggle-cancel"
+                                    data-cancel-target="cancelSection_@step.Id">
+
+                                <i class="fa-solid
+                                          fa-ban
+                                          me-1">
+                                </i>
+
+                                Cancel Production Job
+
+                            </button>
+
+
+                            <div id="cancelSection_@step.Id"
+                                 class="d-none mt-3">
+
+                                <form asp-action="Cancel"
+                                      method="post">
+
+                                    @Html.AntiForgeryToken()
+
+
+                                    <input type="hidden"
+                                           name="ProductionJobId"
+                                           value="@Model.Id" />
+
+
+                                    <div class="alert
+                                                alert-danger
+                                                border">
+
+                                        <div class="fw-semibold mb-2">
+                                            Cancel Entire Production Job
+                                        </div>
+
+                                        <div class="small">
+                                            Production execution will stop and
+                                            no next Step can be started.
+                                        </div>
+
+                                    </div>
+
+
+                                    <label class="form-label fw-semibold">
+
+                                        Cancellation Reason
+
+                                        <span class="text-danger">*</span>
+
+                                    </label>
+
+
+                                    <textarea name="Reason"
+                                              class="form-control"
+                                              rows="3"
+                                              maxlength="1000"
+                                              required
+                                              placeholder="Enter cancellation reason"></textarea>
+
+
+                                    <div class="text-end mt-3">
+
+                                        <button type="submit"
+                                                class="btn btn-danger"
+                                                onclick="return confirm(
+                                                    'Cancel this complete Production Job?');">
+
+                                            Confirm Cancel Job
+
+                                        </button>
+
+                                    </div>
+
+                                </form>
+
+                            </div>
+
+                        </div>
+                    }
+                    else if (
+    Model.Status ==
+    ProductionJobStatus.Completed)
+{
+    <div class="border-top pt-3 mt-3">
+
+        <button type="button"
+                class="btn
+                       btn-sm
+                       btn-outline-danger"
+                disabled>
+
+            <i class="fa-solid
+                      fa-ban
+                      me-1">
+            </i>
+
+            Cancel Production Job
+
+        </button>
+
+
+        <div class="small
+                    text-muted
+                    mt-2">
+
+            <i class="fa-solid
+                      fa-lock
+                      me-1">
+            </i>
+
+            Completed Production Job cannot be cancelled.
+
+        </div>
+
+    </div>
+}
+else if (
+    Model.Status ==
+    ProductionJobStatus.Cancelled)
+{
+    <div class="border-top pt-3 mt-3">
+
+        <button type="button"
+                class="btn
+                       btn-sm
+                       btn-outline-danger"
+                disabled>
+
+            <i class="fa-solid
+                      fa-ban
+                      me-1">
+            </i>
+
+            Production Job Cancelled
+
+        </button>
+
+    </div>
+}
+
+                </div>
+
+
+                <!-- =========================================
+                     MODAL FOOTER
+                ========================================== -->
+
+                <div class="modal-footer">
+
+                    <a asp-action="Details"
+                       asp-route-id="@Model.Id"
+                       
+                       class="btn btn-outline-info">
+
+                        <i class="fa-solid
+                                  fa-circle-info
+                                  me-1">
+                        </i>
+
+                        Details
+
+                    </a>
+
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+
+                        Close
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+<!-- =========================================================
+     REGION 6 — PIPELINE SCRIPT
+========================================================== -->
+
+<script>
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            document
+                .querySelectorAll(
+                    ".btn-toggle-cancel"
+                )
+                .forEach(
+                    function (button) {
+
+                        button.addEventListener(
+                            "click",
+                            function () {
+
+                                const targetId =
+                                    button.dataset
+                                        .cancelTarget;
+
+
+                                const target =
+                                    document.getElementById(
+                                        targetId
+                                    );
+
+
+                                if (!target) {
+                                    return;
+                                }
+
+
+                                target.classList.toggle(
+                                    "d-none"
+                                );
+
+                            }
+                        );
+
+                    }
+                );
+
+        }
+    );
+
+</script>

@@ -409,7 +409,9 @@
 
                         <th style="min-width:240px;" class="text-nowrap">Specification</th>
 
+                        <th class="text-nowrap">Drawing No</th>
 
+                        <th class="text-nowrap">View</th>
                         <th class="text-end text-nowrap">Ordered Qty</th>
 
                         <th class="text-nowrap">Customer Item Code</th>
@@ -448,6 +450,15 @@
                             item.Priority
                             ?? Model.Priority;
 
+                            var currentDrawing =
+    item.Item
+        ?.Drawings
+        .Where(x =>
+            !x.IsDeleted &&
+            x.IsActive)
+        .OrderByDescending(x =>
+            x.DrawingId)
+        .FirstOrDefault();
 
                         <tr>
 
@@ -492,6 +503,56 @@
                                 }
 
                             </td>
+
+
+                            <!-- ITEM DRAWING NUMBER -->
+
+<td>
+
+    @if (currentDrawing != null)
+    {
+        <span class="fw-semibold">
+            @currentDrawing.DrawingNumber
+        </span>
+    }
+    else
+    {
+        <span class="text-muted">
+            -
+        </span>
+    }
+
+</td>
+
+
+<!-- VIEW ITEM DRAWING -->
+
+<td>
+
+    @if (
+        currentDrawing != null &&
+        !string.IsNullOrWhiteSpace(
+            currentDrawing.FilePath))
+    {
+        <a href="@currentDrawing.FilePath"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="btn btn-sm btn-outline-primary">
+
+            <i class="fa-solid fa-eye me-1"></i>
+
+            View
+
+        </a>
+    }
+    else
+    {
+        <span class="text-muted">
+            -
+        </span>
+    }
+
+</td>
 
 
                             <!-- QUANTITY -->
@@ -624,7 +685,7 @@
                     {
                         <tr>
 
-                            <td colspan="9"
+                            <td colspan="11"
                                 class="text-center
                                        text-muted
                                        py-5">

@@ -267,6 +267,17 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
 
             #endregion
 
+            #region Production Job
+
+            services.AddScoped<
+                IProductionJobRepository,
+                ProductionJobRepository>();
+
+            services.AddScoped<
+                IProductionJobService,
+                ProductionJobService>();
+
+            #endregion
 
             return services;
         }

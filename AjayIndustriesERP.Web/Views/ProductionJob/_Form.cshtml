@@ -1,0 +1,1117 @@
+﻿@*
+    ============================================================
+    File: _Form.cshtml
+
+    Purpose:
+    Reusable Production Job form used by Create and Edit.
+
+    Responsibilities:
+    - Select a confirmed Customer PO Item during Create.
+    - Display Customer PO / Item / Routing information.
+    - Display Ordered / Allocated / Remaining Quantity.
+    - Accept Production Job Quantity.
+    - Accept optional planning dates.
+    - Accept optional Production Job remarks.
+    - Display immutable Production source during Edit.
+
+    Important:
+    - This partial DOES NOT contain a <form> element.
+    - Create.cshtml and Edit.cshtml own the actual <form>.
+    - Routing is selected automatically from the Item.
+    - Customer PO Item cannot be changed after Job creation.
+    - Item and Routing cannot be changed after Job creation.
+    - Only Draft Production Job can be edited.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.ProductionJob.ProductionJobFormViewModel
+
+@{
+    var isEditMode = Model.Id > 0;
+}
+
+
+<!-- =========================================================
+     REGION 1 — CUSTOMER PO SOURCE
+========================================================== -->
+@if (!isEditMode)
+{
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-light">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid fa-file-lines me-1"></i>
+
+                Customer PO Source
+
+            </span>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-12">
+
+                   
+
+                    <!-- =========================================================
+                         CUSTOMER PO ITEM
+                    ========================================================== -->
+
+                    <div class="mb-3">
+
+                        <label asp-for="CustomerPurchaseOrderItemId"
+                               class="form-label">
+
+                            Customer PO Item
+
+                            <span class="text-danger">*</span>
+
+                        </label>
+
+
+                        <select asp-for="CustomerPurchaseOrderItemId"
+                                id="CustomerPurchaseOrderItemId"
+                                class="form-select js-production-source-select"
+                                data-placeholder="-- Select Customer PO Item --">
+
+                            <option value=""></option>
+
+
+                            @foreach (var source in Model.SourceItems)
+                            {
+                                var displayText =
+                                $"{source.CustomerPurchaseOrderNumber} | " +
+                                $"{source.ItemCode} - {source.ItemName} | " +
+                                $"Remaining: {source.RemainingQuantity:0.###} {source.UnitName}";
+
+
+                                if (source.RemainingQuantity <= 0)
+                                {
+                                    <option value="@source.CustomerPurchaseOrderItemId"
+                                            disabled>
+
+                                        @displayText - Fully Allocated
+
+                                    </option>
+                                }
+                                else if (
+                                source.CustomerPurchaseOrderItemId ==
+                                Model.CustomerPurchaseOrderItemId)
+                                {
+                                    <option value="@source.CustomerPurchaseOrderItemId"
+                                            selected>
+
+                                        @displayText
+
+                                    </option>
+                                }
+                                else
+                                {
+                                    <option value="@source.CustomerPurchaseOrderItemId">
+
+                                        @displayText
+
+                                    </option>
+                                }
+                            }
+
+                        </select>
+
+
+                        <span asp-validation-for="CustomerPurchaseOrderItemId"
+                              class="text-danger small">
+                        </span>
+
+                    </div>
+
+
+                    <div class="form-text">
+                        Only confirmed Customer PO Items with a Released Routing
+                        and remaining quantity can be selected.
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+else
+{
+    <!-- =====================================================
+         EDIT MODE — IMMUTABLE PRODUCTION SOURCE
+    ====================================================== -->
+
+    <input asp-for="CustomerPurchaseOrderItemId"
+           type="hidden" />
+
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-light">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid fa-file-lines me-1"></i>
+
+                Production Source
+
+            </span>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="row g-4">
+
+
+                <!-- =========================================
+                     CUSTOMER PO
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Customer PO
+                    </div>
+
+                    <div class="fw-semibold">
+                        @Model.CustomerPurchaseOrderCode
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(
+                                    Model.CustomerPurchaseOrderNumber))
+                    {
+                        <div class="small text-muted">
+                            PO No: @Model.CustomerPurchaseOrderNumber
+                        </div>
+                    }
+
+                </div>
+
+
+                <!-- =========================================
+                     CUSTOMER
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Customer
+                    </div>
+
+                    <div class="fw-semibold">
+                        @Model.CustomerName
+                    </div>
+
+                </div>
+
+
+                <!-- =========================================
+                     ITEM
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Item
+                    </div>
+
+                    <div class="fw-semibold">
+                        @Model.ItemCode
+                    </div>
+
+                    <div class="small text-muted">
+                        @Model.ItemName
+                    </div>
+
+                </div>
+
+
+                <!-- =========================================
+                     PRODUCTION JOB
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Production Job
+                    </div>
+
+                    <div class="fw-semibold">
+                        @Model.Code
+                    </div>
+
+                </div>
+
+
+                <!-- =========================================
+                     ROUTING
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Routing Used
+                    </div>
+
+                    <div class="fw-semibold text-success">
+
+                        @Model.RoutingCode
+
+                    </div>
+
+                    <div class="small text-muted">
+                        Revision @Model.RoutingRevisionNumber
+                    </div>
+
+                </div>
+
+
+                <!-- =========================================
+                     STATUS
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Status
+                    </div>
+
+                    <span class="badge bg-secondary">
+                        @Model.Status
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <hr />
+
+
+            <div class="small text-muted">
+
+                <i class="fa-solid fa-lock me-1"></i>
+
+                Customer PO Item, Item and Routing cannot be changed
+                after Production Job creation.
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+<!-- =========================================================
+     REGION 2 — SELECTED SOURCE INFORMATION
+========================================================== -->
+@if (!isEditMode)
+{
+    <div id="selectedSourceCard"
+         class="card shadow-sm border-0 mb-4 d-none">
+
+        <div class="card-header bg-light">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid fa-circle-info me-1"></i>
+
+                Production Source Information
+
+            </span>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="row g-4">
+
+
+                <!-- =========================================
+                     CUSTOMER PO
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Customer PO
+                    </div>
+
+                    <div class="fw-semibold"
+                         id="sourceCpoCode">
+
+                        -
+
+                    </div>
+
+                    <div class="small text-muted"
+                         id="sourceCustomerPoNumber">
+
+                        -
+
+                    </div>
+
+                </div>
+
+
+                <!-- =========================================
+                     CUSTOMER
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Customer
+                    </div>
+
+                    <div class="fw-semibold"
+                         id="sourceCustomer">
+
+                        -
+
+                    </div>
+
+                </div>
+
+
+                <!-- =========================================
+                     ITEM
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Item
+                    </div>
+
+                    <div class="fw-semibold"
+                         id="sourceItem">
+
+                        -
+
+                    </div>
+
+                </div>
+
+
+                <!-- =========================================
+                     ORDERED QUANTITY
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Ordered Quantity
+                    </div>
+
+                    <div class="fw-semibold"
+                         id="sourceOrdered">
+
+                        -
+
+                    </div>
+
+                </div>
+
+
+                <!-- =========================================
+                     ALLOCATED QUANTITY
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Already Allocated
+                    </div>
+
+                    <div class="fw-semibold"
+                         id="sourceAllocated">
+
+                        -
+
+                    </div>
+
+                </div>
+
+
+                <!-- =========================================
+                     REMAINING QUANTITY
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Remaining Quantity
+                    </div>
+
+                    <div class="fw-bold text-success"
+                         id="sourceRemaining">
+
+                        -
+
+                    </div>
+
+                </div>
+
+
+                <!-- =========================================
+                     RELEASED ROUTING
+                ========================================== -->
+
+                <div class="col-lg-6 col-md-12">
+
+                    <div class="small text-muted mb-1">
+                        Current Released Routing
+                    </div>
+
+                    <div class="fw-semibold text-success"
+                         id="sourceRouting">
+
+                        -
+
+                    </div>
+
+                    <div class="form-text">
+                        This Routing will automatically generate
+                        Production Job Steps.
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+<!-- =========================================================
+     REGION 3 — PRODUCTION JOB INFORMATION
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid fa-industry me-1"></i>
+
+            Production Job Information
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+
+            <!-- =============================================
+                 JOB QUANTITY
+            ============================================== -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="JobQuantity"
+                       class="form-label fw-semibold">
+                </label>
+
+                <span class="text-danger">*</span>
+
+
+                <div class="input-group">
+
+                    <input asp-for="JobQuantity"
+                           id="jobQuantityInput"
+                           type="number"
+                           min="0.001"
+                           step="0.001"
+                           class="form-control"
+                           placeholder="Enter production quantity" />
+
+
+                    @if (isEditMode &&
+                                        !string.IsNullOrWhiteSpace(
+                                        Model.UnitName))
+                    {
+                        <span class="input-group-text">
+                            @Model.UnitName
+                        </span>
+                    }
+
+                </div>
+
+
+                <span asp-validation-for="JobQuantity"
+                      class="text-danger small">
+                </span>
+
+
+                @if (!isEditMode)
+                {
+                    <div class="form-text">
+                        Multiple Production Jobs can be created for
+                        one Customer PO Item until its ordered quantity
+                        is fully allocated.
+                    </div>
+                }
+                else
+                {
+                    <div class="form-text">
+                        Job Quantity can be changed while the Job is Draft.
+                    </div>
+                }
+
+            </div>
+
+
+            <!-- =============================================
+                 PLANNED START
+            ============================================== -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="PlannedStartOn"
+                       class="form-label fw-semibold">
+                </label>
+
+
+                <input asp-for="PlannedStartOn"
+                       type="date"
+                       class="form-control" />
+
+
+                <span asp-validation-for="PlannedStartOn"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =============================================
+                 PLANNED COMPLETION
+            ============================================== -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="PlannedCompletionOn"
+                       class="form-label fw-semibold">
+                </label>
+
+
+                <input asp-for="PlannedCompletionOn"
+                       type="date"
+                       class="form-control" />
+
+
+                <span asp-validation-for="PlannedCompletionOn"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =============================================
+                 REMARKS
+            ============================================== -->
+
+            <div class="col-12">
+
+                <label asp-for="Remarks"
+                       class="form-label fw-semibold">
+                </label>
+
+
+                <textarea asp-for="Remarks"
+                          class="form-control"
+                          rows="3"
+                          maxlength="1000"
+                          placeholder="Optional Production Job remarks"></textarea>
+
+
+                <span asp-validation-for="Remarks"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 4 — ROUTING PROCESS NOTE
+========================================================== -->
+@if (!isEditMode)
+{
+    <div class="alert
+                    alert-light
+                    border
+                    d-flex
+                    align-items-start
+                    gap-2
+                    mb-4">
+
+        <i class="fa-solid
+                      fa-diagram-project
+                      text-primary
+                      mt-1">
+        </i>
+
+
+        <div>
+
+            <div class="fw-semibold">
+                Production Steps are automatic
+            </div>
+
+            <div class="small text-muted">
+
+                When this Production Job is created, the current
+                Released Item Process Routing will be copied into
+                executable Production Job Steps.
+
+            </div>
+
+        </div>
+
+    </div>
+}
+else
+{
+    <div class="alert
+                    alert-light
+                    border
+                    d-flex
+                    align-items-start
+                    gap-2
+                    mb-4">
+
+        <i class="fa-solid
+                      fa-lock
+                      text-secondary
+                      mt-1">
+        </i>
+
+
+        <div>
+
+            <div class="fw-semibold">
+                Existing Production Steps remain unchanged
+            </div>
+
+            <div class="small text-muted">
+
+                Editing this Draft Job changes only Job Quantity,
+                planning dates and remarks. The Routing snapshot and
+                Production Job Steps are not regenerated.
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+<!-- =========================================================
+     REGION 5 — CREATE MODE SOURCE SCRIPT
+========================================================== -->
+@if (!isEditMode)
+{
+    <script>
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+                // =============================================
+                // REGION 5.1 — ELEMENT REFERENCES
+                // =============================================
+
+                const sourceSelect =
+                    document.getElementById(
+                        "customerPoItemSelect"
+                    );
+
+
+                const sourceCard =
+                    document.getElementById(
+                        "selectedSourceCard"
+                    );
+
+
+                const quantityInput =
+                    document.getElementById(
+                        "jobQuantityInput"
+                    );
+
+
+                if (!sourceSelect ||
+                    !sourceCard) {
+
+                    return;
+                }
+
+
+                // =============================================
+                // REGION 5.2 — NUMBER FORMAT
+                // =============================================
+
+                function formatQuantity(
+                    value) {
+
+                    if (
+                        value === undefined ||
+                        value === null ||
+                        value === ""
+                    ) {
+
+                        return "0";
+                    }
+
+
+                    const number =
+                        parseFloat(
+                            value
+                        );
+
+
+                    if (isNaN(number)) {
+
+                        return value;
+                    }
+
+
+                    return number.toLocaleString(
+                        undefined,
+                        {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 3
+                        }
+                    );
+                }
+
+
+                // =============================================
+                // REGION 5.3 — SOURCE INFORMATION
+                // =============================================
+
+                function updateSourceInformation() {
+
+                    const selectedOption =
+                        sourceSelect.options[
+                            sourceSelect.selectedIndex
+                        ];
+
+
+                    if (!selectedOption ||
+                        !selectedOption.value) {
+
+                        sourceCard.classList.add(
+                            "d-none"
+                        );
+
+
+                        if (quantityInput) {
+
+                            quantityInput.removeAttribute(
+                                "max"
+                            );
+                        }
+
+
+                        return;
+                    }
+
+
+                    const unit =
+                        selectedOption.dataset.unit || "";
+
+
+                    const cpoCode =
+                        selectedOption.dataset.cpoCode || "-";
+
+
+                    const customerPoNumber =
+                        selectedOption.dataset.customerPoNumber || "";
+
+
+                    const customer =
+                        selectedOption.dataset.customer || "-";
+
+
+                    const itemCode =
+                        selectedOption.dataset.itemCode || "";
+
+
+                    const itemName =
+                        selectedOption.dataset.itemName || "";
+
+
+                    const ordered =
+                        selectedOption.dataset.ordered || "0";
+
+
+                    const allocated =
+                        selectedOption.dataset.allocated || "0";
+
+
+                    const remaining =
+                        selectedOption.dataset.remaining || "0";
+
+
+                    const routingCode =
+                        selectedOption.dataset.routingCode || "-";
+
+
+                    const routingRevision =
+                        selectedOption.dataset.routingRevision || "-";
+
+
+                    // =========================================
+                    // CUSTOMER PO
+                    // =========================================
+
+                    const cpoCodeElement =
+                        document.getElementById(
+                            "sourceCpoCode"
+                        );
+
+
+                    if (cpoCodeElement) {
+
+                        cpoCodeElement.textContent =
+                            cpoCode;
+                    }
+
+
+                    const customerPoNumberElement =
+                        document.getElementById(
+                            "sourceCustomerPoNumber"
+                        );
+
+
+                    if (customerPoNumberElement) {
+
+                        customerPoNumberElement.textContent =
+                            customerPoNumber
+                                ? "Customer PO No: " +
+                                  customerPoNumber
+                                : "-";
+                    }
+
+
+                    // =========================================
+                    // CUSTOMER
+                    // =========================================
+
+                    const customerElement =
+                        document.getElementById(
+                            "sourceCustomer"
+                        );
+
+
+                    if (customerElement) {
+
+                        customerElement.textContent =
+                            customer;
+                    }
+
+
+                    // =========================================
+                    // ITEM
+                    // =========================================
+
+                    const itemElement =
+                        document.getElementById(
+                            "sourceItem"
+                        );
+
+
+                    if (itemElement) {
+
+                        itemElement.textContent =
+                            itemCode +
+                            " - " +
+                            itemName;
+                    }
+
+
+                    // =========================================
+                    // QUANTITY
+                    // =========================================
+
+                    const orderedElement =
+                        document.getElementById(
+                            "sourceOrdered"
+                        );
+
+
+                    if (orderedElement) {
+
+                        orderedElement.textContent =
+                            formatQuantity(
+                                ordered
+                            ) +
+                            (
+                                unit
+                                    ? " " + unit
+                                    : ""
+                            );
+                    }
+
+
+                    const allocatedElement =
+                        document.getElementById(
+                            "sourceAllocated"
+                        );
+
+
+                    if (allocatedElement) {
+
+                        allocatedElement.textContent =
+                            formatQuantity(
+                                allocated
+                            ) +
+                            (
+                                unit
+                                    ? " " + unit
+                                    : ""
+                            );
+                    }
+
+
+                    const remainingElement =
+                        document.getElementById(
+                            "sourceRemaining"
+                        );
+
+
+                    if (remainingElement) {
+
+                        remainingElement.textContent =
+                            formatQuantity(
+                                remaining
+                            ) +
+                            (
+                                unit
+                                    ? " " + unit
+                                    : ""
+                            );
+                    }
+
+
+                    // =========================================
+                    // ROUTING
+                    // =========================================
+
+                    const routingElement =
+                        document.getElementById(
+                            "sourceRouting"
+                        );
+
+
+                    if (routingElement) {
+
+                        routingElement.textContent =
+                            routingCode +
+                            " / Rev " +
+                            routingRevision;
+                    }
+
+
+                    // =========================================
+                    // JOB QUANTITY
+                    // =========================================
+
+                    if (quantityInput) {
+
+                        /*
+                         * Auto-fill the entire Remaining Quantity
+                         * only when Job Quantity is empty or zero.
+                         */
+
+                        const currentQuantity =
+                            parseFloat(
+                                quantityInput.value || "0"
+                            );
+
+
+                        if (
+                            isNaN(currentQuantity) ||
+                            currentQuantity <= 0
+                        ) {
+
+                            quantityInput.value =
+                                remaining;
+                        }
+
+
+                        quantityInput.max =
+                            remaining;
+                    }
+
+
+                    sourceCard.classList.remove(
+                        "d-none"
+                    );
+                }
+
+
+                // =============================================
+                // REGION 5.4 — SOURCE CHANGE
+                // =============================================
+
+                sourceSelect.addEventListener(
+                    "change",
+                    function () {
+
+                        /*
+                         * When source changes manually,
+                         * populate new source Remaining Qty.
+                         */
+
+                        if (quantityInput) {
+
+                            quantityInput.value =
+                                "";
+                        }
+
+
+                        updateSourceInformation();
+                    }
+                );
+
+
+                // =============================================
+                // REGION 5.5 — INITIALIZATION
+                // =============================================
+
+                updateSourceInformation();
+
+            }
+        );
+
+    </script>
+}

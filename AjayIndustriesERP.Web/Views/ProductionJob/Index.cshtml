@@ -1,0 +1,658 @@
+﻿@*
+    ============================================================
+    File: Index.cshtml
+
+    Purpose:
+    Displays Production Jobs.
+
+    Responsibilities:
+    - Display Production Jobs with Search and Pagination.
+    - Display Customer PO, Item, Quantity and Routing.
+    - Display Production Job Status.
+    - Open Production Pipeline.
+    - Edit Draft Production Job.
+    - Mark Draft Production Job Ready.
+    - Soft delete eligible Production Jobs.
+    - Navigate to Deleted Production Jobs.
+
+    Important:
+    - Production Job is an actual manufacturing transaction.
+    - Draft Job can be edited and marked Ready.
+    - Draft, Completed and Cancelled Jobs can be soft deleted.
+    - Ready and In Progress Jobs cannot be deleted directly.
+    - Ready / In Progress Job must be cancelled before deletion.
+    ============================================================
+*@
+
+@model List<AjayIndustriesERP.Domain.Entities.ProductionJob>
+
+@using AjayIndustriesERP.Domain.Enums
+
+@{
+    ViewData["Title"] = "Production Jobs";
+
+    var pageNumber =
+        (int)ViewBag.PageNumber;
+
+    var pageSize =
+        (int)ViewBag.PageSize;
+
+    var totalRecords =
+        (int)ViewBag.TotalRecords;
+
+    var serialNumber =
+        ((pageNumber - 1) * pageSize) + 1;
+}
+
+
+<!-- =========================================================
+     REGION 1 — PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Production Jobs
+        </h2>
+
+        <p class="text-muted mb-0">
+            Plan and track actual manufacturing jobs.
+        </p>
+
+    </div>
+
+
+    <div class="d-flex
+                align-items-center
+                gap-2
+                flex-wrap">
+
+        <a asp-action="Deleted"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid fa-trash-can me-1"></i>
+
+            Deleted Jobs
+
+        </a>
+
+
+        <a asp-action="Create"
+           class="btn btn-primary">
+
+            <i class="fa-solid fa-plus me-1"></i>
+
+            Create Production Job
+
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — SEARCH
+========================================================== -->
+
+<partial name="Components/_SearchBar"
+         model='@(ViewBag.SearchText as string ?? "")' />
+
+
+<!-- =========================================================
+     REGION 3 — JOB TABLE
+========================================================== -->
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th class="text-nowrap">
+                            #
+                        </th>
+
+
+                        <th class="text-nowrap">
+                            Job Code
+                        </th>
+
+
+                        <th class="text-nowrap">
+                            Customer PO
+                        </th>
+
+
+                        <th>
+                            Item
+                        </th>
+
+
+                        <th>
+                            Job Qty
+                        </th>
+
+
+                        <th class="text-nowrap">
+                            Routing
+                        </th>
+
+
+                        <th class="text-center text-nowrap">
+                            Status
+                        </th>
+
+<th class="text-nowrap">
+    Drawing No
+</th>
+
+<th class="text-center text-nowrap">
+    View
+</th>
+
+                        <th class="text-center text-nowrap">
+                            Actions
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model != null &&
+                         Model.Any())
+                    {
+                        @foreach (var job in Model)
+                        {
+
+var currentDrawing =
+    job.Item
+        ?.Drawings
+        .Where(x =>
+            !x.IsDeleted &&
+            x.IsActive)
+        .OrderByDescending(x =>
+            x.DrawingId)
+        .FirstOrDefault();
+
+                            var isDraft =
+                                job.Status ==
+                                ProductionJobStatus.Draft;
+
+
+                            var canDelete =
+                                job.Status ==
+                                    ProductionJobStatus.Draft ||
+                                job.Status ==
+                                    ProductionJobStatus.Completed ||
+                                job.Status ==
+                                    ProductionJobStatus.Cancelled;
+
+
+                            <tr>
+
+                                <!-- =================================
+                                     SERIAL NUMBER
+                                ================================== -->
+
+                                <td class="text-nowrap">
+                                    @serialNumber
+                                </td>
+
+
+                                <!-- =================================
+                                     JOB CODE
+                                ================================== -->
+
+                                <td class="text-nowrap">
+
+                                    <a asp-action="Pipeline"
+                                       asp-route-id="@job.Id"
+                                       class="fw-semibold
+                                              text-decoration-none">
+
+                                        @job.Code
+
+                                    </a>
+
+                                </td>
+
+
+                                <!-- =================================
+                                     CUSTOMER PO
+                                ================================== -->
+
+                              
+
+                                <td>
+
+    <div class="fw-semibold">
+
+        @(
+            job.CustomerPurchaseOrderItem
+                ?.CustomerPurchaseOrder
+                ?.CustomerPurchaseOrderNumber
+            ?? "-"
+        )
+
+    </div>
+
+
+    <div class="small text-muted">
+
+        @(
+            job.CustomerPurchaseOrderItem
+                ?.CustomerPurchaseOrder
+                ?.CustomerName
+            ?? "-"
+        )
+
+    </div>
+
+
+    <div class="small text-muted">
+
+        @(
+            job.CustomerPurchaseOrderItem
+                ?.CustomerPurchaseOrder
+                ?.Code
+            ?? "-"
+        )
+
+    </div>
+
+</td>
+
+
+                                <!-- =================================
+                                     ITEM
+                                ================================== -->
+
+                                <td>
+
+                                    <div class="fw-semibold text-nowrap">
+                                        @job.ItemCode
+                                    </div>
+
+                                    <div class="small text-muted">
+                                        @job.ItemName
+                                    </div>
+
+                                </td>
+
+
+                                <!-- =================================
+                                     JOB QUANTITY
+                                ================================== -->
+
+                                <td>
+
+                                    <span class="fw-semibold">
+
+                                        @(job.JobQuantity.ToString("0.###"))
+
+                                    </span>
+
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        job.UnitName))
+                                    {
+                                        <span class="text-muted ms-1">
+                                            @job.UnitName
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- =================================
+                                     ROUTING
+                                ================================== -->
+
+                                <td>
+
+                                    <div class="fw-semibold text-nowrap">
+                                        @job.RoutingCode
+                                    </div>
+
+                                    <div class="small text-muted text-nowrap">
+
+                                        Rev @job.RoutingRevisionNumber
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- =================================
+                                     STATUS
+                                ================================== -->
+
+                                <td class="text-center">
+
+                                    @switch (job.Status)
+                                    {
+                                        case ProductionJobStatus.Draft:
+
+                                            <span class="badge bg-secondary">
+                                                Draft
+                                            </span>
+
+                                            break;
+
+
+                                        case ProductionJobStatus.Ready:
+
+                                            <span class="badge bg-primary">
+                                                Ready
+                                            </span>
+
+                                            break;
+
+
+                                        case ProductionJobStatus.InProgress:
+
+                                            <span class="badge
+                                                         bg-warning
+                                                         text-dark">
+
+                                                In Progress
+
+                                            </span>
+
+                                            break;
+
+
+                                        case ProductionJobStatus.Completed:
+
+                                            <span class="badge bg-success">
+                                                Completed
+                                            </span>
+
+                                            break;
+
+
+                                        case ProductionJobStatus.Cancelled:
+
+                                            <span class="badge bg-danger">
+                                                Cancelled
+                                            </span>
+
+                                            break;
+                                    }
+
+                                </td>
+
+<!-- =================================
+     CURRENT ITEM DRAWING NUMBER
+================================== -->
+
+<td>
+
+    @if (currentDrawing != null)
+    {
+        <span class="fw-semibold text-nowrap">
+            @currentDrawing.DrawingNumber
+        </span>
+    }
+    else
+    {
+        <span class="text-muted">
+            -
+        </span>
+    }
+
+</td>
+
+
+<!-- =================================
+     VIEW CURRENT ITEM DRAWING
+================================== -->
+
+<td class="text-center">
+
+    @if (
+        currentDrawing != null &&
+        !string.IsNullOrWhiteSpace(
+            currentDrawing.FilePath))
+    {
+        <a href="@currentDrawing.FilePath"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="btn btn-sm btn-outline-primary"
+           title="View Drawing">
+
+             <i class="fa-solid fa-file-pdf fa-lg"></i>
+
+        </a>
+    }
+    else
+    {
+        <span class="text-muted">
+            -
+        </span>
+    }
+
+</td>
+
+                                <!-- =================================
+                                     ACTIONS
+                                ================================== -->
+
+                                <td class="text-center">
+
+                                    <div class="d-flex
+                                                justify-content-center
+                                                align-items-center
+                                                gap-1">
+
+
+                                        <!-- =========================
+                                             OPEN PIPELINE
+                                        ========================== -->
+
+                                        <a asp-action="Pipeline"
+                                           asp-route-id="@job.Id"
+                                           class="btn
+                                                  btn-sm
+                                                  btn-outline-info"
+                                           title="Open Production Pipeline">
+
+                                            <i class="fa-solid fa-eye"></i>
+
+                                        </a>
+
+
+                                        <!-- =========================
+                                             EDIT
+                                        ========================== -->
+
+                                        @if (isDraft)
+                                        {
+                                            <a asp-action="Edit"
+                                               asp-route-id="@job.Id"
+                                               class="btn
+                                                      btn-sm
+                                                      btn-outline-warning"
+                                               title="Edit Draft Production Job">
+
+                                                <i class="fa-solid fa-pen"></i>
+
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <button type="button"
+                                                    class="btn
+                                                           btn-sm
+                                                           btn-outline-warning"
+                                                    disabled
+                                                    title="Only Draft Production Job can be edited.">
+
+                                                <i class="fa-solid fa-pen"></i>
+
+                                            </button>
+                                        }
+
+
+                                        <!-- =========================
+                                             MARK READY
+                                        ========================== -->
+
+                                        @if (isDraft)
+                                        {
+                                            <form asp-action="MarkReady"
+                                                  method="post"
+                                                  class="d-inline">
+
+                                                @Html.AntiForgeryToken()
+
+
+                                                <input type="hidden"
+                                                       name="id"
+                                                       value="@job.Id" />
+
+
+                                                <button type="submit"
+                                                        class="btn
+                                                               btn-sm
+                                                               btn-outline-success"
+                                                        title="Mark Production Job Ready">
+
+                                                    <i class="fa-solid
+                                                              fa-circle-check">
+                                                    </i>
+
+                                                </button>
+
+                                            </form>
+                                        }
+
+
+                                        <!-- =========================
+                                             DELETE
+                                        ========================== -->
+
+                                        @if (canDelete)
+                                        {
+                                            <button type="button"
+                                                    class="btn
+                                                           btn-sm
+                                                           btn-outline-danger"
+                                                    title="Delete Production Job"
+                                                    onclick="confirmDelete(
+                                                        '@Url.Action(
+                                                            "Delete",
+                                                            "ProductionJob",
+                                                            new
+                                                            {
+                                                                id = job.Id
+                                                            })')">
+
+                                                <i class="fa-solid fa-trash"></i>
+
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="button"
+                                                    class="btn
+                                                           btn-sm
+                                                           btn-outline-danger"
+                                                    disabled
+                                                    title="Cancel this Production Job before deleting.">
+
+                                                <i class="fa-solid fa-trash"></i>
+
+                                            </button>
+                                        }
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+
+                            serialNumber++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="10"
+                                class="text-center
+                                       py-5
+                                       text-muted">
+
+                                <i class="fa-solid
+                                          fa-industry
+                                          fa-2x
+                                          mb-3">
+                                </i>
+
+
+                                <div class="fw-semibold mb-1">
+                                    No Production Jobs Found
+                                </div>
+
+
+                                <div class="small">
+
+                                    Create a Production Job from a
+                                    confirmed Customer PO Item.
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 4 — PAGINATION
+========================================================== -->
+
+@if (totalRecords > 0)
+{
+    <div class="mt-3">
+
+        <partial name="Components/_Pagination"
+                 model='(
+                     (int)ViewBag.PageNumber,
+                     (int)ViewBag.PageSize
+                 )' />
+
+    </div>
+}

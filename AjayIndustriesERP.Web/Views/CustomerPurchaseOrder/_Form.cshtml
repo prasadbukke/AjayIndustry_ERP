@@ -570,6 +570,111 @@
 
                             </div>
 
+                            <!-- =================================
+     CURRENT ITEM DRAWING
+================================== -->
+
+<div class="col-12">
+
+    <div class="border rounded p-3 bg-light">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2
+                    mb-3">
+
+            <div class="fw-semibold">
+
+                <i class="fa-solid
+                          fa-file-lines
+                          me-1">
+                </i>
+
+                Current Item Drawing
+
+            </div>
+
+
+            <span class="badge
+                         bg-light
+                         text-dark
+                         border
+                         item-drawing-status">
+
+                No Drawing
+
+            </span>
+
+        </div>
+
+
+        <div class="row g-3">
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Drawing Number
+                </div>
+
+                <div class="fw-semibold
+                            item-drawing-number">
+
+                    -
+
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-2 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Revision
+                </div>
+
+                <div class="fw-semibold
+                            item-drawing-revision">
+
+                    -
+
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Drawing Name
+                </div>
+
+                <div class="item-drawing-name">
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Drawing Type
+                </div>
+
+                <div class="item-drawing-type">
+                    -
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
                         </div>
 
 
@@ -956,6 +1061,111 @@
                               readonly></textarea>
 
                 </div>
+
+                <!-- =========================================
+     CURRENT ITEM DRAWING
+========================================== -->
+
+<div class="col-12">
+
+    <div class="border rounded p-3 bg-light">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2
+                    mb-3">
+
+            <div class="fw-semibold">
+
+                <i class="fa-solid
+                          fa-file-lines
+                          me-1">
+                </i>
+
+                Current Item Drawing
+
+            </div>
+
+
+            <span class="badge
+                         bg-light
+                         text-dark
+                         border
+                         item-drawing-status">
+
+                No Drawing
+
+            </span>
+
+        </div>
+
+
+        <div class="row g-3">
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Drawing Number
+                </div>
+
+                <div class="fw-semibold
+                            item-drawing-number">
+
+                    -
+
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-2 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Revision
+                </div>
+
+                <div class="fw-semibold
+                            item-drawing-revision">
+
+                    -
+
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Drawing Name
+                </div>
+
+                <div class="item-drawing-name">
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Drawing Type
+                </div>
+
+                <div class="item-drawing-type">
+                    -
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
 
             </div>
 
@@ -1513,6 +1723,31 @@
                         ".item-unit-hidden"
                     );
 
+                    const drawingStatus =
+    row.querySelector(
+        ".item-drawing-status"
+    );
+
+const drawingNumber =
+    row.querySelector(
+        ".item-drawing-number"
+    );
+
+const drawingRevision =
+    row.querySelector(
+        ".item-drawing-revision"
+    );
+
+const drawingName =
+    row.querySelector(
+        ".item-drawing-name"
+    );
+
+const drawingType =
+    row.querySelector(
+        ".item-drawing-type"
+    );
+
 
                 if (!itemId) {
 
@@ -1538,6 +1773,39 @@
                     unitHidden.value =
                         "";
 
+                        if (drawingStatus) {
+
+    drawingStatus.textContent =
+        "No Drawing";
+}
+
+
+if (drawingNumber) {
+
+    drawingNumber.textContent =
+        "-";
+}
+
+
+if (drawingRevision) {
+
+    drawingRevision.textContent =
+        "-";
+}
+
+
+if (drawingName) {
+
+    drawingName.textContent =
+        "-";
+}
+
+
+if (drawingType) {
+
+    drawingType.textContent =
+        "-";
+}
 
                     updateRowSummary(
                         row,
@@ -1597,6 +1865,57 @@
 
                     specificationDisplay.value =
                         data.specification || "";
+
+                        // =========================================
+// CURRENT ITEM DRAWING
+// =========================================
+
+const hasDrawing =
+    Boolean(
+        data.drawingId &&
+        data.drawingNumber
+    );
+
+
+if (drawingStatus) {
+
+    drawingStatus.textContent =
+        hasDrawing
+            ? "Current"
+            : "No Drawing";
+}
+
+
+if (drawingNumber) {
+
+    drawingNumber.textContent =
+        data.drawingNumber ||
+        "-";
+}
+
+
+if (drawingRevision) {
+
+    drawingRevision.textContent =
+        data.drawingRevision ||
+        "-";
+}
+
+
+if (drawingName) {
+
+    drawingName.textContent =
+        data.drawingName ||
+        "-";
+}
+
+
+if (drawingType) {
+
+    drawingType.textContent =
+        data.drawingType ||
+        "-";
+}
 
 
                     // =========================================

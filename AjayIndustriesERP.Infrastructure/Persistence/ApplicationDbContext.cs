@@ -66,6 +66,22 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
         { get; set; }
 
         #endregion
+
+        #region Production Jobs
+
+        public DbSet<ProductionJob>
+            ProductionJobs
+        { get; set; }
+
+        public DbSet<ProductionJobStep>
+            ProductionJobSteps
+        { get; set; }
+
+        public DbSet<ProductionJobStepHistory>
+            ProductionJobStepHistories
+        { get; set; }
+
+        #endregion
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

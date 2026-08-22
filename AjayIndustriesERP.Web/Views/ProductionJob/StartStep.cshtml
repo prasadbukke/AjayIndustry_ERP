@@ -1,0 +1,424 @@
+﻿@*
+    ============================================================
+    File: StartStep.cshtml
+
+    Purpose:
+    Starts a Pending Production Job Step.
+
+    Responsibilities:
+    - Display Production Job information.
+    - Display selected Operation.
+    - Display Default Machine from Routing.
+    - Allow Actual Machine selection.
+    - Accept optional Start remarks.
+    - Start shop-floor execution.
+
+    Important:
+    - Only Pending Step can be started.
+    - Previous Steps must be completed first.
+    - Only one Step may be In Progress at a time.
+    - Actual Machine may differ from Default Machine.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.ProductionJob.ProductionJobStartStepViewModel
+
+@{
+    ViewData["Title"] = "Start Production Step";
+}
+
+
+<!-- =========================================================
+     REGION 1 — PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Start Production Step
+        </h2>
+
+        <p class="text-muted mb-0">
+            @Model.JobCode
+        </p>
+
+    </div>
+
+
+    <a asp-action="Details"
+       asp-route-id="@Model.ProductionJobId"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid fa-arrow-left me-1"></i>
+
+        Back to Production Job
+
+    </a>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — JOB INFORMATION
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid fa-industry me-1"></i>
+
+            Production Job
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-4">
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Job Code
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.JobCode
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Item
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.ItemCode
+                </div>
+
+                <div class="small text-muted">
+                    @Model.ItemName
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-2 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Job Quantity
+                </div>
+
+                <div class="fw-bold">
+
+                    @(Model.JobQuantity.ToString("0.###"))
+
+                    @Model.UnitName
+
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Sequence
+                </div>
+
+                <span class="badge
+                             bg-light
+                             text-dark
+                             border">
+
+                    Seq @Model.SequenceNumber
+
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 3 — OPERATION INFORMATION
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid fa-gears me-1"></i>
+
+            Operation
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-4">
+
+            <div class="col-lg-6 col-md-12">
+
+                <div class="small text-muted mb-1">
+                    Operation
+                </div>
+
+                <div class="fw-semibold fs-5">
+                    @Model.OperationName
+                </div>
+
+                <div class="small text-muted">
+                    @Model.OperationCode
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-6 col-md-12">
+
+                <div class="small text-muted mb-1">
+                    Routing Default Machine
+                </div>
+
+                @if (Model.DefaultMachineId.HasValue)
+                {
+                    <div class="fw-semibold">
+                        @Model.DefaultMachineCode -
+                        @Model.DefaultMachineName
+                    </div>
+                }
+                else
+                {
+                    <div class="text-muted">
+                        No Default Machine
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 4 — START FORM
+========================================================== -->
+
+<form asp-controller="ProductionJob"
+      asp-action="StartStep"
+      method="post">
+
+    @Html.AntiForgeryToken()
+
+
+    <!-- =====================================================
+         POST IDENTIFICATION
+    ====================================================== -->
+
+    <input asp-for="ProductionJobId"
+           type="hidden" />
+
+    <input asp-for="ProductionJobStepId"
+           type="hidden" />
+
+    <input asp-for="JobCode"
+           type="hidden" />
+
+    <input asp-for="ItemCode"
+           type="hidden" />
+
+    <input asp-for="ItemName"
+           type="hidden" />
+
+    <input asp-for="JobQuantity"
+           type="hidden" />
+
+    <input asp-for="UnitName"
+           type="hidden" />
+
+    <input asp-for="SequenceNumber"
+           type="hidden" />
+
+    <input asp-for="OperationCode"
+           type="hidden" />
+
+    <input asp-for="OperationName"
+           type="hidden" />
+
+    <input asp-for="DefaultMachineId"
+           type="hidden" />
+
+    <input asp-for="DefaultMachineCode"
+           type="hidden" />
+
+    <input asp-for="DefaultMachineName"
+           type="hidden" />
+
+
+    <div asp-validation-summary="ModelOnly"
+         class="text-danger mb-3">
+    </div>
+
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-light">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid
+                          fa-circle-play
+                          me-1">
+                </i>
+
+                Start Execution
+
+            </span>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+
+                <!-- =========================================
+                     ACTUAL MACHINE
+                ========================================== -->
+
+                <div class="col-lg-6 col-md-12">
+
+                    <label asp-for="AssignedMachineId"
+                           class="form-label fw-semibold">
+                    </label>
+
+
+                    <select asp-for="AssignedMachineId"
+                            asp-items="Model.Machines"
+                            class="form-select">
+
+                        <option value="">
+                            -- No Machine / Manual Operation --
+                        </option>
+
+                    </select>
+
+
+                    <span asp-validation-for="AssignedMachineId"
+                          class="text-danger small">
+                    </span>
+
+
+                    <div class="form-text">
+
+                        Routing Default Machine is pre-selected
+                        when available. You may select another
+                        active Machine if required.
+
+                    </div>
+
+                </div>
+
+
+                <!-- =========================================
+                     REMARKS
+                ========================================== -->
+
+                <div class="col-lg-6 col-md-12">
+
+                    <label asp-for="Remarks"
+                           class="form-label fw-semibold">
+                    </label>
+
+
+                    <textarea asp-for="Remarks"
+                              class="form-control"
+                              rows="3"
+                              maxlength="1000"
+                              placeholder="Optional remarks before starting"></textarea>
+
+
+                    <span asp-validation-for="Remarks"
+                          class="text-danger small">
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         REGION 5 — ACTIONS
+    ====================================================== -->
+
+    <div class="d-flex
+                justify-content-end
+                gap-2
+                mb-4">
+
+        <a asp-action="Details"
+           asp-route-id="@Model.ProductionJobId"
+           class="btn btn-outline-secondary">
+
+            Cancel
+
+        </a>
+
+
+        <button type="submit"
+                class="btn btn-warning">
+
+            <i class="fa-solid
+                      fa-play
+                      me-1">
+            </i>
+
+            Start Production Step
+
+        </button>
+
+    </div>
+
+</form>
+
+
+<!-- =========================================================
+     REGION 6 — VALIDATION
+========================================================== -->
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}

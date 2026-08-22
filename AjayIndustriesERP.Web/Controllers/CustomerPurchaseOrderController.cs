@@ -396,14 +396,16 @@ namespace AjayIndustriesERP.Web.Controllers
 
         #endregion
 
-       
+
 
         #region Item AJAX
 
         [HttpGet]
         public async Task<IActionResult> GetItemData(
-            int itemId)
+    int itemId)
         {
+            #region Validation
+
             if (itemId <= 0)
             {
                 return Json(
@@ -415,6 +417,10 @@ namespace AjayIndustriesERP.Web.Controllers
                     });
             }
 
+            #endregion
+
+
+            #region Load Item
 
             var item =
                 await _customerPurchaseOrderService
@@ -433,11 +439,33 @@ namespace AjayIndustriesERP.Web.Controllers
                     });
             }
 
+            #endregion
+
+
+            #region Specification
 
             var specification =
                 BuildSpecificationDisplay(
                     item);
 
+            #endregion
+
+
+            #region Current Drawing
+
+            var currentDrawing =
+                item.Drawings
+                    .Where(x =>
+                        !x.IsDeleted &&
+                        x.IsActive)
+                    .OrderByDescending(x =>
+                        x.DrawingId)
+                    .FirstOrDefault();
+
+            #endregion
+
+
+            #region Response
 
             return Json(
                 new
@@ -457,8 +485,41 @@ namespace AjayIndustriesERP.Web.Controllers
                         item.Uom?.UomName
                         ?? "",
 
-                    specification
+                    specification,
+
+                    drawingId =
+                        currentDrawing?.DrawingId,
+
+                    drawingNumber =
+                        currentDrawing?.DrawingNumber
+                        ?? "",
+
+                    drawingName =
+                        currentDrawing?.DrawingName
+                        ?? "",
+
+                    drawingType =
+                        currentDrawing?.DrawingType
+                        ?? "",
+
+                    drawingRevision =
+                        currentDrawing?.RevisionNumber
+                        ?? "",
+
+                    drawingFileName =
+                        currentDrawing?.FileName
+                        ?? "",
+
+                    drawingFilePath =
+                        currentDrawing?.FilePath
+                        ?? "",
+
+                    drawingDescription =
+                        currentDrawing?.Description
+                        ?? ""
                 });
+
+            #endregion
         }
 
         #endregion
