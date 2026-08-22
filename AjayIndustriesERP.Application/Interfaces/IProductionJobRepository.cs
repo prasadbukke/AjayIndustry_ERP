@@ -79,6 +79,17 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         #endregion
 
+        #region Draft Pipeline Lookups
+
+        /// <summary>
+        /// Returns active Production Operations that can be
+        /// selected while editing a Draft Production Job Pipeline.
+        /// </summary>
+        Task<List<ProductionOperation>>
+            GetProductionOperationsForPipelineAsync();
+
+        #endregion
+
         #region Production Execution Lookups
 
         Task<List<Machine>>

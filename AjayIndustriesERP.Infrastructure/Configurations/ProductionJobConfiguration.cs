@@ -179,6 +179,11 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
 
 
             builder.Property(x =>
+                    x.PipelineModificationReason)
+                .HasMaxLength(1000);
+
+
+            builder.Property(x =>
                     x.CancellationReason)
                 .HasMaxLength(1000);
 

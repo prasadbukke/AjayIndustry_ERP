@@ -426,6 +426,26 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
         #endregion
 
+        #region Draft Pipeline Lookups
+
+        public async Task<List<ProductionOperation>>
+            GetProductionOperationsForPipelineAsync()
+        {
+            return await _context
+                .ProductionOperations
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDeleted &&
+                    x.IsActive)
+                .OrderBy(x =>
+                    x.OperationName)
+                .ThenBy(x =>
+                    x.Code)
+                .ToListAsync();
+        }
+
+        #endregion
+
         #region Production Execution Lookups
 
         public async Task<List<Machine>>

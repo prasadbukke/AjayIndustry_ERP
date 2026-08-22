@@ -990,6 +990,322 @@ namespace AjayIndustriesERP.Web.Controllers
 
         #endregion
 
+        #region Edit Draft Pipeline
+
+        [HttpGet]
+        public async Task<IActionResult> EditPipeline(
+            int id)
+        {
+            var productionJob =
+                await _productionJobService
+                    .GetByIdAsync(
+                        id);
+
+
+            if (productionJob == null)
+            {
+                return NotFound();
+            }
+
+
+            var canEditPipeline =
+    (
+        productionJob.Status ==
+            ProductionJobStatus.Draft
+        ||
+        productionJob.Status ==
+            ProductionJobStatus.Ready
+    )
+    &&
+    !productionJob.StartedOn.HasValue;
+
+
+            if (!canEditPipeline)
+            {
+                TempData["ErrorMessage"] =
+                    "Production Pipeline can be edited only before Production starts.";
+
+
+                return RedirectToAction(
+                    nameof(Pipeline),
+                    new
+                    {
+                        id
+                    });
+            }
+
+
+            var operations =
+                await _productionJobService
+                    .GetProductionOperationsForPipelineAsync();
+
+
+            var viewModel =
+                new ProductionJobPipelineEditViewModel
+                {
+                    ProductionJobId =
+                        productionJob.Id,
+
+                    JobCode =
+                        productionJob.Code,
+
+                    Status =
+                        productionJob.Status,
+
+                    CustomerPurchaseOrderNumber =
+                        productionJob
+                            .CustomerPurchaseOrderItem
+                            ?.CustomerPurchaseOrder
+                            ?.CustomerPurchaseOrderNumber
+                        ?? string.Empty,
+
+                    CustomerName =
+                        productionJob
+                            .CustomerPurchaseOrderItem
+                            ?.CustomerPurchaseOrder
+                            ?.CustomerName
+                        ?? string.Empty,
+
+                    ItemCode =
+                        productionJob.ItemCode,
+
+                    ItemName =
+                        productionJob.ItemName,
+
+                    PipelineModificationReason =
+                        productionJob
+                            .PipelineModificationReason,
+
+                    AvailableOperations =
+                        operations
+                            .Select(x =>
+                                new Microsoft.AspNetCore.Mvc.Rendering
+                                    .SelectListItem
+                                {
+                                    Value =
+                                        x.Id.ToString(),
+
+                                    Text =
+                                        $"{x.Code} - {x.OperationName}"
+                                })
+                            .ToList()
+                };
+
+
+            foreach (var step in
+                productionJob.Steps
+                    .Where(x =>
+                        !x.IsDeleted &&
+                        x.IsActive)
+                    .OrderBy(x =>
+                        x.SequenceNumber))
+            {
+                viewModel.Steps.Add(
+                    new ProductionJobPipelineStepEditViewModel
+                    {
+                        Id =
+                            step.Id,
+
+                        SequenceNumber =
+                            step.SequenceNumber,
+
+                        ProductionOperationId =
+                            step.ProductionOperationId,
+
+                        OperationCode =
+                            step.OperationCode,
+
+                        OperationName =
+                            step.OperationName
+                    });
+            }
+
+
+            return View(
+                viewModel);
+        }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditPipeline(
+            ProductionJobPipelineEditViewModel viewModel)
+        {
+            #region Basic Validation
+
+            if (viewModel.ProductionJobId <= 0)
+            {
+                return BadRequest();
+            }
+
+            #endregion
+
+
+            try
+            {
+                #region Validate Model
+
+                if (!ModelState.IsValid)
+                {
+                    throw new BusinessException(
+                        GetModelStateErrorMessage());
+                }
+
+                #endregion
+
+
+                #region Map Submitted Pipeline
+
+                var steps =
+                    viewModel.Steps
+                        .Select(x =>
+                            new ProductionJobStep
+                            {
+                                Id =
+                                    x.Id,
+
+                                ProductionOperationId =
+                                    x.ProductionOperationId,
+
+                                SequenceNumber =
+                                    x.SequenceNumber
+                            })
+                        .ToList();
+
+                #endregion
+
+
+                #region Update Draft Pipeline
+
+                await _productionJobService
+                    .UpdateDraftPipelineAsync(
+                        viewModel.ProductionJobId,
+                        steps,
+                        viewModel.PipelineModificationReason);
+
+                #endregion
+
+
+                TempData["SuccessMessage"] =
+                    "Production Pipeline updated successfully.";
+
+
+                return RedirectToAction(
+                    nameof(Pipeline),
+                    new
+                    {
+                        id =
+                            viewModel.ProductionJobId
+                    });
+            }
+            catch (BusinessException ex)
+            {
+                TempData["ErrorMessage"] =
+                    ex.Message;
+
+
+                #region Reload Production Job
+
+                var productionJob =
+                    await _productionJobService
+                        .GetByIdAsync(
+                            viewModel.ProductionJobId);
+
+
+                if (productionJob == null)
+                {
+                    return NotFound();
+                }
+
+
+                var canEditPipeline =
+    (
+        productionJob.Status ==
+            ProductionJobStatus.Draft
+        ||
+        productionJob.Status ==
+            ProductionJobStatus.Ready
+    )
+    &&
+    !productionJob.StartedOn.HasValue;
+
+
+                if (!canEditPipeline)
+                {
+                    return RedirectToAction(
+                        nameof(Pipeline),
+                        new
+                        {
+                            id =
+                                productionJob.Id
+                        });
+                }
+
+                #endregion
+
+
+                #region Reload Header Information
+
+                viewModel.JobCode =
+                    productionJob.Code;
+
+                viewModel.Status =
+                    productionJob.Status;
+
+                viewModel.CustomerPurchaseOrderNumber =
+                    productionJob
+                        .CustomerPurchaseOrderItem
+                        ?.CustomerPurchaseOrder
+                        ?.CustomerPurchaseOrderNumber
+                    ?? string.Empty;
+
+                viewModel.CustomerName =
+                    productionJob
+                        .CustomerPurchaseOrderItem
+                        ?.CustomerPurchaseOrder
+                        ?.CustomerName
+                    ?? string.Empty;
+
+                viewModel.ItemCode =
+                    productionJob.ItemCode;
+
+                viewModel.ItemName =
+                    productionJob.ItemName;
+
+                #endregion
+
+
+                #region Reload Operations
+
+                var operations =
+                    await _productionJobService
+                        .GetProductionOperationsForPipelineAsync();
+
+
+                viewModel.AvailableOperations =
+                    operations
+                        .Select(x =>
+                            new Microsoft.AspNetCore.Mvc.Rendering
+                                .SelectListItem
+                            {
+                                Value =
+                                    x.Id.ToString(),
+
+                                Text =
+                                    $"{x.Code} - {x.OperationName}"
+                            })
+                        .ToList();
+
+                #endregion
+
+
+                return View(
+                    viewModel);
+            }
+        }
+
+        #endregion
+
         #region Deleted Jobs
 
         [HttpGet]

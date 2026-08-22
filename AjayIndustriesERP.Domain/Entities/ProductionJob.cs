@@ -179,6 +179,15 @@ namespace AjayIndustriesERP.Domain.Entities
 
 
         /// <summary>
+        /// Optional reason describing why the copied Production
+        /// Pipeline was modified for this specific Job.
+        ///
+        /// This does not modify the Item Process Routing Master.
+        /// </summary>
+        public string? PipelineModificationReason { get; set; }
+
+
+        /// <summary>
         /// Mandatory reason when a Ready or In Progress
         /// Production Job is cancelled.
         /// </summary>

@@ -104,6 +104,13 @@ namespace AjayIndustriesERP.Application.Services
                     pageSize);
         }
 
+        public async Task<List<ProductionOperation>>
+    GetProductionOperationsForPipelineAsync()
+        {
+            return await _repository
+                .GetProductionOperationsForPipelineAsync();
+        }
+
         #endregion
 
 
@@ -167,6 +174,424 @@ namespace AjayIndustriesERP.Application.Services
 
         #endregion
 
+
+
+        #region Pipeline Editing Before Start
+
+        public async Task UpdateDraftPipelineAsync(
+    int productionJobId,
+    List<ProductionJobStep> steps,
+    string? modificationReason)
+        {
+            #region Validate Production Job
+
+            var productionJob =
+                await _repository
+                    .GetForUpdateAsync(
+                        productionJobId);
+
+
+            if (productionJob == null)
+            {
+                throw new BusinessException(
+                    "Production Job not found.");
+            }
+
+
+            var canEditPipeline =
+    (
+        productionJob.Status ==
+            ProductionJobStatus.Draft
+        ||
+        productionJob.Status ==
+            ProductionJobStatus.Ready
+    )
+    &&
+    !productionJob.StartedOn.HasValue;
+
+
+            if (!canEditPipeline)
+            {
+                throw new BusinessException(
+                    "Production Pipeline can be edited only before Production starts.");
+            }
+
+            #endregion
+
+
+            #region Normalize Modification Reason
+
+            modificationReason =
+                NormalizeOptional(
+                    modificationReason);
+
+
+            if (modificationReason?.Length > 1000)
+            {
+                throw new BusinessException(
+                    "Pipeline Modification Reason cannot exceed 1000 characters.");
+            }
+
+            #endregion
+
+
+            #region Validate Submitted Pipeline
+
+            if (steps == null ||
+                steps.Count == 0)
+            {
+                throw new BusinessException(
+                    "Production Pipeline must contain at least one Operation.");
+            }
+
+
+            var operations =
+                await _repository
+                    .GetProductionOperationsForPipelineAsync();
+
+
+            var operationLookup =
+                operations.ToDictionary(
+                    x => x.Id);
+
+
+            var activeExistingSteps =
+                productionJob.Steps
+                    .Where(x =>
+                        !x.IsDeleted &&
+                        x.IsActive)
+                    .ToList();
+
+
+            var submittedExistingIds =
+                steps
+                    .Where(x =>
+                        x.Id > 0)
+                    .Select(x =>
+                        x.Id)
+                    .ToList();
+
+
+            if (submittedExistingIds.Count !=
+                submittedExistingIds
+                    .Distinct()
+                    .Count())
+            {
+                throw new BusinessException(
+                    "Duplicate Production Pipeline Step found.");
+            }
+
+
+            foreach (var submittedStep in
+                steps.Where(x =>
+                    x.Id > 0))
+            {
+                var existingStep =
+                    activeExistingSteps
+                        .FirstOrDefault(x =>
+                            x.Id ==
+                            submittedStep.Id);
+
+
+                if (existingStep == null)
+                {
+                    throw new BusinessException(
+                        "Invalid Production Pipeline Step.");
+                }
+
+
+                if (existingStep.Status !=
+                    ProductionJobStepStatus.Pending)
+                {
+                    throw new BusinessException(
+                        "Only Pending Production Steps can be modified.");
+                }
+
+
+                if (existingStep.ProductionOperationId !=
+                    submittedStep.ProductionOperationId)
+                {
+                    throw new BusinessException(
+                        "Existing Production Operation cannot be changed directly. Remove it and add the required Operation.");
+                }
+            }
+
+
+            foreach (var submittedStep in
+                steps.Where(x =>
+                    x.Id <= 0))
+            {
+                if (!operationLookup.ContainsKey(
+                    submittedStep.ProductionOperationId))
+                {
+                    throw new BusinessException(
+                        "Selected Production Operation is invalid or inactive.");
+                }
+            }
+
+            #endregion
+
+
+            #region Temporary Sequence Reset
+
+            /*
+             * ProductionJobId + SequenceNumber has a UNIQUE index.
+             *
+             * Example:
+             * Existing:
+             * 1 Cutting
+             * 2 Turning
+             * 3 Inspection
+             *
+             * Reorder:
+             * 1 Cutting
+             * 2 Inspection
+             * 3 Turning
+             *
+             * Updating directly can temporarily create duplicate
+             * SequenceNumber values while SQL updates rows.
+             *
+             * Therefore all persisted Steps are first moved to
+             * unique negative Sequence Numbers.
+             */
+
+            foreach (var existingStep in
+                productionJob.Steps
+                    .Where(x =>
+                        x.Id > 0))
+            {
+                existingStep.SequenceNumber =
+                    -existingStep.Id;
+
+                existingStep.ModifiedOn =
+                    DateTime.UtcNow;
+
+                existingStep.ModifiedBy =
+                    "System";
+            }
+
+
+            await _repository
+                .UpdateAsync(
+                    productionJob);
+
+            #endregion
+
+
+            #region Remove Operations
+
+            foreach (var existingStep in
+                activeExistingSteps)
+            {
+                if (!submittedExistingIds.Contains(
+                    existingStep.Id))
+                {
+                    if (existingStep.Status !=
+                        ProductionJobStepStatus.Pending)
+                    {
+                        throw new BusinessException(
+                            $"Production Step '{existingStep.OperationName}' cannot be removed because it is not Pending.");
+                    }
+
+
+                    existingStep.IsDeleted =
+                        true;
+
+                    existingStep.IsActive =
+                        false;
+
+                    existingStep.ModifiedOn =
+                        DateTime.UtcNow;
+
+                    existingStep.ModifiedBy =
+                        "System";
+                }
+            }
+
+            #endregion
+
+
+            #region Add And Reorder Operations
+
+            var sequenceNumber =
+                1;
+
+
+            foreach (var submittedStep in
+                steps)
+            {
+                if (submittedStep.Id > 0)
+                {
+                    var existingStep =
+                        activeExistingSteps
+                            .First(x =>
+                                x.Id ==
+                                submittedStep.Id);
+
+
+                    existingStep.SequenceNumber =
+                        sequenceNumber;
+
+                    existingStep.IsDeleted =
+                        false;
+
+                    existingStep.IsActive =
+                        true;
+
+                    existingStep.ModifiedOn =
+                        DateTime.UtcNow;
+
+                    existingStep.ModifiedBy =
+                        "System";
+                }
+                else
+                {
+                    var operation =
+                        operationLookup[
+                            submittedStep.ProductionOperationId];
+
+
+                    var newStep =
+                        new ProductionJobStep
+                        {
+                            ProductionJobId =
+                                productionJob.Id,
+
+                            SequenceNumber =
+                                sequenceNumber,
+
+                            ProductionOperationId =
+                                operation.Id,
+
+                            OperationCode =
+                                operation.Code,
+
+                            OperationName =
+                                operation.OperationName,
+
+                            OperationType =
+                                operation.OperationType,
+
+                            DefaultMachineId =
+                                null,
+
+                            AssignedMachineId =
+                                null,
+
+                            SetupTimeMinutes =
+                                null,
+
+                            CycleTimeMinutes =
+                                null,
+
+                            OperationInstruction =
+                                null,
+
+                            RoutingRemarks =
+                                null,
+
+                            Status =
+                                ProductionJobStepStatus.Pending,
+
+                            StartedOn =
+                                null,
+
+                            CompletedOn =
+                                null,
+
+                            GoodQuantity =
+                                null,
+
+                            RejectedQuantity =
+                                null,
+
+                            ExecutionRemarks =
+                                null,
+
+                            IsActive =
+                                true,
+
+                            IsDeleted =
+                                false,
+
+                            CreatedOn =
+                                DateTime.UtcNow,
+
+                            CreatedBy =
+                                "System"
+                        };
+
+
+                    newStep.History.Add(
+                        new ProductionJobStepHistory
+                        {
+                            PreviousStatus =
+                                null,
+
+                            NewStatus =
+                                ProductionJobStepStatus.Pending,
+
+                            MachineId =
+                                null,
+
+                            MachineCode =
+                                null,
+
+                            MachineName =
+                                null,
+
+                            GoodQuantity =
+                                null,
+
+                            RejectedQuantity =
+                                null,
+
+                            Remarks =
+                                "Production Job Step added during Draft Pipeline modification.",
+
+                            ChangedOn =
+                                DateTime.UtcNow,
+
+                            ChangedBy =
+                                "System"
+                        });
+
+
+                    productionJob.Steps.Add(
+                        newStep);
+                }
+
+
+                sequenceNumber++;
+            }
+
+            #endregion
+
+
+            #region Update Production Job
+
+            productionJob.PipelineModificationReason =
+                modificationReason;
+
+            productionJob.ModifiedOn =
+                DateTime.UtcNow;
+
+            productionJob.ModifiedBy =
+                "System";
+
+            #endregion
+
+
+            #region Save Final Pipeline
+
+            await _repository
+                .UpdateAsync(
+                    productionJob);
+
+            #endregion
+        }
+
+        #endregion
 
         #region Create Production Job
 
@@ -340,6 +765,10 @@ namespace AjayIndustriesERP.Application.Services
             #region Copy Routing Steps
 
             productionJob.Steps.Clear();
+
+
+            var jobSequenceNumber =
+                1;
 
 
             foreach (var routingStep

@@ -1,0 +1,1036 @@
+﻿@*
+    ============================================================
+    File: EditPipeline.cshtml
+
+    Purpose:
+    Allows editing of the executable Production Pipeline for a
+    Draft Production Job.
+
+    Responsibilities:
+    - Display Production Job reference information.
+    - Display current Job Operations.
+    - Add Production Operations.
+    - Remove Production Operations.
+    - Reorder Operations.
+    - Capture optional Pipeline Modification Reason.
+    - Save the final Draft Job Pipeline.
+
+    Important:
+    - Only Draft Production Jobs can use this page.
+    - Changes apply only to ProductionJobSteps.
+    - Item Process Routing Master is never modified.
+    - Sequence is saved as 1, 2, 3, 4...
+    - After Mark Ready, Pipeline structure becomes locked.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.ProductionJob.ProductionJobPipelineEditViewModel
+
+@{
+    ViewData["Title"] = "Edit Production Pipeline";
+}
+
+
+<!-- =========================================================
+     REGION 1 — PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Edit Production Pipeline
+        </h2>
+
+        <p class="text-muted mb-0">
+            Modify operations for this Draft Production Job.
+        </p>
+
+    </div>
+
+
+    <a asp-action="Pipeline"
+       asp-route-id="@Model.ProductionJobId"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid fa-arrow-left me-1"></i>
+
+        Back to Pipeline
+
+    </a>
+
+</div>
+
+
+<form asp-action="EditPipeline"
+      method="post"
+      id="productionJobPipelineEditForm">
+
+    @Html.AntiForgeryToken()
+
+
+    <input asp-for="ProductionJobId"
+           type="hidden" />
+
+
+    <!-- =====================================================
+         REGION 2 — JOB INFORMATION
+    ====================================================== -->
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-light">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid fa-industry me-1"></i>
+
+                Production Job Information
+
+            </span>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="row g-4">
+
+
+                <!-- JOB CODE -->
+
+                <div class="col-lg-3 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Job Code
+                    </div>
+
+                    <div class="fw-semibold">
+                        @Model.JobCode
+                    </div>
+
+                </div>
+
+
+                <!-- CUSTOMER PO -->
+
+                <div class="col-lg-3 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Customer PO
+                    </div>
+
+                    <div class="fw-semibold">
+                        @Model.CustomerPurchaseOrderNumber
+                    </div>
+
+                </div>
+
+
+                <!-- CUSTOMER -->
+
+                <div class="col-lg-3 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Customer
+                    </div>
+
+                    <div class="fw-semibold">
+                        @Model.CustomerName
+                    </div>
+
+                </div>
+
+
+                <!-- ITEM -->
+
+                <div class="col-lg-3 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Item
+                    </div>
+
+                    <div class="fw-semibold">
+                        @Model.ItemCode
+                    </div>
+
+                    <div class="small text-muted">
+                        @Model.ItemName
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         REGION 3 — PIPELINE OPERATIONS
+    ====================================================== -->
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header
+                    bg-light
+                    d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid fa-diagram-project me-1"></i>
+
+                Pipeline Operations
+
+            </span>
+
+
+            <button type="button"
+                    id="btnAddOperation"
+                    class="btn btn-sm btn-primary">
+
+                <i class="fa-solid fa-plus me-1"></i>
+
+                Add Operation
+
+            </button>
+
+        </div>
+
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table
+                              table-hover
+                              align-middle
+                              mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+
+                            <th class="text-center text-nowrap">
+                                Sequence
+                            </th>
+
+                            <th>
+                                Operation
+                            </th>
+
+                            <th class="text-center text-nowrap">
+                                Reorder
+                            </th>
+
+                            <th class="text-center text-nowrap">
+                                Remove
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="pipelineStepsContainer">
+
+                        @for (var i = 0;
+                              i < Model.Steps.Count;
+                              i++)
+                        {
+                            <tr class="pipeline-step-row">
+
+                                <!-- =============================
+                                     HIDDEN VALUES
+                                ============================== -->
+
+                                <input asp-for="Steps[i].Id"
+                                       type="hidden"
+                                       class="step-id" />
+
+                                <input asp-for="Steps[i].SequenceNumber"
+                                       type="hidden"
+                                       class="step-sequence-input" />
+
+
+                                <!-- =============================
+                                     SEQUENCE
+                                ============================== -->
+
+                                <td class="text-center">
+
+                                    <span class="badge
+                                                 bg-secondary
+                                                 step-sequence-display">
+
+                                        @(i + 1)
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- =============================
+                                     OPERATION
+                                ============================== -->
+
+                                <td>
+
+                                    @if (Model.Steps[i].Id > 0)
+                                    {
+                                        /*
+                                         * Existing Operation cannot be
+                                         * changed directly.
+                                         *
+                                         * User can remove it and add
+                                         * another Operation.
+                                         */
+
+                                        <input asp-for="Steps[i].ProductionOperationId"
+                                               type="hidden"
+                                               class="operation-id-input" />
+
+                                        <input asp-for="Steps[i].OperationCode"
+                                               type="hidden" />
+
+                                        <input asp-for="Steps[i].OperationName"
+                                               type="hidden" />
+
+
+                                        <div class="fw-semibold">
+
+                                            @Model.Steps[i].OperationCode
+                                            -
+                                            @Model.Steps[i].OperationName
+
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <select asp-for="Steps[i].ProductionOperationId"
+                                                asp-items="Model.AvailableOperations"
+                                                class="form-select operation-select">
+
+                                            <option value="">
+                                                -- Select Operation --
+                                            </option>
+
+                                        </select>
+
+                                        <span asp-validation-for="Steps[i].ProductionOperationId"
+                                              class="text-danger small">
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- =============================
+                                     REORDER
+                                ============================== -->
+
+                                <td class="text-center">
+
+                                    <div class="d-flex
+                                                justify-content-center
+                                                gap-1">
+
+                                        <button type="button"
+                                                class="btn
+                                                       btn-sm
+                                                       btn-outline-secondary
+                                                       btn-move-up"
+                                                title="Move Up">
+
+                                            <i class="fa-solid fa-arrow-up"></i>
+
+                                        </button>
+
+
+                                        <button type="button"
+                                                class="btn
+                                                       btn-sm
+                                                       btn-outline-secondary
+                                                       btn-move-down"
+                                                title="Move Down">
+
+                                            <i class="fa-solid fa-arrow-down"></i>
+
+                                        </button>
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- =============================
+                                     REMOVE
+                                ============================== -->
+
+                                <td class="text-center">
+
+                                    <button type="button"
+                                            class="btn
+                                                   btn-sm
+                                                   btn-outline-danger
+                                                   btn-remove-operation"
+                                            title="Remove Operation">
+
+                                        <i class="fa-solid fa-trash"></i>
+
+                                    </button>
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <!-- =================================================
+                 EMPTY PIPELINE MESSAGE
+            ================================================== -->
+
+            <div id="emptyPipelineMessage"
+                 class="text-center
+                        text-muted
+                        py-5
+                        d-none">
+
+                <i class="fa-solid
+                          fa-diagram-project
+                          fa-2x
+                          mb-2">
+                </i>
+
+                <div class="fw-semibold">
+                    No Operations
+                </div>
+
+                <div class="small">
+                    Add at least one Production Operation.
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         REGION 4 — MODIFICATION REASON
+    ====================================================== -->
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-light">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid fa-note-sticky me-1"></i>
+
+                Pipeline Modification
+
+            </span>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <label asp-for="PipelineModificationReason"
+                   class="form-label fw-semibold">
+            </label>
+
+            <textarea asp-for="PipelineModificationReason"
+                      class="form-control"
+                      rows="3"
+                      maxlength="1000"
+                      placeholder="Optional reason for modifying the standard routing"></textarea>
+
+            <span asp-validation-for="PipelineModificationReason"
+                  class="text-danger small">
+            </span>
+
+
+            <div class="form-text">
+
+                Optional. This change affects only this Production Job.
+                Item Process Routing Master will remain unchanged.
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         REGION 5 — FORM ACTIONS
+    ====================================================== -->
+
+    <div class="d-flex
+                justify-content-end
+                gap-2
+                mb-4">
+
+        <a asp-action="Pipeline"
+           asp-route-id="@Model.ProductionJobId"
+           class="btn btn-outline-secondary">
+
+            Cancel
+
+        </a>
+
+
+        <button type="submit"
+                class="btn btn-primary">
+
+            <i class="fa-solid fa-floppy-disk me-1"></i>
+
+            Save Pipeline
+
+        </button>
+
+    </div>
+
+</form>
+
+
+<!-- =========================================================
+     REGION 6 — NEW OPERATION TEMPLATE
+========================================================== -->
+
+<template id="pipelineStepTemplate">
+
+    <tr class="pipeline-step-row">
+
+        <input type="hidden"
+               name="Steps[__index__].Id"
+               value="0"
+               class="step-id" />
+
+        <input type="hidden"
+               name="Steps[__index__].SequenceNumber"
+               value="__sequence__"
+               class="step-sequence-input" />
+
+
+        <!-- SEQUENCE -->
+
+        <td class="text-center">
+
+            <span class="badge
+                         bg-secondary
+                         step-sequence-display">
+
+                __sequence__
+
+            </span>
+
+        </td>
+
+
+        <!-- OPERATION -->
+
+        <td>
+
+            <select name="Steps[__index__].ProductionOperationId"
+                    class="form-select operation-select"
+                    data-val="true"
+                    data-val-range="Please select a Production Operation."
+                    data-val-range-min="1"
+                    data-val-range-max="2147483647">
+
+                <option value="">
+                    -- Select Operation --
+                </option>
+
+                @foreach (var operation
+                    in Model.AvailableOperations)
+                {
+                    <option value="@operation.Value">
+                        @operation.Text
+                    </option>
+                }
+
+            </select>
+
+
+            <span class="text-danger
+                         small
+                         field-validation-valid"
+                  data-valmsg-for="Steps[__index__].ProductionOperationId"
+                  data-valmsg-replace="true">
+            </span>
+
+        </td>
+
+
+        <!-- REORDER -->
+
+        <td class="text-center">
+
+            <div class="d-flex
+                        justify-content-center
+                        gap-1">
+
+                <button type="button"
+                        class="btn
+                               btn-sm
+                               btn-outline-secondary
+                               btn-move-up"
+                        title="Move Up">
+
+                    <i class="fa-solid fa-arrow-up"></i>
+
+                </button>
+
+
+                <button type="button"
+                        class="btn
+                               btn-sm
+                               btn-outline-secondary
+                               btn-move-down"
+                        title="Move Down">
+
+                    <i class="fa-solid fa-arrow-down"></i>
+
+                </button>
+
+            </div>
+
+        </td>
+
+
+        <!-- REMOVE -->
+
+        <td class="text-center">
+
+            <button type="button"
+                    class="btn
+                           btn-sm
+                           btn-outline-danger
+                           btn-remove-operation"
+                    title="Remove Operation">
+
+                <i class="fa-solid fa-trash"></i>
+
+            </button>
+
+        </td>
+
+    </tr>
+
+</template>
+
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+
+    <script>
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+                // =============================================
+                // ELEMENT REFERENCES
+                // =============================================
+
+                const container =
+                    document.getElementById(
+                        "pipelineStepsContainer"
+                    );
+
+                const template =
+                    document.getElementById(
+                        "pipelineStepTemplate"
+                    );
+
+                const addButton =
+                    document.getElementById(
+                        "btnAddOperation"
+                    );
+
+                const emptyMessage =
+                    document.getElementById(
+                        "emptyPipelineMessage"
+                    );
+
+
+                if (!container ||
+                    !template ||
+                    !addButton ||
+                    !emptyMessage) {
+
+                    return;
+                }
+
+
+                // =============================================
+                // UPDATE EMPTY STATE
+                // =============================================
+
+                function updateEmptyState() {
+
+                    const rows =
+                        container.querySelectorAll(
+                            ".pipeline-step-row"
+                        );
+
+
+                    if (rows.length === 0) {
+
+                        emptyMessage.classList.remove(
+                            "d-none"
+                        );
+                    }
+                    else {
+
+                        emptyMessage.classList.add(
+                            "d-none"
+                        );
+                    }
+                }
+
+
+                // =============================================
+                // REINDEX PIPELINE
+                // =============================================
+
+                function reindexPipeline() {
+
+                    const rows =
+                        container.querySelectorAll(
+                            ".pipeline-step-row"
+                        );
+
+
+                    rows.forEach(
+                        function (
+                            row,
+                            index) {
+
+                            const sequence =
+                                index + 1;
+
+
+                            // =================================
+                            // SEQUENCE DISPLAY
+                            // =================================
+
+                            const sequenceDisplay =
+                                row.querySelector(
+                                    ".step-sequence-display"
+                                );
+
+
+                            if (sequenceDisplay) {
+
+                                sequenceDisplay.textContent =
+                                    sequence;
+                            }
+
+
+                            // =================================
+                            // SEQUENCE HIDDEN VALUE
+                            // =================================
+
+                            const sequenceInput =
+                                row.querySelector(
+                                    ".step-sequence-input"
+                                );
+
+
+                            if (sequenceInput) {
+
+                                sequenceInput.value =
+                                    sequence;
+                            }
+
+
+                            // =================================
+                            // NAME ATTRIBUTES
+                            // =================================
+
+                            row.querySelectorAll(
+                                "[name]"
+                            ).forEach(
+                                function (element) {
+
+                                    element.name =
+                                        element.name.replace(
+                                            /Steps\[\d+\]/g,
+                                            "Steps[" +
+                                            index +
+                                            "]"
+                                        );
+                                }
+                            );
+
+
+                            // =================================
+                            // VALIDATION TARGET
+                            // =================================
+
+                            row.querySelectorAll(
+                                "[data-valmsg-for]"
+                            ).forEach(
+                                function (element) {
+
+                                    const current =
+                                        element.getAttribute(
+                                            "data-valmsg-for"
+                                        );
+
+
+                                    if (!current) {
+                                        return;
+                                    }
+
+
+                                    element.setAttribute(
+                                        "data-valmsg-for",
+                                        current.replace(
+                                            /Steps\[\d+\]/g,
+                                            "Steps[" +
+                                            index +
+                                            "]"
+                                        )
+                                    );
+                                }
+                            );
+                        }
+                    );
+
+
+                    updateEmptyState();
+                }
+
+
+                // =============================================
+                // REPARSE VALIDATION
+                // =============================================
+
+                function reparseValidation() {
+
+                    if (
+                        typeof $ === "undefined" ||
+                        !$.validator ||
+                        !$.validator.unobtrusive
+                    ) {
+
+                        return;
+                    }
+
+
+                    const form =
+                        document.getElementById(
+                            "productionJobPipelineEditForm"
+                        );
+
+
+                    if (!form) {
+                        return;
+                    }
+
+
+                    $(form)
+                        .removeData(
+                            "validator"
+                        )
+                        .removeData(
+                            "unobtrusiveValidation"
+                        );
+
+
+                    $.validator
+                        .unobtrusive
+                        .parse(form);
+                }
+
+
+                // =============================================
+                // ADD OPERATION
+                // =============================================
+
+                addButton.addEventListener(
+                    "click",
+                    function () {
+
+                        const currentRows =
+                            container.querySelectorAll(
+                                ".pipeline-step-row"
+                            );
+
+
+                        const index =
+                            currentRows.length;
+
+
+                        const sequence =
+                            index + 1;
+
+
+                        const html =
+                            template.innerHTML
+                                .replaceAll(
+                                    "__index__",
+                                    index
+                                )
+                                .replaceAll(
+                                    "__sequence__",
+                                    sequence
+                                );
+
+
+                        container.insertAdjacentHTML(
+                            "beforeend",
+                            html
+                        );
+
+
+                        reindexPipeline();
+
+                        reparseValidation();
+                    }
+                );
+
+
+                // =============================================
+                // ROW ACTIONS
+                // =============================================
+
+                container.addEventListener(
+                    "click",
+                    function (event) {
+
+                        const row =
+                            event.target.closest(
+                                ".pipeline-step-row"
+                            );
+
+
+                        if (!row) {
+                            return;
+                        }
+
+
+                        // =====================================
+                        // REMOVE
+                        // =====================================
+
+                        const removeButton =
+                            event.target.closest(
+                                ".btn-remove-operation"
+                            );
+
+
+                        if (removeButton) {
+
+                            row.remove();
+
+                            reindexPipeline();
+
+                            reparseValidation();
+
+                            return;
+                        }
+
+
+                        // =====================================
+                        // MOVE UP
+                        // =====================================
+
+                        const moveUpButton =
+                            event.target.closest(
+                                ".btn-move-up"
+                            );
+
+
+                        if (moveUpButton) {
+
+                            const previousRow =
+                                row.previousElementSibling;
+
+
+                            if (previousRow) {
+
+                                container.insertBefore(
+                                    row,
+                                    previousRow
+                                );
+
+
+                                reindexPipeline();
+                            }
+
+
+                            return;
+                        }
+
+
+                        // =====================================
+                        // MOVE DOWN
+                        // =====================================
+
+                        const moveDownButton =
+                            event.target.closest(
+                                ".btn-move-down"
+                            );
+
+
+                        if (moveDownButton) {
+
+                            const nextRow =
+                                row.nextElementSibling;
+
+
+                            if (nextRow) {
+
+                                container.insertBefore(
+                                    nextRow,
+                                    row
+                                );
+
+
+                                reindexPipeline();
+                            }
+                        }
+                    }
+                );
+
+
+                // =============================================
+                // INITIALIZATION
+                // =============================================
+
+                reindexPipeline();
+
+                updateEmptyState();
+
+            }
+        );
+
+    </script>
+}

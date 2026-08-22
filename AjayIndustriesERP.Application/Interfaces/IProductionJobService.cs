@@ -64,6 +64,32 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         #endregion
 
+        #region Draft Pipeline Editing
+
+        /// <summary>
+        /// Returns active Production Operations that can be
+        /// added to a Draft Production Job Pipeline.
+        /// </summary>
+        Task<List<ProductionOperation>>
+            GetProductionOperationsForPipelineAsync();
+
+
+        /// <summary>
+        /// Updates the executable Pipeline of a Draft Production Job.
+        ///
+        /// Allowed only while Production Job Status is Draft.
+        ///
+        /// The supplied Steps represent the final desired Pipeline.
+        /// Sequence numbers are normalized as 1, 2, 3, 4...
+        ///
+        /// This does not modify the Item Process Routing Master.
+        /// </summary>
+        Task UpdateDraftPipelineAsync(
+            int productionJobId,
+            List<ProductionJobStep> steps,
+            string? modificationReason);
+
+        #endregion
 
         #region Deleted Jobs
 
