@@ -78,6 +78,11 @@ namespace AjayIndustriesERP.Application.Interfaces
                 int customerId,
                 string drawingNumber);
 
+        Task<CustomerDrawing?> GetRevisionAsync(
+    int customerId,
+    string drawingNumber,
+    string revisionNumber);
+
 
         /*
          * Tracking query used by Service while:

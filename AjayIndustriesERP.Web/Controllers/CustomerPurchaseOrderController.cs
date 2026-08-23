@@ -10,10 +10,13 @@ Responsibilities:
 - Display Customer PO Details.
 - Create Draft Customer Purchase Orders.
 - Edit Draft Customer Purchase Orders.
-- Confirm Draft Customer Purchase Orders.
-- Soft-delete Draft Customer Purchase Orders.
+- Confirm Customer Purchase Orders.
+- Soft-delete Customer Purchase Orders.
+- Restore deleted Customer Purchase Orders.
 - Load Customer and Item Master dropdowns.
 - Provide Item Master information through AJAX.
+- Provide current Workshop Drawing through AJAX.
+- Provide current Customer Drawing through AJAX.
 - Map Web ViewModels to Domain entities.
 - Display business and validation errors through shared Toast.
 
@@ -21,10 +24,13 @@ Important:
 - Business logic belongs in CustomerPurchaseOrderService.
 - Database access must never occur directly in Controller.
 - Existing Customer Master and Item Master are reused.
+- Workshop Drawing is resolved by Item.
+- Customer Drawing is resolved by Customer + Item.
+- Customer Drawing Number / Revision posted from browser
+  are NOT trusted.
 ============================================================
 */
 
-using AjayIndustriesERP.Application.Common;
 using AjayIndustriesERP.Application.Exceptions;
 using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Domain.Entities;
@@ -44,6 +50,10 @@ namespace AjayIndustriesERP.Web.Controllers
             ICustomerPurchaseOrderService
             _customerPurchaseOrderService;
 
+        private readonly
+            ICustomerDrawingService
+            _customerDrawingService;
+
         #endregion
 
 
@@ -51,10 +61,15 @@ namespace AjayIndustriesERP.Web.Controllers
 
         public CustomerPurchaseOrderController(
             ICustomerPurchaseOrderService
-                customerPurchaseOrderService)
+                customerPurchaseOrderService,
+            ICustomerDrawingService
+                customerDrawingService)
         {
             _customerPurchaseOrderService =
                 customerPurchaseOrderService;
+
+            _customerDrawingService =
+                customerDrawingService;
         }
 
         #endregion
@@ -109,17 +124,87 @@ namespace AjayIndustriesERP.Web.Controllers
 
         [HttpGet]
         public async Task<IActionResult> Details(
-            int id)
+    int id)
         {
             var customerPurchaseOrder =
                 await _customerPurchaseOrderService
-                    .GetByIdAsync(id);
+                    .GetByIdAsync(
+                        id);
 
 
             if (customerPurchaseOrder == null)
             {
                 return NotFound();
             }
+
+
+            // =========================================================
+            // CUSTOMER DRAWING SNAPSHOT DETAILS
+            // =========================================================
+
+            /*
+             * Customer PO Item stores historical:
+             *
+             * CustomerDrawingNumber
+             * Revision
+             *
+             * Resolve that exact revision so Details page can show:
+             *
+             * - Drawing Name
+             * - Drawing Type
+             * - File Name
+             * - File Path
+             *
+             * IMPORTANT:
+             * Do NOT load current Customer Drawing here.
+             * PO must continue showing the revision that was
+             * saved with the transaction.
+             */
+
+            var customerDrawingRevisions =
+                new Dictionary<int, CustomerDrawing>();
+
+
+            foreach (var item
+                in customerPurchaseOrder.Items
+                    .Where(x =>
+                        !x.IsDeleted &&
+                        x.IsActive))
+            {
+                if (
+                    string.IsNullOrWhiteSpace(
+                        item.CustomerDrawingNumber) ||
+                    string.IsNullOrWhiteSpace(
+                        item.Revision)
+                )
+                {
+                    continue;
+                }
+
+
+                var customerDrawing =
+                    await _customerDrawingService
+                        .GetRevisionAsync(
+                            customerPurchaseOrder.CustomerId,
+                            item.CustomerDrawingNumber,
+                            item.Revision);
+
+
+                if (customerDrawing == null)
+                {
+                    continue;
+                }
+
+
+                customerDrawingRevisions[
+                    item.Id
+                ] =
+                    customerDrawing;
+            }
+
+
+            ViewBag.CustomerDrawingRevisions =
+                customerDrawingRevisions;
 
 
             return View(
@@ -184,7 +269,8 @@ namespace AjayIndustriesERP.Web.Controllers
             try
             {
                 var customerPurchaseOrder =
-                    MapToDomain(model);
+                    MapToDomain(
+                        model);
 
 
                 await _customerPurchaseOrderService
@@ -226,7 +312,8 @@ namespace AjayIndustriesERP.Web.Controllers
             {
                 var customerPurchaseOrder =
                     await _customerPurchaseOrderService
-                        .GetByIdAsync(id);
+                        .GetByIdAsync(
+                            id);
 
 
                 if (customerPurchaseOrder == null)
@@ -303,7 +390,8 @@ namespace AjayIndustriesERP.Web.Controllers
             try
             {
                 var customerPurchaseOrder =
-                    MapToDomain(model);
+                    MapToDomain(
+                        model);
 
 
                 await _customerPurchaseOrderService
@@ -345,7 +433,8 @@ namespace AjayIndustriesERP.Web.Controllers
             try
             {
                 await _customerPurchaseOrderService
-                    .ConfirmAsync(id);
+                    .ConfirmAsync(
+                        id);
 
 
                 TempData["SuccessMessage"] =
@@ -375,7 +464,8 @@ namespace AjayIndustriesERP.Web.Controllers
             try
             {
                 await _customerPurchaseOrderService
-                    .DeleteAsync(id);
+                    .DeleteAsync(
+                        id);
 
 
                 TempData["SuccessMessage"] =
@@ -392,9 +482,8 @@ namespace AjayIndustriesERP.Web.Controllers
                 nameof(Index));
         }
 
-
-
         #endregion
+
 
         #region Customer PO Number Similarity Check
 
@@ -419,7 +508,8 @@ namespace AjayIndustriesERP.Web.Controllers
                     {
                         hasSimilarOrders = false,
                         hasExactMatch = false,
-                        orders = Array.Empty<string>()
+                        orders =
+                            Array.Empty<string>()
                     });
             }
 
@@ -437,11 +527,13 @@ namespace AjayIndustriesERP.Web.Controllers
             var matchingOrders =
                 allOrders
                     .Where(x =>
-                        x.CustomerId == customerId
+                        x.CustomerId ==
+                            customerId
                         &&
                         (
                             !excludeId.HasValue ||
-                            x.Id != excludeId.Value
+                            x.Id !=
+                                excludeId.Value
                         )
                         &&
                         IsSimilarCustomerPoNumber(
@@ -474,6 +566,7 @@ namespace AjayIndustriesERP.Web.Controllers
              *
              * are treated as Similar, not Exact.
              */
+
             var hasExactMatch =
                 matchingOrders.Any(x =>
                     string.Equals(
@@ -489,7 +582,8 @@ namespace AjayIndustriesERP.Web.Controllers
                 matchingOrders
                     .Select(x =>
                         $"{x.CustomerPurchaseOrderNumber}" +
-                        $" | {x.CustomerPurchaseOrderDate:dd-MM-yyyy}"
+                        $" | " +
+                        $"{x.CustomerPurchaseOrderDate:dd-MM-yyyy}"
                     )
                     .ToList();
 
@@ -524,14 +618,12 @@ namespace AjayIndustriesERP.Web.Controllers
 
             var search =
                 ParseCustomerPoNumber(
-                    searchText
-                );
+                    searchText);
 
 
             var existing =
                 ParseCustomerPoNumber(
-                    existingPoNumber
-                );
+                    existingPoNumber);
 
 
             if (
@@ -545,15 +637,10 @@ namespace AjayIndustriesERP.Web.Controllers
             }
 
 
-            // =====================================================
+            // =================================================
             // RULE 1
             // Same value after removing spaces / - / _ / symbols.
-            //
-            // ABC-PO-03
-            // ABC - PO - 03
-            // ABC_PO_03
-            // ABC- P O-03
-            // =====================================================
+            // =================================================
 
             if (
                 string.Equals(
@@ -567,14 +654,10 @@ namespace AjayIndustriesERP.Web.Controllers
             }
 
 
-            // =====================================================
+            // =================================================
             // RULE 2
-            // Normalized typed content exists in existing PO.
-            //
-            // Example:
-            // Typed ABC-PO
-            // Existing ABC-PO-03
-            // =====================================================
+            // Typed normalized value exists in existing PO.
+            // =================================================
 
             if (
                 search.CompactValue.Length >= 3 &&
@@ -588,16 +671,10 @@ namespace AjayIndustriesERP.Web.Controllers
             }
 
 
-            // =====================================================
+            // =================================================
             // RULE 3
             // Same numeric suffix + related alphabetic prefix.
-            //
-            // ABC-PO-03   -> ABCPO + 3
-            // ABC-PO-003  -> ABCPO + 3
-            // ABC-03      -> ABC   + 3
-            //
-            // Therefore all are considered similar.
-            // =====================================================
+            // =================================================
 
             if (
                 search.NumberPart.HasValue &&
@@ -641,11 +718,9 @@ namespace AjayIndustriesERP.Web.Controllers
                 new string(
                     value
                         .Where(
-                            char.IsLetterOrDigit
-                        )
+                            char.IsLetterOrDigit)
                         .Select(
-                            char.ToUpperInvariant
-                        )
+                            char.ToUpperInvariant)
                         .ToArray()
                 );
 
@@ -657,15 +732,6 @@ namespace AjayIndustriesERP.Web.Controllers
             }
 
 
-            /*
-             * Extract final numeric portion.
-             *
-             * ABCPO003
-             *      ↓
-             * Letters = ABCPO
-             * Number  = 3
-             */
-
             var numberStart =
                 compact.Length;
 
@@ -673,8 +739,8 @@ namespace AjayIndustriesERP.Web.Controllers
             while (
                 numberStart > 0 &&
                 char.IsDigit(
-                    compact[numberStart - 1]
-                )
+                    compact[
+                        numberStart - 1])
             )
             {
                 numberStart--;
@@ -684,14 +750,12 @@ namespace AjayIndustriesERP.Web.Controllers
             var letterPart =
                 compact.Substring(
                     0,
-                    numberStart
-                );
+                    numberStart);
 
 
             var numberText =
                 compact.Substring(
-                    numberStart
-                );
+                    numberStart);
 
 
             int? numberPart =
@@ -703,8 +767,7 @@ namespace AjayIndustriesERP.Web.Controllers
                     numberText) &&
                 int.TryParse(
                     numberText,
-                    out var parsedNumber
-                )
+                    out var parsedNumber)
             )
             {
                 numberPart =
@@ -712,16 +775,6 @@ namespace AjayIndustriesERP.Web.Controllers
             }
 
 
-            /*
-             * Leading zero normalization.
-             *
-             * ABCPO03
-             * ABCPO003
-             *
-             * Both become:
-             *
-             * ABCPO3
-             */
             var normalizedValue =
                 numberPart.HasValue
                     ? letterPart +
@@ -762,11 +815,13 @@ namespace AjayIndustriesERP.Web.Controllers
 
         #endregion
 
+
         #region Item AJAX
 
         [HttpGet]
         public async Task<IActionResult> GetItemData(
-    int itemId)
+            int itemId,
+            int customerId = 0)
         {
             #region Validation
 
@@ -776,6 +831,7 @@ namespace AjayIndustriesERP.Web.Controllers
                     new
                     {
                         success = false,
+
                         message =
                             "Invalid Item."
                     });
@@ -798,6 +854,7 @@ namespace AjayIndustriesERP.Web.Controllers
                     new
                     {
                         success = false,
+
                         message =
                             "Item not found."
                     });
@@ -815,7 +872,14 @@ namespace AjayIndustriesERP.Web.Controllers
             #endregion
 
 
-            #region Current Drawing
+            #region Current Workshop Drawing
+
+            /*
+             * Workshop Drawing belongs to Item.
+             *
+             * Existing Drawing Master behaviour
+             * remains unchanged.
+             */
 
             var currentDrawing =
                 item.Drawings
@@ -829,12 +893,45 @@ namespace AjayIndustriesERP.Web.Controllers
             #endregion
 
 
+            #region Current Customer Drawing
+
+            /*
+             * Customer Drawing belongs to:
+             *
+             * Customer + Item
+             *
+             * Customer may still be empty while
+             * user is preparing the form.
+             */
+
+            CustomerDrawing?
+                currentCustomerDrawing =
+                    null;
+
+
+            if (customerId > 0)
+            {
+                currentCustomerDrawing =
+                    await _customerDrawingService
+                        .GetByCustomerAndItemAsync(
+                            customerId,
+                            itemId);
+            }
+
+            #endregion
+
+
             #region Response
 
             return Json(
                 new
                 {
                     success = true,
+
+
+                    // =========================================
+                    // ITEM INFORMATION
+                    // =========================================
 
                     itemId =
                         item.ItemId,
@@ -851,35 +948,94 @@ namespace AjayIndustriesERP.Web.Controllers
 
                     specification,
 
+
+                    // =========================================
+                    // WORKSHOP DRAWING
+                    // Existing names intentionally preserved.
+                    // =========================================
+
                     drawingId =
-                        currentDrawing?.DrawingId,
+                        currentDrawing?
+                            .DrawingId,
 
                     drawingNumber =
-                        currentDrawing?.DrawingNumber
+                        currentDrawing?
+                            .DrawingNumber
                         ?? "",
 
                     drawingName =
-                        currentDrawing?.DrawingName
+                        currentDrawing?
+                            .DrawingName
                         ?? "",
 
                     drawingType =
-                        currentDrawing?.DrawingType
+                        currentDrawing?
+                            .DrawingType
                         ?? "",
 
                     drawingRevision =
-                        currentDrawing?.RevisionNumber
+                        currentDrawing?
+                            .RevisionNumber
                         ?? "",
 
                     drawingFileName =
-                        currentDrawing?.FileName
+                        currentDrawing?
+                            .FileName
                         ?? "",
 
                     drawingFilePath =
-                        currentDrawing?.FilePath
+                        currentDrawing?
+                            .FilePath
                         ?? "",
 
                     drawingDescription =
-                        currentDrawing?.Description
+                        currentDrawing?
+                            .Description
+                        ?? "",
+
+
+                    // =========================================
+                    // CUSTOMER DRAWING
+                    // Current revision for Customer + Item.
+                    // =========================================
+
+                    customerDrawingId =
+                        currentCustomerDrawing?
+                            .CustomerDrawingId,
+
+                    customerDrawingNumber =
+                        currentCustomerDrawing?
+                            .DrawingNumber
+                        ?? "",
+
+                    customerDrawingName =
+                        currentCustomerDrawing?
+                            .DrawingName
+                        ?? "",
+
+                    customerDrawingType =
+                        currentCustomerDrawing?
+                            .DrawingType
+                        ?? "",
+
+                    customerDrawingRevision =
+                        currentCustomerDrawing?
+                            .RevisionNumber
+                        ?? "",
+
+                    customerDrawingFileName =
+                        currentCustomerDrawing?
+                            .FileName
+                        ?? "",
+
+                    customerDrawingFilePath =
+                        currentCustomerDrawing?
+                            .FilePath
+                        ?? "",
+
+                    customerDrawingDescription =
+                        currentCustomerDrawing?
+                            .Description
                         ?? ""
                 });
 
@@ -913,7 +1069,8 @@ namespace AjayIndustriesERP.Web.Controllers
                                 x.Id.ToString(),
 
                             Text =
-                                $"{x.Code} - {x.CustomerName}",
+                                $"{x.Code} - " +
+                                $"{x.CustomerName}",
 
                             Selected =
                                 x.Id ==
@@ -931,7 +1088,8 @@ namespace AjayIndustriesERP.Web.Controllers
                                 x.ItemId.ToString(),
 
                             Text =
-                                $"{x.ItemCode} - {x.ItemName}"
+                                $"{x.ItemCode} - " +
+                                $"{x.ItemName}"
                         })
                     .ToList();
         }
@@ -1000,6 +1158,15 @@ namespace AjayIndustriesERP.Web.Controllers
                         ItemId =
                             item.ItemId,
 
+                        /*
+                         * ItemCode / ItemName /
+                         * Specification / UnitName are
+                         * mapped only for request transport.
+                         *
+                         * Application Service reloads
+                         * trusted Item Master data.
+                         */
+
                         ItemCode =
                             item.ItemCode,
 
@@ -1015,11 +1182,15 @@ namespace AjayIndustriesERP.Web.Controllers
                         CustomerItemCode =
                             item.CustomerItemCode,
 
-                        CustomerDrawingNumber =
-                            item.CustomerDrawingNumber,
-
-                        Revision =
-                            item.Revision,
+                        /*
+                         * CustomerDrawingNumber and Revision
+                         * are intentionally NOT mapped.
+                         *
+                         * Application Service resolves them
+                         * from current Customer Drawing using:
+                         *
+                         * Customer + Item
+                         */
 
                         OrderedQuantity =
                             item.OrderedQuantity,
@@ -1123,11 +1294,14 @@ namespace AjayIndustriesERP.Web.Controllers
                                 CustomerItemCode =
                                     x.CustomerItemCode,
 
-                                CustomerDrawingNumber =
-                                    x.CustomerDrawingNumber,
-
-                                Revision =
-                                    x.Revision,
+                                /*
+                                 * Customer Drawing snapshot
+                                 * is not placed back into editable
+                                 * form fields.
+                                 *
+                                 * Edit page reloads the current
+                                 * Customer Drawing through AJAX.
+                                 */
 
                                 OrderedQuantity =
                                     x.OrderedQuantity,
@@ -1179,7 +1353,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                         var uom =
-                            x.Uom?.UomName;
+                            x.Uom?
+                                .UomName;
 
 
                         var valueWithUom =
@@ -1192,10 +1367,12 @@ namespace AjayIndustriesERP.Web.Controllers
                         return string.IsNullOrWhiteSpace(
                             name)
                                 ? valueWithUom
-                                : $"{name}: {valueWithUom}";
+                                : $"{name}: " +
+                                  $"{valueWithUom}";
                     })
                     .Where(x =>
-                        !string.IsNullOrWhiteSpace(x))
+                        !string.IsNullOrWhiteSpace(
+                            x))
                     .ToList();
 
 
@@ -1218,7 +1395,8 @@ namespace AjayIndustriesERP.Web.Controllers
                     .Select(x =>
                         x.ErrorMessage)
                     .Where(x =>
-                        !string.IsNullOrWhiteSpace(x))
+                        !string.IsNullOrWhiteSpace(
+                            x))
                     .Distinct()
                     .ToList();
 
@@ -1236,6 +1414,7 @@ namespace AjayIndustriesERP.Web.Controllers
         }
 
         #endregion
+
 
         #region Deleted Customer Purchase Orders
 
@@ -1261,7 +1440,9 @@ namespace AjayIndustriesERP.Web.Controllers
         {
             try
             {
-                await _customerPurchaseOrderService.RestoreAsync(id);
+                await _customerPurchaseOrderService
+                    .RestoreAsync(
+                        id);
 
 
                 TempData["SuccessMessage"] =

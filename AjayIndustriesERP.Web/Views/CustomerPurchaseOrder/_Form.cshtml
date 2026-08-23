@@ -11,10 +11,11 @@
     - Manage multiple Customer PO Item rows.
     - Support searchable Item selection.
     - Load trusted Item Master information through AJAX.
-    - Display current Item Drawing information.
+    - Display current Workshop Drawing information.
+    - Display current Customer Drawing information.
     - Prevent duplicate Items in the same Customer PO.
     - Show similar Customer PO Number warnings.
-    - Allow Customer-specific Item / Drawing references.
+    - Allow Customer-specific Item Code reference.
     - Allow Ordered Quantity entry.
     - Allow optional line Delivery Date override.
     - Allow optional line Priority override.
@@ -25,7 +26,9 @@
     - Create.cshtml and Edit.cshtml own the actual <form>.
     - Existing Customer Master and Item Master are reused.
     - Item display snapshots posted from browser are NOT trusted.
-      Application Service reloads Item Master before saving.
+    - Customer Drawing Number / Revision are NOT manually entered.
+    - Customer Drawing is loaded from Customer + Item.
+    - Customer Drawing snapshot is trusted by Application Service.
     - Same Item cannot appear more than once in the same
       Customer Purchase Order.
     - Raw Material Items are excluded by Repository.
@@ -69,7 +72,7 @@
 
 
             <!-- =============================================
-                 INTERNAL ORDER NUMBER
+                 INTERNAL ORDER NUMBER / STATUS
             ============================================== -->
 
             @if (isEditMode)
@@ -526,21 +529,17 @@
                                type="hidden"
                                class="item-line-id" />
 
-
                         <input asp-for="Items[i].ItemCode"
                                type="hidden"
                                class="item-code-hidden" />
-
 
                         <input asp-for="Items[i].ItemName"
                                type="hidden"
                                class="item-name-hidden" />
 
-
                         <input asp-for="Items[i].Specification"
                                type="hidden"
                                class="item-specification-hidden" />
-
 
                         <input asp-for="Items[i].UnitName"
                                type="hidden"
@@ -638,108 +637,276 @@
 
 
                             <!-- =================================
-                                 CURRENT ITEM DRAWING
+                                 WORKSHOP + CUSTOMER DRAWINGS
                             ================================== -->
 
                             <div class="col-12">
 
-                                <div class="border
-                                            rounded
-                                            p-3
-                                            bg-light">
+                                <div class="row g-3">
 
-                                    <div class="d-flex
-                                                justify-content-between
-                                                align-items-center
-                                                flex-wrap
-                                                gap-2
-                                                mb-3">
 
-                                        <div class="fw-semibold">
+                                    <!-- WORKSHOP DRAWING -->
 
-                                            <i class="fa-solid
-                                                      fa-file-lines
-                                                      me-1">
-                                            </i>
+                                    <div class="col-lg-6">
 
-                                            Current Item Drawing
+                                        <div class="border
+                                                    rounded
+                                                    p-3
+                                                    bg-light
+                                                    h-100">
+
+                                            <div class="d-flex
+                                                        justify-content-between
+                                                        align-items-center
+                                                        flex-wrap
+                                                        gap-2
+                                                        mb-3">
+
+                                                <div class="fw-semibold">
+
+                                                    <i class="fa-solid
+                                                              fa-file-lines
+                                                              me-1">
+                                                    </i>
+
+                                                    Workshop Drawing
+
+                                                </div>
+
+
+                                                <span class="badge
+                                                             bg-light
+                                                             text-dark
+                                                             border
+                                                             item-drawing-status">
+
+                                                    No Drawing
+
+                                                </span>
+
+                                            </div>
+
+
+                                            <div class="row g-3">
+
+                                                <div class="col-md-6">
+
+                                                    <div class="small text-muted mb-1">
+                                                        Drawing Number
+                                                    </div>
+
+                                                    <div class="fw-semibold
+                                                                item-drawing-number">
+                                                        -
+                                                    </div>
+
+                                                </div>
+
+
+                                                <div class="col-md-6">
+
+                                                    <div class="small text-muted mb-1">
+                                                        Revision
+                                                    </div>
+
+                                                    <div class="fw-semibold
+                                                                item-drawing-revision">
+                                                        -
+                                                    </div>
+
+                                                </div>
+
+
+                                                <div class="col-md-6">
+
+                                                    <div class="small text-muted mb-1">
+                                                        Drawing Name
+                                                    </div>
+
+                                                    <div class="item-drawing-name">
+                                                        -
+                                                    </div>
+
+                                                </div>
+
+
+                                                <div class="col-md-6">
+
+                                                    <div class="small text-muted mb-1">
+                                                        Drawing Type
+                                                    </div>
+
+                                                    <div class="item-drawing-type">
+                                                        -
+                                                    </div>
+
+                                                </div>
+
+                                                <!-- DRAWING FILE -->
+
+<div class="col-12">
+
+    <div class="small
+                text-muted
+                mb-1">
+
+        Drawing File
+
+    </div>
+
+
+    <a href="#"
+       target="_blank"
+       rel="noopener"
+       class="btn
+              btn-sm
+              btn-outline-primary
+              d-none
+              item-drawing-file-link">
+    </a>
+
+
+    <span class="text-muted
+                 item-drawing-no-file">
+
+        No File
+
+    </span>
+
+</div>
+
+                                            </div>
 
                                         </div>
-
-
-                                        <span class="badge
-                                                     bg-light
-                                                     text-dark
-                                                     border
-                                                     item-drawing-status">
-
-                                            No Drawing
-
-                                        </span>
 
                                     </div>
 
 
-                                    <div class="row g-3">
+                                    <!-- CUSTOMER DRAWING -->
+
+                                    <div class="col-lg-6">
+
+                                        <div class="border
+                                                    rounded
+                                                    p-3
+                                                    bg-light
+                                                    h-100">
+
+                                            <div class="d-flex
+                                                        justify-content-between
+                                                        align-items-center
+                                                        flex-wrap
+                                                        gap-2
+                                                        mb-3">
+
+                                                <div class="fw-semibold">
+
+                                                    <i class="fa-solid
+                                                              fa-file-signature
+                                                              me-1">
+                                                    </i>
+
+                                                    Customer Drawing
+
+                                                </div>
 
 
-                                        <!-- DRAWING NUMBER -->
+                                                <span class="badge
+                                                             bg-light
+                                                             text-dark
+                                                             border
+                                                             item-customer-drawing-status">
 
-                                        <div class="col-lg-4 col-md-6">
+                                                    No Customer Drawing
 
-                                            <div class="small text-muted mb-1">
-                                                Drawing Number
+                                                </span>
+
                                             </div>
 
-                                            <div class="fw-semibold
-                                                        item-drawing-number">
-                                                -
-                                            </div>
 
-                                        </div>
+                                            <div class="row g-3">
 
+                                                <div class="col-md-6">
 
-                                        <!-- REVISION -->
+                                                    <div class="small text-muted mb-1">
+                                                        Drawing Number
+                                                    </div>
 
-                                        <div class="col-lg-2 col-md-6">
+                                                    <div class="fw-semibold
+                                                                item-customer-drawing-number">
+                                                        -
+                                                    </div>
 
-                                            <div class="small text-muted mb-1">
-                                                Revision
-                                            </div>
-
-                                            <div class="fw-semibold
-                                                        item-drawing-revision">
-                                                -
-                                            </div>
-
-                                        </div>
+                                                </div>
 
 
-                                        <!-- DRAWING NAME -->
+                                                <div class="col-md-6">
 
-                                        <div class="col-lg-3 col-md-6">
+                                                    <div class="small text-muted mb-1">
+                                                        Revision
+                                                    </div>
 
-                                            <div class="small text-muted mb-1">
-                                                Drawing Name
-                                            </div>
+                                                    <div class="fw-semibold
+                                                                item-customer-drawing-revision">
+                                                        -
+                                                    </div>
 
-                                            <div class="item-drawing-name">
-                                                -
-                                            </div>
-
-                                        </div>
+                                                </div>
 
 
-                                        <!-- DRAWING TYPE -->
+                                                <div class="col-md-6">
 
-                                        <div class="col-lg-3 col-md-6">
+                                                    <div class="small text-muted mb-1">
+                                                        Drawing Name
+                                                    </div>
 
-                                            <div class="small text-muted mb-1">
-                                                Drawing Type
-                                            </div>
+                                                    <div class="item-customer-drawing-name">
+                                                        -
+                                                    </div>
 
-                                            <div class="item-drawing-type">
-                                                -
+                                                </div>
+
+
+                                                <div class="col-md-6">
+
+                                                    <div class="small text-muted mb-1">
+                                                        Drawing Type
+                                                    </div>
+
+                                                    <div class="item-customer-drawing-type">
+                                                        -
+                                                    </div>
+
+                                                </div>
+
+
+                                                <div class="col-12">
+
+                                                    <div class="small text-muted mb-1">
+                                                        Drawing File
+                                                    </div>
+
+
+                                                    <a href="#"
+                                                       target="_blank"
+                                                       rel="noopener"
+                                                       class="btn
+                                                              btn-sm
+                                                              btn-outline-primary
+                                                              d-none
+                                                              item-customer-drawing-file-link">
+                                                    </a>
+
+
+                                                    <span class="text-muted
+                                                                 item-customer-drawing-no-file">
+
+                                                        No File
+
+                                                    </span>
+
+                                                </div>
+
                                             </div>
 
                                         </div>
@@ -754,13 +921,10 @@
 
 
                         <!-- =================================
-                             CUSTOMER ITEM REFERENCES
+                             CUSTOMER ITEM REFERENCE
                         ================================== -->
 
                         <div class="row g-3 mt-1">
-
-
-                            <!-- CUSTOMER ITEM CODE -->
 
                             <div class="col-lg-4 col-md-6">
 
@@ -777,45 +941,9 @@
                                       class="text-danger small">
                                 </span>
 
-                            </div>
-
-
-                            <!-- CUSTOMER DRAWING -->
-
-                            <div class="col-lg-4 col-md-6">
-
-                                <label asp-for="Items[i].CustomerDrawingNumber"
-                                       class="form-label fw-semibold">
-                                </label>
-
-                                <input asp-for="Items[i].CustomerDrawingNumber"
-                                       class="form-control"
-                                       maxlength="150"
-                                       placeholder="Optional" />
-
-                                <span asp-validation-for="Items[i].CustomerDrawingNumber"
-                                      class="text-danger small">
-                                </span>
-
-                            </div>
-
-
-                            <!-- CUSTOMER REVISION -->
-
-                            <div class="col-lg-4 col-md-6">
-
-                                <label asp-for="Items[i].Revision"
-                                       class="form-label fw-semibold">
-                                </label>
-
-                                <input asp-for="Items[i].Revision"
-                                       class="form-control"
-                                       maxlength="50"
-                                       placeholder="Optional" />
-
-                                <span asp-validation-for="Items[i].Revision"
-                                      class="text-danger small">
-                                </span>
+                                <div class="form-text">
+                                    Optional Customer-specific Item Code.
+                                </div>
 
                             </div>
 
@@ -1048,21 +1176,17 @@
                    value="0"
                    class="item-line-id" />
 
-
             <input type="hidden"
                    name="Items[__index__].ItemCode"
                    class="item-code-hidden" />
-
 
             <input type="hidden"
                    name="Items[__index__].ItemName"
                    class="item-name-hidden" />
 
-
             <input type="hidden"
                    name="Items[__index__].Specification"
                    class="item-specification-hidden" />
-
 
             <input type="hidden"
                    name="Items[__index__].UnitName"
@@ -1173,108 +1297,276 @@
 
 
                 <!-- =========================================
-                     CURRENT ITEM DRAWING
+                     WORKSHOP + CUSTOMER DRAWINGS
                 ========================================== -->
 
                 <div class="col-12">
 
-                    <div class="border
-                                rounded
-                                p-3
-                                bg-light">
+                    <div class="row g-3">
 
-                        <div class="d-flex
-                                    justify-content-between
-                                    align-items-center
-                                    flex-wrap
-                                    gap-2
-                                    mb-3">
 
-                            <div class="fw-semibold">
+                        <!-- WORKSHOP DRAWING -->
 
-                                <i class="fa-solid
-                                          fa-file-lines
-                                          me-1">
-                                </i>
+                        <div class="col-lg-6">
 
-                                Current Item Drawing
+                            <div class="border
+                                        rounded
+                                        p-3
+                                        bg-light
+                                        h-100">
+
+                                <div class="d-flex
+                                            justify-content-between
+                                            align-items-center
+                                            flex-wrap
+                                            gap-2
+                                            mb-3">
+
+                                    <div class="fw-semibold">
+
+                                        <i class="fa-solid
+                                                  fa-file-lines
+                                                  me-1">
+                                        </i>
+
+                                        Workshop Drawing
+
+                                    </div>
+
+
+                                    <span class="badge
+                                                 bg-light
+                                                 text-dark
+                                                 border
+                                                 item-drawing-status">
+
+                                        No Drawing
+
+                                    </span>
+
+                                </div>
+
+
+                                <div class="row g-3">
+
+                                    <div class="col-md-6">
+
+                                        <div class="small text-muted mb-1">
+                                            Drawing Number
+                                        </div>
+
+                                        <div class="fw-semibold
+                                                    item-drawing-number">
+                                            -
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="col-md-6">
+
+                                        <div class="small text-muted mb-1">
+                                            Revision
+                                        </div>
+
+                                        <div class="fw-semibold
+                                                    item-drawing-revision">
+                                            -
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="col-md-6">
+
+                                        <div class="small text-muted mb-1">
+                                            Drawing Name
+                                        </div>
+
+                                        <div class="item-drawing-name">
+                                            -
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="col-md-6">
+
+                                        <div class="small text-muted mb-1">
+                                            Drawing Type
+                                        </div>
+
+                                        <div class="item-drawing-type">
+                                            -
+                                        </div>
+
+                                    </div>
+
+                                    <!-- DRAWING FILE -->
+
+<div class="col-12">
+
+    <div class="small
+                text-muted
+                mb-1">
+
+        Drawing File
+
+    </div>
+
+
+    <a href="#"
+       target="_blank"
+       rel="noopener"
+       class="btn
+              btn-sm
+              btn-outline-primary
+              d-none
+              item-drawing-file-link">
+    </a>
+
+
+    <span class="text-muted
+                 item-drawing-no-file">
+
+        No File
+
+    </span>
+
+</div>
+
+                                </div>
 
                             </div>
-
-
-                            <span class="badge
-                                         bg-light
-                                         text-dark
-                                         border
-                                         item-drawing-status">
-
-                                No Drawing
-
-                            </span>
 
                         </div>
 
 
-                        <div class="row g-3">
+                        <!-- CUSTOMER DRAWING -->
+
+                        <div class="col-lg-6">
+
+                            <div class="border
+                                        rounded
+                                        p-3
+                                        bg-light
+                                        h-100">
+
+                                <div class="d-flex
+                                            justify-content-between
+                                            align-items-center
+                                            flex-wrap
+                                            gap-2
+                                            mb-3">
+
+                                    <div class="fw-semibold">
+
+                                        <i class="fa-solid
+                                                  fa-file-signature
+                                                  me-1">
+                                        </i>
+
+                                        Customer Drawing
+
+                                    </div>
 
 
-                            <!-- DRAWING NUMBER -->
+                                    <span class="badge
+                                                 bg-light
+                                                 text-dark
+                                                 border
+                                                 item-customer-drawing-status">
 
-                            <div class="col-lg-4 col-md-6">
+                                        No Customer Drawing
 
-                                <div class="small text-muted mb-1">
-                                    Drawing Number
+                                    </span>
+
                                 </div>
 
-                                <div class="fw-semibold
-                                            item-drawing-number">
-                                    -
-                                </div>
 
-                            </div>
+                                <div class="row g-3">
 
+                                    <div class="col-md-6">
 
-                            <!-- REVISION -->
+                                        <div class="small text-muted mb-1">
+                                            Drawing Number
+                                        </div>
 
-                            <div class="col-lg-2 col-md-6">
+                                        <div class="fw-semibold
+                                                    item-customer-drawing-number">
+                                            -
+                                        </div>
 
-                                <div class="small text-muted mb-1">
-                                    Revision
-                                </div>
-
-                                <div class="fw-semibold
-                                            item-drawing-revision">
-                                    -
-                                </div>
-
-                            </div>
+                                    </div>
 
 
-                            <!-- DRAWING NAME -->
+                                    <div class="col-md-6">
 
-                            <div class="col-lg-3 col-md-6">
+                                        <div class="small text-muted mb-1">
+                                            Revision
+                                        </div>
 
-                                <div class="small text-muted mb-1">
-                                    Drawing Name
-                                </div>
+                                        <div class="fw-semibold
+                                                    item-customer-drawing-revision">
+                                            -
+                                        </div>
 
-                                <div class="item-drawing-name">
-                                    -
-                                </div>
-
-                            </div>
+                                    </div>
 
 
-                            <!-- DRAWING TYPE -->
+                                    <div class="col-md-6">
 
-                            <div class="col-lg-3 col-md-6">
+                                        <div class="small text-muted mb-1">
+                                            Drawing Name
+                                        </div>
 
-                                <div class="small text-muted mb-1">
-                                    Drawing Type
-                                </div>
+                                        <div class="item-customer-drawing-name">
+                                            -
+                                        </div>
 
-                                <div class="item-drawing-type">
-                                    -
+                                    </div>
+
+
+                                    <div class="col-md-6">
+
+                                        <div class="small text-muted mb-1">
+                                            Drawing Type
+                                        </div>
+
+                                        <div class="item-customer-drawing-type">
+                                            -
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="col-12">
+
+                                        <div class="small text-muted mb-1">
+                                            Drawing File
+                                        </div>
+
+
+                                        <a href="#"
+                                           target="_blank"
+                                           rel="noopener"
+                                           class="btn
+                                                  btn-sm
+                                                  btn-outline-primary
+                                                  d-none
+                                                  item-customer-drawing-file-link">
+                                        </a>
+
+
+                                        <span class="text-muted
+                                                     item-customer-drawing-no-file">
+
+                                            No File
+
+                                        </span>
+
+                                    </div>
+
                                 </div>
 
                             </div>
@@ -1289,13 +1581,10 @@
 
 
             <!-- =========================================
-                 CUSTOMER ITEM REFERENCES
+                 CUSTOMER ITEM REFERENCE
             ========================================== -->
 
             <div class="row g-3 mt-1">
-
-
-                <!-- CUSTOMER ITEM CODE -->
 
                 <div class="col-lg-4 col-md-6">
 
@@ -1308,37 +1597,9 @@
                            maxlength="100"
                            placeholder="Optional" />
 
-                </div>
-
-
-                <!-- CUSTOMER DRAWING -->
-
-                <div class="col-lg-4 col-md-6">
-
-                    <label class="form-label fw-semibold">
-                        Customer Drawing Number
-                    </label>
-
-                    <input name="Items[__index__].CustomerDrawingNumber"
-                           class="form-control"
-                           maxlength="150"
-                           placeholder="Optional" />
-
-                </div>
-
-
-                <!-- CUSTOMER REVISION -->
-
-                <div class="col-lg-4 col-md-6">
-
-                    <label class="form-label fw-semibold">
-                        Revision
-                    </label>
-
-                    <input name="Items[__index__].Revision"
-                           class="form-control"
-                           maxlength="50"
-                           placeholder="Optional" />
+                    <div class="form-text">
+                        Optional Customer-specific Item Code.
+                    </div>
 
                 </div>
 

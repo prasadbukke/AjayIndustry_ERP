@@ -388,6 +388,69 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 .ToListAsync();
         }
 
+        public async Task<CustomerDrawing?>
+    GetRevisionAsync(
+        int customerId,
+        string drawingNumber,
+        string revisionNumber)
+        {
+            if (
+                customerId <= 0 ||
+                string.IsNullOrWhiteSpace(
+                    drawingNumber) ||
+                string.IsNullOrWhiteSpace(
+                    revisionNumber)
+            )
+            {
+                return null;
+            }
+
+
+            var normalizedDrawingNumber =
+                drawingNumber
+                    .Trim()
+                    .ToLower();
+
+
+            var normalizedRevisionNumber =
+                revisionNumber
+                    .Trim()
+                    .ToLower();
+
+
+            /*
+             * IMPORTANT:
+             *
+             * IsDeleted / IsActive intentionally NOT filtered.
+             *
+             * Customer PO is a historical transaction.
+             * If the saved revision later becomes inactive or
+             * soft-deleted, the old PO must still be able to
+             * resolve its exact Drawing file and information.
+             */
+
+            return await _context
+                .CustomerDrawings
+                .AsNoTracking()
+                .Include(x =>
+                    x.Customer)
+                .Include(x =>
+                    x.Item)
+                .FirstOrDefaultAsync(x =>
+                    x.CustomerId ==
+                        customerId
+                    &&
+                    x.DrawingNumber
+                        .ToLower() ==
+                        normalizedDrawingNumber
+                    &&
+                    x.RevisionNumber != null
+                    &&
+                    x.RevisionNumber
+                        .ToLower() ==
+                        normalizedRevisionNumber);
+        }
+
 
         public async Task<List<CustomerDrawing>>
             GetByDrawingNumberForUpdateAsync(

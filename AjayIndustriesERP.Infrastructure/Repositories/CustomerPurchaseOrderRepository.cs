@@ -9,6 +9,7 @@ Purchase Order module.
 Responsibilities:
 - Retrieve Customer Purchase Orders.
 - Retrieve complete Customer PO with Customer and Items.
+- Load current Workshop Drawing for Customer PO Details.
 - Retrieve tracked Customer PO for Edit.
 - Provide Search + Pagination.
 - Load active Customer Master records.
@@ -24,13 +25,14 @@ Important:
 - Deleted Customer PO codes are included during code lookup so
   document numbers are never reused.
 - Existing Customer Master and Item Master are reused.
+- Customer Drawing Number / Revision are historical snapshots
+  stored on CustomerPurchaseOrderItem.
 ============================================================
 */
 
 using AjayIndustriesERP.Application.Common;
 using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Domain.Entities;
-
 using AjayIndustriesERP.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -41,7 +43,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
     {
         #region Fields
 
-        private readonly ApplicationDbContext _context;
+        private readonly ApplicationDbContext
+            _context;
 
         #endregion
 
@@ -51,15 +54,14 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         public CustomerPurchaseOrderRepository(
             ApplicationDbContext context)
         {
-            _context = context;
+            _context =
+                context;
         }
 
         #endregion
 
 
         #region Read Operations
-
-       
 
         public async Task<List<CustomerPurchaseOrder>>
             GetAllAsync()
@@ -91,17 +93,20 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 .Where(x =>
                     x.Id == id &&
                     !x.IsDeleted)
+
                 .Include(x =>
                     x.Customer)
+
                 .Include(x =>
-    x.Items)
-    .ThenInclude(x =>
-        x.Item)
-    .ThenInclude(x =>
-        x.Drawings
-            .Where(drawing =>
-                !drawing.IsDeleted &&
-                drawing.IsActive))
+                    x.Items)
+                    .ThenInclude(x =>
+                        x.Item)
+                        .ThenInclude(x =>
+                            x.Drawings
+                                .Where(drawing =>
+                                    !drawing.IsDeleted &&
+                                    drawing.IsActive))
+
                 .FirstOrDefaultAsync();
         }
 
@@ -115,17 +120,17 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 .Where(x =>
                     x.Id == id &&
                     !x.IsDeleted)
+
                 .Include(x =>
                     x.Customer)
+
                 .Include(x =>
                     x.Items)
                     .ThenInclude(x =>
                         x.Item)
+
                 .FirstOrDefaultAsync();
         }
-
-
-
 
         #endregion
 
@@ -146,7 +151,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
 
             var totalRecords =
-                await query.CountAsync();
+                await query
+                    .CountAsync();
 
 
             var customerPurchaseOrders =
@@ -160,7 +166,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     .Skip(
                         (pageNumber - 1) *
                         pageSize)
-                    .Take(pageSize)
+                    .Take(
+                        pageSize)
                     .ToListAsync();
 
 
@@ -232,7 +239,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
 
             var totalRecords =
-                await query.CountAsync();
+                await query
+                    .CountAsync();
 
 
             var customerPurchaseOrders =
@@ -246,7 +254,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     .Skip(
                         (pageNumber - 1) *
                         pageSize)
-                    .Take(pageSize)
+                    .Take(
+                        pageSize)
                     .ToListAsync();
 
 
@@ -274,7 +283,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         public async Task<List<Customer>>
             GetCustomersForOrderAsync()
         {
-            return await _context.Customers
+            return await _context
+                .Customers
                 .AsNoTracking()
                 .Where(x =>
                     !x.IsDeleted &&
@@ -291,10 +301,12 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             GetCustomerForOrderAsync(
                 int customerId)
         {
-            return await _context.Customers
+            return await _context
+                .Customers
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x =>
-                    x.Id == customerId &&
+                    x.Id ==
+                        customerId &&
                     !x.IsDeleted &&
                     x.IsActive);
         }
@@ -305,17 +317,14 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         #region Item Master Loading
 
         public async Task<List<Item>>
-    GetItemsForOrderAsync()
+            GetItemsForOrderAsync()
         {
-            return await _context.Items
+            return await _context
+                .Items
                 .AsNoTracking()
                 .Where(x =>
                     !x.IsDeleted &&
-                    x.IsActive &&
-                    x.ItemCategory.CategoryName !=
-                        "Raw Material")
-                .Include(x =>
-                    x.ItemCategory)
+                    x.IsActive)
                 .Include(x =>
                     x.Uom)
                 .OrderBy(x =>
@@ -327,20 +336,17 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
 
         public async Task<Item?>
-    GetItemForOrderAsync(
-        int itemId)
+            GetItemForOrderAsync(
+                int itemId)
         {
-            return await _context.Items
+            return await _context
+                .Items
                 .AsNoTracking()
                 .Where(x =>
-                    x.ItemId == itemId &&
+                    x.ItemId ==
+                        itemId &&
                     !x.IsDeleted &&
-                    x.IsActive &&
-                    x.ItemCategory.CategoryName !=
-                        "Raw Material")
-
-                .Include(x =>
-                    x.ItemCategory)
+                    x.IsActive)
 
                 .Include(x =>
                     x.Uom)
@@ -381,19 +387,24 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     .ToUpper();
 
 
-            return await _context.CustomerPurchaseOrders
+            return await _context
+                .CustomerPurchaseOrders
                 .AsNoTracking()
                 .AnyAsync(x =>
-                    x.CustomerId == customerId &&
+                    x.CustomerId ==
+                        customerId &&
 
                     x.CustomerPurchaseOrderNumber
                         .ToUpper() ==
                         normalizedNumber &&
 
                     (
-                        !excludeCustomerPurchaseOrderId.HasValue ||
+                        !excludeCustomerPurchaseOrderId
+                            .HasValue
+                        ||
                         x.Id !=
-                            excludeCustomerPurchaseOrderId.Value
+                            excludeCustomerPurchaseOrderId
+                                .Value
                     ));
         }
 
@@ -406,14 +417,15 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             GetLastCustomerPurchaseOrderCodeAsync(
                 string codePrefix)
         {
-            return await _context.CustomerPurchaseOrders
+            /*
+             * IsDeleted intentionally NOT filtered.
+             *
+             * Customer PO document numbers must
+             * never be reused.
+             */
 
-                // =================================================
-                // IsDeleted intentionally NOT filtered.
-                //
-                // Customer PO document numbers must never be reused.
-                // =================================================
-
+            return await _context
+                .CustomerPurchaseOrders
                 .Where(x =>
                     x.Code.StartsWith(
                         codePrefix))
@@ -430,9 +442,11 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         #region Write Operations
 
         public async Task AddAsync(
-            CustomerPurchaseOrder customerPurchaseOrder)
+            CustomerPurchaseOrder
+                customerPurchaseOrder)
         {
-            await _context.CustomerPurchaseOrders
+            await _context
+                .CustomerPurchaseOrders
                 .AddAsync(
                     customerPurchaseOrder);
 
@@ -443,7 +457,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
 
         public async Task UpdateAsync(
-            CustomerPurchaseOrder customerPurchaseOrder)
+            CustomerPurchaseOrder
+                customerPurchaseOrder)
         {
             await _context
                 .SaveChangesAsync();
@@ -451,25 +466,31 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
         #endregion
 
+
         #region Restore Support
 
         public async Task<CustomerPurchaseOrder?>
             GetAnyByIdForUpdateAsync(
                 int id)
         {
-            return await _context.CustomerPurchaseOrders
+            return await _context
+                .CustomerPurchaseOrders
                 .Where(x =>
                     x.Id == id)
+
                 .Include(x =>
                     x.Customer)
+
                 .Include(x =>
                     x.Items)
                     .ThenInclude(x =>
                         x.Item)
+
                 .FirstOrDefaultAsync();
         }
 
         #endregion
+
 
         #region Deleted Customer Purchase Orders
 
@@ -484,7 +505,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 .Include(x =>
                     x.Customer)
                 .OrderByDescending(x =>
-                    x.ModifiedOn ?? x.CreatedOn)
+                    x.ModifiedOn ??
+                    x.CreatedOn)
                 .ThenByDescending(x =>
                     x.Id)
                 .ToListAsync();

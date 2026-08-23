@@ -8,7 +8,7 @@ Represents one Customer Purchase Order Item in Create/Edit UI.
 Responsibilities:
 - Hold selected existing Item Master Id.
 - Display Item snapshot information.
-- Accept Customer-specific Item references.
+- Accept optional Customer-specific Item Code.
 - Accept Ordered Quantity.
 - Accept optional line Delivery Date override.
 - Accept optional line Priority override.
@@ -20,6 +20,9 @@ Important:
 - Application Service reloads trusted Item Master information
   before saving.
 - ItemId references the existing Item Master.
+- Customer Drawing Number / Revision are NOT entered manually.
+- Current Customer Drawing is loaded using Customer + Item.
+- Customer Drawing snapshot is created by Application Service.
 ============================================================
 */
 
@@ -69,16 +72,6 @@ namespace AjayIndustriesERP.Web.ViewModels.CustomerPurchaseOrder
         [StringLength(100)]
         [Display(Name = "Customer Item Code")]
         public string? CustomerItemCode { get; set; }
-
-
-        [StringLength(150)]
-        [Display(Name = "Customer Drawing Number")]
-        public string? CustomerDrawingNumber { get; set; }
-
-
-        [StringLength(50)]
-        [Display(Name = "Revision")]
-        public string? Revision { get; set; }
 
         #endregion
 

@@ -11,7 +11,11 @@ Responsibilities:
 - Initialize searchable Item dropdowns using Select2.
 - Manage dynamic Customer PO Item rows.
 - Load Item Master information through AJAX.
-- Display current Item Drawing information.
+- Display current Workshop Drawing information.
+- Display current Workshop Drawing file.
+- Display current Customer Drawing information.
+- Display current Customer Drawing file.
+- Reload Customer Drawing when Customer changes.
 - Prevent duplicate Items in the same Customer PO.
 - Collapse and expand Customer PO Item rows.
 - Reindex dynamic Item rows.
@@ -24,6 +28,8 @@ Responsibilities:
 Important:
 - Raw Material filtering is enforced by Repository.
 - Same Item cannot appear more than once in one Customer PO.
+- Workshop Drawing is resolved by Item.
+- Customer Drawing is resolved by Customer + Item.
 - Customer PO Number exact duplicate is always blocked.
 - Similar Customer PO Number is warning-only after user
   confirmation.
@@ -37,6 +43,7 @@ Important:
 
     let customerPoNumberTimer = null;
     let customerPoNumberRequest = null;
+
 
     document.addEventListener(
         "DOMContentLoaded",
@@ -76,12 +83,13 @@ Important:
             );
 
 
-        if (!form ||
+        if (
+            !form ||
             !container ||
             !template ||
             !addButton ||
-            !emptyMessage) {
-
+            !emptyMessage
+        ) {
             return;
         }
 
@@ -111,6 +119,12 @@ Important:
         template,
         addButton,
         emptyMessage) {
+
+        const customerSelect =
+            document.getElementById(
+                "CustomerId"
+            );
+
 
         // =====================================================
         // EMPTY STATE
@@ -155,7 +169,6 @@ Important:
 
 
             if (body) {
-
                 body.classList.add(
                     "d-none"
                 );
@@ -183,7 +196,6 @@ Important:
 
 
             if (body) {
-
                 body.classList.remove(
                     "d-none"
                 );
@@ -204,13 +216,11 @@ Important:
                 function (row) {
 
                     if (row === activeRow) {
-
                         expandRow(
                             row
                         );
                     }
                     else {
-
                         collapseRow(
                             row
                         );
@@ -221,7 +231,7 @@ Important:
 
 
         // =====================================================
-        // ITEM ROW SUMMARY
+        // ROW SUMMARY
         // =====================================================
 
         function updateRowSummary(
@@ -339,7 +349,6 @@ Important:
 
 
                         $select.select2({
-
                             width:
                                 "100%",
 
@@ -353,20 +362,14 @@ Important:
                                 0,
 
                             language: {
-
                                 noResults:
                                     function () {
-
                                         return "No Items found";
                                     }
                             }
                         });
 
 
-                        /*
-                         * Direct Select2 events are handled here
-                         * so Item details always reload correctly.
-                         */
                         $select
                             .off(
                                 ".customerPoItem"
@@ -395,7 +398,7 @@ Important:
 
 
         // =====================================================
-        // DUPLICATE ITEM PROTECTION
+        // DUPLICATE ITEM
         // =====================================================
 
         function isDuplicateItemSelection(
@@ -509,7 +512,7 @@ Important:
 
 
         // =====================================================
-        // REINDEX ITEM ROWS
+        // REINDEX
         // =====================================================
 
         function reindexRows() {
@@ -534,10 +537,6 @@ Important:
                         index;
 
 
-                    // =========================================
-                    // TITLE
-                    // =========================================
-
                     const title =
                         row.querySelector(
                             ".item-row-title"
@@ -545,16 +544,11 @@ Important:
 
 
                     if (title) {
-
                         title.textContent =
                             "Item " +
                             (index + 1);
                     }
 
-
-                    // =========================================
-                    // NAME ATTRIBUTES
-                    // =========================================
 
                     row.querySelectorAll(
                         "[name]"
@@ -572,10 +566,6 @@ Important:
                     );
 
 
-                    // =========================================
-                    // ID ATTRIBUTES
-                    // =========================================
-
                     row.querySelectorAll(
                         "[id]"
                     ).forEach(
@@ -592,10 +582,6 @@ Important:
                     );
 
 
-                    // =========================================
-                    // LABEL FOR
-                    // =========================================
-
                     row.querySelectorAll(
                         "label[for]"
                     ).forEach(
@@ -611,10 +597,6 @@ Important:
                         }
                     );
 
-
-                    // =========================================
-                    // VALIDATION TARGETS
-                    // =========================================
 
                     row.querySelectorAll(
                         "[data-valmsg-for]"
@@ -659,7 +641,7 @@ Important:
 
 
         // =====================================================
-        // VALIDATION REPARSE
+        // VALIDATION
         // =====================================================
 
         function reparseValidation() {
@@ -669,7 +651,6 @@ Important:
                 !jQuery.validator ||
                 !jQuery.validator.unobtrusive
             ) {
-
                 return;
             }
 
@@ -692,7 +673,7 @@ Important:
 
 
         // =====================================================
-        // LOAD ITEM MASTER DATA
+        // LOAD ITEM DATA
         // =====================================================
 
         async function loadItemData(
@@ -704,6 +685,10 @@ Important:
                     "data-item-data-url"
                 );
 
+
+            // =================================================
+            // ITEM
+            // =================================================
 
             const codeDisplay =
                 row.querySelector(
@@ -719,7 +704,6 @@ Important:
                 row.querySelector(
                     ".item-specification-display"
                 );
-
 
             const codeHidden =
                 row.querySelector(
@@ -741,6 +725,10 @@ Important:
                     ".item-unit-hidden"
                 );
 
+
+            // =================================================
+            // WORKSHOP DRAWING
+            // =================================================
 
             const drawingStatus =
                 row.querySelector(
@@ -767,6 +755,60 @@ Important:
                     ".item-drawing-type"
                 );
 
+            const drawingFileLink =
+                row.querySelector(
+                    ".item-drawing-file-link"
+                );
+
+            const drawingNoFile =
+                row.querySelector(
+                    ".item-drawing-no-file"
+                );
+
+
+            // =================================================
+            // CUSTOMER DRAWING
+            // =================================================
+
+            const customerDrawingStatus =
+                row.querySelector(
+                    ".item-customer-drawing-status"
+                );
+
+            const customerDrawingNumber =
+                row.querySelector(
+                    ".item-customer-drawing-number"
+                );
+
+            const customerDrawingRevision =
+                row.querySelector(
+                    ".item-customer-drawing-revision"
+                );
+
+            const customerDrawingName =
+                row.querySelector(
+                    ".item-customer-drawing-name"
+                );
+
+            const customerDrawingType =
+                row.querySelector(
+                    ".item-customer-drawing-type"
+                );
+
+            const customerDrawingFileLink =
+                row.querySelector(
+                    ".item-customer-drawing-file-link"
+                );
+
+            const customerDrawingNoFile =
+                row.querySelector(
+                    ".item-customer-drawing-no-file"
+                );
+
+
+            // =================================================
+            // CLEAR
+            // =================================================
 
             function clearItemInformation() {
 
@@ -781,7 +823,6 @@ Important:
                 if (specificationDisplay) {
                     specificationDisplay.value = "";
                 }
-
 
                 if (codeHidden) {
                     codeHidden.value = "";
@@ -799,6 +840,10 @@ Important:
                     unitHidden.value = "";
                 }
 
+
+                // =============================================
+                // WORKSHOP DRAWING CLEAR
+                // =============================================
 
                 if (drawingStatus) {
                     drawingStatus.textContent =
@@ -823,6 +868,90 @@ Important:
                 if (drawingType) {
                     drawingType.textContent =
                         "-";
+                }
+
+                if (drawingFileLink) {
+
+                    drawingFileLink.href =
+                        "#";
+
+                    drawingFileLink.textContent =
+                        "";
+
+                    drawingFileLink
+                        .classList
+                        .add(
+                            "d-none"
+                        );
+                }
+
+                if (drawingNoFile) {
+
+                    drawingNoFile
+                        .classList
+                        .remove(
+                            "d-none"
+                        );
+
+                    drawingNoFile.textContent =
+                        "No File";
+                }
+
+
+                // =============================================
+                // CUSTOMER DRAWING CLEAR
+                // =============================================
+
+                if (customerDrawingStatus) {
+                    customerDrawingStatus.textContent =
+                        "No Customer Drawing";
+                }
+
+                if (customerDrawingNumber) {
+                    customerDrawingNumber.textContent =
+                        "-";
+                }
+
+                if (customerDrawingRevision) {
+                    customerDrawingRevision.textContent =
+                        "-";
+                }
+
+                if (customerDrawingName) {
+                    customerDrawingName.textContent =
+                        "-";
+                }
+
+                if (customerDrawingType) {
+                    customerDrawingType.textContent =
+                        "-";
+                }
+
+                if (customerDrawingFileLink) {
+
+                    customerDrawingFileLink.href =
+                        "#";
+
+                    customerDrawingFileLink.textContent =
+                        "";
+
+                    customerDrawingFileLink
+                        .classList
+                        .add(
+                            "d-none"
+                        );
+                }
+
+                if (customerDrawingNoFile) {
+
+                    customerDrawingNoFile
+                        .classList
+                        .remove(
+                            "d-none"
+                        );
+
+                    customerDrawingNoFile.textContent =
+                        "No File";
                 }
 
 
@@ -864,6 +993,24 @@ Important:
                 );
 
 
+                const customerId =
+                    customerSelect
+                        ? String(
+                            customerSelect.value ||
+                            ""
+                        ).trim()
+                        : "";
+
+
+                if (customerId) {
+
+                    parameters.set(
+                        "customerId",
+                        customerId
+                    );
+                }
+
+
                 const response =
                     await fetch(
                         itemDataUrl +
@@ -903,12 +1050,11 @@ Important:
                 }
 
 
-                // =============================================
-                // DISPLAY VALUES
-                // =============================================
+                // =================================================
+                // ITEM DISPLAY
+                // =================================================
 
                 if (codeDisplay) {
-
                     codeDisplay.value =
                         data.itemCode ||
                         "";
@@ -916,7 +1062,6 @@ Important:
 
 
                 if (unitDisplay) {
-
                     unitDisplay.value =
                         data.unitName ||
                         "";
@@ -924,19 +1069,17 @@ Important:
 
 
                 if (specificationDisplay) {
-
                     specificationDisplay.value =
                         data.specification ||
                         "";
                 }
 
 
-                // =============================================
-                // HIDDEN POST VALUES
-                // =============================================
+                // =================================================
+                // ITEM HIDDEN SNAPSHOT
+                // =================================================
 
                 if (codeHidden) {
-
                     codeHidden.value =
                         data.itemCode ||
                         "";
@@ -944,7 +1087,6 @@ Important:
 
 
                 if (nameHidden) {
-
                     nameHidden.value =
                         data.itemName ||
                         "";
@@ -952,7 +1094,6 @@ Important:
 
 
                 if (specificationHidden) {
-
                     specificationHidden.value =
                         data.specification ||
                         "";
@@ -960,16 +1101,15 @@ Important:
 
 
                 if (unitHidden) {
-
                     unitHidden.value =
                         data.unitName ||
                         "";
                 }
 
 
-                // =============================================
-                // CURRENT DRAWING
-                // =============================================
+                // =================================================
+                // WORKSHOP DRAWING
+                // =================================================
 
                 const hasDrawing =
                     Boolean(
@@ -979,7 +1119,6 @@ Important:
 
 
                 if (drawingStatus) {
-
                     drawingStatus.textContent =
                         hasDrawing
                             ? "Current"
@@ -988,7 +1127,6 @@ Important:
 
 
                 if (drawingNumber) {
-
                     drawingNumber.textContent =
                         data.drawingNumber ||
                         "-";
@@ -996,7 +1134,6 @@ Important:
 
 
                 if (drawingRevision) {
-
                     drawingRevision.textContent =
                         data.drawingRevision ||
                         "-";
@@ -1004,7 +1141,6 @@ Important:
 
 
                 if (drawingName) {
-
                     drawingName.textContent =
                         data.drawingName ||
                         "-";
@@ -1012,16 +1148,194 @@ Important:
 
 
                 if (drawingType) {
-
                     drawingType.textContent =
                         data.drawingType ||
                         "-";
                 }
 
 
-                // =============================================
+                // =================================================
+                // WORKSHOP DRAWING FILE
+                // =================================================
+
+                if (
+                    drawingFileLink &&
+                    data.drawingFilePath
+                ) {
+
+                    drawingFileLink.href =
+                        data.drawingFilePath;
+
+                    drawingFileLink.textContent =
+                        data.drawingFileName ||
+                        "View File";
+
+                    drawingFileLink
+                        .classList
+                        .remove(
+                            "d-none"
+                        );
+
+
+                    if (drawingNoFile) {
+                        drawingNoFile
+                            .classList
+                            .add(
+                                "d-none"
+                            );
+                    }
+                }
+                else {
+
+                    if (drawingFileLink) {
+
+                        drawingFileLink.href =
+                            "#";
+
+                        drawingFileLink.textContent =
+                            "";
+
+                        drawingFileLink
+                            .classList
+                            .add(
+                                "d-none"
+                            );
+                    }
+
+
+                    if (drawingNoFile) {
+
+                        drawingNoFile
+                            .classList
+                            .remove(
+                                "d-none"
+                            );
+
+                        drawingNoFile.textContent =
+                            "No File";
+                    }
+                }
+
+
+                // =================================================
+                // CUSTOMER DRAWING
+                // =================================================
+
+                const hasCustomerDrawing =
+                    Boolean(
+                        data.customerDrawingId &&
+                        data.customerDrawingNumber
+                    );
+
+
+                if (customerDrawingStatus) {
+
+                    customerDrawingStatus.textContent =
+                        hasCustomerDrawing
+                            ? "Current"
+                            : "No Customer Drawing";
+                }
+
+
+                if (customerDrawingNumber) {
+
+                    customerDrawingNumber.textContent =
+                        data.customerDrawingNumber ||
+                        "-";
+                }
+
+
+                if (customerDrawingRevision) {
+
+                    customerDrawingRevision.textContent =
+                        data.customerDrawingRevision ||
+                        "-";
+                }
+
+
+                if (customerDrawingName) {
+
+                    customerDrawingName.textContent =
+                        data.customerDrawingName ||
+                        "-";
+                }
+
+
+                if (customerDrawingType) {
+
+                    customerDrawingType.textContent =
+                        data.customerDrawingType ||
+                        "-";
+                }
+
+
+                // =================================================
+                // CUSTOMER DRAWING FILE
+                // =================================================
+
+                if (
+                    customerDrawingFileLink &&
+                    data.customerDrawingFilePath
+                ) {
+
+                    customerDrawingFileLink.href =
+                        data.customerDrawingFilePath;
+
+                    customerDrawingFileLink.textContent =
+                        data.customerDrawingFileName ||
+                        "View File";
+
+                    customerDrawingFileLink
+                        .classList
+                        .remove(
+                            "d-none"
+                        );
+
+
+                    if (customerDrawingNoFile) {
+
+                        customerDrawingNoFile
+                            .classList
+                            .add(
+                                "d-none"
+                            );
+                    }
+                }
+                else {
+
+                    if (customerDrawingFileLink) {
+
+                        customerDrawingFileLink.href =
+                            "#";
+
+                        customerDrawingFileLink.textContent =
+                            "";
+
+                        customerDrawingFileLink
+                            .classList
+                            .add(
+                                "d-none"
+                            );
+                    }
+
+
+                    if (customerDrawingNoFile) {
+
+                        customerDrawingNoFile
+                            .classList
+                            .remove(
+                                "d-none"
+                            );
+
+                        customerDrawingNoFile.textContent =
+                            "No File";
+                    }
+                }
+
+
+                // =================================================
                 // SUMMARY
-                // =============================================
+                // =================================================
 
                 updateRowSummary(
                     row,
@@ -1045,7 +1359,45 @@ Important:
 
 
         // =====================================================
-        // HANDLE ITEM SELECTION
+        // CUSTOMER CHANGE REFRESH
+        // =====================================================
+
+        function refreshCustomerDrawings() {
+
+            const rows =
+                container.querySelectorAll(
+                    ".customer-po-item-row"
+                );
+
+
+            rows.forEach(
+                function (row) {
+
+                    const itemSelect =
+                        row.querySelector(
+                            ".item-select"
+                        );
+
+
+                    if (
+                        !itemSelect ||
+                        !itemSelect.value
+                    ) {
+                        return;
+                    }
+
+
+                    loadItemData(
+                        row,
+                        itemSelect.value
+                    );
+                }
+            );
+        }
+
+
+        // =====================================================
+        // ITEM SELECTION
         // =====================================================
 
         function handleItemSelection(
@@ -1132,7 +1484,7 @@ Important:
 
 
         // =====================================================
-        // ADD ITEM ROW
+        // ADD ITEM
         // =====================================================
 
         function addItemRow() {
@@ -1189,16 +1541,7 @@ Important:
 
             if (newRow) {
 
-                /*
-                 * Do not automatically open the Item dropdown.
-                 *
-                 * User will open the searchable dropdown manually.
-                 * This also prevents Select2 from opening upward
-                 * automatically during initial Create page load.
-                 */
-
                 newRow.scrollIntoView({
-
                     behavior:
                         "smooth",
 
@@ -1209,18 +1552,33 @@ Important:
         }
 
 
-        // =====================================================
-        // ADD BUTTON
-        // =====================================================
-
         addButton.addEventListener(
             "click",
-            addItemRow
+            function () {
+
+                addItemRow();
+            }
         );
 
 
         // =====================================================
-        // ROW CLICK EVENTS
+        // CUSTOMER CHANGE
+        // =====================================================
+
+        if (customerSelect) {
+
+            customerSelect.addEventListener(
+                "change",
+                function () {
+
+                    refreshCustomerDrawings();
+                }
+            );
+        }
+
+
+        // =====================================================
+        // ROW CLICK
         // =====================================================
 
         container.addEventListener(
@@ -1342,17 +1700,10 @@ Important:
                             "item-select"
                         )
                 ) {
-
                     return;
                 }
 
 
-                /*
-                 * Native dropdown fallback.
-                 *
-                 * When Select2 is active its own select2:select /
-                 * select2:clear events already handle the change.
-                 */
                 if (
                     hasSelect2() &&
                     event.target.classList
@@ -1360,7 +1711,6 @@ Important:
                             "select2-hidden-accessible"
                         )
                 ) {
-
                     return;
                 }
 
@@ -1373,7 +1723,7 @@ Important:
 
 
         // =====================================================
-        // INITIALIZE EXISTING ROWS
+        // INITIAL EXISTING ROWS
         // =====================================================
 
         let initialRows =
@@ -1403,6 +1753,31 @@ Important:
             initialRows[
             initialRows.length - 1
             ]
+        );
+
+
+        initialRows.forEach(
+            function (row) {
+
+                const itemSelect =
+                    row.querySelector(
+                        ".item-select"
+                    );
+
+
+                if (
+                    !itemSelect ||
+                    !itemSelect.value
+                ) {
+                    return;
+                }
+
+
+                loadItemData(
+                    row,
+                    itemSelect.value
+                );
+            }
         );
 
 
@@ -1453,12 +1828,70 @@ Important:
             );
 
 
-        if (!customerSelect ||
+        if (
+            !customerSelect ||
             !poNumberInput ||
             !warning ||
-            !list) {
-
+            !list
+        ) {
             return;
+        }
+
+
+        function refreshSaveButtons() {
+
+            const warningVisible =
+                !warning.classList
+                    .contains(
+                        "d-none"
+                    );
+
+
+            const exactExists =
+                Boolean(
+                    exactMessage &&
+                    !exactMessage.classList
+                        .contains(
+                            "d-none"
+                        )
+                );
+
+
+            const confirmationRequired =
+                Boolean(
+                    warningVisible &&
+                    !exactExists &&
+                    confirmationContainer &&
+                    !confirmationContainer
+                        .classList
+                        .contains(
+                            "d-none"
+                        )
+                );
+
+
+            const blockSave =
+                exactExists
+                ||
+                Boolean(
+                    confirmationRequired &&
+                    confirmation &&
+                    !confirmation.checked
+                );
+
+
+            form
+                .querySelectorAll(
+                    "button[type='submit'], " +
+                    "input[type='submit']"
+                )
+                .forEach(
+                    function (button) {
+
+                        button.disabled =
+                            blockSave;
+                    }
+                );
         }
 
 
@@ -1466,7 +1899,6 @@ Important:
 
             list.innerHTML =
                 "";
-
 
             warning.classList.add(
                 "d-none"
@@ -1504,61 +1936,6 @@ Important:
 
 
             refreshSaveButtons();
-        }
-
-
-        function refreshSaveButtons() {
-
-            const warningVisible =
-                !warning.classList
-                    .contains(
-                        "d-none"
-                    );
-
-
-            const exactExists =
-                exactMessage &&
-                !exactMessage.classList
-                    .contains(
-                        "d-none"
-                    );
-
-
-            const confirmationRequired =
-                warningVisible &&
-                !exactExists &&
-                confirmationContainer &&
-                !confirmationContainer
-                    .classList
-                    .contains(
-                        "d-none"
-                    );
-
-
-            const blockSave =
-                Boolean(
-                    exactExists
-                )
-                ||
-                Boolean(
-                    confirmationRequired &&
-                    confirmation &&
-                    !confirmation.checked
-                );
-
-
-            form
-                .querySelectorAll(
-                    "button[type='submit'], " +
-                    "input[type='submit']"
-                )
-                .forEach(
-                    function (button) {
-
-                        button.disabled =
-                            blockSave;
-                    }
-                );
         }
 
 
@@ -1627,16 +2004,6 @@ Important:
             }
 
 
-            /*
-             * Exact duplicate:
-             * - blocked
-             * - no confirmation option
-             *
-             * Similar:
-             * - user reviews list
-             * - confirmation required
-             */
-
             if (confirmationContainer) {
 
                 confirmationContainer
@@ -1655,12 +2022,11 @@ Important:
             }
 
 
-            poNumberInput
-                .setCustomValidity(
-                    hasExactMatch
-                        ? "Customer PO Number already exists for the selected Customer."
-                        : ""
-                );
+            poNumberInput.setCustomValidity(
+                hasExactMatch
+                    ? "Customer PO Number already exists for the selected Customer."
+                    : ""
+            );
 
 
             refreshSaveButtons();
@@ -1702,8 +2068,7 @@ Important:
 
             if (customerPoNumberRequest) {
 
-                customerPoNumberRequest
-                    .abort();
+                customerPoNumberRequest.abort();
             }
 
 
@@ -1861,12 +2226,10 @@ Important:
         }
 
 
-        /*
-         * Edit / validation-return page.
-         */
         if (
             customerSelect.value &&
-            poNumberInput.value.trim()
+            poNumberInput.value
+                .trim()
                 .length >= 3
         ) {
 
@@ -1880,7 +2243,7 @@ Important:
 
 
     // =========================================================
-    // NOTIFICATION HELPERS
+    // NOTIFICATION
     // =========================================================
 
     function showError(

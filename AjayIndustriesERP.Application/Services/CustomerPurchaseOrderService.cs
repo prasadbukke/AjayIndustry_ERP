@@ -12,12 +12,15 @@ Responsibilities:
 - Validate Customer PO header information.
 - Validate Customer PO Items.
 - Load trusted Item Master information.
+- Load current Customer Drawing using Customer + Item.
 - Create historical Item snapshots.
+- Create Customer Drawing Number / Revision snapshots.
 - Create Draft Customer Purchase Orders.
 - Update Draft Customer Purchase Orders.
 - Synchronize Customer PO Item rows.
 - Confirm Draft Customer Purchase Orders.
-- Soft-delete Draft Customer Purchase Orders.
+- Soft-delete Customer Purchase Orders.
+- Restore deleted Customer Purchase Orders.
 
 Internal Customer PO Code:
 AI/CPO/26-27/00001
@@ -27,9 +30,10 @@ Important Business Rules:
 - Same Customer + Same Customer PO Number is not allowed.
 - Existing Item Master must be used.
 - Customer / Item snapshots posted from browser are NOT trusted.
+- Customer Drawing Number / Revision posted from browser are NOT trusted.
+- Customer Drawing snapshot is resolved from Customer + Item.
 - Only Draft Customer POs can be edited.
-- Only Draft Customer POs can be deleted.
-- Same Item may appear more than once on one Customer PO.
+- Same Item cannot appear more than once on one Customer PO.
 - Production Machine / Pipeline information is NOT stored here.
 ============================================================
 */
@@ -51,16 +55,24 @@ namespace AjayIndustriesERP.Application.Services
             ICustomerPurchaseOrderRepository
             _repository;
 
+        private readonly
+            ICustomerDrawingService
+            _customerDrawingService;
+
         #endregion
 
 
         #region Constructor
 
         public CustomerPurchaseOrderService(
-            ICustomerPurchaseOrderRepository repository)
+            ICustomerPurchaseOrderRepository repository,
+            ICustomerDrawingService customerDrawingService)
         {
             _repository =
                 repository;
+
+            _customerDrawingService =
+                customerDrawingService;
         }
 
         #endregion
@@ -312,6 +324,7 @@ namespace AjayIndustriesERP.Application.Services
                 var preparedItem =
                     await PrepareTrustedItemAsync(
                         submittedItem,
+                        customer.Id,
                         isNewLine: true);
 
 
@@ -507,6 +520,7 @@ namespace AjayIndustriesERP.Application.Services
                 var preparedItem =
                     await PrepareTrustedItemAsync(
                         submittedItem,
+                        customer.Id,
                         isNewLine:
                             submittedItem.Id <= 0);
 
@@ -706,6 +720,7 @@ namespace AjayIndustriesERP.Application.Services
              * Transaction Status itself is preserved.
              *
              * Example:
+             *
              * Confirmed PO deleted
              *     ↓
              * Restore
@@ -750,7 +765,6 @@ namespace AjayIndustriesERP.Application.Services
 
         #endregion
 
-        
 
         #region Deleted Customer Purchase Orders
 
@@ -834,12 +848,20 @@ namespace AjayIndustriesERP.Application.Services
         private async Task<CustomerPurchaseOrderItem>
             PrepareTrustedItemAsync(
                 CustomerPurchaseOrderItem submittedItem,
+                int customerId,
                 bool isNewLine)
         {
             if (submittedItem == null)
             {
                 throw new BusinessException(
                     "Invalid Customer Purchase Order Item.");
+            }
+
+
+            if (customerId <= 0)
+            {
+                throw new BusinessException(
+                    "Invalid Customer for Customer Purchase Order Item.");
             }
 
 
@@ -850,6 +872,8 @@ namespace AjayIndustriesERP.Application.Services
             ValidateItem(
                 submittedItem);
 
+
+            #region Trusted Item Master
 
             var item =
                 await _repository
@@ -878,6 +902,43 @@ namespace AjayIndustriesERP.Application.Services
                     $"{item.ItemCode} - {item.ItemName}.");
             }
 
+            #endregion
+
+
+            #region Trusted Customer Drawing
+
+            /*
+             * Customer Drawing is resolved from:
+             *
+             * Customer + Item
+             *
+             * Browser-posted CustomerDrawingNumber
+             * and Revision are NOT trusted.
+             *
+             * GetByCustomerAndItemAsync returns the
+             * current active Customer Drawing revision.
+             */
+
+            var currentCustomerDrawing =
+                await _customerDrawingService
+                    .GetByCustomerAndItemAsync(
+                        customerId,
+                        item.ItemId);
+
+
+            var customerDrawingNumber =
+                currentCustomerDrawing?
+                    .DrawingNumber;
+
+
+            var customerDrawingRevision =
+                currentCustomerDrawing?
+                    .RevisionNumber;
+
+            #endregion
+
+
+            #region Prepare Snapshot
 
             var preparedItem =
                 new CustomerPurchaseOrderItem
@@ -905,12 +966,24 @@ namespace AjayIndustriesERP.Application.Services
                         submittedItem
                             .CustomerItemCode,
 
+                    /*
+                     * Historical Customer Drawing snapshot.
+                     *
+                     * Example:
+                     *
+                     * Customer Drawing Master:
+                     * CD-001 / RV-03
+                     *
+                     * Customer PO Item Snapshot:
+                     * CustomerDrawingNumber = CD-001
+                     * Revision              = RV-03
+                     */
+
                     CustomerDrawingNumber =
-                        submittedItem
-                            .CustomerDrawingNumber,
+                        customerDrawingNumber,
 
                     Revision =
-                        submittedItem.Revision,
+                        customerDrawingRevision,
 
                     OrderedQuantity =
                         submittedItem
@@ -948,6 +1021,8 @@ namespace AjayIndustriesERP.Application.Services
 
 
             return preparedItem;
+
+            #endregion
         }
 
         #endregion
@@ -1139,20 +1214,13 @@ namespace AjayIndustriesERP.Application.Services
             }
 
 
-            if (item.CustomerDrawingNumber?.Length >
-                150)
-            {
-                throw new BusinessException(
-                    "Customer Drawing Number cannot exceed 150 characters.");
-            }
-
-
-            if (item.Revision?.Length >
-                50)
-            {
-                throw new BusinessException(
-                    "Revision cannot exceed 50 characters.");
-            }
+            /*
+             * CustomerDrawingNumber and Revision
+             * are intentionally NOT validated here.
+             *
+             * Browser-posted values are ignored.
+             * Trusted values come from Customer Drawing Master.
+             */
 
 
             if (item.Priority.HasValue &&
@@ -1215,14 +1283,11 @@ namespace AjayIndustriesERP.Application.Services
                     item.CustomerItemCode);
 
 
-            item.CustomerDrawingNumber =
-                NormalizeOptional(
-                    item.CustomerDrawingNumber);
-
-
-            item.Revision =
-                NormalizeOptional(
-                    item.Revision);
+            /*
+             * CustomerDrawingNumber and Revision
+             * are not normalized because posted values
+             * are not trusted or used.
+             */
 
 
             item.Remarks =
@@ -1313,6 +1378,10 @@ namespace AjayIndustriesERP.Application.Services
 
             target.CustomerItemCode =
                 source.CustomerItemCode;
+
+            /*
+             * Trusted Customer Drawing snapshot.
+             */
 
             target.CustomerDrawingNumber =
                 source.CustomerDrawingNumber;
@@ -1479,6 +1548,7 @@ namespace AjayIndustriesERP.Application.Services
 
         #endregion
 
+
         #region Duplicate Item Validation
 
         private static void ValidateDuplicateItems(
@@ -1503,6 +1573,7 @@ namespace AjayIndustriesERP.Application.Services
 
         #endregion
 
+
         #region Pagination Helper
 
         private static void NormalizePagination(
@@ -1524,6 +1595,7 @@ namespace AjayIndustriesERP.Application.Services
         }
 
         #endregion
+
 
         #region Customer PO Validation
 

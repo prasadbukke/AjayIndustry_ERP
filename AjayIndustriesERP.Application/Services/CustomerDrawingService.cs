@@ -112,6 +112,32 @@ namespace AjayIndustriesERP.Application.Services
         }
 
 
+        public async Task<CustomerDrawing?>
+    GetRevisionAsync(
+        int customerId,
+        string drawingNumber,
+        string revisionNumber)
+        {
+            if (
+                customerId <= 0 ||
+                string.IsNullOrWhiteSpace(
+                    drawingNumber) ||
+                string.IsNullOrWhiteSpace(
+                    revisionNumber)
+            )
+            {
+                return null;
+            }
+
+
+            return await _customerDrawingRepository
+                .GetRevisionAsync(
+                    customerId,
+                    drawingNumber.Trim(),
+                    revisionNumber.Trim());
+        }
+
+
         public async Task<List<CustomerDrawing>>
             GetRevisionHistoryAsync(
                 int customerDrawingId)
