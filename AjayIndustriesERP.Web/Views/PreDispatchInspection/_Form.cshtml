@@ -1,0 +1,1646 @@
+﻿@*
+============================================================
+File: _Form.cshtml
+
+Purpose:
+Shared Create / Edit form for Pre-Dispatch /
+Final Inspection Report.
+
+Responsibilities:
+- Select Production Job source.
+- Display trusted Customer / PO / Item information.
+- Display Workshop and Customer Drawing information.
+- Capture Invoice information.
+- Capture Inspection quantities.
+- Display and edit Inspection Parameter table.
+- Capture 7 normal observations.
+- Capture 3 interval readings.
+- Capture line result and remarks.
+- Capture Supplier / Inspection remarks.
+- Capture Inspector and Reviewer.
+
+Important:
+- Parent Create / Edit view owns the <form>.
+- Source information is display-only.
+- Production Job selection is locked after PDI Create.
+- Complex dynamic behaviour is handled by separate JS.
+============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.PreDispatchInspection.PreDispatchInspectionFormViewModel
+
+@using AjayIndustriesERP.Domain.Enums
+
+
+@{
+    var isEdit =
+        Model.Id > 0;
+}
+
+
+<!-- =========================================================
+     REGION 1 — VALIDATION
+========================================================== -->
+
+<div asp-validation-summary="ModelOnly"
+     class="alert alert-danger">
+</div>
+
+
+<input asp-for="Id"
+       type="hidden" />
+
+<input asp-for="Status"
+       type="hidden" />
+
+<input asp-for="Result"
+       type="hidden" />
+
+
+<!-- =========================================================
+     REGION 2 — REPORT HEADER
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-bordered
+                          align-middle
+                          mb-0">
+
+                <tbody>
+
+                    <tr>
+
+                        <td class="fw-bold
+                                   fs-5
+                                   align-middle">
+
+                            AJAY INDUSTRIES
+
+                        </td>
+
+
+                        <td class="text-center
+                                   fw-bold
+                                   fs-4
+                                   align-middle">
+
+                            FINAL INSPECTION REPORT
+
+                        </td>
+
+
+                        <td class="align-middle">
+
+                            <div class="small text-muted">
+                                PDI Report No.
+                            </div>
+
+                            <div class="fw-semibold">
+
+                                @(string.IsNullOrWhiteSpace(
+                                    Model.Code)
+                                    ? "Auto Generated"
+                                    : Model.Code)
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 3 — PRODUCTION JOB SOURCE
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-industry
+                      me-1">
+            </i>
+
+            Production Source
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+
+            <!-- PRODUCTION JOB -->
+
+            <div class="col-lg-8">
+
+                <label asp-for="ProductionJobId"
+                       class="form-label fw-semibold">
+
+                    Production Job
+                    <span class="text-danger">*</span>
+
+                </label>
+
+
+                @if (!isEdit)
+                {
+                    <select asp-for="ProductionJobId"
+                            asp-items="Model.ProductionJobs"
+                            class="form-select"
+                            id="ProductionJobId">
+
+                        <option value="">
+                            -- Select Completed Production Job --
+                        </option>
+
+                    </select>
+                }
+                else
+                {
+                    <input type="hidden"
+                           asp-for="ProductionJobId" />
+
+                    <input type="text"
+                           class="form-control"
+                           value="@Model.ProductionJobCode"
+                           readonly />
+                }
+
+
+                <span asp-validation-for="ProductionJobId"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- INSPECTION DATE -->
+
+            <div class="col-lg-4">
+
+                <label asp-for="InspectionDate"
+                       class="form-label fw-semibold">
+
+                    Inspection Date
+                    <span class="text-danger">*</span>
+
+                </label>
+
+                <input asp-for="InspectionDate"
+                       type="date"
+                       class="form-control" />
+
+                <span asp-validation-for="InspectionDate"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 4 — REPORT SOURCE INFORMATION
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4"
+     id="pdiSourceInformation">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-file-lines
+                      me-1">
+            </i>
+
+            Report Information
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-4">
+
+
+            <!-- PART / PRODUCT NAME -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Part / Product Name
+                </div>
+
+                <div class="fw-semibold"
+                     id="displayItemName">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.ItemName)
+                        ? "-"
+                        : Model.ItemName)
+
+                </div>
+
+            </div>
+
+
+            <!-- PART NUMBER -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Part No.
+                </div>
+
+                <div class="fw-semibold"
+                     id="displayPartNumber">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.PartNumber)
+                        ? "-"
+                        : Model.PartNumber)
+
+                </div>
+
+            </div>
+
+
+            <!-- ITEM CODE -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    ERP Item Code
+                </div>
+
+                <div class="fw-semibold"
+                     id="displayItemCode">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.ItemCode)
+                        ? "-"
+                        : Model.ItemCode)
+
+                </div>
+
+            </div>
+
+
+            <!-- CUSTOMER -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Customer Name
+                </div>
+
+                <div class="fw-semibold"
+                     id="displayCustomerName">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.CustomerName)
+                        ? "-"
+                        : Model.CustomerName)
+
+                </div>
+
+            </div>
+
+
+            <!-- CUSTOMER PO -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Customer PO Number
+                </div>
+
+                <div class="fw-semibold"
+                     id="displayCustomerPoNumber">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.CustomerPurchaseOrderNumber)
+                        ? "-"
+                        : Model.CustomerPurchaseOrderNumber)
+
+                </div>
+
+            </div>
+
+
+            <!-- CUSTOMER ITEM CODE -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Customer Item Code
+                </div>
+
+                <div class="fw-semibold"
+                     id="displayCustomerItemCode">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.CustomerItemCode)
+                        ? "-"
+                        : Model.CustomerItemCode)
+
+                </div>
+
+            </div>
+
+
+            <!-- WORKSHOP DRAWING -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Workshop Drawing
+                </div>
+
+                <div class="fw-semibold"
+                     id="displayWorkshopDrawingNumber">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.WorkshopDrawingNumber)
+                        ? "-"
+                        : Model.WorkshopDrawingNumber)
+
+                </div>
+
+            </div>
+
+
+            <!-- WORKSHOP REVISION -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Workshop Revision
+                </div>
+
+                <div class="fw-semibold"
+                     id="displayWorkshopDrawingRevision">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.WorkshopDrawingRevision)
+                        ? "-"
+                        : Model.WorkshopDrawingRevision)
+
+                </div>
+
+            </div>
+
+
+            <!-- CUSTOMER DRAWING -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Customer Drawing
+                </div>
+
+                <div class="fw-semibold"
+                     id="displayCustomerDrawingNumber">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.CustomerDrawingNumber)
+                        ? "-"
+                        : Model.CustomerDrawingNumber)
+
+                </div>
+
+            </div>
+
+
+            <!-- CUSTOMER DRAWING REVISION -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Customer Drawing Revision
+                </div>
+
+                <div class="fw-semibold"
+                     id="displayCustomerDrawingRevision">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.CustomerDrawingRevision)
+                        ? "-"
+                        : Model.CustomerDrawingRevision)
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 5 — QUANTITY + INVOICE
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-boxes-stacked
+                      me-1">
+            </i>
+
+            Quantity / Invoice Information
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+
+            <!-- JOB QTY -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Production Job Qty
+                </div>
+
+                <div class="fw-bold">
+
+                    <span id="displayJobQuantity">
+                        @Model.JobQuantity.ToString("0.###")
+                    </span>
+
+                    <span id="displayUnitName">
+                        @Model.UnitName
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- REMAINING QTY -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Available For Inspection
+                </div>
+
+                <div class="fw-bold text-success">
+
+                    <span id="displayRemainingInspectionQuantity">
+                        @Model.RemainingInspectionQuantity.ToString("0.###")
+                    </span>
+
+                    <span>
+                        @Model.UnitName
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- INSPECTION QTY -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <label asp-for="InspectionQuantity"
+                       class="form-label fw-semibold">
+
+                    Inspection Qty
+                    <span class="text-danger">*</span>
+
+                </label>
+
+                <input asp-for="InspectionQuantity"
+                       class="form-control"
+                       inputmode="decimal" />
+
+                <span asp-validation-for="InspectionQuantity"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- INVOICE QTY -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <label asp-for="InvoiceQuantity"
+                       class="form-label">
+
+                    Invoice Qty
+
+                </label>
+
+                <input asp-for="InvoiceQuantity"
+                       class="form-control"
+                       inputmode="decimal" />
+
+                <span asp-validation-for="InvoiceQuantity"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- INVOICE NUMBER -->
+
+            <div class="col-lg-6 col-md-6">
+
+                <label asp-for="InvoiceNumber"
+                       class="form-label">
+
+                    Invoice Number
+
+                </label>
+
+                <input asp-for="InvoiceNumber"
+                       class="form-control"
+                       placeholder="Optional until Invoice module is linked" />
+
+                <span asp-validation-for="InvoiceNumber"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- INVOICE DATE -->
+
+            <div class="col-lg-6 col-md-6">
+
+                <label asp-for="InvoiceDate"
+                       class="form-label">
+
+                    Invoice Date
+
+                </label>
+
+                <input asp-for="InvoiceDate"
+                       type="date"
+                       class="form-control" />
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 6 — INSPECTION TABLE
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header
+                bg-light
+                d-flex
+                justify-content-between
+                align-items-center
+                flex-wrap
+                gap-2">
+
+        <div class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-clipboard-check
+                      me-1">
+            </i>
+
+            Inspection Parameters & Observations
+
+        </div>
+
+
+        <button type="button"
+                class="btn btn-sm btn-outline-primary"
+                id="btnAddInspectionLine">
+
+            <i class="fa-solid fa-plus me-1"></i>
+
+            Add Parameter
+
+        </button>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-bordered
+                          table-sm
+                          align-middle
+                          mb-0"
+                   id="pdiInspectionTable">
+
+                <thead class="table-light text-center">
+
+                    <tr>
+
+                        <th rowspan="2"
+                            class="align-middle text-nowrap">
+                            Sr.
+                        </th>
+
+                        <th rowspan="2"
+                            class="align-middle">
+                            Parameter
+                        </th>
+
+                        <th rowspan="2"
+                            class="align-middle">
+                            Specification
+                        </th>
+
+                        <th rowspan="2"
+                            class="align-middle">
+                            Inspection Method
+                        </th>
+
+                        <th colspan="7">
+                            Observation
+                        </th>
+
+                        <th colspan="3">
+                            Reading At Interval
+                        </th>
+
+                        <th rowspan="2"
+                            class="align-middle">
+                            Result
+                        </th>
+
+                        <th rowspan="2"
+                            class="align-middle">
+                            Remarks
+                        </th>
+
+                        <th rowspan="2"
+                            class="align-middle">
+                            Action
+                        </th>
+
+                    </tr>
+
+
+                    <tr>
+
+                        @for (var observationNumber = 1;
+                            observationNumber <= 7;
+                            observationNumber++)
+                        {
+                            <th class="text-nowrap">
+                                @observationNumber
+                            </th>
+                        }
+
+
+                        @for (var intervalNumber = 1;
+                            intervalNumber <= 3;
+                            intervalNumber++)
+                        {
+                            <th class="text-nowrap">
+                                @intervalNumber
+                            </th>
+                        }
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="pdiInspectionLinesContainer">
+
+                    @for (var lineIndex = 0;
+                        lineIndex < Model.Lines.Count;
+                        lineIndex++)
+                    {
+                        var line =
+                            Model.Lines[lineIndex];
+
+                        var normalObservations =
+                            line.Observations
+                                .Where(x =>
+                                    !x.IsIntervalReading)
+                                .OrderBy(x =>
+                                    x.SequenceNumber)
+                                .ToList();
+
+                        var intervalReadings =
+                            line.Observations
+                                .Where(x =>
+                                    x.IsIntervalReading)
+                                .OrderBy(x =>
+                                    x.SequenceNumber)
+                                .ToList();
+
+
+                        <tr class="pdi-inspection-line">
+
+                            <!-- IDENTIFICATION -->
+
+                            <td class="text-center">
+
+                                <input asp-for="Lines[lineIndex].Id"
+                                       type="hidden" />
+
+                                <input asp-for="Lines[lineIndex].SequenceNumber"
+                                       type="hidden"
+                                       class="line-sequence-number" />
+
+                                <span class="line-sequence-display">
+                                    @(lineIndex + 1)
+                                </span>
+
+                            </td>
+
+
+                            <!-- PARAMETER -->
+
+                            <td>
+
+                                <input asp-for="Lines[lineIndex].Parameter"
+                                       class="form-control form-control-sm"
+                                       placeholder="Parameter" />
+
+                            </td>
+
+
+                            <!-- SPECIFICATION -->
+
+                            <td>
+
+                                <input asp-for="Lines[lineIndex].Specification"
+                                       class="form-control form-control-sm"
+                                       placeholder="Specification" />
+
+                            </td>
+
+
+                            <!-- METHOD -->
+
+                            <td>
+
+                                <input asp-for="Lines[lineIndex].InspectionMethod"
+                                       class="form-control form-control-sm"
+                                       placeholder="Inspection Method" />
+
+                            </td>
+
+
+                            <!-- NORMAL OBSERVATIONS -->
+
+                            @for (var observationNumber = 1;
+                                observationNumber <= 7;
+                                observationNumber++)
+                            {
+                                var observation =
+                                    normalObservations
+                                        .FirstOrDefault(x =>
+                                            x.SequenceNumber ==
+                                            observationNumber);
+
+                                var observationListIndex =
+                                    observation == null
+                                        ? -1
+                                        : line.Observations.IndexOf(
+                                            observation);
+
+
+                                <td>
+
+                                    @if (observation != null)
+                                    {
+                                        <input asp-for="Lines[lineIndex].Observations[observationListIndex].Id"
+                                               type="hidden" />
+
+                                        <input asp-for="Lines[lineIndex].Observations[observationListIndex].SequenceNumber"
+                                               type="hidden" />
+
+                                        <input asp-for="Lines[lineIndex].Observations[observationListIndex].IsIntervalReading"
+                                               type="hidden" />
+
+                                        <input asp-for="Lines[lineIndex].Observations[observationListIndex].Value"
+                                               class="form-control
+                                                      form-control-sm
+                                                      text-center"
+                                               placeholder="-" />
+                                    }
+
+                                </td>
+                            }
+
+
+                            <!-- INTERVAL READINGS -->
+
+                            @for (var intervalNumber = 1;
+                                intervalNumber <= 3;
+                                intervalNumber++)
+                            {
+                                var observation =
+                                    intervalReadings
+                                        .FirstOrDefault(x =>
+                                            x.SequenceNumber ==
+                                            intervalNumber);
+
+                                var observationListIndex =
+                                    observation == null
+                                        ? -1
+                                        : line.Observations.IndexOf(
+                                            observation);
+
+
+                                <td>
+
+                                    @if (observation != null)
+                                    {
+                                        <input asp-for="Lines[lineIndex].Observations[observationListIndex].Id"
+                                               type="hidden" />
+
+                                        <input asp-for="Lines[lineIndex].Observations[observationListIndex].SequenceNumber"
+                                               type="hidden" />
+
+                                        <input asp-for="Lines[lineIndex].Observations[observationListIndex].IsIntervalReading"
+                                               type="hidden" />
+
+                                        <input asp-for="Lines[lineIndex].Observations[observationListIndex].Value"
+                                               class="form-control
+                                                      form-control-sm
+                                                      text-center"
+                                               placeholder="-" />
+                                    }
+
+                                </td>
+                            }
+
+
+                            <!-- RESULT -->
+
+                            <td>
+
+                                <select asp-for="Lines[lineIndex].Result"
+                                        class="form-select form-select-sm">
+
+                                    <option value="@((int)PreDispatchInspectionLineResult.Pending)">
+                                        Pending
+                                    </option>
+
+                                    <option value="@((int)PreDispatchInspectionLineResult.Pass)">
+                                        Pass
+                                    </option>
+
+                                    <option value="@((int)PreDispatchInspectionLineResult.Fail)">
+                                        Fail
+                                    </option>
+
+                                    <option value="@((int)PreDispatchInspectionLineResult.NotApplicable)">
+                                        N/A
+                                    </option>
+
+                                </select>
+
+                            </td>
+
+
+                            <!-- REMARKS -->
+
+                            <td>
+
+                                <input asp-for="Lines[lineIndex].Remarks"
+                                       class="form-control form-control-sm"
+                                       placeholder="Remarks" />
+
+                            </td>
+
+
+                            <!-- REMOVE -->
+
+                            <td class="text-center">
+
+                                <button type="button"
+                                        class="btn
+                                               btn-sm
+                                               btn-outline-danger
+                                               btn-remove-inspection-line"
+                                        title="Remove Parameter">
+
+                                    <i class="fa-solid fa-trash"></i>
+
+                                </button>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <div id="pdiNoInspectionLinesMessage"
+             class="text-center
+                    text-muted
+                    py-4
+                    @(Model.Lines.Any() ? "d-none" : "")">
+
+            <i class="fa-solid
+                      fa-circle-info
+                      me-1">
+            </i>
+
+            Select a Production Job to load Item Specifications.
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 7 — QUANTITY RESULT
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-square-check
+                      me-1">
+            </i>
+
+            Inspection Result Quantity
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+
+            <!-- ACCEPTED -->
+
+            <div class="col-lg-4">
+
+                <label asp-for="AcceptedQuantity"
+                       class="form-label fw-semibold">
+
+                    Accepted Qty
+
+                </label>
+
+                <input asp-for="AcceptedQuantity"
+                       class="form-control"
+                       inputmode="decimal" />
+
+                <span asp-validation-for="AcceptedQuantity"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- REWORK -->
+
+            <div class="col-lg-4">
+
+                <label asp-for="ReworkQuantity"
+                       class="form-label fw-semibold">
+
+                    Rework Qty
+
+                </label>
+
+                <input asp-for="ReworkQuantity"
+                       class="form-control"
+                       inputmode="decimal" />
+
+                <span asp-validation-for="ReworkQuantity"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- REJECT -->
+
+            <div class="col-lg-4">
+
+                <label asp-for="RejectedQuantity"
+                       class="form-label fw-semibold">
+
+                    Reject Qty
+
+                </label>
+
+                <input asp-for="RejectedQuantity"
+                       class="form-control"
+                       inputmode="decimal" />
+
+                <span asp-validation-for="RejectedQuantity"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="small text-muted mt-3">
+
+            On Finalize:
+
+            <strong>
+                Accepted + Rework + Reject
+            </strong>
+
+            must equal
+
+            <strong>
+                Inspection Quantity
+            </strong>.
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 8 — REMARKS
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-comment-dots
+                      me-1">
+            </i>
+
+            Inspection Remarks
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-4">
+
+
+            <!-- SUPPLIER REMARKS -->
+
+            <div class="col-lg-6">
+
+                <label asp-for="SupplierRemarks"
+                       class="form-label">
+
+                    Supplier Remarks
+
+                </label>
+
+                <textarea asp-for="SupplierRemarks"
+                          rows="3"
+                          class="form-control"
+                          placeholder="Example: Visually Accepted">
+                </textarea>
+
+                <span asp-validation-for="SupplierRemarks"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- INSPECTION REMARKS -->
+
+            <div class="col-lg-6">
+
+                <label asp-for="InspectionRemarks"
+                       class="form-label">
+
+                    Inspection Remarks
+
+                </label>
+
+                <textarea asp-for="InspectionRemarks"
+                          rows="3"
+                          class="form-control"
+                          placeholder="Final inspection remarks">
+                </textarea>
+
+                <span asp-validation-for="InspectionRemarks"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 9 — APPROVAL / RELEASE
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-user-check
+                      me-1">
+            </i>
+
+            Approval / Release
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-4">
+
+
+            <!-- INSPECTED BY -->
+
+            <div class="col-lg-6">
+
+                <label asp-for="InspectedBy"
+                       class="form-label fw-semibold">
+
+                    Inspected By
+
+                </label>
+
+                <input asp-for="InspectedBy"
+                       class="form-control"
+                       placeholder="Quality Inspector" />
+
+                <span asp-validation-for="InspectedBy"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- REVIEWED BY -->
+
+            <div class="col-lg-6">
+
+                <label asp-for="ReviewedBy"
+                       class="form-label fw-semibold">
+
+                    Reviewed / Approved By
+
+                </label>
+
+                <input asp-for="ReviewedBy"
+                       class="form-control"
+                       placeholder="Authorized Person" />
+
+                <span asp-validation-for="ReviewedBy"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 10 — DYNAMIC LINE TEMPLATE
+========================================================== -->
+
+<template id="pdiInspectionLineTemplate">
+
+    <tr class="pdi-inspection-line">
+
+        <td class="text-center">
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Id"
+                   value="0" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].SequenceNumber"
+                   value="__sequenceNumber__"
+                   class="line-sequence-number" />
+
+            <span class="line-sequence-display">
+                __sequenceNumber__
+            </span>
+
+        </td>
+
+
+        <td>
+
+            <input type="text"
+                   name="Lines[__lineIndex__].Parameter"
+                   class="form-control form-control-sm"
+                   value="__parameter__"
+                   placeholder="Parameter" />
+
+        </td>
+
+
+        <td>
+
+            <input type="text"
+                   name="Lines[__lineIndex__].Specification"
+                   class="form-control form-control-sm"
+                   value="__specification__"
+                   placeholder="Specification" />
+
+        </td>
+
+
+        <td>
+
+            <input type="text"
+                   name="Lines[__lineIndex__].InspectionMethod"
+                   class="form-control form-control-sm"
+                   value="__inspectionMethod__"
+                   placeholder="Inspection Method" />
+
+        </td>
+
+
+        <!-- OBSERVATION 1 -->
+
+        <td>
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[0].Id"
+                   value="0" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[0].SequenceNumber"
+                   value="1" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[0].IsIntervalReading"
+                   value="false" />
+
+            <input type="text"
+                   name="Lines[__lineIndex__].Observations[0].Value"
+                   class="form-control form-control-sm text-center"
+                   placeholder="-" />
+
+        </td>
+
+
+        <!-- OBSERVATION 2 -->
+
+        <td>
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[1].Id"
+                   value="0" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[1].SequenceNumber"
+                   value="2" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[1].IsIntervalReading"
+                   value="false" />
+
+            <input type="text"
+                   name="Lines[__lineIndex__].Observations[1].Value"
+                   class="form-control form-control-sm text-center"
+                   placeholder="-" />
+
+        </td>
+
+
+        <!-- OBSERVATION 3 -->
+
+        <td>
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[2].Id"
+                   value="0" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[2].SequenceNumber"
+                   value="3" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[2].IsIntervalReading"
+                   value="false" />
+
+            <input type="text"
+                   name="Lines[__lineIndex__].Observations[2].Value"
+                   class="form-control form-control-sm text-center"
+                   placeholder="-" />
+
+        </td>
+
+
+        <!-- OBSERVATION 4 -->
+
+        <td>
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[3].Id"
+                   value="0" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[3].SequenceNumber"
+                   value="4" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[3].IsIntervalReading"
+                   value="false" />
+
+            <input type="text"
+                   name="Lines[__lineIndex__].Observations[3].Value"
+                   class="form-control form-control-sm text-center"
+                   placeholder="-" />
+
+        </td>
+
+
+        <!-- OBSERVATION 5 -->
+
+        <td>
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[4].Id"
+                   value="0" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[4].SequenceNumber"
+                   value="5" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[4].IsIntervalReading"
+                   value="false" />
+
+            <input type="text"
+                   name="Lines[__lineIndex__].Observations[4].Value"
+                   class="form-control form-control-sm text-center"
+                   placeholder="-" />
+
+        </td>
+
+
+        <!-- OBSERVATION 6 -->
+
+        <td>
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[5].Id"
+                   value="0" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[5].SequenceNumber"
+                   value="6" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[5].IsIntervalReading"
+                   value="false" />
+
+            <input type="text"
+                   name="Lines[__lineIndex__].Observations[5].Value"
+                   class="form-control form-control-sm text-center"
+                   placeholder="-" />
+
+        </td>
+
+
+        <!-- OBSERVATION 7 -->
+
+        <td>
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[6].Id"
+                   value="0" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[6].SequenceNumber"
+                   value="7" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[6].IsIntervalReading"
+                   value="false" />
+
+            <input type="text"
+                   name="Lines[__lineIndex__].Observations[6].Value"
+                   class="form-control form-control-sm text-center"
+                   placeholder="-" />
+
+        </td>
+
+
+        <!-- INTERVAL 1 -->
+
+        <td>
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[7].Id"
+                   value="0" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[7].SequenceNumber"
+                   value="1" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[7].IsIntervalReading"
+                   value="true" />
+
+            <input type="text"
+                   name="Lines[__lineIndex__].Observations[7].Value"
+                   class="form-control form-control-sm text-center"
+                   placeholder="-" />
+
+        </td>
+
+
+        <!-- INTERVAL 2 -->
+
+        <td>
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[8].Id"
+                   value="0" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[8].SequenceNumber"
+                   value="2" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[8].IsIntervalReading"
+                   value="true" />
+
+            <input type="text"
+                   name="Lines[__lineIndex__].Observations[8].Value"
+                   class="form-control form-control-sm text-center"
+                   placeholder="-" />
+
+        </td>
+
+
+        <!-- INTERVAL 3 -->
+
+        <td>
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[9].Id"
+                   value="0" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[9].SequenceNumber"
+                   value="3" />
+
+            <input type="hidden"
+                   name="Lines[__lineIndex__].Observations[9].IsIntervalReading"
+                   value="true" />
+
+            <input type="text"
+                   name="Lines[__lineIndex__].Observations[9].Value"
+                   class="form-control form-control-sm text-center"
+                   placeholder="-" />
+
+        </td>
+
+
+        <!-- RESULT -->
+
+        <td>
+
+            <select name="Lines[__lineIndex__].Result"
+                    class="form-select form-select-sm">
+
+                <option value="@((int)PreDispatchInspectionLineResult.Pending)">
+                    Pending
+                </option>
+
+                <option value="@((int)PreDispatchInspectionLineResult.Pass)">
+                    Pass
+                </option>
+
+                <option value="@((int)PreDispatchInspectionLineResult.Fail)">
+                    Fail
+                </option>
+
+                <option value="@((int)PreDispatchInspectionLineResult.NotApplicable)">
+                    N/A
+                </option>
+
+            </select>
+
+        </td>
+
+
+        <!-- REMARKS -->
+
+        <td>
+
+            <input type="text"
+                   name="Lines[__lineIndex__].Remarks"
+                   class="form-control form-control-sm"
+                   placeholder="Remarks" />
+
+        </td>
+
+
+        <!-- ACTION -->
+
+        <td class="text-center">
+
+            <button type="button"
+                    class="btn
+                           btn-sm
+                           btn-outline-danger
+                           btn-remove-inspection-line"
+                    title="Remove Parameter">
+
+                <i class="fa-solid fa-trash"></i>
+
+            </button>
+
+        </td>
+
+    </tr>
+
+</template>

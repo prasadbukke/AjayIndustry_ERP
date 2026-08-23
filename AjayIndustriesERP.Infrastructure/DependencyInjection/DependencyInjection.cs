@@ -1,6 +1,6 @@
 ﻿using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Application.Services;
-
+using AjayIndustriesERP.Infrastructure.Pdf;
 using AjayIndustriesERP.Infrastructure.Persistence;
 using AjayIndustriesERP.Infrastructure.Repositories;
 
@@ -284,6 +284,22 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
             services.AddScoped<
                 IProductionJobService,
                 ProductionJobService>();
+
+            #endregion
+
+            #region Pre-Dispatch Inspection
+
+            services.AddScoped<
+                IPreDispatchInspectionRepository,
+                PreDispatchInspectionRepository>();
+
+            services.AddScoped<
+                IPreDispatchInspectionService,
+                PreDispatchInspectionService>();
+
+            services.AddScoped<
+    IPreDispatchInspectionPdfGenerator,
+    PreDispatchInspectionPdfGenerator>();
 
             #endregion
 

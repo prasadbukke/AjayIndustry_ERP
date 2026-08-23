@@ -1,0 +1,1500 @@
+﻿@*
+============================================================
+File: Details.cshtml
+
+Purpose:
+Displays complete read-only Pre-Dispatch /
+Final Inspection Report.
+
+Responsibilities:
+- Display Final Inspection Report header.
+- Display Customer / PO / Item snapshot.
+- Display Drawing snapshot.
+- Display Invoice information.
+- Display Inspection Parameters.
+- Display 7 Observations.
+- Display 3 Interval Readings.
+- Display quantity result.
+- Display Supplier / Inspection remarks.
+- Display Approval / Release information.
+- Allow Draft Edit / Finalize.
+
+Important:
+- Data shown here represents saved PDI snapshot.
+- Finalized Reports are read-only audit documents.
+- PDF will use the same report structure.
+============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.PreDispatchInspection.PreDispatchInspectionDetailsViewModel
+
+@using AjayIndustriesERP.Domain.Enums
+
+@{
+    ViewData["Title"] = "PDI Report Details";
+
+    var isDraft =
+        Model.Status ==
+        PreDispatchInspectionStatus.Draft;
+
+    var isFinalized =
+        Model.Status ==
+        PreDispatchInspectionStatus.Finalized;
+
+    /*
+     * Customer Drawing is preferred for the
+     * customer-facing Final Inspection Report.
+     *
+     * Workshop Drawing is used as fallback.
+     */
+
+    var reportDrawingNumber =
+        !string.IsNullOrWhiteSpace(
+            Model.CustomerDrawingNumber)
+            ? Model.CustomerDrawingNumber
+            : Model.WorkshopDrawingNumber;
+
+    var reportDrawingRevision =
+        !string.IsNullOrWhiteSpace(
+            Model.CustomerDrawingRevision)
+            ? Model.CustomerDrawingRevision
+            : Model.WorkshopDrawingRevision;
+}
+
+
+<!-- =========================================================
+     REGION 1 — PAGE ACTIONS
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            PDI Report
+        </h2>
+
+        <div class="text-muted">
+            @Model.Code
+        </div>
+
+    </div>
+
+
+    <div class="d-flex
+                align-items-center
+                gap-2
+                flex-wrap">
+
+    @if (isFinalized)
+{
+    <a asp-action="DownloadPdf"
+       asp-route-id="@Model.Id"
+       class="btn btn-danger">
+
+        <i class="fa-solid
+                  fa-file-pdf
+                  me-1">
+        </i>
+
+        Download PDF
+
+    </a>
+}
+
+        @if (isDraft)
+        {
+            <a asp-action="Edit"
+               asp-route-id="@Model.Id"
+               class="btn btn-outline-primary">
+
+                <i class="fa-solid
+                          fa-pen
+                          me-1">
+                </i>
+
+                Edit Draft
+
+            </a>
+
+
+            <form asp-action="Finalize"
+                  asp-route-id="@Model.Id"
+                  method="post"
+                  class="d-inline">
+
+                @Html.AntiForgeryToken()
+
+                <button type="submit"
+                        class="btn btn-success"
+                        onclick="return confirm(
+                            'Finalize this PDI Report? After finalization it cannot be edited.')">
+
+                    <i class="fa-solid
+                              fa-circle-check
+                              me-1">
+                    </i>
+
+                    Finalize
+
+                </button>
+
+            </form>
+        }
+
+
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid
+                      fa-arrow-left
+                      me-1">
+            </i>
+
+            PDI Reports
+
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — FINAL INSPECTION REPORT HEADER
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-bordered
+                          align-middle
+                          mb-0">
+
+                <tbody>
+
+                    <tr>
+
+                        <td class="fw-bold
+                                   fs-5
+                                   text-center
+                                   align-middle">
+
+                            AJAY INDUSTRIES
+
+                        </td>
+
+
+                        <td class="fw-bold
+                                   fs-4
+                                   text-center
+                                   align-middle">
+
+                            FINAL INSPECTION REPORT
+
+                        </td>
+
+
+                        <td class="align-middle">
+
+                            <div class="small text-muted">
+                                Report No.
+                            </div>
+
+                            <div class="fw-bold">
+                                @Model.Code
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 3 — REPORT INFORMATION
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-bordered
+                          align-middle
+                          mb-0">
+
+                <tbody>
+
+                    <!-- ROW 1 -->
+
+                    <tr>
+
+                        <th class="table-light text-nowrap">
+                            Part / Product Name
+                        </th>
+
+                        <td>
+                            @Model.ItemName
+                        </td>
+
+
+                        <th class="table-light text-nowrap">
+                            Part No.
+                        </th>
+
+                        <td>
+
+                            @(string.IsNullOrWhiteSpace(
+                                Model.PartNumber)
+                                ? "-"
+                                : Model.PartNumber)
+
+                        </td>
+
+
+                        <th class="table-light text-nowrap">
+                            Date
+                        </th>
+
+                        <td>
+                            @Model.InspectionDate.ToString("dd-MM-yyyy")
+                        </td>
+
+                    </tr>
+
+
+                    <!-- ROW 2 -->
+
+                    <tr>
+
+                        <th class="table-light text-nowrap">
+                            Drawing No.
+                        </th>
+
+                        <td>
+
+                            @(string.IsNullOrWhiteSpace(
+                                reportDrawingNumber)
+                                ? "-"
+                                : reportDrawingNumber)
+
+                        </td>
+
+
+                        <th class="table-light text-nowrap">
+                            Rev No.
+                        </th>
+
+                        <td>
+
+                            @(string.IsNullOrWhiteSpace(
+                                reportDrawingRevision)
+                                ? "-"
+                                : reportDrawingRevision)
+
+                        </td>
+
+
+                        <th class="table-light text-nowrap">
+                            Production Job
+                        </th>
+
+                        <td>
+                            @Model.ProductionJobCode
+                        </td>
+
+                    </tr>
+
+
+                    <!-- ROW 3 -->
+
+                    <tr>
+
+                        <th class="table-light text-nowrap">
+                            Customer Name
+                        </th>
+
+                        <td>
+                            @Model.CustomerName
+                        </td>
+
+
+                        <th class="table-light text-nowrap">
+                            Customer PO
+                        </th>
+
+                        <td>
+
+                            @(string.IsNullOrWhiteSpace(
+                                Model.CustomerPurchaseOrderNumber)
+                                ? "-"
+                                : Model.CustomerPurchaseOrderNumber)
+
+                        </td>
+
+
+                        <th class="table-light text-nowrap">
+                            Inspection Qty
+                        </th>
+
+                        <td>
+
+                            <span class="fw-semibold">
+
+                                @(Model.InspectionQuantity.ToString("0.###"))
+
+                            </span>
+
+                            @Model.UnitName
+
+                        </td>
+
+                    </tr>
+
+
+                    <!-- ROW 4 -->
+
+                    <tr>
+
+                        <th class="table-light text-nowrap">
+                            ERP Item Code
+                        </th>
+
+                        <td>
+                            @Model.ItemCode
+                        </td>
+
+
+                        <th class="table-light text-nowrap">
+                            Customer Item Code
+                        </th>
+
+                        <td>
+
+                            @(string.IsNullOrWhiteSpace(
+                                Model.CustomerItemCode)
+                                ? "-"
+                                : Model.CustomerItemCode)
+
+                        </td>
+
+
+                        <th class="table-light text-nowrap">
+                            Job Qty
+                        </th>
+
+                        <td>
+
+                            @Model.JobQuantity.ToString("0.###")
+                            @Model.UnitName
+
+                        </td>
+
+                    </tr>
+
+
+                    <!-- ROW 5 -->
+
+                    <tr>
+
+                        <th class="table-light text-nowrap">
+                            Invoice No.
+                        </th>
+
+                        <td>
+
+                            @(string.IsNullOrWhiteSpace(
+                                Model.InvoiceNumber)
+                                ? "-"
+                                : Model.InvoiceNumber)
+
+                        </td>
+
+
+                        <th class="table-light text-nowrap">
+                            Invoice Date
+                        </th>
+
+                        <td>
+
+                            @(Model.InvoiceDate.HasValue
+                                ? Model.InvoiceDate.Value
+                                    .ToString("dd-MM-yyyy")
+                                : "-")
+
+                        </td>
+
+
+                        <th class="table-light text-nowrap">
+                            Invoice Qty
+                        </th>
+
+                        <td>
+
+                            @(Model.InvoiceQuantity.HasValue
+                                ? Model.InvoiceQuantity.Value
+                                    .ToString("0.###")
+                                : "-")
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 4 — DRAWING SNAPSHOT
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-compass-drafting
+                      me-1">
+            </i>
+
+            Drawing Snapshot
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-4">
+
+
+            <!-- WORKSHOP DRAWING -->
+
+            <div class="col-lg-6">
+
+                <div class="border rounded p-3 h-100">
+
+                    <div class="fw-semibold mb-3">
+                        Workshop Drawing
+                    </div>
+
+
+                    <div class="row g-3">
+
+                        <div class="col-md-7">
+
+                            <div class="small text-muted">
+                                Drawing Number
+                            </div>
+
+                            <div class="fw-semibold">
+
+                                @(string.IsNullOrWhiteSpace(
+                                    Model.WorkshopDrawingNumber)
+                                    ? "-"
+                                    : Model.WorkshopDrawingNumber)
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-5">
+
+                            <div class="small text-muted">
+                                Revision
+                            </div>
+
+                            <div class="fw-semibold">
+
+                                @(string.IsNullOrWhiteSpace(
+                                    Model.WorkshopDrawingRevision)
+                                    ? "-"
+                                    : Model.WorkshopDrawingRevision)
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- CUSTOMER DRAWING -->
+
+            <div class="col-lg-6">
+
+                <div class="border rounded p-3 h-100">
+
+                    <div class="fw-semibold mb-3">
+                        Customer Drawing
+                    </div>
+
+
+                    <div class="row g-3">
+
+                        <div class="col-md-7">
+
+                            <div class="small text-muted">
+                                Drawing Number
+                            </div>
+
+                            <div class="fw-semibold">
+
+                                @(string.IsNullOrWhiteSpace(
+                                    Model.CustomerDrawingNumber)
+                                    ? "-"
+                                    : Model.CustomerDrawingNumber)
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-5">
+
+                            <div class="small text-muted">
+                                Revision
+                            </div>
+
+                            <div class="fw-semibold">
+
+                                @(string.IsNullOrWhiteSpace(
+                                    Model.CustomerDrawingRevision)
+                                    ? "-"
+                                    : Model.CustomerDrawingRevision)
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 5 — INSPECTION TABLE
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header
+                bg-light
+                d-flex
+                justify-content-between
+                align-items-center
+                flex-wrap
+                gap-2">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-clipboard-check
+                      me-1">
+            </i>
+
+            Inspection Parameters & Observations
+
+        </span>
+
+
+        <div class="d-flex
+                    align-items-center
+                    gap-2">
+
+            @switch (Model.Status)
+            {
+                case PreDispatchInspectionStatus.Draft:
+
+                    <span class="badge bg-secondary">
+                        Draft
+                    </span>
+
+                    break;
+
+
+                case PreDispatchInspectionStatus.Finalized:
+
+                    <span class="badge bg-primary">
+                        Finalized
+                    </span>
+
+                    break;
+            }
+
+
+            @switch (Model.Result)
+            {
+                case PreDispatchInspectionResult.Pending:
+
+                    <span class="badge
+                                 bg-light
+                                 text-dark
+                                 border">
+                        Pending
+                    </span>
+
+                    break;
+
+
+                case PreDispatchInspectionResult.Pass:
+
+                    <span class="badge bg-success">
+                        Pass
+                    </span>
+
+                    break;
+
+
+                case PreDispatchInspectionResult.Fail:
+
+                    <span class="badge bg-danger">
+                        Fail
+                    </span>
+
+                    break;
+
+
+                case PreDispatchInspectionResult.Partial:
+
+                    <span class="badge
+                                 bg-warning
+                                 text-dark">
+                        Partial
+                    </span>
+
+                    break;
+            }
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-bordered
+                          table-sm
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light text-center">
+
+                    <tr>
+
+                        <th rowspan="2"
+                            class="align-middle text-nowrap">
+                            Sr.
+                        </th>
+
+                        <th rowspan="2"
+                            class="align-middle">
+                            Parameters
+                        </th>
+
+                        <th rowspan="2"
+                            class="align-middle">
+                            Specification
+                        </th>
+
+                        <th rowspan="2"
+                            class="align-middle">
+                            Inspection Method
+                        </th>
+
+                        <th colspan="7">
+                            Observation
+                        </th>
+
+                        <th colspan="3">
+                            Reading At Interval
+                        </th>
+
+                        <th rowspan="2"
+                            class="align-middle">
+                            Result
+                        </th>
+
+                        <th rowspan="2"
+                            class="align-middle">
+                            Remarks
+                        </th>
+
+                    </tr>
+
+
+                    <tr>
+
+                        @for (var observationNumber = 1;
+                            observationNumber <= 7;
+                            observationNumber++)
+                        {
+                            <th>
+                                @observationNumber
+                            </th>
+                        }
+
+
+                        @for (var intervalNumber = 1;
+                            intervalNumber <= 3;
+                            intervalNumber++)
+                        {
+                            <th>
+                                @intervalNumber
+                            </th>
+                        }
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model.Lines.Any())
+                    {
+                        @foreach (var line in
+                            Model.Lines
+                                .OrderBy(x =>
+                                    x.SequenceNumber))
+                        {
+                            <tr>
+
+                                <!-- SR -->
+
+                                <td class="text-center">
+                                    @line.SequenceNumber
+                                </td>
+
+
+                                <!-- PARAMETER -->
+
+                                <td>
+                                    @line.Parameter
+                                </td>
+
+
+                                <!-- SPECIFICATION -->
+
+                                <td>
+                                    @line.Specification
+                                </td>
+
+
+                                <!-- METHOD -->
+
+                                <td>
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        line.InspectionMethod)
+                                        ? "-"
+                                        : line.InspectionMethod)
+
+                                </td>
+
+
+                                <!-- OBSERVATION 1 TO 7 -->
+
+                                @for (var observationNumber = 1;
+                                    observationNumber <= 7;
+                                    observationNumber++)
+                                {
+                                    var observation =
+                                        line.NormalObservations
+                                            .FirstOrDefault(
+                                                x =>
+                                                    x.SequenceNumber ==
+                                                    observationNumber);
+
+
+                                    <td class="text-center">
+
+                                        @(string.IsNullOrWhiteSpace(
+                                            observation?.Value)
+                                            ? "-"
+                                            : observation.Value)
+
+                                    </td>
+                                }
+
+
+                                <!-- INTERVAL 1 TO 3 -->
+
+                                @for (var intervalNumber = 1;
+                                    intervalNumber <= 3;
+                                    intervalNumber++)
+                                {
+                                    var interval =
+                                        line.IntervalReadings
+                                            .FirstOrDefault(
+                                                x =>
+                                                    x.SequenceNumber ==
+                                                    intervalNumber);
+
+
+                                    <td class="text-center">
+
+                                        @(string.IsNullOrWhiteSpace(
+                                            interval?.Value)
+                                            ? "-"
+                                            : interval.Value)
+
+                                    </td>
+                                }
+
+
+                                <!-- RESULT -->
+
+                                <td class="text-center">
+
+                                    @switch (line.Result)
+                                    {
+                                        case PreDispatchInspectionLineResult.Pending:
+
+                                            <span class="badge
+                                                         bg-light
+                                                         text-dark
+                                                         border">
+                                                Pending
+                                            </span>
+
+                                            break;
+
+
+                                        case PreDispatchInspectionLineResult.Pass:
+
+                                            <span class="badge bg-success">
+                                                Pass
+                                            </span>
+
+                                            break;
+
+
+                                        case PreDispatchInspectionLineResult.Fail:
+
+                                            <span class="badge bg-danger">
+                                                Fail
+                                            </span>
+
+                                            break;
+
+
+                                        case PreDispatchInspectionLineResult.NotApplicable:
+
+                                            <span class="badge bg-secondary">
+                                                N/A
+                                            </span>
+
+                                            break;
+                                    }
+
+                                </td>
+
+
+                                <!-- REMARKS -->
+
+                                <td>
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        line.Remarks)
+                                        ? "-"
+                                        : line.Remarks)
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="17"
+                                class="text-center
+                                       text-muted
+                                       py-4">
+
+                                No Inspection Parameters available.
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 6 — STANDARD INSPECTION NOTES
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-body">
+
+        <div class="fw-semibold">
+            ALL DIMENSIONS ARE IN MM
+        </div>
+
+        <div class="fw-semibold">
+            ALL SAMPLES ARE CHECKED RANDOMLY
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 7 — QUANTITY RESULT
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-square-check
+                      me-1">
+            </i>
+
+            Inspection Result
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-4 text-center">
+
+
+            <!-- INSPECTION QTY -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted">
+                    Inspection Qty
+                </div>
+
+                <div class="fs-5 fw-bold">
+
+                    @(Model.InspectionQuantity.ToString("0.###"))
+
+                    @Model.UnitName
+
+                </div>
+
+            </div>
+
+
+            <!-- ACCEPTED -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted">
+                    Accepted Qty
+                </div>
+
+                <div class="fs-5
+                            fw-bold
+                            text-success">
+
+                    @(Model.AcceptedQuantity.ToString("0.###"))
+
+                    @Model.UnitName
+
+                </div>
+
+            </div>
+
+
+            <!-- REWORK -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted">
+                    Rework Qty
+                </div>
+
+                <div class="fs-5
+                            fw-bold
+                            text-warning">
+
+                    @(Model.ReworkQuantity.ToString("0.###"))
+
+                    @Model.UnitName
+
+                </div>
+
+            </div>
+
+
+            <!-- REJECTED -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted">
+                    Reject Qty
+                </div>
+
+                <div class="fs-5
+                            fw-bold
+                            text-danger">
+
+                    @(Model.RejectedQuantity.ToString("0.###"))
+
+                    @Model.UnitName
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <hr />
+
+
+        <div class="text-center">
+
+            <div class="small text-muted mb-1">
+                Overall Result
+            </div>
+
+
+            @switch (Model.Result)
+            {
+                case PreDispatchInspectionResult.Pending:
+
+                    <span class="badge
+                                 bg-light
+                                 text-dark
+                                 border
+                                 fs-6">
+                        Pending
+                    </span>
+
+                    break;
+
+
+                case PreDispatchInspectionResult.Pass:
+
+                    <span class="badge
+                                 bg-success
+                                 fs-6">
+                        PASS
+                    </span>
+
+                    break;
+
+
+                case PreDispatchInspectionResult.Fail:
+
+                    <span class="badge
+                                 bg-danger
+                                 fs-6">
+                        FAIL
+                    </span>
+
+                    break;
+
+
+                case PreDispatchInspectionResult.Partial:
+
+                    <span class="badge
+                                 bg-warning
+                                 text-dark
+                                 fs-6">
+                        PARTIAL
+                    </span>
+
+                    break;
+            }
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 8 — REMARKS
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-comment-dots
+                      me-1">
+            </i>
+
+            Remarks
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-4">
+
+
+            <!-- SUPPLIER REMARKS -->
+
+            <div class="col-lg-6">
+
+                <div class="small text-muted mb-1">
+                    Supplier Remarks
+                </div>
+
+                <div class="border
+                            rounded
+                            p-3
+                            h-100">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.SupplierRemarks)
+                        ? "-"
+                        : Model.SupplierRemarks)
+
+                </div>
+
+            </div>
+
+
+            <!-- INSPECTION REMARKS -->
+
+            <div class="col-lg-6">
+
+                <div class="small text-muted mb-1">
+                    Inspection Remarks
+                </div>
+
+                <div class="border
+                            rounded
+                            p-3
+                            h-100">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.InspectionRemarks)
+                        ? "-"
+                        : Model.InspectionRemarks)
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 9 — APPROVAL / RELEASE
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-user-check
+                      me-1">
+            </i>
+
+            Approval / Release
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-4 text-center">
+
+
+            <!-- INSPECTED BY -->
+
+            <div class="col-lg-4">
+
+                <div class="border
+                            rounded
+                            p-3
+                            h-100">
+
+                    <div class="small text-muted mb-2">
+                        Inspected By
+                    </div>
+
+                    <div class="fw-semibold">
+
+                        @(string.IsNullOrWhiteSpace(
+                            Model.InspectedBy)
+                            ? "-"
+                            : Model.InspectedBy)
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- REVIEWED BY -->
+
+            <div class="col-lg-4">
+
+                <div class="border
+                            rounded
+                            p-3
+                            h-100">
+
+                    <div class="small text-muted mb-2">
+                        Reviewed / Approved By
+                    </div>
+
+                    <div class="fw-semibold">
+
+                        @(string.IsNullOrWhiteSpace(
+                            Model.ReviewedBy)
+                            ? "-"
+                            : Model.ReviewedBy)
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- DISPATCH RELEASE -->
+
+            <div class="col-lg-4">
+
+                <div class="border
+                            rounded
+                            p-3
+                            h-100">
+
+                    <div class="small text-muted mb-2">
+                        Dispatch Release
+                    </div>
+
+
+                    @if (!isFinalized)
+                    {
+                        <span class="badge bg-secondary">
+                            Pending
+                        </span>
+                    }
+                    else if (
+                        Model.Result ==
+                        PreDispatchInspectionResult.Pass)
+                    {
+                        <span class="badge bg-success">
+                            Released
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">
+                            Not Released
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        @if (isFinalized)
+        {
+            <hr />
+
+
+            <div class="row g-3">
+
+                <div class="col-md-6">
+
+                    <div class="small text-muted">
+                        Finalized On
+                    </div>
+
+                    <div class="fw-semibold">
+
+                        @(Model.FinalizedOn.HasValue
+                            ? Model.FinalizedOn.Value
+                                .ToString("dd-MM-yyyy hh:mm tt")
+                            : "-")
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-6">
+
+                    <div class="small text-muted">
+                        Finalized By
+                    </div>
+
+                    <div class="fw-semibold">
+
+                        @(string.IsNullOrWhiteSpace(
+                            Model.FinalizedBy)
+                            ? "-"
+                            : Model.FinalizedBy)
+
+                    </div>
+
+                </div>
+
+            </div>
+        }
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 10 — BOTTOM ACTIONS
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-2
+            mb-4">
+
+    <a asp-action="Index"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid
+                  fa-arrow-left
+                  me-1">
+        </i>
+
+        Back
+
+    </a>
+
+
+    @if (isDraft)
+    {
+        <div class="d-flex
+                    align-items-center
+                    gap-2">
+
+            <a asp-action="Edit"
+               asp-route-id="@Model.Id"
+               class="btn btn-outline-primary">
+
+                <i class="fa-solid
+                          fa-pen
+                          me-1">
+                </i>
+
+                Edit Draft
+
+            </a>
+
+
+            <form asp-action="Finalize"
+                  asp-route-id="@Model.Id"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+                <button type="submit"
+                        class="btn btn-success"
+                        onclick="return confirm(
+                            'Finalize this PDI Report? After finalization it cannot be edited.')">
+
+                    <i class="fa-solid
+                              fa-circle-check
+                              me-1">
+                    </i>
+
+                    Finalize PDI
+
+                </button>
+
+            </form>
+
+        </div>
+    }
+
+</div>

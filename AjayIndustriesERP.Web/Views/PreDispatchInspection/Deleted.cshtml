@@ -1,0 +1,362 @@
+﻿@*
+============================================================
+File: Deleted.cshtml
+
+Purpose:
+Displays soft-deleted Pre-Dispatch /
+Final Inspection Reports.
+
+Responsibilities:
+- Display deleted Draft PDI Reports.
+- Show Customer / PO / Item information.
+- Show Production Job and Inspection Quantity.
+- Restore deleted Draft PDI Reports.
+- Navigate back to active PDI Reports.
+
+Important:
+- Only Draft PDI Reports can be deleted/restored.
+- Finalized PDI Reports are permanent audit documents.
+============================================================
+*@
+
+@model List<AjayIndustriesERP.Domain.Entities.PreDispatchInspection>
+
+@using AjayIndustriesERP.Domain.Enums
+
+@{
+    ViewData["Title"] =
+        "Deleted PDI Reports";
+
+    var serialNumber =
+        1;
+}
+
+
+<!-- =========================================================
+     REGION 1 — PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Deleted PDI Reports
+        </h2>
+
+        <p class="text-muted mb-0">
+            Restore deleted Draft Pre-Dispatch Inspection Reports.
+        </p>
+
+    </div>
+
+
+    <a asp-action="Index"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid
+                  fa-arrow-left
+                  me-1">
+        </i>
+
+        PDI Reports
+
+    </a>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — DELETED REPORT TABLE
+========================================================== -->
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th class="text-nowrap">
+                            #
+                        </th>
+
+                        <th class="text-nowrap">
+                            PDI Report
+                        </th>
+
+                        <th class="text-nowrap">
+                            Inspection Date
+                        </th>
+
+                        <th>
+                            Customer / PO
+                        </th>
+
+                        <th>
+                            Item
+                        </th>
+
+                        <th class="text-nowrap">
+                            Production Job
+                        </th>
+
+                        <th class="text-end text-nowrap">
+                            Inspection Qty
+                        </th>
+
+                        <th class="text-center">
+                            Status
+                        </th>
+
+                        <th class="text-center text-nowrap">
+                            Action
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model != null &&
+                                        Model.Any())
+                    {
+                        @foreach (var report in Model)
+                        {
+                            <tr>
+
+                                <!-- SERIAL -->
+
+                                <td>
+                                    @serialNumber
+                                </td>
+
+
+                                <!-- PDI REPORT -->
+
+                                <td class="text-nowrap">
+
+                                    <div class="fw-semibold">
+                                        @report.Code
+                                    </div>
+
+                                </td>
+
+
+                                <!-- INSPECTION DATE -->
+
+                                <td class="text-nowrap">
+
+                                    @report.InspectionDate
+                                    .ToString("dd-MM-yyyy")
+
+                                </td>
+
+
+                                <!-- CUSTOMER / PO -->
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        @report.CustomerName
+                                    </div>
+
+
+                                    <div class="small text-muted">
+
+                                        PO:
+
+                                        @(string.IsNullOrWhiteSpace(
+                                                                        report.CustomerPurchaseOrderNumber)
+                                                                        ? "-"
+                                                                        : report.CustomerPurchaseOrderNumber)
+
+                            </div>
+
+                                </td>
+
+
+                                <!-- ITEM -->
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        @report.ItemCode
+                                    </div>
+
+
+                                    <div class="small text-muted">
+                                        @report.ItemName
+                                    </div>
+
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                                        report.PartNumber))
+                                    {
+                                        <div class="small text-muted">
+
+                                            Part No:
+                                            @report.PartNumber
+
+                                        </div>
+                                    }
+
+                                </td>
+
+
+                                <!-- PRODUCTION JOB -->
+
+                                <td class="text-nowrap">
+                                    @report.ProductionJobCode
+                                </td>
+
+
+                                <!-- INSPECTION QUANTITY -->
+
+                                <td class="text-end text-nowrap">
+
+                                    <span class="fw-semibold">
+
+                                        @report.InspectionQuantity
+                                        .ToString("0.###")
+
+                                    </span>
+
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                                                report.UnitName))
+                                    {
+                                        <span class="text-muted">
+                                            @report.UnitName
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- STATUS -->
+
+                                <td class="text-center">
+
+                                    @if (
+                                                                report.Status ==
+                                                                PreDispatchInspectionStatus.Draft)
+                                    {
+                                        <span class="badge bg-secondary">
+                                            Draft
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary">
+                                            @report.Status
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- RESTORE -->
+
+                                <td class="text-center">
+
+                                    @if (
+                                                                report.Status ==
+                                                                PreDispatchInspectionStatus.Draft)
+                                    {
+                                        <form asp-action="Restore"
+                                              asp-route-id="@report.Id"
+                                              method="post"
+                                              class="d-inline">
+
+                                            @Html.AntiForgeryToken()
+
+
+                                            <button type="submit"
+                                                    class="btn
+                                                                       btn-sm
+                                                                       btn-outline-success"
+                                                    title="Restore"
+                                                    onclick="return confirm(
+                                                                    'Restore this PDI Report?')">
+
+                                                <i class="fa-solid
+                                                                      fa-rotate-left
+                                                                      me-1">
+                                                </i>
+
+                                                Restore
+
+                                            </button>
+
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+                            </tr>
+
+
+                            serialNumber++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="9"
+                                class="text-center
+                                           text-muted
+                                           py-5">
+
+                                <i class="fa-solid
+                                              fa-trash-can
+                                              fa-2x
+                                              mb-3">
+                                </i>
+
+
+                                <div class="fw-semibold mb-1">
+                                    No Deleted PDI Reports
+                                </div>
+
+
+                                <div class="small">
+                                    Deleted Draft PDI Reports will appear here.
+                                </div>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>

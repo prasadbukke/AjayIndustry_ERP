@@ -1,0 +1,163 @@
+﻿@*
+============================================================
+File: Edit.cshtml
+
+Purpose:
+Edits an existing Draft Pre-Dispatch /
+Final Inspection Report.
+
+Responsibilities:
+- Own the Edit form.
+- Render shared PDI form partial.
+- Save Draft PDI changes.
+- Keep Production Job source locked.
+- Load PDI form JavaScript.
+- Load client-side validation.
+
+Important:
+- Only Draft PDI Reports can be edited.
+- Production Job cannot be changed after PDI creation.
+- Finalized PDI Reports are read-only.
+============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.PreDispatchInspection.PreDispatchInspectionFormViewModel
+
+@{
+    ViewData["Title"] = "Edit PDI Report";
+}
+
+
+<!-- =========================================================
+     REGION 1 — PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Edit PDI Report
+        </h2>
+
+        <div class="text-muted">
+
+            @(string.IsNullOrWhiteSpace(
+                        Model.Code)
+                        ? "Draft PDI Report"
+                        : Model.Code)
+
+        </div>
+
+    </div>
+
+
+    <div class="d-flex
+                align-items-center
+                gap-2
+                flex-wrap">
+
+        <a asp-action="Details"
+           asp-route-id="@Model.Id"
+           class="btn btn-outline-primary">
+
+            <i class="fa-solid
+                      fa-eye
+                      me-1">
+            </i>
+
+            Details
+
+        </a>
+
+
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid
+                      fa-arrow-left
+                      me-1">
+            </i>
+
+            PDI Reports
+
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — EDIT FORM
+========================================================== -->
+
+<form asp-action="Edit"
+      asp-route-id="@Model.Id"
+      method="post"
+      id="preDispatchInspectionForm">
+
+    @Html.AntiForgeryToken()
+
+
+    <partial name="_Form"
+             model="Model" />
+
+
+    <!-- =====================================================
+         REGION — FORM ACTIONS
+    ====================================================== -->
+
+    <div class="d-flex
+                justify-content-end
+                align-items-center
+                gap-2
+                flex-wrap
+                mb-4">
+
+        <a asp-action="Details"
+           asp-route-id="@Model.Id"
+           class="btn btn-outline-secondary">
+
+            Cancel
+
+        </a>
+
+
+        <button type="submit"
+                class="btn btn-primary">
+
+            <i class="fa-solid
+                      fa-floppy-disk
+                      me-1">
+            </i>
+
+            Save Draft Changes
+
+        </button>
+
+    </div>
+
+    <!-- =====================================================
+         END REGION
+    ====================================================== -->
+
+</form>
+
+
+<!-- =========================================================
+     REGION 3 — SCRIPTS
+========================================================== -->
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/pre-dispatch-inspection-form.js"
+            asp-append-version="true">
+    </script>
+}

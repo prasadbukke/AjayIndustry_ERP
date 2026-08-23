@@ -83,6 +83,23 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
         { get; set; }
 
         #endregion
+
+        #region Pre-Dispatch Inspection
+
+        public DbSet<PreDispatchInspection>
+            PreDispatchInspections
+            => Set<PreDispatchInspection>();
+
+        public DbSet<PreDispatchInspectionLine>
+            PreDispatchInspectionLines
+            => Set<PreDispatchInspectionLine>();
+
+        public DbSet<PreDispatchInspectionObservation>
+            PreDispatchInspectionObservations
+            => Set<PreDispatchInspectionObservation>();
+
+        #endregion
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
