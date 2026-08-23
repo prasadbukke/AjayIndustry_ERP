@@ -23,6 +23,7 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
         public DbSet<ItemSpecification> ItemSpecifications => Set<ItemSpecification>();
         public DbSet<Supplier> Suppliers => Set<Supplier>();
         public DbSet<Drawing> Drawings =>  Set<Drawing>();
+        public DbSet<CustomerDrawing> CustomerDrawings =>    Set<CustomerDrawing>();
         public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
         public DbSet<PurchaseOrderItem> PurchaseOrderItems { get; set; }
         public DbSet<GoodsReceiptNote> GoodsReceiptNotes { get; set; }

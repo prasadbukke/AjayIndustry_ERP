@@ -1,0 +1,845 @@
+﻿@model AjayIndustriesERP.Domain.Entities.CustomerDrawing
+
+@*
+==============================================================
+
+File : Details.cshtml
+
+Purpose :
+Displays complete Customer Drawing information and
+Revision History.
+
+Final Rules :
+- Customer Drawing follows Drawing Master workflow.
+- Customer + Item + Drawing Number identify the Drawing.
+- Current revision is displayed separately.
+- Complete Revision History is displayed.
+- Historical revisions may be Activated.
+- Historical revisions may be Soft Deleted.
+- Current revision cannot be deleted.
+- Existing Drawing files remain preserved.
+
+==============================================================
+*@
+
+@{
+    ViewData["Title"] =
+        "Customer Drawing Details";
+
+    var revisionHistory =
+        ViewBag.RevisionHistory
+            as List<AjayIndustriesERP.Domain.Entities.CustomerDrawing>
+        ?? new List<AjayIndustriesERP.Domain.Entities.CustomerDrawing>();
+}
+
+
+<!-- =========================================================
+     PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-2
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Customer Drawing Details
+        </h2>
+
+        <div class="text-muted">
+
+            @Model.DrawingNumber
+
+            @if (!string.IsNullOrWhiteSpace(
+                        Model.RevisionNumber))
+            {
+                <span>
+                    • Current Revision @Model.RevisionNumber
+                </span>
+            }
+
+        </div>
+
+    </div>
+
+
+    <div class="d-flex
+                gap-2
+                flex-wrap">
+
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid
+                      fa-arrow-left
+                      me-1">
+            </i>
+
+            Back
+
+        </a>
+
+
+        <a asp-action="Edit"
+           asp-route-id="@Model.CustomerDrawingId"
+           class="btn btn-outline-warning">
+
+            <i class="fa-solid
+                      fa-pen
+                      me-1">
+            </i>
+
+            Edit
+
+        </a>
+
+
+        <button type="button"
+                class="btn btn-outline-danger"
+                onclick="confirmDelete(
+                    '@Url.Action(
+                                        "Delete",
+                                        "CustomerDrawing",
+                                        new
+                                        {
+                                            id =
+                                                Model.CustomerDrawingId
+                                        })')">
+
+            <i class="fa-solid
+                      fa-trash
+                      me-1">
+            </i>
+
+            Delete
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     CUSTOMER / ITEM / DRAWING INFORMATION
+========================================================== -->
+
+<div class="card border mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="fw-semibold">
+            Customer Drawing Information
+        </div>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row">
+
+
+            <!-- CUSTOMER -->
+
+            <div class="col-md-4 mb-3">
+
+                <div class="small text-muted mb-1">
+                    Customer
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.Customer.CustomerName
+                </div>
+
+            </div>
+
+
+            <!-- ITEM -->
+
+            <div class="col-md-4 mb-3">
+
+                <div class="small text-muted mb-1">
+                    Item
+                </div>
+
+                <div class="fw-semibold">
+
+                    @Model.Item.ItemCode
+                    -
+                    @Model.Item.ItemName
+
+                </div>
+
+
+                @if (!string.IsNullOrWhiteSpace(
+                                Model.Item.PartNumber))
+                {
+                    <div class="small text-muted mt-1">
+
+                        Part:
+                        @Model.Item.PartNumber
+
+                    </div>
+                }
+
+            </div>
+
+
+            <!-- DRAWING NUMBER -->
+
+            <div class="col-md-4 mb-3">
+
+                <div class="small text-muted mb-1">
+                    Drawing Number
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.DrawingNumber
+                </div>
+
+            </div>
+
+
+            <!-- DRAWING NAME -->
+
+            <div class="col-md-4 mb-3">
+
+                <div class="small text-muted mb-1">
+                    Drawing Name
+                </div>
+
+                <div>
+
+                    @if (!string.IsNullOrWhiteSpace(
+                                        Model.DrawingName))
+                    {
+                        @Model.DrawingName
+                    }
+                    else
+                    {
+                        <span class="text-muted">
+                            -
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+
+
+            <!-- DRAWING TYPE -->
+
+            <div class="col-md-4 mb-3">
+
+                <div class="small text-muted mb-1">
+                    Drawing Type
+                </div>
+
+                <div>
+
+                    @if (!string.IsNullOrWhiteSpace(
+                                        Model.DrawingType))
+                    {
+                        @Model.DrawingType
+                    }
+                    else
+                    {
+                        <span class="text-muted">
+                            -
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+
+
+            <!-- CURRENT REVISION -->
+
+            <div class="col-md-4 mb-3">
+
+                <div class="small text-muted mb-1">
+                    Current Revision
+                </div>
+
+                <div>
+
+                    <span class="badge bg-success">
+                        @Model.RevisionNumber
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     CURRENT REVISION
+========================================================== -->
+
+<div class="card border mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <div class="fw-semibold">
+                Current Revision
+            </div>
+
+
+            <span class="badge bg-success">
+                @Model.RevisionNumber
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row">
+
+
+            <!-- REVISION -->
+
+            <div class="col-md-4 mb-3">
+
+                <div class="small text-muted mb-1">
+                    Revision Number
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.RevisionNumber
+                </div>
+
+            </div>
+
+
+            <!-- FILE -->
+
+            <div class="col-md-4 mb-3">
+
+                <div class="small text-muted mb-1">
+                    Drawing File
+                </div>
+
+
+                @if (!string.IsNullOrWhiteSpace(
+                                Model.FilePath))
+                {
+                    <a href="@Model.FilePath"
+                       target="_blank"
+                       rel="noopener"
+                       class="btn
+                                  btn-sm
+                                  btn-outline-primary">
+
+                        <i class="fa-solid
+                                      fa-file
+                                      me-1">
+                        </i>
+
+                        @(Model.FileName
+                                            ?? "View File")
+
+                </a>
+                                }
+                else
+                {
+                    <span class="text-muted">
+                        No File
+                    </span>
+                }
+
+            </div>
+
+
+            <!-- STATUS -->
+
+            <div class="col-md-4 mb-3">
+
+                <div class="small text-muted mb-1">
+                    Status
+                </div>
+
+                <span class="badge bg-success">
+                    Current
+                </span>
+
+            </div>
+
+
+            <!-- REMARKS -->
+
+            <div class="col-12 mb-3">
+
+                <div class="small text-muted mb-1">
+                    Revision Remarks
+                </div>
+
+                <div>
+
+                    @if (!string.IsNullOrWhiteSpace(
+                                        Model.Description))
+                    {
+                        @Model.Description
+                    }
+                    else
+                    {
+                        <span class="text-muted">
+                            -
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REVISION HISTORY
+========================================================== -->
+
+<div class="card border mb-4">
+
+    <div class="card-header
+                bg-light
+                d-flex
+                justify-content-between
+                align-items-center
+                flex-wrap
+                gap-2">
+
+        <div>
+
+            <div class="fw-semibold">
+                Revision History
+            </div>
+
+            <div class="small text-muted">
+                Previous revisions and the current revision.
+            </div>
+
+        </div>
+
+
+        <a asp-action="Edit"
+           asp-route-id="@Model.CustomerDrawingId"
+           class="btn btn-sm btn-primary">
+
+            <i class="fa-solid
+                      fa-plus
+                      me-1">
+            </i>
+
+            Add Revision
+
+        </a>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th>
+                            Revision
+                        </th>
+
+                        <th>
+                            File
+                        </th>
+
+                        <th>
+                            Remarks
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th>
+                            Created On
+                        </th>
+
+                        <th>
+                            Created By
+                        </th>
+
+                        <th class="text-center">
+                            Actions
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (revisionHistory.Any())
+                    {
+                        foreach (var revision
+                        in revisionHistory)
+                        {
+                            <tr>
+
+
+                                <!-- REVISION -->
+
+                                <td class="fw-semibold">
+                                    @revision.RevisionNumber
+                                </td>
+
+
+                                <!-- FILE -->
+
+                                <td>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                                                revision.FilePath))
+                                    {
+                                        <a href="@revision.FilePath"
+                                           target="_blank"
+                                           rel="noopener"
+                                           class="btn
+                                                              btn-sm
+                                                              btn-outline-primary">
+
+                                            <i class="fa-solid
+                                                                  fa-file
+                                                                  me-1">
+                                            </i>
+
+                                            @(revision.FileName
+                                                                            ?? "View File")
+
+                            </a>
+                                                        }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            No File
+                                        </span>
+                                    }
+
+                        </td>
+
+
+                        <!-- REMARKS -->
+
+                        <td>
+
+                            @(string.IsNullOrWhiteSpace(
+                                                        revision.Description)
+                                                        ? "-"
+                                                        : revision.Description)
+
+                        </td>
+
+
+                                <!-- STATUS -->
+
+                                <td>
+
+                            @if (revision.IsActive)
+                                    {
+                                        <span class="badge bg-success">
+                                            Current
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+                                            Inactive
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- CREATED ON -->
+
+                        <td class="text-nowrap">
+
+                            @(revision.CreatedOn
+                                                        .ToLocalTime()
+                                                        .ToString("dd-MMM-yyyy hh:mm tt"))
+
+                        </td>
+
+
+                                <!-- CREATED BY -->
+
+                                <td>
+                                    @revision.CreatedBy
+                                </td>
+
+
+                                <!-- ACTIONS -->
+
+                                <td class="text-center text-nowrap">
+
+                                    @if (!revision.IsActive)
+                                    {
+                                        <div class="d-flex
+                        justify-content-center
+                        align-items-center
+                        gap-1
+                        flex-nowrap">
+
+                                            <!-- ACTIVATE -->
+
+                                            <form asp-action="ActivateRevision"
+                                                  method="post"
+                                                  class="d-inline-flex">
+
+                                                @Html.AntiForgeryToken()
+
+
+                                                <input type="hidden"
+                                                       name="id"
+                                                       value="@revision.CustomerDrawingId" />
+
+
+                                                <input type="hidden"
+                                                       name="returnAction"
+                                                       value="Details" />
+
+
+                                                <button type="submit"
+                                                        class="btn
+                                                                           btn-sm
+                                                                           btn-outline-success"
+                                                        onclick="return confirm(
+                                                                        'Make revision @revision.RevisionNumber the Current revision?');">
+
+                                                    <i class="fa-solid
+                                                                          fa-check
+                                                                          me-1">
+                                                    </i>
+
+                                                    Activate
+
+                                                </button>
+
+                                            </form>
+
+
+                                            <!-- DELETE REVISION -->
+
+                                            <form asp-action="DeleteRevision"
+                                                  method="post"
+                                                  class="d-inline-flex">
+
+                                                @Html.AntiForgeryToken()
+
+
+                                                <input type="hidden"
+                                                       name="id"
+                                                       value="@revision.CustomerDrawingId" />
+
+
+                                                <input type="hidden"
+                                                       name="customerDrawingId"
+                                                       value="@Model.CustomerDrawingId" />
+
+
+                                                <input type="hidden"
+                                                       name="returnAction"
+                                                       value="Details" />
+
+
+                                                <button type="submit"
+                                                        class="btn
+                                                                           btn-sm
+                                                                           btn-outline-danger"
+                                                        onclick="return confirm(
+                                                                        'Delete revision @revision.RevisionNumber?');">
+
+                                                    <i class="fa-solid fa-trash">
+                                                    </i>
+
+                                                </button>
+
+                                            </form>
+
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="small text-muted">
+                                            Current Revision
+                                        </span>
+                                    }
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="7"
+                                class="text-center
+                                           text-muted
+                                           py-4">
+
+                                No revision history found.
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     AUDIT INFORMATION
+========================================================== -->
+
+<div class="card border">
+
+    <div class="card-header bg-light">
+
+        <div class="fw-semibold">
+            Audit Information
+        </div>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row">
+
+
+            <div class="col-md-3 mb-3">
+
+                <div class="small text-muted mb-1">
+                    Created On
+                </div>
+
+                <div>
+
+                    @(Model.CreatedOn
+                                        .ToLocalTime()
+                                        .ToString("dd-MMM-yyyy hh:mm tt"))
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-3 mb-3">
+
+                <div class="small text-muted mb-1">
+                    Created By
+                </div>
+
+                <div>
+                    @Model.CreatedBy
+                </div>
+
+            </div>
+
+
+            <div class="col-md-3 mb-3">
+
+                <div class="small text-muted mb-1">
+                    Modified On
+                </div>
+
+                <div>
+
+                    @if (Model.ModifiedOn.HasValue)
+                    {
+                        @(Model.ModifiedOn.Value
+                                            .ToLocalTime()
+                                            .ToString("dd-MMM-yyyy hh:mm tt"))
+                                        }
+                    else
+                    {
+                        <span class="text-muted">
+                            -
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-3 mb-3">
+
+                <div class="small text-muted mb-1">
+                    Modified By
+                </div>
+
+                <div>
+
+                    @if (!string.IsNullOrWhiteSpace(
+                                        Model.ModifiedBy))
+                    {
+                        @Model.ModifiedBy
+                    }
+                    else
+                    {
+                        <span class="text-muted">
+                            -
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

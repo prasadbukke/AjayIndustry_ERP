@@ -1,0 +1,263 @@
+﻿/*
+==============================================================
+
+File : CustomerDrawingFormViewModel.cs
+
+Purpose :
+Represents Customer Drawing Create/Edit data.
+
+Final Design :
+- Customer is mandatory.
+- One Customer + One Item = One Drawing Number.
+- Customer cannot change after creation.
+- Item cannot change after creation.
+- Drawing Number is permanent.
+- Revision Number is system generated.
+- First Revision is RV-01.
+- Existing revisions are read-only.
+- New revisions are dynamically added.
+- Previous revisions may be Activated / Deleted.
+- Customer Drawing follows Drawing Master workflow.
+
+==============================================================
+*/
+
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System.ComponentModel.DataAnnotations;
+
+namespace AjayIndustriesERP.Web.ViewModels.CustomerDrawing
+{
+    /// <summary>
+    /// Customer Drawing Create/Edit ViewModel.
+    /// </summary>
+    public class CustomerDrawingFormViewModel
+    {
+        #region Drawing Identity
+
+        public int CustomerDrawingId { get; set; }
+
+
+        [Range(
+            1,
+            int.MaxValue,
+            ErrorMessage = "Please select a Customer.")]
+        [Display(Name = "Customer")]
+        public int CustomerId { get; set; }
+
+
+        [Range(
+            1,
+            int.MaxValue,
+            ErrorMessage = "Please select an Item.")]
+        [Display(Name = "Item")]
+        public int ItemId { get; set; }
+
+
+        [Required(
+            ErrorMessage = "Drawing Number is required.")]
+        [StringLength(
+            100,
+            ErrorMessage =
+                "Drawing Number cannot exceed 100 characters.")]
+        [Display(Name = "Drawing Number")]
+        public string DrawingNumber { get; set; } =
+            string.Empty;
+
+
+        [StringLength(
+            200,
+            ErrorMessage =
+                "Drawing Name cannot exceed 200 characters.")]
+        [Display(Name = "Drawing Name")]
+        public string? DrawingName { get; set; }
+
+
+        [StringLength(
+            100,
+            ErrorMessage =
+                "Drawing Type cannot exceed 100 characters.")]
+        [Display(Name = "Drawing Type")]
+        public string? DrawingType { get; set; }
+
+        #endregion
+
+
+        #region Current / First Revision
+
+        /*
+         * During Create this value is ignored by Service
+         * because Revision Number is system generated.
+         *
+         * During Edit it represents Current Revision
+         * for display purposes.
+         */
+
+        [ValidateNever]
+        [Display(Name = "Revision")]
+        public string? RevisionNumber { get; set; }
+
+
+        [Display(Name = "Drawing File")]
+        public IFormFile? DrawingFile { get; set; }
+
+
+        [ValidateNever]
+        public string? FileName { get; set; }
+
+
+        [ValidateNever]
+        public string? FilePath { get; set; }
+
+
+        [StringLength(
+            500,
+            ErrorMessage =
+                "Revision Remarks cannot exceed 500 characters.")]
+        [Display(Name = "Revision Remarks")]
+        public string? Description { get; set; }
+
+        #endregion
+
+
+        #region Revision History
+
+        [ValidateNever]
+        public List<CustomerDrawingRevisionHistoryViewModel>
+            RevisionHistory
+        {
+            get;
+            set;
+        } = new();
+
+
+        public List<CustomerDrawingRevisionInputViewModel>
+            NewRevisions
+        {
+            get;
+            set;
+        } = new();
+
+        #endregion
+
+
+        #region Similarity Warnings
+
+        /*
+         * Drawing Number similarity will be checked
+         * within the selected Customer.
+         */
+
+        [ValidateNever]
+        public List<string> SimilarDrawingNumbers
+        {
+            get;
+            set;
+        } = new();
+
+
+        [ValidateNever]
+        public List<string> SimilarDrawingNames
+        {
+            get;
+            set;
+        } = new();
+
+        #endregion
+
+
+        #region Dropdowns
+
+        [ValidateNever]
+        public List<SelectListItem> Customers
+        {
+            get;
+            set;
+        } = new();
+
+
+        [ValidateNever]
+        public List<SelectListItem> Items
+        {
+            get;
+            set;
+        } = new();
+
+        #endregion
+
+
+        #region Status
+
+        /*
+         * Retained for Controller compatibility.
+         *
+         * Current revision status itself is controlled
+         * by CustomerDrawingService.
+         */
+
+        [ValidateNever]
+        public bool IsActive { get; set; } =
+            true;
+
+        #endregion
+    }
+
+
+    /// <summary>
+    /// Represents one new Customer Drawing revision row.
+    ///
+    /// RevisionNumber is generated by
+    /// CustomerDrawingService.
+    /// </summary>
+    public class CustomerDrawingRevisionInputViewModel
+    {
+        [ValidateNever]
+        public string RevisionNumber { get; set; } =
+            string.Empty;
+
+
+        [Display(Name = "Drawing File")]
+        public IFormFile? DrawingFile { get; set; }
+
+
+        [StringLength(
+            500,
+            ErrorMessage =
+                "Revision Remarks cannot exceed 500 characters.")]
+        [Display(Name = "Remarks")]
+        public string? Description { get; set; }
+    }
+
+
+    /// <summary>
+    /// Read-only Customer Drawing revision history row.
+    /// </summary>
+    public class CustomerDrawingRevisionHistoryViewModel
+    {
+        public int CustomerDrawingId { get; set; }
+
+
+        public string RevisionNumber { get; set; } =
+            string.Empty;
+
+
+        public string? FileName { get; set; }
+
+
+        public string? FilePath { get; set; }
+
+
+        public string? Description { get; set; }
+
+
+        public bool IsCurrent { get; set; }
+
+
+        public DateTime CreatedOn { get; set; }
+
+
+        public string CreatedBy { get; set; } =
+            string.Empty;
+    }
+}

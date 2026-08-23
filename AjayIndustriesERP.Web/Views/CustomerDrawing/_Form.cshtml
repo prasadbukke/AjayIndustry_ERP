@@ -1,0 +1,1190 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.CustomerDrawing.CustomerDrawingFormViewModel
+
+@*
+==============================================================
+
+File : _Form.cshtml
+
+Purpose :
+Common Create/Edit form for Customer Drawing Master.
+
+Final Rules :
+- Customer is mandatory.
+- One Customer + One Item = One Drawing Number.
+- Customer cannot change after creation.
+- Item cannot change after creation.
+- Drawing Number is permanent.
+- Revision Number is system generated.
+- New Customer Drawing starts from RV-01.
+- New revisions automatically receive next RV number.
+- Deleted Revision Numbers are never reused.
+- Existing revisions are read-only.
+- Previous revisions can be Activated or Soft Deleted.
+- Customer Drawing follows Drawing Master workflow.
+
+==============================================================
+*@
+
+@{
+    var isEdit =
+        Model.CustomerDrawingId > 0;
+
+    var selectedCustomerText =
+        Model.Customers
+            .FirstOrDefault(x =>
+                x.Value ==
+                Model.CustomerId.ToString())
+            ?.Text;
+
+    var selectedItemText =
+        Model.Items
+            .FirstOrDefault(x =>
+                x.Value ==
+                Model.ItemId.ToString())
+            ?.Text;
+
+    var hasNumberSuggestions =
+        Model.SimilarDrawingNumbers.Any();
+
+    var hasNameSuggestions =
+        Model.SimilarDrawingNames.Any();
+
+    var drawingNumberErrors =
+        ViewData.ModelState["DrawingNumber"]?
+            .Errors
+            .Select(x =>
+                x.ErrorMessage)
+            .ToList()
+        ?? new List<string>();
+
+    var hasExactNumberError =
+        drawingNumberErrors.Any(x =>
+            x.Contains(
+                "already exists",
+                StringComparison.OrdinalIgnoreCase));
+}
+
+
+<div asp-validation-summary="ModelOnly"
+     class="alert alert-danger">
+</div>
+
+
+<input asp-for="CustomerDrawingId"
+       type="hidden" />
+
+
+<!-- =========================================================
+     CUSTOMER DRAWING INFORMATION
+========================================================== -->
+
+<div class="card border mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="fw-semibold">
+            Customer Drawing Information
+        </div>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row">
+
+
+            <!-- =================================================
+                 CUSTOMER
+            ================================================== -->
+
+            <div class="col-6 mb-3">
+
+                <label asp-for="CustomerId"
+                       class="form-label">
+                </label>
+
+
+                @if (!isEdit)
+                {
+                    <select asp-for="CustomerId"
+                            asp-items="Model.Customers"
+                            class="form-select
+                                   js-customer-drawing-customer-select"
+                            data-duplicate-url="@Url.Action(
+                                "CheckCustomerItem",
+                                "CustomerDrawing")">
+
+                        <option value="">
+                            -- Select Customer --
+                        </option>
+
+                    </select>
+
+
+                    <div class="form-text">
+                        Select the Customer to whom this Drawing belongs.
+                    </div>
+                }
+                else
+                {
+                    <input asp-for="CustomerId"
+                           type="hidden" />
+
+
+                    <input type="text"
+                           value="@selectedCustomerText"
+                           class="form-control"
+                           readonly />
+
+
+                    <div class="form-text">
+                        Customer cannot be changed after Drawing creation.
+                    </div>
+                }
+
+
+                <span asp-validation-for="CustomerId"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- =================================================
+                 ITEM
+            ================================================== -->
+
+            <div class="col-6 mb-3">
+
+                <label asp-for="ItemId"
+                       class="form-label">
+                </label>
+
+
+                @if (!isEdit)
+                {
+                    <select asp-for="ItemId"
+                            asp-items="Model.Items"
+                            class="form-select
+                                   js-customer-drawing-item-select">
+
+                        <option value="">
+                            -- Select Item --
+                        </option>
+
+                    </select>
+
+
+                    <div class="form-text">
+                        One Customer + Item can have only one
+                        Customer Drawing Number.
+                    </div>
+                }
+                else
+                {
+                    <input asp-for="ItemId"
+                           type="hidden" />
+
+
+                    <input type="text"
+                           value="@selectedItemText"
+                           class="form-control"
+                           readonly />
+
+
+                    <div class="form-text">
+                        Item cannot be changed after Drawing creation.
+                    </div>
+                }
+
+
+                <span asp-validation-for="ItemId"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- =================================================
+                 DRAWING NUMBER
+            ================================================== -->
+
+            <div class="col-md-6 mb-3">
+
+                <label asp-for="DrawingNumber"
+                       class="form-label">
+                </label>
+
+
+                @if (!isEdit)
+                {
+                    <input asp-for="DrawingNumber"
+                           class="form-control text-uppercase"
+                           maxlength="100"
+                           autocomplete="off"
+                           placeholder="Example: DRG-10025"
+                           data-number-similar-url="@Url.Action(
+                               "CheckSimilarNumber",
+                               "CustomerDrawing")" />
+
+
+                    <div class="form-text">
+                        Permanent Customer Drawing Number.
+                        It cannot be changed after creation.
+                    </div>
+                }
+                else
+                {
+                    <input asp-for="DrawingNumber"
+                           type="hidden" />
+
+
+                    <input type="text"
+                           value="@Model.DrawingNumber"
+                           class="form-control fw-semibold"
+                           readonly />
+
+
+                    <div class="form-text">
+                        Drawing Number is permanent.
+                    </div>
+                }
+
+
+                <span asp-validation-for="DrawingNumber"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- =================================================
+                 DRAWING NAME
+            ================================================== -->
+
+            <div class="col-md-6 mb-3">
+
+                <label asp-for="DrawingName"
+                       class="form-label">
+                </label>
+
+
+                <input asp-for="DrawingName"
+                       class="form-control"
+                       maxlength="200"
+                       autocomplete="off"
+                       placeholder="Example: Main Shaft Drawing"
+                       data-name-similar-url="@Url.Action(
+                           "CheckSimilarName",
+                           "CustomerDrawing")" />
+
+
+                <span asp-validation-for="DrawingName"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <!-- =================================================
+                 DRAWING TYPE
+            ================================================== -->
+
+            <div class="col-md-6 mb-3">
+
+                <label asp-for="DrawingType"
+                       class="form-label">
+                </label>
+
+
+                <input asp-for="DrawingType"
+                       class="form-control"
+                       maxlength="100"
+                       autocomplete="off"
+                       placeholder="Manufacturing / Inspection / Customer" />
+
+
+                <span asp-validation-for="DrawingType"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     CUSTOMER + ITEM DUPLICATE WARNING
+========================================================== -->
+
+@if (!isEdit)
+{
+    <div id="customerDrawingDuplicateWarning"
+         class="alert alert-warning d-none">
+
+        <div class="fw-semibold mb-2">
+
+            <i class="fa-solid
+                      fa-triangle-exclamation
+                      me-1">
+            </i>
+
+            Customer Drawing Already Exists
+
+        </div>
+
+
+        <div class="small mb-2">
+
+            The selected Customer and Item already have
+            a Customer Drawing.
+
+        </div>
+
+
+        <div class="small mb-3">
+
+            Drawing Number:
+
+            <span id="existingCustomerDrawingNumber"
+                  class="fw-semibold">
+            </span>
+
+        </div>
+
+
+        <a id="existingCustomerDrawingLink"
+           href="#"
+           class="btn btn-sm btn-outline-primary">
+
+            <i class="fa-solid fa-eye me-1"></i>
+
+            Open Existing Customer Drawing
+
+        </a>
+
+    </div>
+}
+
+
+<!-- =========================================================
+     DRAWING NUMBER WARNING
+========================================================== -->
+
+@if (!isEdit)
+{
+    <div id="customerDrawingNumberWarning"
+         class="alert alert-warning
+                @(!hasNumberSuggestions
+                    ? "d-none"
+                    : string.Empty)">
+
+        <div class="fw-semibold mb-2">
+
+            <i class="fa-solid
+                      fa-triangle-exclamation
+                      me-1">
+            </i>
+
+            Similar Customer Drawing Numbers Found
+
+        </div>
+
+
+        <div class="small mb-2">
+
+            Check whether this Customer Drawing already exists.
+            If it does, open the existing Drawing and add
+            a new Revision.
+
+        </div>
+
+
+        <div id="customerDrawingNumberSuggestionList"
+             class="list-group mb-2">
+
+            @foreach (var drawing
+                in Model.SimilarDrawingNumbers)
+            {
+                <div class="list-group-item">
+                    @drawing
+                </div>
+            }
+
+        </div>
+
+
+        <div id="customerDrawingNumberExactMessage"
+             class="text-danger fw-semibold
+                    @(!hasExactNumberError
+                        ? "d-none"
+                        : string.Empty)">
+
+            This Drawing Number already exists
+            for the selected Customer.
+
+        </div>
+
+    </div>
+}
+
+
+<!-- =========================================================
+     DRAWING NAME WARNING
+========================================================== -->
+
+<div id="customerDrawingNameWarning"
+     class="alert alert-warning
+            @(!hasNameSuggestions
+                ? "d-none"
+                : string.Empty)">
+
+    <div class="fw-semibold mb-2">
+
+        <i class="fa-solid
+                  fa-spell-check
+                  me-1">
+        </i>
+
+        Similar Customer Drawing Names Found
+
+    </div>
+
+
+    <div class="small mb-2">
+
+        Check whether this is the same Drawing
+        or only a similar name.
+
+    </div>
+
+
+    <div id="customerDrawingNameSuggestionList"
+         class="list-group">
+
+        @foreach (var drawing
+            in Model.SimilarDrawingNames)
+        {
+            <div class="list-group-item">
+                @drawing
+            </div>
+        }
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     CREATE - FIRST REVISION
+========================================================== -->
+
+@if (!isEdit)
+{
+    <div class="card border mb-4">
+
+        <div class="card-header bg-light">
+
+            <div class="fw-semibold">
+                First Revision
+            </div>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="alert alert-light border">
+
+                <div class="small text-muted">
+                    Revision Number
+                </div>
+
+
+                <div class="fw-bold fs-5">
+                    RV-01
+                </div>
+
+
+                <div class="small text-muted mt-1">
+                    Automatically generated by the system.
+                </div>
+
+            </div>
+
+
+            <div class="row">
+
+                <!-- DRAWING FILE -->
+
+                <div class="col-md-6 mb-3">
+
+                    <label asp-for="DrawingFile"
+                           class="form-label">
+                    </label>
+
+
+                    <input asp-for="DrawingFile"
+                           type="file"
+                           class="form-control"
+                           accept=".pdf,.jpg,.jpeg,.png,.dwg,.dxf" />
+
+
+                    <span asp-validation-for="DrawingFile"
+                          class="text-danger">
+                    </span>
+
+
+                    <div id="customerDrawingSelectedFileName"
+                         class="small text-muted mt-1">
+                    </div>
+
+
+                    <div class="form-text">
+
+                        PDF, JPG, JPEG, PNG, DWG, DXF.
+                        Maximum 25 MB.
+
+                    </div>
+
+                </div>
+
+
+                <!-- REVISION REMARKS -->
+
+                <div class="col-md-6 mb-3">
+
+                    <label asp-for="Description"
+                           class="form-label">
+                    </label>
+
+
+                    <textarea asp-for="Description"
+                              rows="3"
+                              maxlength="500"
+                              class="form-control"
+                              placeholder="Optional revision remarks">
+                    </textarea>
+
+
+                    <span asp-validation-for="Description"
+                          class="text-danger">
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+<!-- =========================================================
+     EDIT - REVISION HISTORY
+========================================================== -->
+
+@if (isEdit)
+{
+    <div class="card border mb-4">
+
+        <div class="card-header
+                    bg-light
+                    d-flex
+                    justify-content-between
+                    align-items-center">
+
+            <div>
+
+                <div class="fw-semibold">
+                    Revision History
+                </div>
+
+
+                <div class="small text-muted">
+                    Revision Numbers are automatically generated.
+                </div>
+
+            </div>
+
+
+            <button type="button"
+                    id="addCustomerDrawingRevisionButton"
+                    class="btn btn-sm btn-primary">
+
+                <i class="fa-solid fa-plus me-1"></i>
+
+                Add Revision
+
+            </button>
+
+        </div>
+
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table
+                              table-hover
+                              align-middle
+                              mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+
+                            <th>
+                                Revision
+                            </th>
+
+                            <th>
+                                File
+                            </th>
+
+                            <th>
+                                Remarks
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th>
+                                Created On
+                            </th>
+
+                            <th>
+                                Created By
+                            </th>
+
+                            <th class="text-center">
+                                Actions
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @if (Model.RevisionHistory.Any())
+                        {
+                            foreach (var revision
+                                in Model.RevisionHistory)
+                            {
+                                <tr>
+
+                                    <!-- REVISION -->
+
+                                    <td class="fw-semibold">
+                                        @revision.RevisionNumber
+                                    </td>
+
+
+                                    <!-- FILE -->
+
+                                    <td>
+
+                                        @if (!string.IsNullOrWhiteSpace(
+                                            revision.FilePath))
+                                        {
+                                            <a href="@revision.FilePath"
+                                               target="_blank"
+                                               rel="noopener"
+                                               class="btn
+                                                      btn-sm
+                                                      btn-outline-primary">
+
+                                                <i class="fa-solid
+                                                          fa-file
+                                                          me-1">
+                                                </i>
+
+                                                @(revision.FileName
+                                                    ?? "View File")
+
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">
+                                                No File
+                                            </span>
+                                        }
+
+                                    </td>
+
+
+                                    <!-- REMARKS -->
+
+                                    <td>
+
+                                        @(string.IsNullOrWhiteSpace(
+                                            revision.Description)
+                                            ? "-"
+                                            : revision.Description)
+
+                                    </td>
+
+
+                                    <!-- STATUS -->
+
+                                    <td>
+
+                                        @if (revision.IsCurrent)
+                                        {
+                                            <span class="badge bg-success">
+                                                Current
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">
+                                                Inactive
+                                            </span>
+                                        }
+
+                                    </td>
+
+
+                                    <!-- CREATED ON -->
+
+                                    <td class="text-nowrap">
+
+    @(revision.CreatedOn
+        .ToLocalTime()
+        .ToString("dd-MMM-yyyy hh:mm tt"))
+
+</td>
+
+
+                                    <!-- CREATED BY -->
+
+                                    <td>
+                                        @revision.CreatedBy
+                                    </td>
+
+
+                                    <!-- ACTIONS -->
+
+                                    <td class="text-center text-nowrap">
+
+                                        @if (!revision.IsCurrent)
+                                        {
+<div class="d-flex
+            justify-content-center
+            align-items-center
+            gap-1
+            flex-nowrap">
+
+                                                <!-- ACTIVATE -->
+
+                                                <button type="submit"
+                                                        class="btn
+                                                               btn-sm
+                                                               btn-outline-success"
+                                                        formaction="@Url.Action(
+                                                            "ActivateRevision",
+                                                            "CustomerDrawing",
+                                                            new
+                                                            {
+                                                                id =
+                                                                    revision.CustomerDrawingId,
+
+                                                                returnAction =
+                                                                    "Edit"
+                                                            })"
+                                                        formmethod="post"
+                                                        formnovalidate
+                                                        onclick="return confirm(
+                                                            'Make revision @revision.RevisionNumber the Current revision?');">
+
+                                                    <i class="fa-solid
+                                                              fa-check
+                                                              me-1">
+                                                    </i>
+
+                                                    Activate
+
+                                                </button>
+
+
+                                                <!-- DELETE REVISION -->
+
+                                                <button type="submit"
+                                                        class="btn
+                                                               btn-sm
+                                                               btn-outline-danger"
+                                                        formaction="@Url.Action(
+                                                            "DeleteRevision",
+                                                            "CustomerDrawing",
+                                                            new
+                                                            {
+                                                                id =
+                                                                    revision.CustomerDrawingId,
+
+                                                                customerDrawingId =
+                                                                    Model.CustomerDrawingId,
+
+                                                                returnAction =
+                                                                    "Edit"
+                                                            })"
+                                                        formmethod="post"
+                                                        formnovalidate
+                                                        onclick="return confirm(
+                                                            'Delete revision @revision.RevisionNumber?');">
+
+                                                    <i class="fa-solid fa-trash">
+                                                    </i>
+
+                                                </button>
+
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="small text-muted">
+                                                Current Revision
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+
+                                <td colspan="7"
+                                    class="text-center
+                                           text-muted
+                                           py-4">
+
+                                    No revision history found.
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         NEW REVISIONS
+    ====================================================== -->
+
+    <div id="newCustomerDrawingRevisionsSection"
+         class="card border mb-4
+                @(Model.NewRevisions.Any()
+                    ? string.Empty
+                    : "d-none")">
+
+        <div class="card-header bg-light">
+
+            <div class="fw-semibold">
+                New Revisions
+            </div>
+
+
+            <div class="small text-muted">
+
+                Revision Number will be generated automatically
+                when the Customer Drawing is saved.
+
+            </div>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div id="newCustomerDrawingRevisionsContainer">
+
+                @for (var index = 0;
+                      index < Model.NewRevisions.Count;
+                      index++)
+                {
+                    var revision =
+                        Model.NewRevisions[index];
+
+                    var key =
+                        index.ToString();
+
+
+                    <div class="customer-drawing-revision-row
+                                border
+                                rounded
+                                p-3
+                                mb-3"
+                         data-customer-drawing-revision-row>
+
+
+                        <input type="hidden"
+                               name="NewRevisions.Index"
+                               value="@key" />
+
+
+                        <div class="row">
+
+
+                            <!-- REVISION -->
+
+                            <div class="col-md-2 mb-3">
+
+                                <label class="form-label">
+                                    Revision
+                                </label>
+
+
+                                <div class="form-control
+                                            bg-light
+                                            fw-semibold">
+
+                                    Auto
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- FILE -->
+
+                            <div class="col-md-5 mb-3">
+
+                                <label class="form-label">
+                                    Drawing File
+                                </label>
+
+
+                                <input type="file"
+                                       name="NewRevisions[@key].DrawingFile"
+                                       class="form-control
+                                              js-customer-drawing-revision-file"
+                                       accept=".pdf,.jpg,.jpeg,.png,.dwg,.dxf" />
+
+
+                                <div class="small
+                                            text-muted
+                                            mt-1
+                                            js-customer-drawing-revision-file-name">
+                                </div>
+
+                            </div>
+
+
+                            <!-- REMARKS -->
+
+                            <div class="col-md-4 mb-3">
+
+                                <label class="form-label">
+                                    Remarks
+                                </label>
+
+
+                                <input type="text"
+                                       name="NewRevisions[@key].Description"
+                                       value="@revision.Description"
+                                       class="form-control"
+                                       maxlength="500"
+                                       placeholder="Optional remarks" />
+
+                            </div>
+
+
+                            <!-- REMOVE -->
+
+                            <div class="col-md-1
+                                        mb-3
+                                        d-flex
+                                        align-items-end">
+
+                                <button type="button"
+                                        class="btn
+                                               btn-outline-danger
+                                               js-remove-customer-drawing-revision">
+
+                                    <i class="fa-solid fa-trash">
+                                    </i>
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         DYNAMIC REVISION TEMPLATE
+    ====================================================== -->
+
+    <template id="customerDrawingRevisionRowTemplate">
+
+        <div class="customer-drawing-revision-row
+                    border
+                    rounded
+                    p-3
+                    mb-3"
+             data-customer-drawing-revision-row>
+
+
+            <input type="hidden"
+                   name="NewRevisions.Index"
+                   value="__key__" />
+
+
+            <div class="row">
+
+
+                <!-- REVISION -->
+
+                <div class="col-md-2 mb-3">
+
+                    <label class="form-label">
+                        Revision
+                    </label>
+
+
+                    <div class="form-control
+                                bg-light
+                                fw-semibold">
+
+                        Auto
+
+                    </div>
+
+                </div>
+
+
+                <!-- FILE -->
+
+                <div class="col-md-5 mb-3">
+
+                    <label class="form-label">
+                        Drawing File
+                    </label>
+
+
+                    <input type="file"
+                           name="NewRevisions[__key__].DrawingFile"
+                           class="form-control
+                                  js-customer-drawing-revision-file"
+                           accept=".pdf,.jpg,.jpeg,.png,.dwg,.dxf" />
+
+
+                    <div class="small
+                                text-muted
+                                mt-1
+                                js-customer-drawing-revision-file-name">
+                    </div>
+
+                </div>
+
+
+                <!-- REMARKS -->
+
+                <div class="col-md-4 mb-3">
+
+                    <label class="form-label">
+                        Remarks
+                    </label>
+
+
+                    <input type="text"
+                           name="NewRevisions[__key__].Description"
+                           class="form-control"
+                           maxlength="500"
+                           placeholder="Optional remarks" />
+
+                </div>
+
+
+                <!-- REMOVE -->
+
+                <div class="col-md-1
+                            mb-3
+                            d-flex
+                            align-items-end">
+
+                    <button type="button"
+                            class="btn
+                                   btn-outline-danger
+                                   js-remove-customer-drawing-revision">
+
+                        <i class="fa-solid fa-trash">
+                        </i>
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </template>
+}
+
+
+<hr />
+
+
+<!-- =========================================================
+     ACTIONS
+========================================================== -->
+
+<div class="d-flex
+            justify-content-end
+            gap-2">
+
+    <a asp-action="Index"
+       class="btn btn-secondary">
+
+        Cancel
+
+    </a>
+
+
+    <button type="submit"
+            id="customerDrawingSaveButton"
+            class="btn btn-primary">
+
+        <i class="fa-solid
+                  fa-floppy-disk
+                  me-1">
+        </i>
+
+        @(isEdit
+            ? "Update Customer Drawing"
+            : "Save Customer Drawing")
+
+    </button>
+
+</div>

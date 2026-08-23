@@ -1,0 +1,91 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.CustomerDrawing.CustomerDrawingFormViewModel
+
+@*
+==============================================================
+
+File : Create.cshtml
+
+Purpose :
+Creates a new Customer Drawing.
+
+Rules :
+- Customer Drawing follows Drawing Master workflow.
+- Customer and Item are selected during Create.
+- First Revision is automatically RV-01.
+- Drawing file belongs to the first revision.
+- Shared form UI is rendered through _Form.cshtml.
+- Client-side behaviour is handled by
+  customer-drawing-form.js.
+
+==============================================================
+*@
+
+@{
+    ViewData["Title"] =
+        "Create Customer Drawing";
+}
+
+
+<!-- =========================================================
+     PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Create Customer Drawing
+        </h2>
+
+        <div class="text-muted">
+            Create Customer-specific Drawing and first Revision.
+        </div>
+
+    </div>
+
+
+    <a asp-action="Index"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid
+                  fa-arrow-left
+                  me-1">
+        </i>
+
+        Back
+
+    </a>
+
+</div>
+
+
+<!-- =========================================================
+     CREATE FORM
+========================================================== -->
+
+<form asp-action="Create"
+      method="post"
+      enctype="multipart/form-data">
+
+    @Html.AntiForgeryToken()
+
+
+    <partial name="_Form"
+             model="Model" />
+
+</form>
+
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+
+    <script src="~/js/customer-drawing-form.js"
+            asp-append-version="true">
+    </script>
+}

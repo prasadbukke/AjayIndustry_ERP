@@ -1,0 +1,123 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.CustomerDrawing.CustomerDrawingFormViewModel
+
+@*
+==============================================================
+
+File : Edit.cshtml
+
+Purpose :
+Edits Customer Drawing information and manages
+Customer Drawing revisions.
+
+Rules :
+- Customer Drawing follows Drawing Master workflow.
+- Customer cannot change after creation.
+- Item cannot change after creation.
+- Drawing Number cannot change after creation.
+- Existing Current Revision is never overwritten.
+- New revisions are added through Revision History section.
+- Revision Numbers are generated automatically.
+- Shared form UI is rendered through _Form.cshtml.
+- Client-side behaviour is handled by
+  customer-drawing-form.js.
+
+==============================================================
+*@
+
+@{
+    ViewData["Title"] =
+        "Edit Customer Drawing";
+}
+
+
+<!-- =========================================================
+     PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Edit Customer Drawing
+        </h2>
+
+        <div class="text-muted">
+
+            @Model.DrawingNumber
+
+            @if (!string.IsNullOrWhiteSpace(
+                        Model.RevisionNumber))
+            {
+                <span>
+                    • Current Revision @Model.RevisionNumber
+                </span>
+            }
+
+        </div>
+
+    </div>
+
+
+    <div class="d-flex gap-2">
+
+        <a asp-action="Details"
+           asp-route-id="@Model.CustomerDrawingId"
+           class="btn btn-outline-primary">
+
+            <i class="fa-solid
+                      fa-eye
+                      me-1">
+            </i>
+
+            Details
+
+        </a>
+
+
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid
+                      fa-arrow-left
+                      me-1">
+            </i>
+
+            Back
+
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     EDIT FORM
+========================================================== -->
+
+<form asp-action="Edit"
+      method="post"
+      enctype="multipart/form-data">
+
+    @Html.AntiForgeryToken()
+
+
+    <partial name="_Form"
+             model="Model" />
+
+</form>
+
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+
+    <script src="~/js/customer-drawing-form.js"
+            asp-append-version="true">
+    </script>
+}

@@ -180,6 +180,14 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
                 IDrawingService,
                 DrawingService>();
 
+            // Customer Drawing
+            services.AddScoped<
+                ICustomerDrawingRepository,
+                CustomerDrawingRepository>();
+
+            services.AddScoped<
+                ICustomerDrawingService,
+                CustomerDrawingService>();
 
             // =================================================
             // PURCHASE ORDER

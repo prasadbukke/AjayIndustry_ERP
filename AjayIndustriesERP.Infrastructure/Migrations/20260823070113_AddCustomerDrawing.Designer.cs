@@ -4,6 +4,7 @@ using AjayIndustriesERP.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AjayIndustriesERP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260823070113_AddCustomerDrawing")]
+    partial class AddCustomerDrawing
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -394,16 +397,9 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
 
                     b.HasIndex("ItemId");
 
-                    b.HasIndex("CustomerId", "DrawingNumber")
-                        .IsUnique()
-                        .HasFilter("[IsActive] = 1 AND [IsDeleted] = 0");
-
                     b.HasIndex("CustomerId", "ItemId")
                         .IsUnique()
-                        .HasFilter("[IsActive] = 1 AND [IsDeleted] = 0");
-
-                    b.HasIndex("CustomerId", "DrawingNumber", "RevisionNumber")
-                        .IsUnique();
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("CustomerDrawings", (string)null);
                 });
