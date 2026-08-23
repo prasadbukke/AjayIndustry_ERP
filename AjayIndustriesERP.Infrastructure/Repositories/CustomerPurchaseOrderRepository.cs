@@ -305,13 +305,17 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         #region Item Master Loading
 
         public async Task<List<Item>>
-            GetItemsForOrderAsync()
+    GetItemsForOrderAsync()
         {
             return await _context.Items
                 .AsNoTracking()
                 .Where(x =>
                     !x.IsDeleted &&
-                    x.IsActive)
+                    x.IsActive &&
+                    x.ItemCategory.CategoryName !=
+                        "Raw Material")
+                .Include(x =>
+                    x.ItemCategory)
                 .Include(x =>
                     x.Uom)
                 .OrderBy(x =>
@@ -331,7 +335,12 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 .Where(x =>
                     x.ItemId == itemId &&
                     !x.IsDeleted &&
-                    x.IsActive)
+                    x.IsActive &&
+                    x.ItemCategory.CategoryName !=
+                        "Raw Material")
+
+                .Include(x =>
+                    x.ItemCategory)
 
                 .Include(x =>
                     x.Uom)

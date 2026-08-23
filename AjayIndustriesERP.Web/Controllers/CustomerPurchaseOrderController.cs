@@ -396,7 +396,371 @@ namespace AjayIndustriesERP.Web.Controllers
 
         #endregion
 
+        #region Customer PO Number Similarity Check
 
+        [HttpGet]
+        public async Task<IActionResult>
+            CheckCustomerPurchaseOrderNumber(
+                int customerId,
+                string customerPurchaseOrderNumber,
+                int? excludeId = null)
+        {
+            if (
+                customerId <= 0 ||
+                string.IsNullOrWhiteSpace(
+                    customerPurchaseOrderNumber) ||
+                customerPurchaseOrderNumber
+                    .Trim()
+                    .Length < 3
+            )
+            {
+                return Json(
+                    new
+                    {
+                        hasSimilarOrders = false,
+                        hasExactMatch = false,
+                        orders = Array.Empty<string>()
+                    });
+            }
+
+
+            var searchText =
+                customerPurchaseOrderNumber
+                    .Trim();
+
+
+            var allOrders =
+                await _customerPurchaseOrderService
+                    .GetAllAsync();
+
+
+            var matchingOrders =
+                allOrders
+                    .Where(x =>
+                        x.CustomerId == customerId
+                        &&
+                        (
+                            !excludeId.HasValue ||
+                            x.Id != excludeId.Value
+                        )
+                        &&
+                        IsSimilarCustomerPoNumber(
+                            searchText,
+                            x.CustomerPurchaseOrderNumber
+                        )
+                    )
+                    .OrderByDescending(x =>
+                        string.Equals(
+                            x.CustomerPurchaseOrderNumber
+                                ?.Trim(),
+                            searchText,
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                    )
+                    .ThenByDescending(x =>
+                        x.CustomerPurchaseOrderDate
+                    )
+                    .Take(10)
+                    .ToList();
+
+
+            /*
+             * Exact means genuinely the same entered PO Number.
+             *
+             * Formatting variants such as:
+             *
+             * ABC-PO-03
+             * ABC - PO - 03
+             *
+             * are treated as Similar, not Exact.
+             */
+            var hasExactMatch =
+                matchingOrders.Any(x =>
+                    string.Equals(
+                        x.CustomerPurchaseOrderNumber
+                            ?.Trim(),
+                        searchText,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                );
+
+
+            var orders =
+                matchingOrders
+                    .Select(x =>
+                        $"{x.CustomerPurchaseOrderNumber}" +
+                        $" | {x.CustomerPurchaseOrderDate:dd-MM-yyyy}"
+                    )
+                    .ToList();
+
+
+            return Json(
+                new
+                {
+                    hasSimilarOrders =
+                        orders.Count > 0,
+
+                    hasExactMatch,
+
+                    orders
+                });
+        }
+
+        #endregion
+
+
+        #region Customer PO Number Similarity Helpers
+
+        private static bool IsSimilarCustomerPoNumber(
+            string searchText,
+            string? existingPoNumber)
+        {
+            if (string.IsNullOrWhiteSpace(
+                existingPoNumber))
+            {
+                return false;
+            }
+
+
+            var search =
+                ParseCustomerPoNumber(
+                    searchText
+                );
+
+
+            var existing =
+                ParseCustomerPoNumber(
+                    existingPoNumber
+                );
+
+
+            if (
+                string.IsNullOrWhiteSpace(
+                    search.CompactValue) ||
+                string.IsNullOrWhiteSpace(
+                    existing.CompactValue)
+            )
+            {
+                return false;
+            }
+
+
+            // =====================================================
+            // RULE 1
+            // Same value after removing spaces / - / _ / symbols.
+            //
+            // ABC-PO-03
+            // ABC - PO - 03
+            // ABC_PO_03
+            // ABC- P O-03
+            // =====================================================
+
+            if (
+                string.Equals(
+                    search.NormalizedValue,
+                    existing.NormalizedValue,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                return true;
+            }
+
+
+            // =====================================================
+            // RULE 2
+            // Normalized typed content exists in existing PO.
+            //
+            // Example:
+            // Typed ABC-PO
+            // Existing ABC-PO-03
+            // =====================================================
+
+            if (
+                search.CompactValue.Length >= 3 &&
+                existing.CompactValue.Contains(
+                    search.CompactValue,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                return true;
+            }
+
+
+            // =====================================================
+            // RULE 3
+            // Same numeric suffix + related alphabetic prefix.
+            //
+            // ABC-PO-03   -> ABCPO + 3
+            // ABC-PO-003  -> ABCPO + 3
+            // ABC-03      -> ABC   + 3
+            //
+            // Therefore all are considered similar.
+            // =====================================================
+
+            if (
+                search.NumberPart.HasValue &&
+                existing.NumberPart.HasValue &&
+                search.NumberPart.Value ==
+                    existing.NumberPart.Value &&
+                !string.IsNullOrWhiteSpace(
+                    search.LetterPart) &&
+                !string.IsNullOrWhiteSpace(
+                    existing.LetterPart)
+            )
+            {
+                var relatedPrefix =
+                    search.LetterPart.StartsWith(
+                        existing.LetterPart,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                    ||
+                    existing.LetterPart.StartsWith(
+                        search.LetterPart,
+                        StringComparison.OrdinalIgnoreCase
+                    );
+
+
+                if (relatedPrefix)
+                {
+                    return true;
+                }
+            }
+
+
+            return false;
+        }
+
+
+        private static CustomerPoNumberParts
+            ParseCustomerPoNumber(
+                string value)
+        {
+            var compact =
+                new string(
+                    value
+                        .Where(
+                            char.IsLetterOrDigit
+                        )
+                        .Select(
+                            char.ToUpperInvariant
+                        )
+                        .ToArray()
+                );
+
+
+            if (string.IsNullOrWhiteSpace(
+                compact))
+            {
+                return new CustomerPoNumberParts();
+            }
+
+
+            /*
+             * Extract final numeric portion.
+             *
+             * ABCPO003
+             *      ↓
+             * Letters = ABCPO
+             * Number  = 3
+             */
+
+            var numberStart =
+                compact.Length;
+
+
+            while (
+                numberStart > 0 &&
+                char.IsDigit(
+                    compact[numberStart - 1]
+                )
+            )
+            {
+                numberStart--;
+            }
+
+
+            var letterPart =
+                compact.Substring(
+                    0,
+                    numberStart
+                );
+
+
+            var numberText =
+                compact.Substring(
+                    numberStart
+                );
+
+
+            int? numberPart =
+                null;
+
+
+            if (
+                !string.IsNullOrWhiteSpace(
+                    numberText) &&
+                int.TryParse(
+                    numberText,
+                    out var parsedNumber
+                )
+            )
+            {
+                numberPart =
+                    parsedNumber;
+            }
+
+
+            /*
+             * Leading zero normalization.
+             *
+             * ABCPO03
+             * ABCPO003
+             *
+             * Both become:
+             *
+             * ABCPO3
+             */
+            var normalizedValue =
+                numberPart.HasValue
+                    ? letterPart +
+                      numberPart.Value
+                    : compact;
+
+
+            return new CustomerPoNumberParts
+            {
+                CompactValue =
+                    compact,
+
+                NormalizedValue =
+                    normalizedValue,
+
+                LetterPart =
+                    letterPart,
+
+                NumberPart =
+                    numberPart
+            };
+        }
+
+
+        private sealed class CustomerPoNumberParts
+        {
+            public string CompactValue { get; set; } =
+                string.Empty;
+
+            public string NormalizedValue { get; set; } =
+                string.Empty;
+
+            public string LetterPart { get; set; } =
+                string.Empty;
+
+            public int? NumberPart { get; set; }
+        }
+
+        #endregion
 
         #region Item AJAX
 

@@ -302,6 +302,10 @@ namespace AjayIndustriesERP.Application.Services
             }
 
 
+            ValidateDuplicateItems(
+                customerPurchaseOrder.Items);
+
+
             foreach (var submittedItem
                 in customerPurchaseOrder.Items)
             {
@@ -432,6 +436,10 @@ namespace AjayIndustriesERP.Application.Services
 
 
             ValidateDuplicateSubmittedLineIds(
+                customerPurchaseOrder.Items);
+
+
+            ValidateDuplicateItems(
                 customerPurchaseOrder.Items);
 
             #endregion
@@ -1471,6 +1479,29 @@ namespace AjayIndustriesERP.Application.Services
 
         #endregion
 
+        #region Duplicate Item Validation
+
+        private static void ValidateDuplicateItems(
+            IEnumerable<CustomerPurchaseOrderItem> items)
+        {
+            var duplicateItem =
+                items
+                    .Where(x =>
+                        x.ItemId > 0)
+                    .GroupBy(x =>
+                        x.ItemId)
+                    .FirstOrDefault(x =>
+                        x.Count() > 1);
+
+
+            if (duplicateItem != null)
+            {
+                throw new BusinessException(
+                    "The same Item cannot be selected more than once in a Customer Purchase Order.");
+            }
+        }
+
+        #endregion
 
         #region Pagination Helper
 
@@ -1490,6 +1521,31 @@ namespace AjayIndustriesERP.Application.Services
             {
                 pageSize = 10;
             }
+        }
+
+        #endregion
+
+        #region Customer PO Validation
+
+        public async Task<bool>
+            CustomerPurchaseOrderNumberExistsAsync(
+                int customerId,
+                string customerPurchaseOrderNumber,
+                int? excludeCustomerPurchaseOrderId = null)
+        {
+            if (customerId <= 0 ||
+                string.IsNullOrWhiteSpace(
+                    customerPurchaseOrderNumber))
+            {
+                return false;
+            }
+
+
+            return await _repository
+                .CustomerPurchaseOrderNumberExistsAsync(
+                    customerId,
+                    customerPurchaseOrderNumber.Trim(),
+                    excludeCustomerPurchaseOrderId);
         }
 
         #endregion

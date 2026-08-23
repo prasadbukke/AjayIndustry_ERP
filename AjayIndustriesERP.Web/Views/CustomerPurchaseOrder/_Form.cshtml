@@ -9,12 +9,15 @@
     - Display Customer PO header information.
     - Load Customer Master selection.
     - Manage multiple Customer PO Item rows.
-    - Load trusted Item Master display information through AJAX.
+    - Support searchable Item selection.
+    - Load trusted Item Master information through AJAX.
+    - Display current Item Drawing information.
+    - Prevent duplicate Items in the same Customer PO.
+    - Show similar Customer PO Number warnings.
     - Allow Customer-specific Item / Drawing references.
     - Allow Ordered Quantity entry.
     - Allow optional line Delivery Date override.
     - Allow optional line Priority override.
-    - Collapse previously entered Item blocks to reduce scrolling.
     - Support dynamic Add / Remove Item operations.
 
     Important:
@@ -23,8 +26,11 @@
     - Existing Customer Master and Item Master are reused.
     - Item display snapshots posted from browser are NOT trusted.
       Application Service reloads Item Master before saving.
-    - Same Item may appear on multiple PO lines because Revision,
-      Delivery Date or Customer Drawing may differ.
+    - Same Item cannot appear more than once in the same
+      Customer Purchase Order.
+    - Raw Material Items are excluded by Repository.
+    - Client-side functionality belongs in
+      customer-purchase-order-form.js.
     ============================================================
 *@
 
@@ -33,59 +39,13 @@
 @using AjayIndustriesERP.Domain.Enums
 
 @{
-    var isEditMode = Model.Id > 0;
+    var isEditMode =
+        Model.Id > 0;
 }
 
 
 <!-- =========================================================
-     REGION 1 — ITEM COLLAPSE STYLE
-========================================================== -->
-
-<style>
-
-    .customer-po-item-row {
-        transition: all 0.2s ease;
-    }
-
-    .customer-po-item-row.is-collapsed {
-        padding-top: 0.85rem !important;
-        padding-bottom: 0.85rem !important;
-    }
-
-    .customer-po-item-row.is-collapsed .item-row-body {
-        display: none;
-    }
-
-    .item-toggle-button {
-        color: inherit;
-        min-width: 0;
-    }
-
-    .item-toggle-button:hover,
-    .item-toggle-button:focus {
-        color: inherit;
-    }
-
-    .item-row-summary {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .item-toggle-icon {
-        transition: transform 0.2s ease;
-    }
-
-    .customer-po-item-row:not(.is-collapsed)
-    .item-toggle-icon {
-        transform: rotate(180deg);
-    }
-
-</style>
-
-
-<!-- =========================================================
-     REGION 2 — CUSTOMER PO INFORMATION
+     REGION 1 — CUSTOMER PO INFORMATION
 ========================================================== -->
 
 <div class="card shadow-sm border-0 mb-4">
@@ -152,7 +112,9 @@
                        class="form-label fw-semibold">
                 </label>
 
-                <span class="text-danger">*</span>
+                <span class="text-danger">
+                    *
+                </span>
 
                 <select asp-for="CustomerId"
                         asp-items="Model.Customers"
@@ -181,16 +143,27 @@
                        class="form-label fw-semibold">
                 </label>
 
-                <span class="text-danger">*</span>
+                <span class="text-danger">
+                    *
+                </span>
 
                 <input asp-for="CustomerPurchaseOrderNumber"
                        class="form-control"
+                       autocomplete="off"
                        maxlength="100"
-                       placeholder="Enter Customer PO Number" />
+                       placeholder="Enter Customer PO Number"
+                       data-similar-url="@Url.Action(
+                           "CheckCustomerPurchaseOrderNumber",
+                           "CustomerPurchaseOrder")"
+                       data-exclude-id="@Model.Id" />
 
                 <span asp-validation-for="CustomerPurchaseOrderNumber"
                       class="text-danger small">
                 </span>
+
+                <div class="form-text">
+                    Similar Customer PO Numbers will appear while typing.
+                </div>
 
             </div>
 
@@ -205,7 +178,9 @@
                        class="form-label fw-semibold">
                 </label>
 
-                <span class="text-danger">*</span>
+                <span class="text-danger">
+                    *
+                </span>
 
                 <input asp-for="CustomerPurchaseOrderDate"
                        type="date"
@@ -228,7 +203,9 @@
                        class="form-label fw-semibold">
                 </label>
 
-                <span class="text-danger">*</span>
+                <span class="text-danger">
+                    *
+                </span>
 
                 <input asp-for="ReceivedDate"
                        type="date"
@@ -251,7 +228,9 @@
                        class="form-label fw-semibold">
                 </label>
 
-                <span class="text-danger">*</span>
+                <span class="text-danger">
+                    *
+                </span>
 
                 <input asp-for="RequiredDeliveryDate"
                        type="date"
@@ -274,7 +253,9 @@
                        class="form-label fw-semibold">
                 </label>
 
-                <span class="text-danger">*</span>
+                <span class="text-danger">
+                    *
+                </span>
 
                 <select asp-for="Priority"
                         asp-items="Html.GetEnumSelectList<CustomerPurchaseOrderPriority>()"
@@ -340,6 +321,70 @@
 
 
 <!-- =========================================================
+     REGION 2 — SIMILAR CUSTOMER PO WARNING
+========================================================== -->
+
+<div id="similarCustomerPoWarning"
+     class="alert alert-warning d-none">
+
+    <div class="fw-semibold mb-2">
+
+        <i class="fa-solid
+                  fa-triangle-exclamation
+                  me-1">
+        </i>
+
+        Similar Customer PO Numbers Found
+
+    </div>
+
+
+    <p class="mb-2">
+
+        Check whether the Customer PO already exists or
+        whether there is a spelling mistake.
+
+    </p>
+
+
+    <ul id="similarCustomerPoList"
+        class="mb-3">
+    </ul>
+
+
+    <div id="customerPoExactDuplicateMessage"
+         class="text-danger
+                fw-semibold
+                d-none
+                mb-2">
+
+        The same Customer PO Number already exists
+        for the selected Customer.
+
+    </div>
+
+
+    <div id="customerPoSimilarConfirmationContainer"
+         class="form-check d-none">
+
+        <input type="checkbox"
+               id="ConfirmSimilarCustomerPoNumber"
+               class="form-check-input" />
+
+        <label for="ConfirmSimilarCustomerPoNumber"
+               class="form-check-label">
+
+            I checked the similar Customer PO Numbers
+            and still want to continue.
+
+        </label>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
      REGION 3 — CUSTOMER PO ITEMS
 ========================================================== -->
 
@@ -380,13 +425,19 @@
 
     <div class="card-body">
 
+
         <!-- =================================================
              REGION 4 — EXISTING / POSTED ITEM ROWS
         ================================================== -->
 
-        <div id="customerPoItemsContainer">
+        <div id="customerPoItemsContainer"
+             data-item-data-url="@Url.Action(
+                 "GetItemData",
+                 "CustomerPurchaseOrder")">
 
-            @for (var i = 0; i < Model.Items.Count; i++)
+            @for (var i = 0;
+                  i < Model.Items.Count;
+                  i++)
             {
                 <div class="customer-po-item-row
                             border
@@ -502,17 +553,25 @@
 
                         <div class="row g-3">
 
+
+                            <!-- ITEM -->
+
                             <div class="col-lg-4 col-md-6">
 
                                 <label class="form-label fw-semibold">
                                     Item
                                 </label>
 
-                                <span class="text-danger">*</span>
+                                <span class="text-danger">
+                                    *
+                                </span>
+
 
                                 <select asp-for="Items[i].ItemId"
                                         asp-items="Model.AvailableItems"
-                                        class="form-select item-select">
+                                        class="form-select
+                                               item-select
+                                               js-customer-po-item-select">
 
                                     <option value="">
                                         -- Select Item --
@@ -520,12 +579,15 @@
 
                                 </select>
 
+
                                 <span asp-validation-for="Items[i].ItemId"
                                       class="text-danger small">
                                 </span>
 
                             </div>
 
+
+                            <!-- ITEM CODE -->
 
                             <div class="col-lg-4 col-md-6">
 
@@ -542,6 +604,8 @@
                             </div>
 
 
+                            <!-- UNIT -->
+
                             <div class="col-lg-4 col-md-6">
 
                                 <label class="form-label fw-semibold">
@@ -557,6 +621,8 @@
                             </div>
 
 
+                            <!-- SPECIFICATION -->
+
                             <div class="col-12">
 
                                 <label class="form-label fw-semibold">
@@ -570,110 +636,119 @@
 
                             </div>
 
+
                             <!-- =================================
-     CURRENT ITEM DRAWING
-================================== -->
+                                 CURRENT ITEM DRAWING
+                            ================================== -->
 
-<div class="col-12">
+                            <div class="col-12">
 
-    <div class="border rounded p-3 bg-light">
+                                <div class="border
+                                            rounded
+                                            p-3
+                                            bg-light">
 
-        <div class="d-flex
-                    justify-content-between
-                    align-items-center
-                    flex-wrap
-                    gap-2
-                    mb-3">
+                                    <div class="d-flex
+                                                justify-content-between
+                                                align-items-center
+                                                flex-wrap
+                                                gap-2
+                                                mb-3">
 
-            <div class="fw-semibold">
+                                        <div class="fw-semibold">
 
-                <i class="fa-solid
-                          fa-file-lines
-                          me-1">
-                </i>
+                                            <i class="fa-solid
+                                                      fa-file-lines
+                                                      me-1">
+                                            </i>
 
-                Current Item Drawing
+                                            Current Item Drawing
 
-            </div>
-
-
-            <span class="badge
-                         bg-light
-                         text-dark
-                         border
-                         item-drawing-status">
-
-                No Drawing
-
-            </span>
-
-        </div>
+                                        </div>
 
 
-        <div class="row g-3">
+                                        <span class="badge
+                                                     bg-light
+                                                     text-dark
+                                                     border
+                                                     item-drawing-status">
 
-            <div class="col-lg-4 col-md-6">
+                                            No Drawing
 
-                <div class="small text-muted mb-1">
-                    Drawing Number
-                </div>
+                                        </span>
 
-                <div class="fw-semibold
-                            item-drawing-number">
-
-                    -
-
-                </div>
-
-            </div>
+                                    </div>
 
 
-            <div class="col-lg-2 col-md-6">
-
-                <div class="small text-muted mb-1">
-                    Revision
-                </div>
-
-                <div class="fw-semibold
-                            item-drawing-revision">
-
-                    -
-
-                </div>
-
-            </div>
+                                    <div class="row g-3">
 
 
-            <div class="col-lg-3 col-md-6">
+                                        <!-- DRAWING NUMBER -->
 
-                <div class="small text-muted mb-1">
-                    Drawing Name
-                </div>
+                                        <div class="col-lg-4 col-md-6">
 
-                <div class="item-drawing-name">
-                    -
-                </div>
+                                            <div class="small text-muted mb-1">
+                                                Drawing Number
+                                            </div>
 
-            </div>
+                                            <div class="fw-semibold
+                                                        item-drawing-number">
+                                                -
+                                            </div>
+
+                                        </div>
 
 
-            <div class="col-lg-3 col-md-6">
+                                        <!-- REVISION -->
 
-                <div class="small text-muted mb-1">
-                    Drawing Type
-                </div>
+                                        <div class="col-lg-2 col-md-6">
 
-                <div class="item-drawing-type">
-                    -
-                </div>
+                                            <div class="small text-muted mb-1">
+                                                Revision
+                                            </div>
 
-            </div>
+                                            <div class="fw-semibold
+                                                        item-drawing-revision">
+                                                -
+                                            </div>
 
-        </div>
+                                        </div>
 
-    </div>
 
-</div>
+                                        <!-- DRAWING NAME -->
+
+                                        <div class="col-lg-3 col-md-6">
+
+                                            <div class="small text-muted mb-1">
+                                                Drawing Name
+                                            </div>
+
+                                            <div class="item-drawing-name">
+                                                -
+                                            </div>
+
+                                        </div>
+
+
+                                        <!-- DRAWING TYPE -->
+
+                                        <div class="col-lg-3 col-md-6">
+
+                                            <div class="small text-muted mb-1">
+                                                Drawing Type
+                                            </div>
+
+                                            <div class="item-drawing-type">
+                                                -
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
 
                         </div>
 
@@ -683,6 +758,9 @@
                         ================================== -->
 
                         <div class="row g-3 mt-1">
+
+
+                            <!-- CUSTOMER ITEM CODE -->
 
                             <div class="col-lg-4 col-md-6">
 
@@ -702,6 +780,8 @@
                             </div>
 
 
+                            <!-- CUSTOMER DRAWING -->
+
                             <div class="col-lg-4 col-md-6">
 
                                 <label asp-for="Items[i].CustomerDrawingNumber"
@@ -719,6 +799,8 @@
 
                             </div>
 
+
+                            <!-- CUSTOMER REVISION -->
 
                             <div class="col-lg-4 col-md-6">
 
@@ -746,13 +828,18 @@
 
                         <div class="row g-3 mt-1">
 
+
+                            <!-- ORDERED QUANTITY -->
+
                             <div class="col-lg-4 col-md-6">
 
                                 <label asp-for="Items[i].OrderedQuantity"
                                        class="form-label fw-semibold">
                                 </label>
 
-                                <span class="text-danger">*</span>
+                                <span class="text-danger">
+                                    *
+                                </span>
 
                                 <input asp-for="Items[i].OrderedQuantity"
                                        type="number"
@@ -768,6 +855,8 @@
 
                             </div>
 
+
+                            <!-- REQUIRED DELIVERY DATE -->
 
                             <div class="col-lg-4 col-md-6">
 
@@ -789,6 +878,8 @@
 
                             </div>
 
+
+                            <!-- PRIORITY -->
 
                             <div class="col-lg-4 col-md-6">
 
@@ -812,6 +903,8 @@
 
                             </div>
 
+
+                            <!-- REMARKS -->
 
                             <div class="col-12">
 
@@ -901,7 +994,8 @@
                            flex-grow-1
                            item-toggle-button">
 
-                <span class="fw-semibold item-row-title">
+                <span class="fw-semibold
+                             item-row-title">
 
                     Item __number__
 
@@ -981,17 +1075,24 @@
 
             <div class="row g-3">
 
+
+                <!-- ITEM -->
+
                 <div class="col-lg-4 col-md-6">
 
                     <label class="form-label fw-semibold">
                         Item
                     </label>
 
-                    <span class="text-danger">*</span>
+                    <span class="text-danger">
+                        *
+                    </span>
 
 
                     <select name="Items[__index__].ItemId"
-                            class="form-select item-select"
+                            class="form-select
+                                   item-select
+                                   js-customer-po-item-select"
                             data-val="true"
                             data-val-range="Please select an Item."
                             data-val-range-min="1"
@@ -1013,13 +1114,17 @@
                     </select>
 
 
-                    <span class="text-danger small field-validation-valid"
+                    <span class="text-danger
+                                 small
+                                 field-validation-valid"
                           data-valmsg-for="Items[__index__].ItemId"
                           data-valmsg-replace="true">
                     </span>
 
                 </div>
 
+
+                <!-- ITEM CODE -->
 
                 <div class="col-lg-4 col-md-6">
 
@@ -1035,6 +1140,8 @@
                 </div>
 
 
+                <!-- UNIT -->
+
                 <div class="col-lg-4 col-md-6">
 
                     <label class="form-label fw-semibold">
@@ -1049,6 +1156,8 @@
                 </div>
 
 
+                <!-- SPECIFICATION -->
+
                 <div class="col-12">
 
                     <label class="form-label fw-semibold">
@@ -1062,110 +1171,119 @@
 
                 </div>
 
+
                 <!-- =========================================
-     CURRENT ITEM DRAWING
-========================================== -->
+                     CURRENT ITEM DRAWING
+                ========================================== -->
 
-<div class="col-12">
+                <div class="col-12">
 
-    <div class="border rounded p-3 bg-light">
+                    <div class="border
+                                rounded
+                                p-3
+                                bg-light">
 
-        <div class="d-flex
-                    justify-content-between
-                    align-items-center
-                    flex-wrap
-                    gap-2
-                    mb-3">
+                        <div class="d-flex
+                                    justify-content-between
+                                    align-items-center
+                                    flex-wrap
+                                    gap-2
+                                    mb-3">
 
-            <div class="fw-semibold">
+                            <div class="fw-semibold">
 
-                <i class="fa-solid
-                          fa-file-lines
-                          me-1">
-                </i>
+                                <i class="fa-solid
+                                          fa-file-lines
+                                          me-1">
+                                </i>
 
-                Current Item Drawing
+                                Current Item Drawing
 
-            </div>
-
-
-            <span class="badge
-                         bg-light
-                         text-dark
-                         border
-                         item-drawing-status">
-
-                No Drawing
-
-            </span>
-
-        </div>
+                            </div>
 
 
-        <div class="row g-3">
+                            <span class="badge
+                                         bg-light
+                                         text-dark
+                                         border
+                                         item-drawing-status">
 
-            <div class="col-lg-4 col-md-6">
+                                No Drawing
 
-                <div class="small text-muted mb-1">
-                    Drawing Number
+                            </span>
+
+                        </div>
+
+
+                        <div class="row g-3">
+
+
+                            <!-- DRAWING NUMBER -->
+
+                            <div class="col-lg-4 col-md-6">
+
+                                <div class="small text-muted mb-1">
+                                    Drawing Number
+                                </div>
+
+                                <div class="fw-semibold
+                                            item-drawing-number">
+                                    -
+                                </div>
+
+                            </div>
+
+
+                            <!-- REVISION -->
+
+                            <div class="col-lg-2 col-md-6">
+
+                                <div class="small text-muted mb-1">
+                                    Revision
+                                </div>
+
+                                <div class="fw-semibold
+                                            item-drawing-revision">
+                                    -
+                                </div>
+
+                            </div>
+
+
+                            <!-- DRAWING NAME -->
+
+                            <div class="col-lg-3 col-md-6">
+
+                                <div class="small text-muted mb-1">
+                                    Drawing Name
+                                </div>
+
+                                <div class="item-drawing-name">
+                                    -
+                                </div>
+
+                            </div>
+
+
+                            <!-- DRAWING TYPE -->
+
+                            <div class="col-lg-3 col-md-6">
+
+                                <div class="small text-muted mb-1">
+                                    Drawing Type
+                                </div>
+
+                                <div class="item-drawing-type">
+                                    -
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
                 </div>
-
-                <div class="fw-semibold
-                            item-drawing-number">
-
-                    -
-
-                </div>
-
-            </div>
-
-
-            <div class="col-lg-2 col-md-6">
-
-                <div class="small text-muted mb-1">
-                    Revision
-                </div>
-
-                <div class="fw-semibold
-                            item-drawing-revision">
-
-                    -
-
-                </div>
-
-            </div>
-
-
-            <div class="col-lg-3 col-md-6">
-
-                <div class="small text-muted mb-1">
-                    Drawing Name
-                </div>
-
-                <div class="item-drawing-name">
-                    -
-                </div>
-
-            </div>
-
-
-            <div class="col-lg-3 col-md-6">
-
-                <div class="small text-muted mb-1">
-                    Drawing Type
-                </div>
-
-                <div class="item-drawing-type">
-                    -
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
 
             </div>
 
@@ -1175,6 +1293,9 @@
             ========================================== -->
 
             <div class="row g-3 mt-1">
+
+
+                <!-- CUSTOMER ITEM CODE -->
 
                 <div class="col-lg-4 col-md-6">
 
@@ -1190,6 +1311,8 @@
                 </div>
 
 
+                <!-- CUSTOMER DRAWING -->
+
                 <div class="col-lg-4 col-md-6">
 
                     <label class="form-label fw-semibold">
@@ -1203,6 +1326,8 @@
 
                 </div>
 
+
+                <!-- CUSTOMER REVISION -->
 
                 <div class="col-lg-4 col-md-6">
 
@@ -1226,20 +1351,26 @@
 
             <div class="row g-3 mt-1">
 
+
+                <!-- ORDERED QUANTITY -->
+
                 <div class="col-lg-4 col-md-6">
 
                     <label class="form-label fw-semibold">
                         Ordered Quantity
                     </label>
 
-                    <span class="text-danger">*</span>
+                    <span class="text-danger">
+                        *
+                    </span>
 
 
                     <input name="Items[__index__].OrderedQuantity"
                            type="number"
                            min="0.001"
                            step="0.001"
-                           class="form-control item-quantity-input"
+                           class="form-control
+                                  item-quantity-input"
                            placeholder="Enter quantity"
                            data-val="true"
                            data-val-range="Ordered Quantity must be greater than zero."
@@ -1247,13 +1378,17 @@
                            data-val-range-max="999999999999999.999" />
 
 
-                    <span class="text-danger small field-validation-valid"
+                    <span class="text-danger
+                                 small
+                                 field-validation-valid"
                           data-valmsg-for="Items[__index__].OrderedQuantity"
                           data-valmsg-replace="true">
                     </span>
 
                 </div>
 
+
+                <!-- REQUIRED DELIVERY DATE -->
 
                 <div class="col-lg-4 col-md-6">
 
@@ -1271,6 +1406,8 @@
 
                 </div>
 
+
+                <!-- PRIORITY -->
 
                 <div class="col-lg-4 col-md-6">
 
@@ -1300,6 +1437,8 @@
                 </div>
 
 
+                <!-- REMARKS -->
+
                 <div class="col-12">
 
                     <label class="form-label fw-semibold">
@@ -1321,934 +1460,3 @@
     </div>
 
 </template>
-
-
-<!-- =========================================================
-     REGION 7 — ITEM FORM SCRIPT
-========================================================== -->
-
-<script>
-
-    document.addEventListener(
-        "DOMContentLoaded",
-        function () {
-
-            // =================================================
-            // REGION 7.1 — ELEMENT REFERENCES
-            // =================================================
-
-            const container =
-                document.getElementById(
-                    "customerPoItemsContainer"
-                );
-
-            const template =
-                document.getElementById(
-                    "customerPoItemTemplate"
-                );
-
-            const addButton =
-                document.getElementById(
-                    "btnAddItem"
-                );
-
-            const emptyMessage =
-                document.getElementById(
-                    "emptyItemMessage"
-                );
-
-
-            if (!container ||
-                !template ||
-                !addButton ||
-                !emptyMessage) {
-
-                return;
-            }
-
-
-            // =================================================
-            // REGION 7.2 — EMPTY STATE
-            // =================================================
-
-            function updateEmptyState() {
-
-                const rows =
-                    container.querySelectorAll(
-                        ".customer-po-item-row"
-                    );
-
-
-                if (rows.length === 0) {
-
-                    emptyMessage.classList.remove(
-                        "d-none"
-                    );
-                }
-                else {
-
-                    emptyMessage.classList.add(
-                        "d-none"
-                    );
-                }
-            }
-
-
-            // =================================================
-            // REGION 7.3 — COLLAPSE / EXPAND
-            // =================================================
-
-            function collapseRow(
-                row) {
-
-                if (!row) {
-                    return;
-                }
-
-
-                row.classList.add(
-                    "is-collapsed"
-                );
-            }
-
-
-            function expandRow(
-                row) {
-
-                if (!row) {
-                    return;
-                }
-
-
-                row.classList.remove(
-                    "is-collapsed"
-                );
-            }
-
-
-            function collapseAllExcept(
-                activeRow) {
-
-                const rows =
-                    container.querySelectorAll(
-                        ".customer-po-item-row"
-                    );
-
-
-                rows.forEach(
-                    function (row) {
-
-                        if (row === activeRow) {
-
-                            expandRow(row);
-                        }
-                        else {
-
-                            collapseRow(row);
-                        }
-                    }
-                );
-            }
-
-
-            // =================================================
-            // REGION 7.4 — ITEM SUMMARY
-            // =================================================
-
-            function updateRowSummary(
-                row,
-                itemCode,
-                itemName) {
-
-                const summary =
-                    row.querySelector(
-                        ".item-row-summary"
-                    );
-
-
-                if (!summary) {
-                    return;
-                }
-
-
-                if (!itemCode &&
-                    !itemName) {
-
-                    summary.textContent =
-                        "";
-
-                    return;
-                }
-
-
-                if (itemCode &&
-                    itemName) {
-
-                    summary.textContent =
-                        itemCode +
-                        " - " +
-                        itemName;
-                }
-                else {
-
-                    summary.textContent =
-                        itemCode ||
-                        itemName ||
-                        "";
-                }
-            }
-
-
-            // =================================================
-            // REGION 7.5 — REINDEX ITEM ROWS
-            // =================================================
-
-            function reindexRows() {
-
-                const rows =
-                    container.querySelectorAll(
-                        ".customer-po-item-row"
-                    );
-
-
-                rows.forEach(
-                    function (
-                        row,
-                        index) {
-
-                        row.dataset.index =
-                            index;
-
-
-                        // =====================================
-                        // TITLE
-                        // =====================================
-
-                        const title =
-                            row.querySelector(
-                                ".item-row-title"
-                            );
-
-
-                        if (title) {
-
-                            title.textContent =
-                                "Item " +
-                                (index + 1);
-                        }
-
-
-                        // =====================================
-                        // NAME ATTRIBUTES
-                        // =====================================
-
-                        row.querySelectorAll(
-                            "[name]"
-                        ).forEach(
-                            function (element) {
-
-                                element.name =
-                                    element.name.replace(
-                                        /Items\[\d+\]/g,
-                                        "Items[" +
-                                        index +
-                                        "]"
-                                    );
-                            }
-                        );
-
-
-                        // =====================================
-                        // ID ATTRIBUTES
-                        // =====================================
-
-                        row.querySelectorAll(
-                            "[id]"
-                        ).forEach(
-                            function (element) {
-
-                                element.id =
-                                    element.id.replace(
-                                        /Items_\d+__/g,
-                                        "Items_" +
-                                        index +
-                                        "__"
-                                    );
-                            }
-                        );
-
-
-                        // =====================================
-                        // LABEL FOR ATTRIBUTES
-                        // =====================================
-
-                        row.querySelectorAll(
-                            "label[for]"
-                        ).forEach(
-                            function (label) {
-
-                                label.htmlFor =
-                                    label.htmlFor.replace(
-                                        /Items_\d+__/g,
-                                        "Items_" +
-                                        index +
-                                        "__"
-                                    );
-                            }
-                        );
-
-
-                        // =====================================
-                        // VALIDATION MESSAGE TARGETS
-                        // =====================================
-
-                        row.querySelectorAll(
-                            "[data-valmsg-for]"
-                        ).forEach(
-                            function (element) {
-
-                                const current =
-                                    element.getAttribute(
-                                        "data-valmsg-for"
-                                    );
-
-
-                                if (!current) {
-                                    return;
-                                }
-
-
-                                element.setAttribute(
-                                    "data-valmsg-for",
-                                    current.replace(
-                                        /Items\[\d+\]/g,
-                                        "Items[" +
-                                        index +
-                                        "]"
-                                    )
-                                );
-                            }
-                        );
-                    }
-                );
-
-
-                updateEmptyState();
-            }
-
-
-            // =================================================
-            // REGION 7.6 — REPARSE VALIDATION
-            // =================================================
-
-            function reparseValidation() {
-
-                if (
-                    typeof $ === "undefined" ||
-                    !$.validator ||
-                    !$.validator.unobtrusive
-                ) {
-
-                    return;
-                }
-
-
-                const form =
-                    document.getElementById(
-                        "customerPurchaseOrderForm"
-                    );
-
-
-                if (!form) {
-                    return;
-                }
-
-
-                $(form)
-                    .removeData(
-                        "validator"
-                    )
-                    .removeData(
-                        "unobtrusiveValidation"
-                    );
-
-
-                $.validator
-                    .unobtrusive
-                    .parse(form);
-            }
-
-
-            // =================================================
-            // REGION 7.7 — LOAD ITEM DATA
-            // =================================================
-
-            async function loadItemData(
-                row,
-                itemId) {
-
-                const codeDisplay =
-                    row.querySelector(
-                        ".item-code-display"
-                    );
-
-                const unitDisplay =
-                    row.querySelector(
-                        ".item-unit-display"
-                    );
-
-                const specificationDisplay =
-                    row.querySelector(
-                        ".item-specification-display"
-                    );
-
-
-                const codeHidden =
-                    row.querySelector(
-                        ".item-code-hidden"
-                    );
-
-                const nameHidden =
-                    row.querySelector(
-                        ".item-name-hidden"
-                    );
-
-                const specificationHidden =
-                    row.querySelector(
-                        ".item-specification-hidden"
-                    );
-
-                const unitHidden =
-                    row.querySelector(
-                        ".item-unit-hidden"
-                    );
-
-                    const drawingStatus =
-    row.querySelector(
-        ".item-drawing-status"
-    );
-
-const drawingNumber =
-    row.querySelector(
-        ".item-drawing-number"
-    );
-
-const drawingRevision =
-    row.querySelector(
-        ".item-drawing-revision"
-    );
-
-const drawingName =
-    row.querySelector(
-        ".item-drawing-name"
-    );
-
-const drawingType =
-    row.querySelector(
-        ".item-drawing-type"
-    );
-
-
-                if (!itemId) {
-
-                    codeDisplay.value =
-                        "";
-
-                    unitDisplay.value =
-                        "";
-
-                    specificationDisplay.value =
-                        "";
-
-
-                    codeHidden.value =
-                        "";
-
-                    nameHidden.value =
-                        "";
-
-                    specificationHidden.value =
-                        "";
-
-                    unitHidden.value =
-                        "";
-
-                        if (drawingStatus) {
-
-    drawingStatus.textContent =
-        "No Drawing";
-}
-
-
-if (drawingNumber) {
-
-    drawingNumber.textContent =
-        "-";
-}
-
-
-if (drawingRevision) {
-
-    drawingRevision.textContent =
-        "-";
-}
-
-
-if (drawingName) {
-
-    drawingName.textContent =
-        "-";
-}
-
-
-if (drawingType) {
-
-    drawingType.textContent =
-        "-";
-}
-
-                    updateRowSummary(
-                        row,
-                        "",
-                        ""
-                    );
-
-
-                    return;
-                }
-
-
-                try {
-
-                    const response =
-                        await fetch(
-                            '@Url.Action(
-                                "GetItemData",
-                                "CustomerPurchaseOrder")'
-                            +
-                            "?itemId=" +
-                            encodeURIComponent(
-                                itemId
-                            )
-                        );
-
-
-                    const data =
-                        await response.json();
-
-
-                    if (!data.success) {
-
-                        if (window.showAppToast) {
-
-                            window.showAppToast(
-                                "error",
-                                data.message ||
-                                "Unable to load Item."
-                            );
-                        }
-
-
-                        return;
-                    }
-
-
-                    // =========================================
-                    // DISPLAY VALUES
-                    // =========================================
-
-                    codeDisplay.value =
-                        data.itemCode || "";
-
-                    unitDisplay.value =
-                        data.unitName || "";
-
-                    specificationDisplay.value =
-                        data.specification || "";
-
-                        // =========================================
-// CURRENT ITEM DRAWING
-// =========================================
-
-const hasDrawing =
-    Boolean(
-        data.drawingId &&
-        data.drawingNumber
-    );
-
-
-if (drawingStatus) {
-
-    drawingStatus.textContent =
-        hasDrawing
-            ? "Current"
-            : "No Drawing";
-}
-
-
-if (drawingNumber) {
-
-    drawingNumber.textContent =
-        data.drawingNumber ||
-        "-";
-}
-
-
-if (drawingRevision) {
-
-    drawingRevision.textContent =
-        data.drawingRevision ||
-        "-";
-}
-
-
-if (drawingName) {
-
-    drawingName.textContent =
-        data.drawingName ||
-        "-";
-}
-
-
-if (drawingType) {
-
-    drawingType.textContent =
-        data.drawingType ||
-        "-";
-}
-
-
-                    // =========================================
-                    // HIDDEN POST VALUES
-                    // =========================================
-
-                    codeHidden.value =
-                        data.itemCode || "";
-
-                    nameHidden.value =
-                        data.itemName || "";
-
-                    specificationHidden.value =
-                        data.specification || "";
-
-                    unitHidden.value =
-                        data.unitName || "";
-
-
-                    // =========================================
-                    // COLLAPSED ROW SUMMARY
-                    // =========================================
-
-                    updateRowSummary(
-                        row,
-                        data.itemCode || "",
-                        data.itemName || ""
-                    );
-                }
-                catch (error) {
-
-                    if (window.showAppToast) {
-
-                        window.showAppToast(
-                            "error",
-                            "Unable to load Item information."
-                        );
-                    }
-                }
-            }
-
-
-            // =================================================
-            // REGION 7.8 — ADD ITEM
-            // =================================================
-
-            function addItemRow() {
-
-                const rowsBeforeAdd =
-                    container.querySelectorAll(
-                        ".customer-po-item-row"
-                    );
-
-
-                const index =
-                    rowsBeforeAdd.length;
-
-
-                const number =
-                    index + 1;
-
-
-                const html =
-                    template.innerHTML
-                        .replaceAll(
-                            "__index__",
-                            index
-                        )
-                        .replaceAll(
-                            "__number__",
-                            number
-                        );
-
-
-                container.insertAdjacentHTML(
-                    "beforeend",
-                    html
-                );
-
-
-                reindexRows();
-
-
-                const rows =
-                    container.querySelectorAll(
-                        ".customer-po-item-row"
-                    );
-
-
-                const newRow =
-                    rows[
-                        rows.length - 1
-                    ];
-
-
-                /*
-                 * Important UX:
-                 *
-                 * New Item add केल्यावर previous
-                 * Item blocks collapse होतील.
-                 *
-                 * फक्त latest/new Item open राहील.
-                 */
-
-                collapseAllExcept(
-                    newRow
-                );
-
-
-                reparseValidation();
-
-
-                if (newRow) {
-
-                    newRow.scrollIntoView({
-                        behavior:
-                            "smooth",
-
-                        block:
-                            "nearest"
-                    });
-                }
-            }
-
-
-            // =================================================
-            // REGION 7.9 — ADD BUTTON
-            // =================================================
-
-            addButton.addEventListener(
-                "click",
-                function () {
-
-                    addItemRow();
-                }
-            );
-
-
-            // =================================================
-            // REGION 7.10 — ITEM ROW CLICK EVENTS
-            // =================================================
-
-            container.addEventListener(
-                "click",
-                function (event) {
-
-                    // =========================================
-                    // COLLAPSE / EXPAND
-                    // =========================================
-
-                    const toggleButton =
-                        event.target.closest(
-                            ".item-toggle-button"
-                        );
-
-
-                    if (toggleButton) {
-
-                        const row =
-                            toggleButton.closest(
-                                ".customer-po-item-row"
-                            );
-
-
-                        if (!row) {
-                            return;
-                        }
-
-
-                        if (
-                            row.classList.contains(
-                                "is-collapsed"
-                            )
-                        ) {
-
-                            collapseAllExcept(
-                                row
-                            );
-                        }
-                        else {
-
-                            collapseRow(
-                                row
-                            );
-                        }
-
-
-                        return;
-                    }
-
-
-                    // =========================================
-                    // REMOVE ITEM
-                    // =========================================
-
-                    const removeButton =
-                        event.target.closest(
-                            ".btn-remove-item"
-                        );
-
-
-                    if (!removeButton) {
-                        return;
-                    }
-
-
-                    const row =
-                        removeButton.closest(
-                            ".customer-po-item-row"
-                        );
-
-
-                    if (!row) {
-                        return;
-                    }
-
-
-                    row.remove();
-
-
-                    reindexRows();
-
-                    reparseValidation();
-
-
-                    const remainingRows =
-                        container.querySelectorAll(
-                            ".customer-po-item-row"
-                        );
-
-
-                    if (
-                        remainingRows.length > 0
-                    ) {
-
-                        const lastRow =
-                            remainingRows[
-                                remainingRows.length - 1
-                            ];
-
-
-                        collapseAllExcept(
-                            lastRow
-                        );
-                    }
-                }
-            );
-
-
-            // =================================================
-            // REGION 7.11 — ITEM SELECTION CHANGE
-            // =================================================
-
-            container.addEventListener(
-                "change",
-                function (event) {
-
-                    if (
-                        !event.target.classList.contains(
-                            "item-select"
-                        )
-                    ) {
-
-                        return;
-                    }
-
-
-                    const row =
-                        event.target.closest(
-                            ".customer-po-item-row"
-                        );
-
-
-                    if (!row) {
-                        return;
-                    }
-
-
-                    loadItemData(
-                        row,
-                        event.target.value
-                    );
-                }
-            );
-
-
-            // =================================================
-            // REGION 7.12 — INITIALIZATION
-            // =================================================
-
-            let initialRows =
-                container.querySelectorAll(
-                    ".customer-po-item-row"
-                );
-
-
-            /*
-             * Create page:
-             * No row from server → create one blank row.
-             */
-
-            if (initialRows.length === 0) {
-
-                addItemRow();
-
-                return;
-            }
-
-
-            /*
-             * Edit / validation-return page:
-             *
-             * Existing rows remain in the model.
-             * Previous rows collapse.
-             * Last row stays open.
-             */
-
-            const lastInitialRow =
-                initialRows[
-                    initialRows.length - 1
-                ];
-
-
-            collapseAllExcept(
-                lastInitialRow
-            );
-
-
-            reindexRows();
-
-            updateEmptyState();
-
-        }
-    );
-
-</script>

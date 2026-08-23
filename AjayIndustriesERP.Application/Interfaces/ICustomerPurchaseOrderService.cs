@@ -76,6 +76,21 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         #endregion
 
+        #region Customer PO Validation
+
+        /// <summary>
+        /// Checks whether the Customer Purchase Order Number
+        /// already exists for the selected Customer.
+        ///
+        /// Used by Create/Edit for live duplicate validation.
+        /// </summary>
+        Task<bool> CustomerPurchaseOrderNumberExistsAsync(
+            int customerId,
+            string customerPurchaseOrderNumber,
+            int? excludeCustomerPurchaseOrderId = null);
+
+        #endregion
+
 
         #region Write Operations
 

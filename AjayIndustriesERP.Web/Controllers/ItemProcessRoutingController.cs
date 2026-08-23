@@ -151,7 +151,7 @@ namespace AjayIndustriesERP.Web.Controllers
                     {
                         new ItemProcessRoutingStepViewModel
                         {
-                            SequenceNumber = 10
+                            SequenceNumber = 1
                         }
                     }
                 };

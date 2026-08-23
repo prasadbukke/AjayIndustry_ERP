@@ -148,14 +148,15 @@
 
 
                     <select asp-for="ItemId"
-                            asp-items="Model.Items"
-                            class="form-select">
+        asp-items="Model.Items"
+        class="form-select routing-search-select"
+        data-placeholder="-- Select Item --">
 
-                        <option value="">
-                            -- Select Item --
-                        </option>
+    <option value="">
+        -- Select Item --
+    </option>
 
-                    </select>
+</select>
 
 
                     <span asp-validation-for="ItemId"
@@ -479,13 +480,11 @@
 
 
                                 <select asp-for="Steps[i].ProductionOperationId"
-                                        asp-items="Model.Operations"
-                                        class="form-select
-                                               routing-operation-select">
-
-                                    <option value="">
-                                        -- Select Operation --
-                                    </option>
+        asp-items="Model.Operations"
+        class="form-select
+               routing-operation-select
+               routing-search-select"
+        data-placeholder="-- Select Operation --">
 
                                 </select>
 
@@ -504,13 +503,11 @@
 
 
                                 <select asp-for="Steps[i].DefaultMachineId"
-                                        asp-items="Model.Machines"
-                                        class="form-select
-                                               routing-machine-select">
-
-                                    <option value="">
-                                        -- No Default Machine --
-                                    </option>
+        asp-items="Model.Machines"
+        class="form-select
+               routing-machine-select
+               routing-search-select"
+        data-placeholder="-- No Default Machine --">
 
                                 </select>
 
@@ -781,8 +778,10 @@
 
 
                     <select name="Steps[__index__].ProductionOperationId"
-                            class="form-select
-                                   routing-operation-select"
+        class="form-select
+               routing-operation-select
+               routing-search-select"
+        data-placeholder="-- Select Operation --"
                             data-val="true"
                             data-val-range="Operation is required."
                             data-val-range-min="1"
@@ -824,12 +823,10 @@
 
 
                     <select name="Steps[__index__].DefaultMachineId"
-                            class="form-select
-                                   routing-machine-select">
-
-                        <option value="">
-                            -- No Default Machine --
-                        </option>
+        class="form-select
+               routing-machine-select
+               routing-search-select"
+        data-placeholder="-- No Default Machine --">
 
 
                         @foreach (var machine
@@ -968,6 +965,142 @@
 
                 return;
             }
+
+
+            // =================================================
+// REGION 5.2 — SEARCHABLE DROPDOWNS
+// =================================================
+
+function hasSelect2() {
+
+    return (
+        window.jQuery &&
+        jQuery.fn &&
+        typeof jQuery.fn.select2 ===
+            "function"
+    );
+}
+
+
+function destroySearchableSelects(
+    scope) {
+
+    if (!hasSelect2()) {
+        return;
+    }
+
+
+    jQuery(scope)
+        .find(
+            ".routing-search-select." +
+            "select2-hidden-accessible"
+        )
+        .each(
+            function () {
+
+                jQuery(this)
+                    .off(
+                        ".routingSearch"
+                    )
+                    .select2(
+                        "destroy"
+                    );
+            }
+        );
+}
+
+
+function initializeSearchableSelects(
+    scope) {
+
+    if (!hasSelect2()) {
+        return;
+    }
+
+
+    jQuery(scope)
+        .find(
+            ".routing-search-select"
+        )
+        .each(
+            function () {
+
+                const $select =
+                    jQuery(this);
+
+
+                if (
+                    $select.hasClass(
+                        "select2-hidden-accessible"
+                    )
+                ) {
+
+                    return;
+                }
+
+
+                const placeholder =
+                    $select.data(
+                        "placeholder"
+                    )
+                    ||
+                    "-- Select --";
+
+
+                $select.select2({
+
+                    width:
+                        "100%",
+
+                    placeholder:
+                        placeholder,
+
+                    allowClear:
+                        true,
+
+                    minimumResultsForSearch:
+                        0
+                });
+
+
+                /*
+                 * Keep Step summary synchronized
+                 * with Select2 selections.
+                 */
+                if (
+                    $select.hasClass(
+                        "routing-operation-select"
+                    )
+                    ||
+                    $select.hasClass(
+                        "routing-machine-select"
+                    )
+                ) {
+
+                    $select
+                        .off(
+                            ".routingSearch"
+                        )
+                        .on(
+                            "select2:select.routingSearch " +
+                            "select2:clear.routingSearch",
+                            function () {
+
+                                const row =
+                                    this.closest(
+                                        ".routing-step-card"
+                                    );
+
+
+                                updateStepSummary(
+                                    row
+                                );
+                            }
+                        );
+                }
+            }
+        );
+}
 
 
             // =================================================
@@ -1141,49 +1274,49 @@
 
             function getNextSequence() {
 
-                const sequenceInputs =
-                    container.querySelectorAll(
-                        ".routing-sequence-input"
-                    );
+    const sequenceInputs =
+        container.querySelectorAll(
+            ".routing-sequence-input"
+        );
 
 
-                if (sequenceInputs.length === 0) {
-                    return 10;
-                }
+    if (sequenceInputs.length === 0) {
+        return 1;
+    }
 
 
-                let maxSequence =
-                    0;
+    let maxSequence =
+        0;
 
 
-                sequenceInputs.forEach(
-                    function (input) {
+    sequenceInputs.forEach(
+        function (input) {
 
-                        const value =
-                            parseInt(
-                                input.value || "0"
-                            );
-
-
-                        if (
-                            !isNaN(value) &&
-                            value > maxSequence
-                        ) {
-
-                            maxSequence =
-                                value;
-                        }
-                    }
+            const value =
+                parseInt(
+                    input.value || "0"
                 );
 
 
-                if (maxSequence <= 0) {
-                    return 10;
-                }
+            if (
+                !isNaN(value) &&
+                value > maxSequence
+            ) {
 
-
-                return maxSequence + 10;
+                maxSequence =
+                    value;
             }
+        }
+    );
+
+
+    if (maxSequence <= 0) {
+        return 1;
+    }
+
+
+    return maxSequence + 1;
+}
 
 
             // =================================================
@@ -1192,10 +1325,19 @@
 
             function reindexSteps() {
 
-                const rows =
-                    container.querySelectorAll(
-                        ".routing-step-card"
-                    );
+    /*
+     * Select2 must be destroyed before IDs / names
+     * of dynamic rows are changed.
+     */
+    destroySearchableSelects(
+        container
+    );
+
+
+    const rows =
+        container.querySelectorAll(
+            ".routing-step-card"
+        );
 
 
                 rows.forEach(
@@ -1320,8 +1462,12 @@
                     }
                 );
 
+initializeSearchableSelects(
+    container
+);
 
-                updateEmptyState();
+
+updateEmptyState();
             }
 
 
@@ -1591,6 +1737,10 @@
             // =================================================
             // REGION 5.12 — INITIALIZE
             // =================================================
+
+            initializeSearchableSelects(
+    document
+);
 
             let initialRows =
                 container.querySelectorAll(
