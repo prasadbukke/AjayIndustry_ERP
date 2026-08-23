@@ -12,12 +12,20 @@ Responsibilities:
 - Load Customer PO production source information.
 - Mark Draft Production Job as Ready.
 - Soft-delete Draft Production Job.
+- Restore deleted Production Job.
+- Edit Draft Production Job.
+- Edit Production Pipeline before Production starts.
+- Execute Production Job Steps.
+- Display current Workshop Drawing.
+- Display current Customer Drawing.
 - Map Domain entities to Web ViewModels.
 
 Important:
 - Controller does not directly access DbContext or Repository.
 - Business logic belongs in ProductionJobService.
 - Routing selection is automatic based on Item.
+- Workshop Drawing is resolved from Item.
+- Customer Drawing is resolved from Customer + Item.
 ============================================================
 */
 
@@ -38,16 +46,23 @@ namespace AjayIndustriesERP.Web.Controllers
         private readonly IProductionJobService
             _productionJobService;
 
+        private readonly ICustomerDrawingService
+            _customerDrawingService;
+
         #endregion
 
 
         #region Constructor
 
         public ProductionJobController(
-            IProductionJobService productionJobService)
+            IProductionJobService productionJobService,
+            ICustomerDrawingService customerDrawingService)
         {
             _productionJobService =
                 productionJobService;
+
+            _customerDrawingService =
+                customerDrawingService;
         }
 
         #endregion
@@ -115,12 +130,17 @@ namespace AjayIndustriesERP.Web.Controllers
             }
 
 
+            var viewModel =
+                await MapToDetailsViewModelAsync(
+                    productionJob);
+
+
             return View(
-                MapToDetailsViewModel(
-                    productionJob));
+                viewModel);
         }
 
         #endregion
+
 
         #region Production Pipeline
 
@@ -140,7 +160,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             var viewModel =
-                MapToDetailsViewModel(
+                await MapToDetailsViewModelAsync(
                     productionJob);
 
 
@@ -158,6 +178,7 @@ namespace AjayIndustriesERP.Web.Controllers
         }
 
         #endregion
+
 
         #region Cancel Production Job
 
@@ -210,6 +231,7 @@ namespace AjayIndustriesERP.Web.Controllers
         }
 
         #endregion
+
 
         #region Create
 
@@ -401,22 +423,25 @@ namespace AjayIndustriesERP.Web.Controllers
                         .GetReleasedRoutingForItemAsync(
                             poItem.ItemId);
 
+
                 if (remainingQuantity <= 0)
                 {
                     continue;
                 }
 
+
                 /*
- * Production Job can only be created for an Item
- * having a Released Routing.
- *
- * Items without Released Routing are intentionally
- * not shown in the Production Source dropdown.
- */
+                 * Production Job can only be created for an Item
+                 * having a Released Routing.
+                 *
+                 * Items without Released Routing are intentionally
+                 * not shown in the Production Source dropdown.
+                 */
                 if (routing == null)
                 {
                     continue;
                 }
+
 
                 viewModel.SourceItems.Add(
                     new ProductionJobSourceOptionViewModel
@@ -460,13 +485,13 @@ namespace AjayIndustriesERP.Web.Controllers
                             remainingQuantity,
 
                         HasReleasedRouting =
-    true,
+                            true,
 
                         RoutingCode =
-    routing.Code,
+                            routing.Code,
 
                         RoutingRevisionNumber =
-    routing.RevisionNumber
+                            routing.RevisionNumber
                     });
             }
         }
@@ -476,13 +501,11 @@ namespace AjayIndustriesERP.Web.Controllers
 
         #region Details Mapping
 
-        private static ProductionJobDetailsViewModel
-            MapToDetailsViewModel(
+        private async Task<ProductionJobDetailsViewModel>
+            MapToDetailsViewModelAsync(
                 ProductionJob productionJob)
         {
-
-
-            #region Current Item Drawing
+            #region Current Workshop Drawing
 
             var currentDrawing =
                 productionJob.Item
@@ -497,6 +520,49 @@ namespace AjayIndustriesERP.Web.Controllers
             #endregion
 
 
+            #region Current Customer Drawing
+
+            /*
+             * Customer Drawing is current Master information.
+             *
+             * It is resolved using:
+             *
+             * Customer + Item
+             *
+             * Customer comes from the Production Job's
+             * source Customer Purchase Order.
+             */
+
+            CustomerDrawing?
+                currentCustomerDrawing =
+                    null;
+
+
+            var customerId =
+                productionJob
+                    .CustomerPurchaseOrderItem
+                    ?.CustomerPurchaseOrder
+                    ?.CustomerId
+                ?? 0;
+
+
+            if (
+                customerId > 0 &&
+                productionJob.ItemId > 0
+            )
+            {
+                currentCustomerDrawing =
+                    await _customerDrawingService
+                        .GetByCustomerAndItemAsync(
+                            customerId,
+                            productionJob.ItemId);
+            }
+
+            #endregion
+
+
+            #region Map Header
+
             var viewModel =
                 new ProductionJobDetailsViewModel
                 {
@@ -510,7 +576,8 @@ namespace AjayIndustriesERP.Web.Controllers
                         productionJob.Status,
 
                     CustomerPurchaseOrderItemId =
-                        productionJob.CustomerPurchaseOrderItemId,
+                        productionJob
+                            .CustomerPurchaseOrderItemId,
 
                     CustomerPurchaseOrderCode =
                         productionJob
@@ -549,19 +616,22 @@ namespace AjayIndustriesERP.Web.Controllers
                         productionJob.JobQuantity,
 
                     ItemProcessRoutingId =
-                        productionJob.ItemProcessRoutingId,
+                        productionJob
+                            .ItemProcessRoutingId,
 
                     RoutingCode =
                         productionJob.RoutingCode,
 
                     RoutingRevisionNumber =
-                        productionJob.RoutingRevisionNumber,
+                        productionJob
+                            .RoutingRevisionNumber,
 
                     PlannedStartOn =
                         productionJob.PlannedStartOn,
 
                     PlannedCompletionOn =
-                        productionJob.PlannedCompletionOn,
+                        productionJob
+                            .PlannedCompletionOn,
 
                     StartedOn =
                         productionJob.StartedOn,
@@ -570,43 +640,94 @@ namespace AjayIndustriesERP.Web.Controllers
                         productionJob.CompletedOn,
 
                     CancelledOn =
-                          productionJob.CancelledOn,
+                        productionJob.CancelledOn,
 
                     Remarks =
-    productionJob.Remarks,
+                        productionJob.Remarks,
 
                     CancellationReason =
-    productionJob.CancellationReason,
+                        productionJob
+                            .CancellationReason,
 
-                    #region Current Item Drawing
+
+                    #region Current Workshop Drawing
 
                     DrawingId =
-    currentDrawing?.DrawingId,
+                        currentDrawing?
+                            .DrawingId,
 
                     DrawingNumber =
-    currentDrawing?.DrawingNumber,
+                        currentDrawing?
+                            .DrawingNumber,
 
                     DrawingName =
-    currentDrawing?.DrawingName,
+                        currentDrawing?
+                            .DrawingName,
 
                     DrawingType =
-    currentDrawing?.DrawingType,
+                        currentDrawing?
+                            .DrawingType,
 
                     DrawingRevisionNumber =
-    currentDrawing?.RevisionNumber,
+                        currentDrawing?
+                            .RevisionNumber,
 
                     DrawingFileName =
-    currentDrawing?.FileName,
+                        currentDrawing?
+                            .FileName,
 
                     DrawingFilePath =
-    currentDrawing?.FilePath,
+                        currentDrawing?
+                            .FilePath,
 
                     DrawingDescription =
-    currentDrawing?.Description,
+                        currentDrawing?
+                            .Description,
+
+                    #endregion
+
+
+                    #region Current Customer Drawing
+
+                    CustomerDrawingId =
+                        currentCustomerDrawing?
+                            .CustomerDrawingId,
+
+                    CustomerDrawingNumber =
+                        currentCustomerDrawing?
+                            .DrawingNumber,
+
+                    CustomerDrawingName =
+                        currentCustomerDrawing?
+                            .DrawingName,
+
+                    CustomerDrawingType =
+                        currentCustomerDrawing?
+                            .DrawingType,
+
+                    CustomerDrawingRevisionNumber =
+                        currentCustomerDrawing?
+                            .RevisionNumber,
+
+                    CustomerDrawingFileName =
+                        currentCustomerDrawing?
+                            .FileName,
+
+                    CustomerDrawingFilePath =
+                        currentCustomerDrawing?
+                            .FilePath,
+
+                    CustomerDrawingDescription =
+                        currentCustomerDrawing?
+                            .Description
 
                     #endregion
                 };
 
+            #endregion
+
+
+            #region Map Steps
 
             foreach (var step in
                 productionJob.Steps
@@ -643,7 +764,8 @@ namespace AjayIndustriesERP.Web.Controllers
                             step.DefaultMachine?.Code,
 
                         DefaultMachineName =
-                            step.DefaultMachine?.MachineName,
+                            step.DefaultMachine
+                                ?.MachineName,
 
                         AssignedMachineId =
                             step.AssignedMachineId,
@@ -652,7 +774,8 @@ namespace AjayIndustriesERP.Web.Controllers
                             step.AssignedMachine?.Code,
 
                         AssignedMachineName =
-                            step.AssignedMachine?.MachineName,
+                            step.AssignedMachine
+                                ?.MachineName,
 
                         SetupTimeMinutes =
                             step.SetupTimeMinutes,
@@ -728,6 +851,8 @@ namespace AjayIndustriesERP.Web.Controllers
                     stepViewModel);
             }
 
+            #endregion
+
 
             return viewModel;
         }
@@ -759,6 +884,7 @@ namespace AjayIndustriesERP.Web.Controllers
         }
 
         #endregion
+
 
         #region Edit
 
@@ -806,7 +932,8 @@ namespace AjayIndustriesERP.Web.Controllers
                         productionJob.Status,
 
                     CustomerPurchaseOrderItemId =
-                        productionJob.CustomerPurchaseOrderItemId,
+                        productionJob
+                            .CustomerPurchaseOrderItemId,
 
                     CustomerPurchaseOrderCode =
                         productionJob
@@ -839,7 +966,8 @@ namespace AjayIndustriesERP.Web.Controllers
                         productionJob.RoutingCode,
 
                     RoutingRevisionNumber =
-                        productionJob.RoutingRevisionNumber,
+                        productionJob
+                            .RoutingRevisionNumber,
 
                     JobQuantity =
                         productionJob.JobQuantity,
@@ -848,7 +976,8 @@ namespace AjayIndustriesERP.Web.Controllers
                         productionJob.PlannedStartOn,
 
                     PlannedCompletionOn =
-                        productionJob.PlannedCompletionOn,
+                        productionJob
+                            .PlannedCompletionOn,
 
                     Remarks =
                         productionJob.Remarks
@@ -898,7 +1027,8 @@ namespace AjayIndustriesERP.Web.Controllers
                             viewModel.PlannedStartOn,
 
                         PlannedCompletionOn =
-                            viewModel.PlannedCompletionOn,
+                            viewModel
+                                .PlannedCompletionOn,
 
                         Remarks =
                             viewModel.Remarks
@@ -946,7 +1076,8 @@ namespace AjayIndustriesERP.Web.Controllers
                         existing.Status;
 
                     viewModel.CustomerPurchaseOrderItemId =
-                        existing.CustomerPurchaseOrderItemId;
+                        existing
+                            .CustomerPurchaseOrderItemId;
 
                     viewModel.CustomerPurchaseOrderCode =
                         existing
@@ -979,7 +1110,8 @@ namespace AjayIndustriesERP.Web.Controllers
                         existing.RoutingCode;
 
                     viewModel.RoutingRevisionNumber =
-                        existing.RoutingRevisionNumber;
+                        existing
+                            .RoutingRevisionNumber;
                 }
 
 
@@ -989,6 +1121,7 @@ namespace AjayIndustriesERP.Web.Controllers
         }
 
         #endregion
+
 
         #region Edit Draft Pipeline
 
@@ -1009,15 +1142,15 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             var canEditPipeline =
-    (
-        productionJob.Status ==
-            ProductionJobStatus.Draft
-        ||
-        productionJob.Status ==
-            ProductionJobStatus.Ready
-    )
-    &&
-    !productionJob.StartedOn.HasValue;
+                (
+                    productionJob.Status ==
+                        ProductionJobStatus.Draft
+                    ||
+                    productionJob.Status ==
+                        ProductionJobStatus.Ready
+                )
+                &&
+                !productionJob.StartedOn.HasValue;
 
 
             if (!canEditPipeline)
@@ -1181,7 +1314,8 @@ namespace AjayIndustriesERP.Web.Controllers
                     .UpdateDraftPipelineAsync(
                         viewModel.ProductionJobId,
                         steps,
-                        viewModel.PipelineModificationReason);
+                        viewModel
+                            .PipelineModificationReason);
 
                 #endregion
 
@@ -1219,15 +1353,15 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 var canEditPipeline =
-    (
-        productionJob.Status ==
-            ProductionJobStatus.Draft
-        ||
-        productionJob.Status ==
-            ProductionJobStatus.Ready
-    )
-    &&
-    !productionJob.StartedOn.HasValue;
+                    (
+                        productionJob.Status ==
+                            ProductionJobStatus.Draft
+                        ||
+                        productionJob.Status ==
+                            ProductionJobStatus.Ready
+                    )
+                    &&
+                    !productionJob.StartedOn.HasValue;
 
 
                 if (!canEditPipeline)
@@ -1306,6 +1440,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
         #endregion
 
+
         #region Deleted Jobs
 
         [HttpGet]
@@ -1347,6 +1482,7 @@ namespace AjayIndustriesERP.Web.Controllers
         }
 
         #endregion
+
 
         #region Start Production Step
 
@@ -1425,7 +1561,8 @@ namespace AjayIndustriesERP.Web.Controllers
                         step.DefaultMachine?.Code,
 
                     DefaultMachineName =
-                        step.DefaultMachine?.MachineName,
+                        step.DefaultMachine
+                            ?.MachineName,
 
                     AssignedMachineId =
                         step.DefaultMachineId,
@@ -1433,7 +1570,8 @@ namespace AjayIndustriesERP.Web.Controllers
                     Machines =
                         machines
                             .Select(x =>
-                                new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
+                                new Microsoft.AspNetCore.Mvc.Rendering
+                                    .SelectListItem
                                 {
                                     Value =
                                         x.Id.ToString(),
@@ -1486,12 +1624,12 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 return RedirectToAction(
-                     nameof(Pipeline),
-                      new
-                             {
-                               id =
-                                 viewModel.ProductionJobId
-              });
+                    nameof(Pipeline),
+                    new
+                    {
+                        id =
+                            viewModel.ProductionJobId
+                    });
             }
             catch (BusinessException ex)
             {
@@ -1581,7 +1719,8 @@ namespace AjayIndustriesERP.Web.Controllers
                         step.AssignedMachine?.Code,
 
                     AssignedMachineName =
-                        step.AssignedMachine?.MachineName,
+                        step.AssignedMachine
+                            ?.MachineName,
 
                     GoodQuantity =
                         productionJob.JobQuantity,
@@ -1633,12 +1772,12 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 return RedirectToAction(
-    nameof(Pipeline),
-    new
-    {
-        id =
-            viewModel.ProductionJobId
-    });
+                    nameof(Pipeline),
+                    new
+                    {
+                        id =
+                            viewModel.ProductionJobId
+                    });
             }
             catch (BusinessException ex)
             {

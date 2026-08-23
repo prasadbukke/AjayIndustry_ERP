@@ -379,7 +379,7 @@ else if (Model.Status == ProductionJobStatus.Draft)
 </div>
 
 <!-- =========================================================
-     REGION — CURRENT ITEM DRAWING
+     REGION — CURRENT DRAWINGS
 ========================================================== -->
 
 <div class="card shadow-sm border-0 mb-4">
@@ -390,7 +390,7 @@ else if (Model.Status == ProductionJobStatus.Draft)
 
             <i class="fa-solid fa-file-lines me-1"></i>
 
-            Current Item Drawing
+            Current Drawings
 
         </span>
 
@@ -399,128 +399,445 @@ else if (Model.Status == ProductionJobStatus.Draft)
 
     <div class="card-body">
 
-        @if (!string.IsNullOrWhiteSpace(
-            Model.DrawingNumber))
-        {
-            <div class="row g-6">
+        <div class="row g-4">
 
 
-                <!-- DRAWING NUMBER -->
+            <!-- =============================================
+                 WORKSHOP DRAWING
+            ============================================== -->
 
-                <div class="col-lg-3 col-md-6">
+            <div class="col-lg-6">
 
-                    <div class="small text-muted mb-1">
-                        Drawing Number
-                    </div>
+                <div class="border
+                            rounded
+                            p-3
+                            bg-light
+                            h-100">
 
-                    <div class="fw-semibold">
-                        @Model.DrawingNumber
-                    </div>
+                    <div class="d-flex
+                                justify-content-between
+                                align-items-center
+                                flex-wrap
+                                gap-2
+                                mb-3">
 
-                </div>
+                        <div class="fw-semibold">
 
+                            <i class="fa-solid
+                                      fa-screwdriver-wrench
+                                      me-1">
+                            </i>
 
-                <!-- REVISION -->
+                            Workshop Drawing
 
-                <div class="col-lg-2 col-md-6">
-
-                    <div class="small text-muted mb-1">
-                        Revision
-                    </div>
-
-                    <div class="fw-semibold">
-
-                        @(string.IsNullOrWhiteSpace(
-                            Model.DrawingRevisionNumber)
-                            ? "-"
-                            : Model.DrawingRevisionNumber)
-
-                    </div>
-
-                </div>
+                        </div>
 
 
-                <!-- DRAWING NAME -->
+                        @if (!string.IsNullOrWhiteSpace(
+                            Model.DrawingNumber))
+                        {
+                            <span class="badge bg-success">
+                                Current
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge
+                                         bg-light
+                                         text-dark
+                                         border">
 
-                <div class="col-lg-3 col-md-6">
+                                No Drawing
 
-                    <div class="small text-muted mb-1">
-                        Drawing Name
-                    </div>
-
-                    <div class="fw-semibold">
-
-                        @(string.IsNullOrWhiteSpace(
-                            Model.DrawingName)
-                            ? "-"
-                            : Model.DrawingName)
+                            </span>
+                        }
 
                     </div>
 
-                </div>
-
-
-                <!-- DRAWING TYPE -->
-
-                <div class="col-lg-2 col-md-6">
-
-                    <div class="small text-muted mb-1">
-                        Drawing Type
-                    </div>
-
-                    <div>
-
-                        @(string.IsNullOrWhiteSpace(
-                            Model.DrawingType)
-                            ? "-"
-                            : Model.DrawingType)
-
-                    </div>
-
-                </div>
-
-
-                <!-- FILE -->
-
-                 <div class="col-lg-2 col-md-6">
-
-                    <div class="small text-muted mb-1">
-                        Drawing File
-                    </div>
 
                     @if (!string.IsNullOrWhiteSpace(
-                        Model.DrawingFilePath))
+                        Model.DrawingNumber))
                     {
-                        <a href="@Model.DrawingFilePath"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           class="btn btn-sm btn-outline-danger"
-                           title="View Drawing">
+                        <div class="row g-3">
 
-                            <i class="fa-solid fa-file-pdf fa-lg"></i>
 
-                        </a>
+                            <!-- DRAWING NUMBER -->
+
+                            <div class="col-md-6">
+
+                                <div class="small
+                                            text-muted
+                                            mb-1">
+
+                                    Drawing Number
+
+                                </div>
+
+                                <div class="fw-semibold">
+
+                                    @Model.DrawingNumber
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- REVISION -->
+
+                            <div class="col-md-6">
+
+                                <div class="small
+                                            text-muted
+                                            mb-1">
+
+                                    Revision
+
+                                </div>
+
+                                <div class="fw-semibold">
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        Model.DrawingRevisionNumber)
+                                        ? "-"
+                                        : Model.DrawingRevisionNumber)
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- DRAWING NAME -->
+
+                            <div class="col-md-6">
+
+                                <div class="small
+                                            text-muted
+                                            mb-1">
+
+                                    Drawing Name
+
+                                </div>
+
+                                <div>
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        Model.DrawingName)
+                                        ? "-"
+                                        : Model.DrawingName)
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- DRAWING TYPE -->
+
+                            <div class="col-md-6">
+
+                                <div class="small
+                                            text-muted
+                                            mb-1">
+
+                                    Drawing Type
+
+                                </div>
+
+                                <div>
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        Model.DrawingType)
+                                        ? "-"
+                                        : Model.DrawingType)
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- DRAWING FILE -->
+
+                            <div class="col-12">
+
+                                <div class="small
+                                            text-muted
+                                            mb-1">
+
+                                    Drawing File
+
+                                </div>
+
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    Model.DrawingFilePath))
+                                {
+                                    <a href="@Model.DrawingFilePath"
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       class="btn
+                                              btn-sm
+                                              btn-outline-primary">
+
+                                        <i class="fa-solid
+                                                  fa-file
+                                                  me-1">
+                                        </i>
+
+                                        @(string.IsNullOrWhiteSpace(
+                                            Model.DrawingFileName)
+                                            ? "View File"
+                                            : Model.DrawingFileName)
+
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        No File
+                                    </span>
+                                }
+
+                            </div>
+
+                        </div>
                     }
                     else
                     {
-                        <span class="text-muted">
-                            -
-                        </span>
+                        <div class="text-muted">
+
+                            <i class="fa-solid
+                                      fa-circle-info
+                                      me-1">
+                            </i>
+
+                            No active Workshop Drawing is linked
+                            with this Item.
+
+                        </div>
                     }
 
-                </div>          
-</div>
-        }
-        else
-        {
-            <div class="text-muted">
-
-                <i class="fa-solid fa-circle-info me-1"></i>
-
-                No active Drawing is linked with this Item.
+                </div>
 
             </div>
-        }
+
+
+            <!-- =============================================
+                 CUSTOMER DRAWING
+            ============================================== -->
+
+            <div class="col-lg-6">
+
+                <div class="border
+                            rounded
+                            p-3
+                            bg-light
+                            h-100">
+
+                    <div class="d-flex
+                                justify-content-between
+                                align-items-center
+                                flex-wrap
+                                gap-2
+                                mb-3">
+
+                        <div class="fw-semibold">
+
+                            <i class="fa-solid
+                                      fa-file-signature
+                                      me-1">
+                            </i>
+
+                            Customer Drawing
+
+                        </div>
+
+
+                        @if (!string.IsNullOrWhiteSpace(
+                            Model.CustomerDrawingNumber))
+                        {
+                            <span class="badge bg-success">
+                                Current
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge
+                                         bg-light
+                                         text-dark
+                                         border">
+
+                                No Drawing
+
+                            </span>
+                        }
+
+                    </div>
+
+
+                    @if (!string.IsNullOrWhiteSpace(
+                        Model.CustomerDrawingNumber))
+                    {
+                        <div class="row g-3">
+
+
+                            <!-- DRAWING NUMBER -->
+
+                            <div class="col-md-6">
+
+                                <div class="small
+                                            text-muted
+                                            mb-1">
+
+                                    Drawing Number
+
+                                </div>
+
+                                <div class="fw-semibold">
+
+                                    @Model.CustomerDrawingNumber
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- REVISION -->
+
+                            <div class="col-md-6">
+
+                                <div class="small
+                                            text-muted
+                                            mb-1">
+
+                                    Revision
+
+                                </div>
+
+                                <div class="fw-semibold">
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        Model.CustomerDrawingRevisionNumber)
+                                        ? "-"
+                                        : Model.CustomerDrawingRevisionNumber)
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- DRAWING NAME -->
+
+                            <div class="col-md-6">
+
+                                <div class="small
+                                            text-muted
+                                            mb-1">
+
+                                    Drawing Name
+
+                                </div>
+
+                                <div>
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        Model.CustomerDrawingName)
+                                        ? "-"
+                                        : Model.CustomerDrawingName)
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- DRAWING TYPE -->
+
+                            <div class="col-md-6">
+
+                                <div class="small
+                                            text-muted
+                                            mb-1">
+
+                                    Drawing Type
+
+                                </div>
+
+                                <div>
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        Model.CustomerDrawingType)
+                                        ? "-"
+                                        : Model.CustomerDrawingType)
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- DRAWING FILE -->
+
+                            <div class="col-12">
+
+                                <div class="small
+                                            text-muted
+                                            mb-1">
+
+                                    Drawing File
+
+                                </div>
+
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    Model.CustomerDrawingFilePath))
+                                {
+                                    <a href="@Model.CustomerDrawingFilePath"
+                                       target="_blank"
+                                       rel="noopener noreferrer"
+                                       class="btn
+                                              btn-sm
+                                              btn-outline-primary">
+
+                                        <i class="fa-solid
+                                                  fa-file
+                                                  me-1">
+                                        </i>
+
+                                        @(string.IsNullOrWhiteSpace(
+                                            Model.CustomerDrawingFileName)
+                                            ? "View File"
+                                            : Model.CustomerDrawingFileName)
+
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">
+                                        No File
+                                    </span>
+                                }
+
+                            </div>
+
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">
+
+                            <i class="fa-solid
+                                      fa-circle-info
+                                      me-1">
+                            </i>
+
+                            No active Customer Drawing is linked
+                            with this Customer and Item.
+
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
 
     </div>
 

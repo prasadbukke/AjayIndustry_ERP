@@ -123,6 +123,7 @@ namespace AjayIndustriesERP.Web.Controllers
         #region Details
 
         [HttpGet]
+        [HttpGet]
         public async Task<IActionResult> Details(
     int id)
         {
@@ -139,29 +140,19 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             // =========================================================
-            // CUSTOMER DRAWING SNAPSHOT DETAILS
+            // CURRENT CUSTOMER DRAWINGS
             // =========================================================
 
             /*
-             * Customer PO Item stores historical:
+             * Customer PO Details should display the CURRENT
+             * Customer Drawing exactly like the Workshop Drawing.
              *
-             * CustomerDrawingNumber
-             * Revision
+             * Customer Drawing is resolved using:
              *
-             * Resolve that exact revision so Details page can show:
-             *
-             * - Drawing Name
-             * - Drawing Type
-             * - File Name
-             * - File Path
-             *
-             * IMPORTANT:
-             * Do NOT load current Customer Drawing here.
-             * PO must continue showing the revision that was
-             * saved with the transaction.
+             * Customer + Item
              */
 
-            var customerDrawingRevisions =
+            var currentCustomerDrawings =
                 new Dictionary<int, CustomerDrawing>();
 
 
@@ -171,23 +162,11 @@ namespace AjayIndustriesERP.Web.Controllers
                         !x.IsDeleted &&
                         x.IsActive))
             {
-                if (
-                    string.IsNullOrWhiteSpace(
-                        item.CustomerDrawingNumber) ||
-                    string.IsNullOrWhiteSpace(
-                        item.Revision)
-                )
-                {
-                    continue;
-                }
-
-
                 var customerDrawing =
                     await _customerDrawingService
-                        .GetRevisionAsync(
+                        .GetByCustomerAndItemAsync(
                             customerPurchaseOrder.CustomerId,
-                            item.CustomerDrawingNumber,
-                            item.Revision);
+                            item.ItemId);
 
 
                 if (customerDrawing == null)
@@ -196,15 +175,15 @@ namespace AjayIndustriesERP.Web.Controllers
                 }
 
 
-                customerDrawingRevisions[
+                currentCustomerDrawings[
                     item.Id
                 ] =
                     customerDrawing;
             }
 
 
-            ViewBag.CustomerDrawingRevisions =
-                customerDrawingRevisions;
+            ViewBag.CurrentCustomerDrawings =
+                currentCustomerDrawings;
 
 
             return View(

@@ -9,6 +9,8 @@ Responsibilities:
 - Display Production Job Header.
 - Display Customer PO source information.
 - Display Item and Job Quantity.
+- Display current Workshop Drawing.
+- Display current Customer Drawing.
 - Display Routing snapshot.
 - Display Production Job lifecycle.
 - Display executable Production Pipeline Steps.
@@ -16,6 +18,9 @@ Responsibilities:
 Important:
 - Job Steps are snapshots copied from the Released Routing.
 - Routing changes later must not modify this Job.
+- Workshop Drawing represents the current Item Drawing.
+- Customer Drawing represents the current Drawing for
+  Customer + Item.
 ============================================================
 */
 
@@ -69,7 +74,8 @@ namespace AjayIndustriesERP.Web.ViewModels.ProductionJob
 
         #endregion
 
-        #region Current Item Drawing
+
+        #region Current Workshop Drawing
 
         public int? DrawingId { get; set; }
 
@@ -88,6 +94,36 @@ namespace AjayIndustriesERP.Web.ViewModels.ProductionJob
         public string? DrawingDescription { get; set; }
 
         #endregion
+
+
+        #region Current Customer Drawing
+
+        public int? CustomerDrawingId { get; set; }
+
+        public string? CustomerDrawingNumber { get; set; }
+
+        public string? CustomerDrawingName { get; set; }
+
+        public string? CustomerDrawingType { get; set; }
+
+        public string? CustomerDrawingRevisionNumber
+        {
+            get;
+            set;
+        }
+
+        public string? CustomerDrawingFileName { get; set; }
+
+        public string? CustomerDrawingFilePath { get; set; }
+
+        public string? CustomerDrawingDescription
+        {
+            get;
+            set;
+        }
+
+        #endregion
+
 
         #region Routing
 
@@ -110,6 +146,7 @@ namespace AjayIndustriesERP.Web.ViewModels.ProductionJob
         public DateTime? StartedOn { get; set; }
 
         public DateTime? CompletedOn { get; set; }
+
         public DateTime? CancelledOn { get; set; }
 
         #endregion
@@ -118,6 +155,7 @@ namespace AjayIndustriesERP.Web.ViewModels.ProductionJob
         #region Remarks
 
         public string? Remarks { get; set; }
+
         public string? CancellationReason { get; set; }
 
         #endregion

@@ -33,14 +33,14 @@
     ViewData["Title"] =
         "Customer PO Details";
 
-    var customerDrawingRevisions =
-        ViewBag.CustomerDrawingRevisions
-            as Dictionary<
-                int,
-                AjayIndustriesERP.Domain.Entities.CustomerDrawing>
-        ?? new Dictionary<
+    var currentCustomerDrawings =
+    ViewBag.CurrentCustomerDrawings
+        as Dictionary<
             int,
-            AjayIndustriesERP.Domain.Entities.CustomerDrawing>();
+            AjayIndustriesERP.Domain.Entities.CustomerDrawing>
+    ?? new Dictionary<
+        int,
+        AjayIndustriesERP.Domain.Entities.CustomerDrawing>();
 }
 
 
@@ -520,10 +520,10 @@
         .FirstOrDefault();
 
 
-customerDrawingRevisions
+currentCustomerDrawings
     .TryGetValue(
         item.Id,
-        out var customerDrawingSnapshot);
+        out var currentCustomerDrawing);
 
 
                 <div class="border
@@ -838,7 +838,7 @@ customerDrawingRevisions
 
 
                         <!-- =================================
-     CUSTOMER DRAWING SNAPSHOT
+     CURRENT CUSTOMER DRAWING
 ================================== -->
 
 <div class="col-lg-6">
@@ -868,10 +868,10 @@ customerDrawingRevisions
             </div>
 
 
-            @if (customerDrawingSnapshot != null)
+            @if (currentCustomerDrawing != null)
             {
-                <span class="badge bg-primary">
-                    PO Snapshot
+                <span class="badge bg-success">
+                    Current
                 </span>
             }
             else
@@ -896,20 +896,15 @@ customerDrawingRevisions
 
             <div class="col-md-6">
 
-                <div class="small
-                            text-muted
-                            mb-1">
-
+                <div class="small text-muted mb-1">
                     Drawing Number
-
                 </div>
 
                 <div class="fw-semibold">
 
-                    @(string.IsNullOrWhiteSpace(
-                        item.CustomerDrawingNumber)
-                        ? "-"
-                        : item.CustomerDrawingNumber)
+                    @(currentCustomerDrawing?
+                        .DrawingNumber
+                        ?? "-")
 
                 </div>
 
@@ -920,20 +915,15 @@ customerDrawingRevisions
 
             <div class="col-md-6">
 
-                <div class="small
-                            text-muted
-                            mb-1">
-
+                <div class="small text-muted mb-1">
                     Revision
-
                 </div>
 
                 <div class="fw-semibold">
 
-                    @(string.IsNullOrWhiteSpace(
-                        item.Revision)
-                        ? "-"
-                        : item.Revision)
+                    @(currentCustomerDrawing?
+                        .RevisionNumber
+                        ?? "-")
 
                 </div>
 
@@ -944,21 +934,17 @@ customerDrawingRevisions
 
             <div class="col-md-6">
 
-                <div class="small
-                            text-muted
-                            mb-1">
-
+                <div class="small text-muted mb-1">
                     Drawing Name
-
                 </div>
 
                 <div>
 
                     @(string.IsNullOrWhiteSpace(
-                        customerDrawingSnapshot?
+                        currentCustomerDrawing?
                             .DrawingName)
                         ? "-"
-                        : customerDrawingSnapshot!
+                        : currentCustomerDrawing!
                             .DrawingName)
 
                 </div>
@@ -970,21 +956,17 @@ customerDrawingRevisions
 
             <div class="col-md-6">
 
-                <div class="small
-                            text-muted
-                            mb-1">
-
+                <div class="small text-muted mb-1">
                     Drawing Type
-
                 </div>
 
                 <div>
 
                     @(string.IsNullOrWhiteSpace(
-                        customerDrawingSnapshot?
+                        currentCustomerDrawing?
                             .DrawingType)
                         ? "-"
-                        : customerDrawingSnapshot!
+                        : currentCustomerDrawing!
                             .DrawingType)
 
                 </div>
@@ -996,22 +978,18 @@ customerDrawingRevisions
 
             <div class="col-12">
 
-                <div class="small
-                            text-muted
-                            mb-1">
-
+                <div class="small text-muted mb-1">
                     Drawing File
-
                 </div>
 
 
                 @if (
-                    customerDrawingSnapshot != null &&
+                    currentCustomerDrawing != null &&
                     !string.IsNullOrWhiteSpace(
-                        customerDrawingSnapshot.FilePath)
+                        currentCustomerDrawing.FilePath)
                 )
                 {
-                    <a href="@customerDrawingSnapshot.FilePath"
+                    <a href="@currentCustomerDrawing.FilePath"
                        target="_blank"
                        rel="noopener"
                        class="btn
@@ -1023,7 +1001,7 @@ customerDrawingRevisions
                                   me-1">
                         </i>
 
-                        @(customerDrawingSnapshot.FileName
+                        @(currentCustomerDrawing.FileName
                             ?? "View File")
 
                     </a>
