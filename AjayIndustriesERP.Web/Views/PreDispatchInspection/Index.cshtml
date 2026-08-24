@@ -410,20 +410,34 @@ Important:
 
                                         <!-- EDIT DRAFT -->
 
-                                        @if (isDraft)
-                                        {
-                                            <a asp-action="Edit"
-                                               asp-route-id="@report.Id"
-                                               class="btn
-                                                      btn-sm
-                                                      btn-outline-secondary"
-                                               title="Edit">
+                                       <!-- EDIT -->
 
-                                                <i class="fa-solid fa-pen"></i>
+@if (isDraft)
+{
+    <a asp-action="Edit"
+       asp-route-id="@report.Id"
+       class="btn
+              btn-sm
+              btn-outline-secondary"
+       title="Edit">
 
-                                            </a>
-                                        }
+        <i class="fa-solid fa-pen"></i>
 
+    </a>
+}
+else
+{
+    <button type="button"
+            class="btn
+                   btn-sm
+                   btn-outline-secondary"
+            title="Finalized PDI Report cannot be edited"
+            disabled>
+
+        <i class="fa-solid fa-pen"></i>
+
+    </button>
+}
 
                                         <!-- DELETE DRAFT -->
 
@@ -447,6 +461,40 @@ Important:
                                             </button>
                                         }
 
+<!-- DELETE -->
+
+@if (isDraft)
+{
+    <button type="button"
+            class="btn
+                   btn-sm
+                   btn-outline-danger"
+            title="Delete"
+            onclick="confirmDelete('@Url.Action(
+                "Delete",
+                "PreDispatchInspection",
+                new
+                {
+                    id = report.Id
+                })')">
+
+        <i class="fa-solid fa-trash"></i>
+
+    </button>
+}
+else
+{
+    <button type="button"
+            class="btn
+                   btn-sm
+                   btn-outline-danger"
+            title="Finalized PDI Report cannot be deleted"
+            disabled>
+
+        <i class="fa-solid fa-trash"></i>
+
+    </button>
+}
                                     </div>
 
                                 </td>
