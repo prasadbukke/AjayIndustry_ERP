@@ -218,8 +218,8 @@ Important:
 
                                 <td class="text-nowrap">
 
-                                    @report.InspectionDate
-                                        .ToString("dd-MM-yyyy")
+                                    @(report.InspectionDate
+                                        .ToString("dd-MM-yyyy"))
 
                                 </td>
 
@@ -283,12 +283,12 @@ Important:
 
                                 <!-- INSPECTION QUANTITY -->
 
-                                <td class="text-end text-nowrap">
+                                <td class="text-nowrap">
 
                                     <span class="fw-semibold">
 
-                                        @report.InspectionQuantity
-                                            .ToString("0.###")
+                                        @(report.InspectionQuantity
+                                            .ToString("0.###"))
 
                                     </span>
 

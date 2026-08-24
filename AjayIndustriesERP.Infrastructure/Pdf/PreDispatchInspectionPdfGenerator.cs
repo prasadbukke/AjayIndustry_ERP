@@ -10,28 +10,29 @@ Responsibilities:
 - Generate A4 Landscape PDF.
 - Apply consistent Ajay Industries report theme.
 - Render Report Information.
-- Render Drawing Information.
-- Render Inspection Parameters and readings.
+- Render Customer Drawing information.
+- Render Inspection Parameters.
+- Render all readings under one OBSERVATION block.
 - Render Inspection Notes.
-- Render Inspection Result.
+- Render Inspection Result summary.
 - Render Remarks.
 - Render Approval / Release.
 - Return PDF as byte[].
 
-Theme:
-- Medium Blue section headings.
-- White uppercase heading text.
-- Light Blue / Grey table headings.
-- Thin Blue-Grey borders.
-- White body cells.
-- Compact professional inspection-report layout.
+PDF Inspection Table:
+Sr
+Parameters
+Specification
+Inspection Method
+Observation 1 ... 10
 
 Important:
-- Business validation belongs in Application Service.
-- PDF uses saved finalized PDI snapshot values.
-- Customer Drawing is preferred for customer-facing
-  Drawing No. / Revision.
-- Workshop Drawing is used as fallback.
+- Result and Remarks are not shown as Inspection Table columns.
+- Line Result / Remarks remain stored in database.
+- ERP Item Code and Customer Item Code are not shown in PDF.
+- Only Customer Drawing Number and Revision are shown.
+- Existing Observation + Interval Reading data is combined
+  visually into one OBSERVATION block.
 ============================================================
 */
 
@@ -53,19 +54,31 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
             0.7f;
 
         private const float DefaultFontSize =
-            7f;
+            9f;
 
         private const float SmallFontSize =
-            6f;
+            7.5f;
 
         private const float MainTitleFontSize =
-            13f;
+            14f;
 
         private const float SectionTitleFontSize =
-            8f;
+            9f;
 
         private const float SectionContentGap =
             2f;
+
+
+        /*
+         * Default database structure:
+         *
+         * Normal Observations = 7
+         * Interval Readings    = 3
+         *
+         * PDF combines both visually:
+         *
+         * Observation 1 ... 10
+         */
 
         private const int DefaultObservationCount =
             7;
@@ -74,9 +87,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
             3;
 
 
-        /*
-         * Frozen PDF Theme
-         */
+        #region Theme
 
         private const string ThemeDarkBlue =
             "#4477A6";
@@ -89,6 +100,8 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
 
         private const string ThemeWhite =
             "#FFFFFF";
+
+        #endregion
 
         #endregion
 
@@ -122,7 +135,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                             PageSizes.A4.Landscape());
 
                         page.Margin(
-                            10);
+                            6);
 
                         page.PageColor(
                             Colors.White);
@@ -143,14 +156,6 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                         page.Content()
                             .Column(column =>
                             {
-                                /*
-                                 * Gap BETWEEN report sections.
-                                 *
-                                 * Keep compact because the report
-                                 * should normally fit comfortably
-                                 * on A4 Landscape.
-                                 */
-
                                 column.Spacing(
                                     4);
 
@@ -234,7 +239,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                     .Text(
                                         "AJAY INDUSTRIES - FINAL INSPECTION REPORT")
                                     .FontSize(
-                                        5.5f)
+                                        6f)
                                     .FontColor(
                                         ThemeDarkBlue)
                                     .Bold();
@@ -248,7 +253,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                             .Span(
                                                 "Page ")
                                             .FontSize(
-                                                5.5f);
+                                                6f);
 
 
                                         text.CurrentPageNumber();
@@ -258,7 +263,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                             .Span(
                                                 " of ")
                                             .FontSize(
-                                                5.5f);
+                                                6f);
 
 
                                         text.TotalPages();
@@ -289,7 +294,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                         SectionContentGap);
 
 
-                    #region Main Title Bar
+                    #region Title Bar
 
                     column.Item()
                         .Background(
@@ -308,7 +313,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 .FontColor(
                                     Colors.White)
                                 .FontSize(
-                                    10)
+                                    11f)
                                 .Bold();
 
 
@@ -393,16 +398,11 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
             container
                 .Column(column =>
                 {
-                    /*
-                     * Very small gap between heading
-                     * and table.
-                     */
-
                     column.Spacing(
                         SectionContentGap);
 
 
-                    #region Section Heading
+                    #region Heading
 
                     column.Item()
                         .Element(
@@ -416,6 +416,14 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
 
                     #region Information Table
 
+                    /*
+                     * 2 information groups per row.
+                     *
+                     * Removing ERP Item Code and
+                     * Customer Item Code gives us wider
+                     * readable value columns.
+                     */
+
                     column.Item()
                         .Table(table =>
                         {
@@ -423,17 +431,12 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 columns =>
                                 {
                                     columns.ConstantColumn(
-                                        76);
+                                        90);
 
                                     columns.RelativeColumn();
 
                                     columns.ConstantColumn(
-                                        62);
-
-                                    columns.RelativeColumn();
-
-                                    columns.ConstantColumn(
-                                        72);
+                                        90);
 
                                     columns.RelativeColumn();
                                 });
@@ -458,17 +461,6 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 table,
                                 report.PartNumber);
 
-
-                            AddLabelCell(
-                                table,
-                                "Inspection Date");
-
-                            AddValueCell(
-                                table,
-                                report.InspectionDate
-                                    .ToString(
-                                        "dd-MM-yyyy"));
-
                             #endregion
 
 
@@ -491,6 +483,10 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 table,
                                 report.CustomerPurchaseOrderNumber);
 
+                            #endregion
+
+
+                            #region Row 3
 
                             AddLabelCell(
                                 table,
@@ -500,28 +496,21 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 table,
                                 report.ProductionJobCode);
 
+
+                            AddLabelCell(
+                                table,
+                                "Inspection Date");
+
+                            AddValueCell(
+                                table,
+                                report.InspectionDate
+                                    .ToString(
+                                        "dd-MM-yyyy"));
+
                             #endregion
 
 
-                            #region Row 3
-
-                            AddLabelCell(
-                                table,
-                                "ERP Item Code");
-
-                            AddValueCell(
-                                table,
-                                report.ItemCode);
-
-
-                            AddLabelCell(
-                                table,
-                                "Customer Item");
-
-                            AddValueCell(
-                                table,
-                                report.CustomerItemCode);
-
+                            #region Row 4
 
                             AddLabelCell(
                                 table,
@@ -533,10 +522,6 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                     report.InspectionQuantity,
                                     report.UnitName));
 
-                            #endregion
-
-
-                            #region Row 4
 
                             AddLabelCell(
                                 table,
@@ -546,6 +531,10 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 table,
                                 report.InvoiceNumber);
 
+                            #endregion
+
+
+                            #region Row 5
 
                             AddLabelCell(
                                 table,
@@ -588,24 +577,6 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
             IContainer container,
             PreDispatchInspection report)
         {
-            #region Customer Facing Drawing
-
-            var reportDrawingNumber =
-                !string.IsNullOrWhiteSpace(
-                    report.CustomerDrawingNumber)
-                    ? report.CustomerDrawingNumber
-                    : report.WorkshopDrawingNumber;
-
-
-            var reportDrawingRevision =
-                !string.IsNullOrWhiteSpace(
-                    report.CustomerDrawingRevision)
-                    ? report.CustomerDrawingRevision
-                    : report.WorkshopDrawingRevision;
-
-            #endregion
-
-
             container
                 .Column(column =>
                 {
@@ -613,7 +584,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                         SectionContentGap);
 
 
-                    #region Section Heading
+                    #region Heading
 
                     column.Item()
                         .Element(
@@ -625,7 +596,16 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                     #endregion
 
 
-                    #region Table
+                    #region Customer Drawing Table
+
+                    /*
+                     * Final Inspection Report is
+                     * customer-facing.
+                     *
+                     * Therefore only Customer Drawing
+                     * Number + Customer Drawing Revision
+                     * are displayed.
+                     */
 
                     column.Item()
                         .Table(table =>
@@ -633,60 +613,34 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                             table.ColumnsDefinition(
                                 columns =>
                                 {
+                                    columns.ConstantColumn(
+                                        130);
+
                                     columns.RelativeColumn();
-                                    columns.RelativeColumn();
-                                    columns.RelativeColumn();
+
+                                    columns.ConstantColumn(
+                                        100);
+
                                     columns.RelativeColumn();
                                 });
 
 
-                            #region Headers
-
-                            AddCenteredLabelCell(
+                            AddLabelCell(
                                 table,
-                                "Drawing No.");
+                                "Customer Drawing No.");
 
-                            AddCenteredLabelCell(
+                            AddValueCell(
                                 table,
-                                "Revision");
+                                report.CustomerDrawingNumber);
 
-                            AddCenteredLabelCell(
+
+                            AddLabelCell(
                                 table,
-                                "Workshop Drawing");
+                                "Revision No.");
 
-                            AddCenteredLabelCell(
+                            AddValueCell(
                                 table,
-                                "Customer Drawing");
-
-                            #endregion
-
-
-                            #region Values
-
-                            AddCenteredValueCell(
-                                table,
-                                reportDrawingNumber);
-
-
-                            AddCenteredValueCell(
-                                table,
-                                reportDrawingRevision);
-
-
-                            AddCenteredValueCell(
-                                table,
-                                BuildDrawingText(
-                                    report.WorkshopDrawingNumber,
-                                    report.WorkshopDrawingRevision));
-
-
-                            AddCenteredValueCell(
-                                table,
-                                BuildDrawingText(
-                                    report.CustomerDrawingNumber,
-                                    report.CustomerDrawingRevision));
-
-                            #endregion
+                                report.CustomerDrawingRevision);
                         });
 
                     #endregion
@@ -716,9 +670,14 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
             #endregion
 
 
-            #region Dynamic Columns
+            #region Observation Counts
 
-            var observationCount =
+            /*
+             * Both database reading types are visually
+             * merged into one Observation block.
+             */
+
+            var normalObservationCount =
                 Math.Max(
                     DefaultObservationCount,
                     lines
@@ -735,7 +694,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                         .Max());
 
 
-            var intervalCount =
+            var intervalObservationCount =
                 Math.Max(
                     DefaultIntervalCount,
                     lines
@@ -751,6 +710,11 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                             0)
                         .Max());
 
+
+            var totalObservationCount =
+                normalObservationCount +
+                intervalObservationCount;
+
             #endregion
 
 
@@ -761,7 +725,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                         SectionContentGap);
 
 
-                    #region Section Heading
+                    #region Heading
 
                     column.Item()
                         .Element(
@@ -773,7 +737,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                     #endregion
 
 
-                    #region Inspection Table
+                    #region Table
 
                     column.Item()
                         .Table(table =>
@@ -784,43 +748,26 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 columns =>
                                 {
                                     columns.ConstantColumn(
-                                        22);
-
-                                    columns.RelativeColumn(
-                                        2.0f);
+                                        24);
 
                                     columns.RelativeColumn(
                                         2.2f);
 
                                     columns.RelativeColumn(
-                                        1.7f);
+                                        2.5f);
+
+                                    columns.RelativeColumn(
+                                        2.0f);
 
 
                                     for (
                                         var i = 0;
-                                        i < observationCount;
+                                        i < totalObservationCount;
                                         i++)
                                     {
                                         columns.RelativeColumn(
-                                            0.65f);
+                                            0.72f);
                                     }
-
-
-                                    for (
-                                        var i = 0;
-                                        i < intervalCount;
-                                        i++)
-                                    {
-                                        columns.RelativeColumn(
-                                            0.65f);
-                                    }
-
-
-                                    columns.RelativeColumn(
-                                        1.0f);
-
-                                    columns.RelativeColumn(
-                                        1.4f);
                                 });
 
                             #endregion
@@ -832,8 +779,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                             {
                                 ComposeInspectionTableHeader(
                                     header,
-                                    observationCount,
-                                    intervalCount);
+                                    totalObservationCount);
                             });
 
                             #endregion
@@ -844,9 +790,8 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                             if (lines.Count == 0)
                             {
                                 var totalColumns =
-                                    6 +
-                                    observationCount +
-                                    intervalCount;
+                                    4 +
+                                    totalObservationCount;
 
 
                                 table.Cell()
@@ -868,7 +813,9 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
 
                             foreach (var line in lines)
                             {
-                                var observations =
+                                #region Readings
+
+                                var normalObservations =
                                     line.Observations
                                         .Where(x =>
                                             !x.IsDeleted &&
@@ -883,7 +830,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                                 x.First().Value);
 
 
-                                var intervals =
+                                var intervalObservations =
                                     line.Observations
                                         .Where(x =>
                                             !x.IsDeleted &&
@@ -897,6 +844,10 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                             x =>
                                                 x.First().Value);
 
+                                #endregion
+
+
+                                #region Base Columns
 
                                 AddBodyCell(
                                     table,
@@ -919,15 +870,17 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                     table,
                                     line.InspectionMethod);
 
+                                #endregion
 
-                                #region Observations
+
+                                #region Normal Observations
 
                                 for (
                                     var sequence = 1;
-                                    sequence <= observationCount;
+                                    sequence <= normalObservationCount;
                                     sequence++)
                                 {
-                                    observations
+                                    normalObservations
                                         .TryGetValue(
                                             sequence,
                                             out var value);
@@ -942,14 +895,27 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 #endregion
 
 
-                                #region Interval Readings
+                                #region Interval Observations
+
+                                /*
+                                 * Stored separately in database,
+                                 * but visually continued after
+                                 * normal Observation columns.
+                                 *
+                                 * Example:
+                                 *
+                                 * Normal   1..7
+                                 * Interval 1..3
+                                 *
+                                 * PDF      1..10
+                                 */
 
                                 for (
                                     var sequence = 1;
-                                    sequence <= intervalCount;
+                                    sequence <= intervalObservationCount;
                                     sequence++)
                                 {
-                                    intervals
+                                    intervalObservations
                                         .TryGetValue(
                                             sequence,
                                             out var value);
@@ -962,18 +928,6 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 }
 
                                 #endregion
-
-
-                                AddBodyCell(
-                                    table,
-                                    GetLineResultText(
-                                        line.Result),
-                                    true);
-
-
-                                AddBodyCell(
-                                    table,
-                                    line.Remarks);
                             }
 
                             #endregion
@@ -986,10 +940,9 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
 
         private static void ComposeInspectionTableHeader(
             TableCellDescriptor header,
-            int observationCount,
-            int intervalCount)
+            int totalObservationCount)
         {
-            #region Main Header Row
+            #region First Row
 
             header.Cell()
                 .RowSpan(
@@ -1029,38 +982,11 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
 
             header.Cell()
                 .ColumnSpan(
-                    (uint)observationCount)
+                    (uint)totalObservationCount)
                 .Element(
                     GroupHeaderCell)
                 .Text(
                     "OBSERVATION");
-
-
-            header.Cell()
-                .ColumnSpan(
-                    (uint)intervalCount)
-                .Element(
-                    GroupHeaderCell)
-                .Text(
-                    "READING AT INTERVAL");
-
-
-            header.Cell()
-                .RowSpan(
-                    2)
-                .Element(
-                    TableHeaderCell)
-                .Text(
-                    "Result");
-
-
-            header.Cell()
-                .RowSpan(
-                    2)
-                .Element(
-                    TableHeaderCell)
-                .Text(
-                    "Remarks");
 
             #endregion
 
@@ -1069,24 +995,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
 
             for (
                 var sequence = 1;
-                sequence <= observationCount;
-                sequence++)
-            {
-                header.Cell()
-                    .Element(
-                        TableHeaderCell)
-                    .Text(
-                        sequence.ToString());
-            }
-
-            #endregion
-
-
-            #region Interval Numbers
-
-            for (
-                var sequence = 1;
-                sequence <= intervalCount;
+                sequence <= totalObservationCount;
                 sequence++)
             {
                 header.Cell()
@@ -1114,7 +1023,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                         SectionContentGap);
 
 
-                    #region Section Heading
+                    #region Heading
 
                     column.Item()
                         .Element(
@@ -1136,9 +1045,9 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                         .Background(
                             ThemeWhite)
                         .PaddingVertical(
-                            4)
-                        .PaddingHorizontal(
                             5)
+                        .PaddingHorizontal(
+                            6)
                         .Column(notes =>
                         {
                             notes.Spacing(
@@ -1168,7 +1077,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
         #endregion
 
 
-        #region Result Section
+        #region Inspection Result
 
         private static void ComposeResultSection(
             IContainer container,
@@ -1181,7 +1090,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                         SectionContentGap);
 
 
-                    #region Section Heading
+                    #region Heading
 
                     column.Item()
                         .Element(
@@ -1267,7 +1176,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
         #endregion
 
 
-        #region Remarks Section
+        #region Remarks
 
         private static void ComposeRemarksSection(
             IContainer container,
@@ -1280,7 +1189,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                         SectionContentGap);
 
 
-                    #region Section Heading
+                    #region Heading
 
                     column.Item()
                         .Element(
@@ -1301,7 +1210,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 columns =>
                                 {
                                     columns.ConstantColumn(
-                                        95);
+                                        110);
 
                                     columns.RelativeColumn();
                                 });
@@ -1316,7 +1225,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 .Element(
                                     ValueCell)
                                 .MinHeight(
-                                    24)
+                                    25)
                                 .Text(
                                     Display(
                                         report.SupplierRemarks));
@@ -1331,7 +1240,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 .Element(
                                     ValueCell)
                                 .MinHeight(
-                                    26)
+                                    28)
                                 .Text(
                                     Display(
                                         report.InspectionRemarks));
@@ -1357,7 +1266,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                         SectionContentGap);
 
 
-                    #region Section Heading
+                    #region Heading
 
                     column.Item()
                         .Element(
@@ -1416,7 +1325,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 .Column(body =>
                                 {
                                     body.Spacing(
-                                        1);
+                                        2);
 
 
                                     body.Item()
@@ -1427,10 +1336,20 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
 
 
                                     body.Item()
-                                        .Text(
-                                            $"Name: {Display(report.InspectedBy)}")
-                                        .FontSize(
-                                            SmallFontSize);
+    .Text(text =>
+    {
+        text
+            .Span("Name: ")
+            .FontSize(
+                SmallFontSize);
+
+        text
+            .Span(
+                Display(report.InspectedBy))
+            .FontSize(
+                SmallFontSize)
+            .Bold();
+    });
 
 
                                     body.Item()
@@ -1451,7 +1370,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 .Column(body =>
                                 {
                                     body.Spacing(
-                                        1);
+                                        2);
 
 
                                     body.Item()
@@ -1462,10 +1381,20 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
 
 
                                     body.Item()
-                                        .Text(
-                                            $"Name: {Display(report.ReviewedBy)}")
-                                        .FontSize(
-                                            SmallFontSize);
+    .Text(text =>
+    {
+        text
+            .Span("Name: ")
+            .FontSize(
+                SmallFontSize);
+
+        text
+            .Span(
+                Display(report.ReviewedBy))
+            .FontSize(
+                SmallFontSize)
+            .Bold();
+    });
 
 
                                     body.Item()
@@ -1488,7 +1417,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 .Column(body =>
                                 {
                                     body.Spacing(
-                                        1);
+                                        2);
 
 
                                     body.Item()
@@ -1613,7 +1542,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                 .Background(
                     ThemeLightBlue)
                 .PaddingVertical(
-                    3)
+                    4)
                 .PaddingHorizontal(
                     2)
                 .AlignCenter()
@@ -1638,7 +1567,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                 .Background(
                     ThemeDarkBlue)
                 .PaddingVertical(
-                    3)
+                    4)
                 .PaddingHorizontal(
                     2)
                 .AlignCenter()
@@ -1665,7 +1594,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                 .Background(
                     ThemeWhite)
                 .PaddingVertical(
-                    3)
+                    4)
                 .PaddingHorizontal(
                     3)
                 .AlignMiddle()
@@ -1691,7 +1620,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                 .PaddingHorizontal(
                     6)
                 .MinHeight(
-                    22)
+                    23)
                 .AlignMiddle()
                 .DefaultTextStyle(
                     style =>
@@ -1839,29 +1768,6 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
         }
 
 
-        private static string BuildDrawingText(
-            string? drawingNumber,
-            string? revision)
-        {
-            if (string.IsNullOrWhiteSpace(
-                drawingNumber))
-            {
-                return "-";
-            }
-
-
-            if (string.IsNullOrWhiteSpace(
-                revision))
-            {
-                return drawingNumber.Trim();
-            }
-
-
-            return
-                $"{drawingNumber.Trim()} / Rev {revision.Trim()}";
-        }
-
-
         private static string FormatQuantity(
             decimal quantity,
             string? unitName)
@@ -1875,26 +1781,6 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                 unitName)
                 ? value
                 : $"{value} {unitName.Trim()}";
-        }
-
-
-        private static string GetLineResultText(
-            PreDispatchInspectionLineResult result)
-        {
-            return result switch
-            {
-                PreDispatchInspectionLineResult.Pass =>
-                    "PASS",
-
-                PreDispatchInspectionLineResult.Fail =>
-                    "FAIL",
-
-                PreDispatchInspectionLineResult.NotApplicable =>
-                    "N/A",
-
-                _ =>
-                    "PENDING"
-            };
         }
 
 
