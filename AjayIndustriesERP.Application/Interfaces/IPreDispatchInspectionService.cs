@@ -178,16 +178,20 @@ namespace AjayIndustriesERP.Application.Interfaces
         #region PDF
 
         /*
-         * Generates the Final Inspection Report PDF
-         * from the finalized PDI snapshot.
+         * Document Number is temporary and is NOT stored
+         * in the PDI database.
          *
-         * Returned byte[] will be sent by the
-         * Web Controller as application/pdf.
+         * Current default from Web UI:
+         *
+         * AI / QA / 04
+         *
+         * Later this value will come from the
+         * Document Number Master.
          */
 
-        Task<byte[]>
-            GeneratePdfAsync(
-                int id);
+        Task<byte[]> GeneratePdfAsync(
+            int id,
+            string documentNumber);
 
         #endregion
 

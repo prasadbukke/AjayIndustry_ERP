@@ -849,7 +849,8 @@ namespace AjayIndustriesERP.Application.Services
 
         public async Task<byte[]>
             GeneratePdfAsync(
-                int id)
+                int id,
+                string documentNumber)
         {
             #region Load Report
 
@@ -882,23 +883,56 @@ namespace AjayIndustriesERP.Application.Services
             #endregion
 
 
+            #region Validate Document Number
+
+            /*
+             * Document Number is currently temporary.
+             *
+             * It is NOT stored in the PDI database.
+             *
+             * Current default from Web UI:
+             *
+             * AI / QA / 04
+             *
+             * Later this will come from
+             * Document Number Master.
+             */
+
+            if (string.IsNullOrWhiteSpace(
+                documentNumber))
+            {
+                throw new BusinessException(
+                    "Document Number is required.");
+            }
+
+
+            documentNumber =
+                documentNumber.Trim();
+
+
+            if (documentNumber.Length > 100)
+            {
+                throw new BusinessException(
+                    "Document Number cannot exceed 100 characters.");
+            }
+
+            #endregion
+
+
             #region Generate PDF
 
             /*
-             * PDF is generated only from the saved,
-             * finalized PDI snapshot.
+             * PDF uses the saved Finalized PDI snapshot.
              *
-             * Customer / Item / Drawing information
-             * is NOT refreshed here.
-             *
-             * This preserves the historical Inspection
-             * Report exactly as it was finalized.
+             * Document Number is supplied separately
+             * only for PDF presentation.
              */
 
             var pdfBytes =
                 _pdfGenerator
                     .Generate(
-                        preDispatchInspection);
+                        preDispatchInspection,
+                        documentNumber);
 
             #endregion
 

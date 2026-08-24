@@ -34,6 +34,7 @@ Important:
 - Existing Observation + Interval Reading data is combined
   visually into one OBSERVATION block.
 ============================================================
+
 */
 
 using AjayIndustriesERP.Application.Interfaces;
@@ -109,7 +110,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
         #region Generate
 
         public byte[] Generate(
-            PreDispatchInspection preDispatchInspection)
+            PreDispatchInspection preDispatchInspection, string documentNumber)
         {
             #region Validation
 
@@ -165,7 +166,8 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                         container =>
                                             ComposeMainHeader(
                                                 container,
-                                                preDispatchInspection));
+                                                preDispatchInspection,
+                                                documentNumber));
 
 
                                 column.Item()
@@ -285,7 +287,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
 
         private static void ComposeMainHeader(
             IContainer container,
-            PreDispatchInspection report)
+            PreDispatchInspection report, string documentNumber)
         {
             container
                 .Column(column =>
@@ -363,16 +365,18 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
 
                             AddHeaderLabelCell(
                                 table,
-                                "Document");
+                                "Document No.");
+
 
                             AddHeaderValueCell(
                                 table,
-                                "Final Inspection Report");
+                                documentNumber);
 
 
                             AddHeaderLabelCell(
                                 table,
                                 "Status");
+
 
                             AddHeaderValueCell(
                                 table,
@@ -886,29 +890,25 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                             out var value);
 
 
-                                    AddBodyCell(
-                                        table,
-                                        value,
-                                        true);
+                                    var displayValue =
+                                        string.IsNullOrWhiteSpace(value) ||
+                                        value.Trim() == "-"
+                                            ? string.Empty
+                                            : value.Trim();
+
+
+                                    table.Cell()
+                                        .Element(
+                                            BodyCell)
+                                        .AlignCenter()
+                                        .Text(
+                                            displayValue);
                                 }
 
                                 #endregion
 
 
                                 #region Interval Observations
-
-                                /*
-                                 * Stored separately in database,
-                                 * but visually continued after
-                                 * normal Observation columns.
-                                 *
-                                 * Example:
-                                 *
-                                 * Normal   1..7
-                                 * Interval 1..3
-                                 *
-                                 * PDF      1..10
-                                 */
 
                                 for (
                                     var sequence = 1;
@@ -921,10 +921,19 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                             out var value);
 
 
-                                    AddBodyCell(
-                                        table,
-                                        value,
-                                        true);
+                                    var displayValue =
+                                        string.IsNullOrWhiteSpace(value) ||
+                                        value.Trim() == "-"
+                                            ? string.Empty
+                                            : value.Trim();
+
+
+                                    table.Cell()
+                                        .Element(
+                                            BodyCell)
+                                        .AlignCenter()
+                                        .Text(
+                                            displayValue);
                                 }
 
                                 #endregion
@@ -1227,7 +1236,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 .MinHeight(
                                     25)
                                 .Text(
-                                    Display(
+                                    DisplayBlank(
                                         report.SupplierRemarks));
 
 
@@ -1242,7 +1251,7 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                                 .MinHeight(
                                     28)
                                 .Text(
-                                    Display(
+                                    DisplayBlank(
                                         report.InspectionRemarks));
                         });
 
@@ -1691,6 +1700,28 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                     text);
         }
 
+        #region Observation Cell Helper
+
+        private static void AddObservationCell(
+            TableDescriptor table,
+            string? text)
+        {
+            var displayValue =
+                string.IsNullOrWhiteSpace(text) ||
+                text.Trim() == "-"
+                    ? string.Empty
+                    : text.Trim();
+
+
+            table.Cell()
+                .Element(
+                    BodyCell)
+                .AlignCenter()
+                .Text(
+                    displayValue);
+        }
+
+        #endregion
 
         private static void AddValueCell(
             TableDescriptor table,
@@ -1766,7 +1797,14 @@ namespace AjayIndustriesERP.Infrastructure.Pdf
                 ? "-"
                 : value.Trim();
         }
-
+        private static string DisplayBlank(
+    string? value)
+        {
+            return string.IsNullOrWhiteSpace(
+                value)
+                ? string.Empty
+                : value.Trim();
+        }
 
         private static string FormatQuantity(
             decimal quantity,

@@ -761,7 +761,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
         [HttpGet]
         public async Task<IActionResult> DownloadPdf(
-            int id)
+            int id,
+            string documentNumber = "AI / QA / 04")
         {
             try
             {
@@ -786,23 +787,13 @@ namespace AjayIndustriesERP.Web.Controllers
                 var pdfBytes =
                     await _preDispatchInspectionService
                         .GeneratePdfAsync(
-                            id);
+                            id,
+                            documentNumber);
 
                 #endregion
 
 
                 #region File Name
-
-                /*
-                 * PDI Code contains "/" characters.
-                 * They cannot be used directly in a file name.
-                 *
-                 * Example:
-                 * AI/PDI/26-27/00001
-                 *
-                 * becomes:
-                 * AI-PDI-26-27-00001.pdf
-                 */
 
                 var safeCode =
                     preDispatchInspection

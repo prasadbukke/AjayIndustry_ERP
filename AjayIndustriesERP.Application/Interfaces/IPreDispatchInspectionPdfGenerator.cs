@@ -27,7 +27,7 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         byte[] Generate(
             PreDispatchInspection
-                preDispatchInspection);
+                preDispatchInspection, string documentNumber);
 
         #endregion
     }

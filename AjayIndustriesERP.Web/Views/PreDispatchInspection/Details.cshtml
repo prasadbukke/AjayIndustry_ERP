@@ -91,21 +91,7 @@ Important:
                 gap-2
                 flex-wrap">
 
-    @if (isFinalized)
-{
-    <a asp-action="DownloadPdf"
-       asp-route-id="@Model.Id"
-       class="btn btn-danger">
-
-        <i class="fa-solid
-                  fa-file-pdf
-                  me-1">
-        </i>
-
-        Download PDF
-
-    </a>
-}
+    
 
         @if (isDraft)
         {
@@ -164,6 +150,116 @@ Important:
 
 </div>
 
+<!-- =========================================================
+     REGION 1A — PDF DOCUMENT NUMBER
+========================================================== -->
+
+@if (isFinalized)
+{
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-light">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid
+                          fa-file-pdf
+                          me-1">
+                </i>
+
+                Final Inspection PDF
+
+            </span>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <form asp-action="DownloadPdf"
+                  method="get">
+
+                <input type="hidden"
+                       name="id"
+                       value="@Model.Id" />
+
+
+                <div class="row g-3">
+
+                    <!-- DOCUMENT NUMBER -->
+
+                    <div class="col-lg-6">
+
+                        <label for="documentNumber"
+                               class="form-label fw-semibold">
+
+                            Document Number
+
+                        </label>
+
+
+                        <input type="text"
+                               id="documentNumber"
+                               name="documentNumber"
+                               value="AI / QA / 04"
+                               maxlength="100"
+                               class="form-control"
+                               required />
+
+
+                        <div class="form-text">
+
+                            Temporary editable value.
+                            Later this will come from
+                            Document Number Master.
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- DOWNLOAD PDF -->
+
+                    <div class="col-lg-3">
+
+                        <label class="form-label
+                                      d-block
+                                      invisible">
+
+                            Download
+
+                        </label>
+
+
+                        <button type="submit"
+                                class="btn btn-danger">
+
+                            <i class="fa-solid
+                                      fa-file-pdf
+                                      me-1">
+                            </i>
+
+                            Download PDF
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+}
+
+<!-- =========================================================
+     END REGION
+========================================================== -->
+<!-- =========================================================
+     END REGION
+========================================================== -->
 
 <!-- =========================================================
      REGION 2 — FINAL INSPECTION REPORT HEADER
