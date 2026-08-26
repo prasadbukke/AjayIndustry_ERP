@@ -1,0 +1,189 @@
+﻿@{
+    ViewData["Title"] = "Dispatch & Billing";
+}
+
+@*
+============================================================
+File: Index.cshtml
+
+Purpose:
+Common landing screen for Dispatch & Billing.
+
+Responsibilities:
+- Provide one UI entry point for Delivery Challan.
+- Provide one UI entry point for Sales Invoice.
+- Keep Challan and Invoice backend modules separate.
+
+Important:
+- Delivery Challan module is active.
+- Invoice module will be connected after its
+  backend implementation is completed.
+- No custom CSS is used.
+============================================================
+*@
+
+
+@* =========================================================
+   Page Header
+   ========================================================= *@
+
+<div class="mb-4">
+
+    <h2 class="fw-bold mb-1">
+        Dispatch & Billing
+    </h2>
+
+    <div class="text-muted">
+        Manage Delivery Challans and Sales Invoices.
+    </div>
+
+</div>
+
+
+@* =========================================================
+   Module Cards
+   ========================================================= *@
+
+<div class="row g-4">
+
+
+    @* =====================================================
+       Delivery Challan
+       ===================================================== *@
+
+    <div class="col-md-6">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-body p-4">
+
+                <div class="d-flex
+                            align-items-center
+                            gap-3
+                            mb-3">
+
+                    <div class="fs-2">
+                        <i class="bi bi-truck"></i>
+                    </div>
+
+                    <div>
+
+                        <h4 class="fw-bold mb-1">
+                            Delivery Challan
+                        </h4>
+
+                        <div class="text-muted">
+                            Dispatch Management
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <p class="text-muted mb-4">
+                    Create Delivery Challans from Finalized PDI,
+                    manage partial dispatch quantities and
+                    transport information.
+                </p>
+
+
+                <div class="d-flex flex-wrap gap-2">
+
+                    <a asp-controller="DeliveryChallan"
+                       asp-action="Index"
+                       class="btn btn-primary">
+
+                        <i class="bi bi-list-ul me-1"></i>
+                        Open Challans
+
+                    </a>
+
+
+                    <a asp-controller="DeliveryChallan"
+                       asp-action="Create"
+                       class="btn btn-outline-primary">
+
+                        <i class="bi bi-plus-lg me-1"></i>
+                        Create Challan
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       Sales Invoice
+       ===================================================== *@
+
+    <div class="col-md-6">
+
+        <div class="card shadow-sm h-100">
+
+            <div class="card-body p-4">
+
+                <div class="d-flex
+                            align-items-center
+                            gap-3
+                            mb-3">
+
+                    <div class="fs-2">
+                        <i class="bi bi-receipt"></i>
+                    </div>
+
+                    <div>
+
+                        <h4 class="fw-bold mb-1">
+                            Invoice
+                        </h4>
+
+                        <div class="text-muted">
+                            Sales Billing
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <p class="text-muted mb-4">
+                    Create Sales Invoices with quantity,
+                    rate, taxable value, GST and billing
+                    information.
+                </p>
+
+
+                <div class="d-flex
+                            align-items-center
+                            flex-wrap
+                            gap-2">
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            disabled>
+
+                        <i class="bi bi-receipt me-1"></i>
+                        Open Invoices
+
+                    </button>
+
+
+                    <span class="badge text-bg-warning">
+                        Coming Soon
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

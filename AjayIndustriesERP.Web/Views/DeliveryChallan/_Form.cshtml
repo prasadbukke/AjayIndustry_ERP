@@ -1,0 +1,1678 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.DeliveryChallan.DeliveryChallanFormViewModel
+
+@*
+============================================================
+File: _Form.cshtml
+
+Purpose:
+Shared Delivery Challan form used by Create and Edit.
+
+Responsibilities:
+- Display Challan header information.
+- Accept manually entered L.P.G. No.
+- Display Customer information.
+- Display editable Customer delivery address.
+- Display Company / Workshop information.
+- Display transport / dispatch information.
+- Manage one or more Finalized PDI dispatch lines.
+- Display trusted PDI snapshot information.
+- Accept manual Product ID.
+- Accept manual HSN No.
+- Display Accepted / Already Dispatched / Available Qty.
+- Accept Dispatch Quantity.
+
+Important:
+- Parent Create/Edit view owns the <form> element.
+- Complex JavaScript belongs in:
+  wwwroot/js/delivery-challan-form.js
+- Customer address is auto-loaded but editable.
+- Company / Workshop fields are read-only.
+- Product ID is manually entered.
+- HSN No. is manually entered for now.
+============================================================
+*@
+
+
+@* =========================================================
+   Hidden Header Fields
+   ========================================================= *@
+
+<input asp-for="Id"
+       type="hidden" />
+
+<input asp-for="Status"
+       type="hidden" />
+
+<input asp-for="CustomerId"
+       type="hidden" />
+
+<input asp-for="CompanyId"
+       type="hidden"
+       class="company-id" />
+
+
+@* =========================================================
+   Validation Summary
+   ========================================================= *@
+
+<div asp-validation-summary="ModelOnly"
+     class="alert alert-danger mb-4"
+     role="alert">
+</div>
+
+
+@* =========================================================
+   Challan Information
+   ========================================================= *@
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header bg-light">
+
+        <h5 class="mb-0">
+            Challan Information
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            <div class="col-md-3">
+
+                <label asp-for="Code"
+                       class="form-label">
+                </label>
+
+                <input asp-for="Code"
+                       class="form-control"
+                       readonly
+                       placeholder="Auto Generated" />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="ChallanDate"
+                       class="form-label">
+                </label>
+
+                <input asp-for="ChallanDate"
+                       type="date"
+                       class="form-control" />
+
+                <span asp-validation-for="ChallanDate"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="LpgNumber"
+                       class="form-label">
+                </label>
+
+                <input asp-for="LpgNumber"
+                       class="form-control"
+                       placeholder="Enter L.P.G. No." />
+
+                <span asp-validation-for="LpgNumber"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerName"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerName"
+                       class="form-control"
+                       readonly
+                       placeholder="Auto from selected PDI" />
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   Customer Master Information
+   ========================================================= *@
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="d-flex justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <h5 class="mb-0">
+                Customer Information
+            </h5>
+
+            <span class="badge bg-secondary">
+                Auto Loaded
+            </span>
+
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        @* =================================================
+           Identity / Tax Information
+           ================================================= *@
+
+        <div class="row g-3 mb-3">
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerCode"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerCode"
+                       class="form-control customer-code"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerLegalName"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerLegalName"
+                       class="form-control customer-legal-name"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerGstin"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerGstin"
+                       class="form-control customer-gstin"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerPan"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerPan"
+                       class="form-control customer-pan"
+                       readonly />
+
+            </div>
+
+        </div>
+
+
+        @* =================================================
+           Contact Information
+           ================================================= *@
+
+        <div class="row g-3 mb-3">
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerContactPerson"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerContactPerson"
+                       class="form-control customer-contact-person"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerMobileNumber"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerMobileNumber"
+                       class="form-control customer-mobile-number"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerAlternateMobileNumber"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerAlternateMobileNumber"
+                       class="form-control customer-alternate-mobile-number"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerEmail"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerEmail"
+                       class="form-control customer-email"
+                       readonly />
+
+            </div>
+
+        </div>
+
+
+        @* =================================================
+           Commercial Information
+           ================================================= *@
+
+        <div class="row g-3">
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerPaymentTerms"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerPaymentTerms"
+                       class="form-control customer-payment-terms"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerCreditDays"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerCreditDays"
+                       class="form-control customer-credit-days"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerWebsite"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerWebsite"
+                       class="form-control customer-website"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerMasterRemarks"
+                       class="form-label">
+                </label>
+
+                <textarea asp-for="CustomerMasterRemarks"
+                          class="form-control customer-master-remarks"
+                          rows="2"
+                          readonly></textarea>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@* =========================================================
+   Customer Delivery Address
+   ========================================================= *@
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="d-flex justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <h5 class="mb-0">
+                Customer Delivery Address
+            </h5>
+
+            <span class="badge bg-secondary">
+                Auto Loaded / Editable
+            </span>
+
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            <div class="col-md-6">
+
+                <label asp-for="CustomerAddressLine1"
+                       class="form-label">
+                </label>
+
+                <textarea asp-for="CustomerAddressLine1"
+                          class="form-control customer-address-line-1"
+                          rows="2"
+                          placeholder="Address Line 1"></textarea>
+
+                <span asp-validation-for="CustomerAddressLine1"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <div class="col-md-6">
+
+                <label asp-for="CustomerAddressLine2"
+                       class="form-label">
+                </label>
+
+                <textarea asp-for="CustomerAddressLine2"
+                          class="form-control customer-address-line-2"
+                          rows="2"
+                          placeholder="Address Line 2"></textarea>
+
+                <span asp-validation-for="CustomerAddressLine2"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerCity"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerCity"
+                       class="form-control customer-city"
+                       placeholder="City" />
+
+                <span asp-validation-for="CustomerCity"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerDistrict"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerDistrict"
+                       class="form-control customer-district"
+                       placeholder="District" />
+
+                <span asp-validation-for="CustomerDistrict"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerState"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerState"
+                       class="form-control customer-state"
+                       placeholder="State" />
+
+                <span asp-validation-for="CustomerState"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CustomerPincode"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerPincode"
+                       class="form-control customer-pincode"
+                       placeholder="Pincode" />
+
+                <span asp-validation-for="CustomerPincode"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <label asp-for="CustomerCountry"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerCountry"
+                       class="form-control customer-country"
+                       placeholder="Country" />
+
+                <span asp-validation-for="CustomerCountry"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   Company / Workshop Information
+   ========================================================= *@
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="d-flex justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <h5 class="mb-0">
+                Company / Workshop Information
+            </h5>
+
+            <span class="badge bg-secondary">
+                Auto Loaded
+            </span>
+
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        @* =================================================
+           Basic Company Information
+           ================================================= *@
+
+        <div class="row g-3 mb-3">
+
+            <div class="col-md-3">
+
+                <label asp-for="CompanyCode"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CompanyCode"
+                       class="form-control company-code"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CompanyName"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CompanyName"
+                       class="form-control company-name"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CompanyGstNumber"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CompanyGstNumber"
+                       class="form-control company-gst-number"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CompanyPanNumber"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CompanyPanNumber"
+                       class="form-control company-pan-number"
+                       readonly />
+
+            </div>
+
+        </div>
+
+
+        @* =================================================
+           Workshop Address
+           ================================================= *@
+
+        <div class="row g-3 mb-3">
+
+            <div class="col-md-6">
+
+                <label asp-for="CompanyAddress"
+                       class="form-label">
+                </label>
+
+                <textarea asp-for="CompanyAddress"
+                          class="form-control company-address"
+                          rows="2"
+                          readonly></textarea>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CompanyCity"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CompanyCity"
+                       class="form-control company-city"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CompanyState"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CompanyState"
+                       class="form-control company-state"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CompanyPostalCode"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CompanyPostalCode"
+                       class="form-control company-postal-code"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CompanyCountry"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CompanyCountry"
+                       class="form-control company-country"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CompanyContactPerson"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CompanyContactPerson"
+                       class="form-control company-contact-person"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <label asp-for="CompanyPhoneNumber"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CompanyPhoneNumber"
+                       class="form-control company-phone-number"
+                       readonly />
+
+            </div>
+
+        </div>
+
+
+        @* =================================================
+           Company Contact Information
+           ================================================= *@
+
+        <div class="row g-3">
+
+            <div class="col-md-4">
+
+                <label asp-for="CompanyEmail"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CompanyEmail"
+                       class="form-control company-email"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <label asp-for="CompanyWebsite"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CompanyWebsite"
+                       class="form-control company-website"
+                       readonly />
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <label asp-for="CompanyPurchaseOrderTermsAndConditions"
+                       class="form-label">
+                </label>
+
+                <textarea asp-for="CompanyPurchaseOrderTermsAndConditions"
+                          class="form-control company-po-terms"
+                          rows="2"
+                          readonly></textarea>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   Dispatch / Transport Information
+   ========================================================= *@
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header bg-light">
+
+        <h5 class="mb-0">
+            Dispatch / Transport Information
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            <div class="col-md-4">
+
+                <label asp-for="TransporterName"
+                       class="form-label">
+                </label>
+
+                <input asp-for="TransporterName"
+                       class="form-control"
+                       placeholder="Enter transporter name" />
+
+                <span asp-validation-for="TransporterName"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <label asp-for="VehicleNumber"
+                       class="form-label">
+                </label>
+
+                <input asp-for="VehicleNumber"
+                       class="form-control"
+                       placeholder="Enter vehicle number" />
+
+                <span asp-validation-for="VehicleNumber"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <label asp-for="TransportReference"
+                       class="form-label">
+                </label>
+
+                <input asp-for="TransportReference"
+                       class="form-control"
+                       placeholder="LR / Transport Reference" />
+
+                <span asp-validation-for="TransportReference"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <label asp-for="DispatchFrom"
+                       class="form-label">
+                </label>
+
+                <input asp-for="DispatchFrom"
+                       class="form-control"
+                       placeholder="Enter dispatch location" />
+
+                <span asp-validation-for="DispatchFrom"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <label asp-for="Destination"
+                       class="form-label">
+                </label>
+
+                <input asp-for="Destination"
+                       class="form-control"
+                       placeholder="Enter destination" />
+
+                <span asp-validation-for="Destination"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <label asp-for="Remarks"
+                       class="form-label">
+                </label>
+
+                <textarea asp-for="Remarks"
+                          class="form-control"
+                          rows="2"
+                          placeholder="Enter remarks"></textarea>
+
+                <span asp-validation-for="Remarks"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   Dispatch Items Header
+   ========================================================= *@
+
+<div class="d-flex justify-content-between
+            align-items-center
+            flex-wrap
+            gap-2
+            mb-3">
+
+    <div>
+
+        <h5 class="mb-1">
+            Dispatch Items
+        </h5>
+
+        <div class="text-muted small">
+            Select Finalized PDI and enter dispatch information.
+        </div>
+
+    </div>
+
+
+    <button type="button"
+            class="btn btn-outline-primary"
+            id="btnAddDeliveryChallanItem">
+
+        <i class="bi bi-plus-lg me-1"></i>
+        Add PDI Item
+
+    </button>
+
+</div>
+
+
+@* =========================================================
+   Dispatch Items Container
+   ========================================================= *@
+
+<div id="deliveryChallanItemsContainer"
+     data-get-pdi-url="@Url.Action("GetPdiData", "DeliveryChallan")"
+     data-challan-id="@Model.Id">
+
+    @for (var i = 0; i < Model.Items.Count; i++)
+    {
+        <div class="card shadow-sm mb-4 delivery-challan-item"
+             data-item-index="@i">
+
+            <div class="card-header bg-light">
+
+                <div class="d-flex justify-content-between
+                                align-items-center
+                                gap-2">
+
+                    <div class="fw-semibold">
+
+                        Dispatch Line
+
+                        <span class="delivery-line-number">
+                            @(i + 1)
+                        </span>
+
+                    </div>
+
+
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger btn-remove-delivery-item"
+                            title="Remove Item">
+
+                        <i class="bi bi-trash"></i>
+
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div class="card-body">
+
+                @* =========================================
+                   Hidden Line Fields
+                   ========================================= *@
+
+                <input asp-for="Items[i].Id"
+                       type="hidden"
+                       class="item-id" />
+
+                <input asp-for="Items[i].SequenceNumber"
+                       type="hidden"
+                       class="sequence-number" />
+
+                <input asp-for="Items[i].ProductionJobId"
+                       type="hidden"
+                       class="production-job-id" />
+
+                <input asp-for="Items[i].CustomerPurchaseOrderItemId"
+                       type="hidden"
+                       class="customer-po-item-id" />
+
+                <input asp-for="Items[i].ItemId"
+                       type="hidden"
+                       class="item-master-id" />
+
+                <input asp-for="Items[i].CustomerDrawingId"
+                       type="hidden"
+                       class="customer-drawing-id" />
+
+
+                @* =========================================
+                   PDI / Product / HSN
+                   ========================================= *@
+
+                <div class="row g-3 mb-3">
+
+                    <div class="col-md-4">
+
+                        <label asp-for="Items[i].PreDispatchInspectionId"
+                               class="form-label">
+                        </label>
+
+                        <select asp-for="Items[i].PreDispatchInspectionId"
+                                asp-items="Model.AvailablePdis"
+                                class="form-select pdi-select">
+                        </select>
+
+                        <span asp-validation-for="Items[i].PreDispatchInspectionId"
+                              class="text-danger">
+                        </span>
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="Items[i].ProductReference"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Items[i].ProductReference"
+                               class="form-control product-reference"
+                               placeholder="Enter Product ID" />
+
+                        <span asp-validation-for="Items[i].ProductReference"
+                              class="text-danger">
+                        </span>
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="Items[i].HsnNumber"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Items[i].HsnNumber"
+                               class="form-control hsn-number"
+                               placeholder="Enter HSN No." />
+
+                        <span asp-validation-for="Items[i].HsnNumber"
+                              class="text-danger">
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                @* =========================================
+                   Item / Production Information
+                   ========================================= *@
+
+                <div class="row g-3 mb-3">
+
+                    <div class="col-md-4">
+
+                        <label asp-for="Items[i].ItemName"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Items[i].ItemName"
+                               class="form-control item-name"
+                               readonly />
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="Items[i].PreDispatchInspectionCode"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Items[i].PreDispatchInspectionCode"
+                               class="form-control pdi-code"
+                               readonly />
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="Items[i].ProductionJobCode"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Items[i].ProductionJobCode"
+                               class="form-control production-job-code"
+                               readonly />
+
+                    </div>
+
+                </div>
+
+
+                @* =========================================
+                   PO Information
+                   ========================================= *@
+
+                <div class="row g-3 mb-3">
+
+                    <div class="col-md-4">
+
+                        <label asp-for="Items[i].CustomerPurchaseOrderNumber"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Items[i].CustomerPurchaseOrderNumber"
+                               class="form-control customer-po-number"
+                               readonly />
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="Items[i].ItemCode"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Items[i].ItemCode"
+                               class="form-control item-code"
+                               readonly />
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="Items[i].CustomerItemCode"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Items[i].CustomerItemCode"
+                               class="form-control customer-item-code"
+                               readonly />
+
+                    </div>
+
+                </div>
+
+
+                @* =========================================
+                   Part / Drawing Information
+                   ========================================= *@
+
+                <div class="row g-3 mb-3">
+
+                    <div class="col-md-4">
+
+                        <label asp-for="Items[i].PartNumber"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Items[i].PartNumber"
+                               class="form-control part-number"
+                               readonly />
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="Items[i].CustomerDrawingNumber"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Items[i].CustomerDrawingNumber"
+                               class="form-control customer-drawing-number"
+                               readonly />
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="Items[i].CustomerDrawingRevision"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Items[i].CustomerDrawingRevision"
+                               class="form-control customer-drawing-revision"
+                               readonly />
+
+                    </div>
+
+                </div>
+
+
+                @* =========================================
+                   Quantity Information
+                   ========================================= *@
+
+                <div class="row g-3">
+
+                    <div class="col-md-3">
+
+                        <label asp-for="Items[i].PdiAcceptedQuantity"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Items[i].PdiAcceptedQuantity"
+                               class="form-control pdi-accepted-quantity"
+                               readonly />
+
+                    </div>
+
+
+                    <div class="col-md-3">
+
+                        <label asp-for="Items[i].AlreadyDispatchedQuantity"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Items[i].AlreadyDispatchedQuantity"
+                               class="form-control already-dispatched-quantity"
+                               readonly />
+
+                    </div>
+
+
+                    <div class="col-md-3">
+
+                        <label asp-for="Items[i].AvailableQuantity"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Items[i].AvailableQuantity"
+                               class="form-control available-quantity"
+                               readonly />
+
+                    </div>
+
+
+                    <div class="col-md-3">
+
+                        <label asp-for="Items[i].DispatchQuantity"
+                               class="form-label fw-semibold">
+                        </label>
+
+                        <div class="input-group">
+
+                            <input asp-for="Items[i].DispatchQuantity"
+                                   class="form-control dispatch-quantity"
+                                   min="0.001"
+                                   step="0.001" />
+
+                            <span class="input-group-text unit-name">
+                                @Model.Items[i].UnitName
+                            </span>
+
+                        </div>
+
+                        <span asp-validation-for="Items[i].DispatchQuantity"
+                              class="text-danger">
+                        </span>
+
+                        <input asp-for="Items[i].UnitName"
+                               type="hidden"
+                               class="unit-name-value" />
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    }
+
+</div>
+
+
+@* =========================================================
+   No Items Message
+   ========================================================= *@
+
+<div id="deliveryChallanNoItemsMessage"
+     class="alert alert-info d-none">
+
+    At least one Finalized PDI item is required.
+
+</div>
+
+
+@* =========================================================
+   Dynamic Dispatch Item Template
+   ========================================================= *@
+
+<template id="deliveryChallanItemTemplate">
+
+    <div class="card shadow-sm mb-4 delivery-challan-item"
+         data-item-index="__index__">
+
+        <div class="card-header bg-light">
+
+            <div class="d-flex justify-content-between
+                        align-items-center
+                        gap-2">
+
+                <div class="fw-semibold">
+
+                    Dispatch Line
+
+                    <span class="delivery-line-number">
+                        __lineNumber__
+                    </span>
+
+                </div>
+
+
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger btn-remove-delivery-item"
+                        title="Remove Item">
+
+                    <i class="bi bi-trash"></i>
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="card-body">
+
+            @* =============================================
+               Hidden Fields
+               ============================================= *@
+
+            <input type="hidden"
+                   name="Items[__index__].Id"
+                   value="0"
+                   class="item-id" />
+
+            <input type="hidden"
+                   name="Items[__index__].SequenceNumber"
+                   value="__lineNumber__"
+                   class="sequence-number" />
+
+            <input type="hidden"
+                   name="Items[__index__].ProductionJobId"
+                   value="0"
+                   class="production-job-id" />
+
+            <input type="hidden"
+                   name="Items[__index__].CustomerPurchaseOrderItemId"
+                   value="0"
+                   class="customer-po-item-id" />
+
+            <input type="hidden"
+                   name="Items[__index__].ItemId"
+                   value="0"
+                   class="item-master-id" />
+
+            <input type="hidden"
+                   name="Items[__index__].CustomerDrawingId"
+                   value=""
+                   class="customer-drawing-id" />
+
+            <input type="hidden"
+                   name="Items[__index__].UnitName"
+                   value=""
+                   class="unit-name-value" />
+
+
+            @* =============================================
+               PDI / Product / HSN
+               ============================================= *@
+
+            <div class="row g-3 mb-3">
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        PDI Report
+                    </label>
+
+                    <select name="Items[__index__].PreDispatchInspectionId"
+                            class="form-select pdi-select">
+
+                        @foreach (var pdi in Model.AvailablePdis)
+                        {
+                            <option value="@pdi.Value">
+                                @pdi.Text
+                            </option>
+                        }
+
+                    </select>
+
+                    <span class="text-danger field-validation-valid"
+                          data-valmsg-for="Items[__index__].PreDispatchInspectionId"
+                          data-valmsg-replace="true">
+                    </span>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Product ID
+                    </label>
+
+                    <input type="text"
+                           name="Items[__index__].ProductReference"
+                           class="form-control product-reference"
+                           maxlength="100"
+                           placeholder="Enter Product ID" />
+
+                    <span class="text-danger field-validation-valid"
+                          data-valmsg-for="Items[__index__].ProductReference"
+                          data-valmsg-replace="true">
+                    </span>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        HSN No.
+                    </label>
+
+                    <input type="text"
+                           name="Items[__index__].HsnNumber"
+                           class="form-control hsn-number"
+                           maxlength="50"
+                           placeholder="Enter HSN No." />
+
+                    <span class="text-danger field-validation-valid"
+                          data-valmsg-for="Items[__index__].HsnNumber"
+                          data-valmsg-replace="true">
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            @* =============================================
+               Item / Production
+               ============================================= *@
+
+            <div class="row g-3 mb-3">
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Item / Product
+                    </label>
+
+                    <input type="text"
+                           name="Items[__index__].ItemName"
+                           class="form-control item-name"
+                           readonly />
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        PDI No.
+                    </label>
+
+                    <input type="text"
+                           name="Items[__index__].PreDispatchInspectionCode"
+                           class="form-control pdi-code"
+                           readonly />
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Production Job
+                    </label>
+
+                    <input type="text"
+                           name="Items[__index__].ProductionJobCode"
+                           class="form-control production-job-code"
+                           readonly />
+
+                </div>
+
+            </div>
+
+
+            @* =============================================
+               PO Information
+               ============================================= *@
+
+            <div class="row g-3 mb-3">
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Customer PO No.
+                    </label>
+
+                    <input type="text"
+                           name="Items[__index__].CustomerPurchaseOrderNumber"
+                           class="form-control customer-po-number"
+                           readonly />
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Item Code
+                    </label>
+
+                    <input type="text"
+                           name="Items[__index__].ItemCode"
+                           class="form-control item-code"
+                           readonly />
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Customer Item Code
+                    </label>
+
+                    <input type="text"
+                           name="Items[__index__].CustomerItemCode"
+                           class="form-control customer-item-code"
+                           readonly />
+
+                </div>
+
+            </div>
+
+
+            @* =============================================
+               Part / Drawing
+               ============================================= *@
+
+            <div class="row g-3 mb-3">
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Part No.
+                    </label>
+
+                    <input type="text"
+                           name="Items[__index__].PartNumber"
+                           class="form-control part-number"
+                           readonly />
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Customer Drawing No.
+                    </label>
+
+                    <input type="text"
+                           name="Items[__index__].CustomerDrawingNumber"
+                           class="form-control customer-drawing-number"
+                           readonly />
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Revision
+                    </label>
+
+                    <input type="text"
+                           name="Items[__index__].CustomerDrawingRevision"
+                           class="form-control customer-drawing-revision"
+                           readonly />
+
+                </div>
+
+            </div>
+
+
+            @* =============================================
+               Quantities
+               ============================================= *@
+
+            <div class="row g-3">
+
+                <div class="col-md-3">
+
+                    <label class="form-label">
+                        PDI Accepted Qty
+                    </label>
+
+                    <input type="number"
+                           name="Items[__index__].PdiAcceptedQuantity"
+                           class="form-control pdi-accepted-quantity"
+                           step="0.001"
+                           readonly />
+
+                </div>
+
+
+                <div class="col-md-3">
+
+                    <label class="form-label">
+                        Already Dispatched Qty
+                    </label>
+
+                    <input type="number"
+                           name="Items[__index__].AlreadyDispatchedQuantity"
+                           class="form-control already-dispatched-quantity"
+                           step="0.001"
+                           readonly />
+
+                </div>
+
+
+                <div class="col-md-3">
+
+                    <label class="form-label">
+                        Available Qty
+                    </label>
+
+                    <input type="number"
+                           name="Items[__index__].AvailableQuantity"
+                           class="form-control available-quantity"
+                           step="0.001"
+                           readonly />
+
+                </div>
+
+
+                <div class="col-md-3">
+
+                    <label class="form-label fw-semibold">
+                        Dispatch Qty
+                    </label>
+
+                    <div class="input-group">
+
+                        <input type="number"
+                               name="Items[__index__].DispatchQuantity"
+                               class="form-control dispatch-quantity"
+                               min="0.001"
+                               step="0.001"
+                               value="0" />
+
+                        <span class="input-group-text unit-name">
+                        </span>
+
+                    </div>
+
+                    <span class="text-danger field-validation-valid"
+                          data-valmsg-for="Items[__index__].DispatchQuantity"
+                          data-valmsg-replace="true">
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</template>

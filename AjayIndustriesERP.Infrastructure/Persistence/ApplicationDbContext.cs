@@ -100,6 +100,19 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
 
         #endregion
 
+        #region Delivery Challan
+
+        public DbSet<DeliveryChallan>
+            DeliveryChallans
+            => Set<DeliveryChallan>();
+
+
+        public DbSet<DeliveryChallanItem>
+            DeliveryChallanItems
+            => Set<DeliveryChallanItem>();
+
+        #endregion
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

@@ -1,0 +1,130 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.DeliveryChallan.DeliveryChallanFormViewModel
+
+@{
+    ViewData["Title"] = "Edit Delivery Challan";
+}
+
+@*
+============================================================
+File: Edit.cshtml
+
+Purpose:
+Edit screen for Draft Delivery Challan.
+
+Responsibilities:
+- Own Edit form.
+- Render shared Delivery Challan form partial.
+- Allow modification only for Draft Challan.
+- Provide Update Draft and Back actions.
+- Load validation scripts.
+- Load separate Delivery Challan form JavaScript.
+
+Important:
+- Shared fields belong in _Form.cshtml.
+- Complex JavaScript belongs in:
+  wwwroot/js/delivery-challan-form.js
+- Finalized Challans are blocked by Controller / Service.
+============================================================
+*@
+
+
+@* =========================================================
+   Page Header
+   ========================================================= *@
+
+<div class="d-flex justify-content-between
+            align-items-center
+            flex-wrap
+            gap-2
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Edit Delivery Challan
+        </h2>
+
+        <div class="text-muted">
+            Update Draft Delivery Challan
+            @if (!string.IsNullOrWhiteSpace(Model.Code))
+            {
+                <span>
+                    - @Model.Code
+                </span>
+            }
+        </div>
+
+    </div>
+
+    <a asp-action="Details"
+       asp-route-id="@Model.Id"
+       class="btn btn-outline-secondary">
+
+        <i class="bi bi-arrow-left me-1"></i>
+        Back to Details
+
+    </a>
+
+</div>
+
+
+@* =========================================================
+   Edit Form
+   ========================================================= *@
+
+<form asp-action="Edit"
+      method="post">
+
+    @Html.AntiForgeryToken()
+
+
+    @* =====================================================
+       Shared Form
+       ===================================================== *@
+
+    <partial name="_Form"
+             model="Model" />
+
+
+    @* =====================================================
+       Form Actions
+       ===================================================== *@
+
+    <div class="d-flex justify-content-end
+                align-items-center
+                gap-2
+                mb-4">
+
+        <a asp-action="Details"
+           asp-route-id="@Model.Id"
+           class="btn btn-outline-secondary">
+
+            Cancel
+
+        </a>
+
+        <button type="submit"
+                class="btn btn-primary">
+
+            <i class="bi bi-save me-1"></i>
+            Update Draft
+
+        </button>
+
+    </div>
+
+</form>
+
+
+@* =========================================================
+   Scripts
+   ========================================================= *@
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/delivery-challan-form.js"
+            asp-append-version="true">
+    </script>
+}

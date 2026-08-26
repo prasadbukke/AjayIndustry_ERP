@@ -1,0 +1,1344 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.DeliveryChallan.DeliveryChallanDetailsViewModel
+
+@using AjayIndustriesERP.Domain.Enums
+
+@*
+============================================================
+File: Details.cshtml
+
+Purpose:
+Displays Delivery Challan details.
+
+Responsibilities:
+- Display Challan header and status.
+- Display Customer snapshot information.
+- Display saved Customer delivery address.
+- Display Company / Workshop snapshot information.
+- Display ERP dispatch / transport information.
+- Display Delivery Challan items.
+- Display Product ID and HSN No.
+- Display internal PDI / PO / Drawing traceability.
+- Allow Draft Edit / Finalize.
+- Allow Finalized PDF download.
+
+Important:
+- Customer address shown here is the saved Challan snapshot.
+- Company information comes from saved Company snapshot.
+- Finalized Challan is read-only.
+- Transport and Drawing information may remain visible in
+  ERP Details even though current PDF will not show them.
+============================================================
+*@
+
+@{
+    ViewData["Title"] = "Delivery Challan Details";
+
+    var isDraft =
+        Model.Status ==
+        DeliveryChallanStatus.Draft;
+
+    var isFinalized =
+        Model.Status ==
+        DeliveryChallanStatus.Finalized;
+}
+
+
+@* =========================================================
+   Page Header
+   ========================================================= *@
+
+<div class="d-flex justify-content-between
+            align-items-center
+            flex-wrap
+            gap-2
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Delivery Challan Details
+        </h2>
+
+        <div class="text-muted">
+            @Model.Code
+        </div>
+
+    </div>
+
+
+    <div class="d-flex
+                align-items-center
+                flex-wrap
+                gap-2">
+
+        @if (isDraft)
+        {
+            <span class="badge bg-warning text-dark">
+                Draft
+            </span>
+        }
+        else
+        {
+            <span class="badge bg-success text-white">
+                Finalized
+            </span>
+        }
+
+
+        @if (isFinalized)
+        {
+            <a asp-action="DownloadPdf"
+               asp-route-id="@Model.Id"
+               class="btn btn-outline-primary">
+
+                <i class="bi bi-file-earmark-pdf me-1"></i>
+                Download Challan
+
+            </a>
+        }
+
+
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            <i class="bi bi-arrow-left me-1"></i>
+            Back
+
+        </a>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   Challan Information
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <h5 class="mb-0">
+            Challan Information
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            <div class="col-md-3">
+
+                <div class="text-muted small">
+                    Challan No.
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.Code
+                </div>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <div class="text-muted small">
+                    Challan Date
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.ChallanDate.ToString("dd-MM-yyyy")
+                </div>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <div class="text-muted small">
+                    L.P.G. No.
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.LpgNumber)
+                                        ? "-"
+                                        : Model.LpgNumber)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <div class="text-muted small">
+                    Status
+                </div>
+
+                <div>
+
+                    @if (isDraft)
+                    {
+                        <span class="badge bg-warning text-dark">
+                            Draft
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success text-white">
+                            Finalized
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   Customer Information
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <h5 class="mb-0">
+            Customer Information
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row g-3 mb-3">
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    Customer
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.CustomerName
+                </div>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    Customer Code
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CustomerCode)
+                                        ? "-"
+                                        : Model.CustomerCode)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    Legal Name
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CustomerLegalName)
+                                        ? "-"
+                                        : Model.CustomerLegalName)
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="row g-3">
+
+            <div class="col-md-3">
+
+                <div class="text-muted small">
+                    GSTIN
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CustomerGstin)
+                                        ? "-"
+                                        : Model.CustomerGstin)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <div class="text-muted small">
+                    PAN
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CustomerPan)
+                                        ? "-"
+                                        : Model.CustomerPan)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <div class="text-muted small">
+                    Contact Person
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CustomerContactPerson)
+                                        ? "-"
+                                        : Model.CustomerContactPerson)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <div class="text-muted small">
+                    Mobile No.
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CustomerMobileNumber)
+                                        ? "-"
+                                        : Model.CustomerMobileNumber)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-6">
+
+                <div class="text-muted small">
+                    Email
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CustomerEmail)
+                                        ? "-"
+                                        : Model.CustomerEmail)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-6">
+
+                <div class="text-muted small">
+                    Website
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CustomerWebsite)
+                                        ? "-"
+                                        : Model.CustomerWebsite)
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   Customer Delivery Address
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <h5 class="mb-0">
+            Customer Delivery Address
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            <div class="col-md-6">
+
+                <div class="text-muted small">
+                    Address Line 1
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CustomerAddressLine1)
+                                        ? "-"
+                                        : Model.CustomerAddressLine1)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-6">
+
+                <div class="text-muted small">
+                    Address Line 2
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CustomerAddressLine2)
+                                        ? "-"
+                                        : Model.CustomerAddressLine2)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <div class="text-muted small">
+                    City
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CustomerCity)
+                                        ? "-"
+                                        : Model.CustomerCity)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <div class="text-muted small">
+                    District
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CustomerDistrict)
+                                        ? "-"
+                                        : Model.CustomerDistrict)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <div class="text-muted small">
+                    State
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CustomerState)
+                                        ? "-"
+                                        : Model.CustomerState)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <div class="text-muted small">
+                    Pincode
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CustomerPincode)
+                                        ? "-"
+                                        : Model.CustomerPincode)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    Country
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CustomerCountry)
+                                        ? "-"
+                                        : Model.CustomerCountry)
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   Company / Workshop Information
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <h5 class="mb-0">
+            Company / Workshop Information
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row g-3 mb-3">
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    Company / Workshop
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CompanyName)
+                                        ? "-"
+                                        : Model.CompanyName)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    Company Code
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CompanyCode)
+                                        ? "-"
+                                        : Model.CompanyCode)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    GST No.
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CompanyGstNumber)
+                                        ? "-"
+                                        : Model.CompanyGstNumber)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    PAN No.
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CompanyPanNumber)
+                                        ? "-"
+                                        : Model.CompanyPanNumber)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    Contact Person
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CompanyContactPerson)
+                                        ? "-"
+                                        : Model.CompanyContactPerson)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    Phone No.
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CompanyPhoneNumber)
+                                        ? "-"
+                                        : Model.CompanyPhoneNumber)
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <hr />
+
+
+        <div class="row g-3">
+
+            <div class="col-md-6">
+
+                <div class="text-muted small">
+                    Workshop Address
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CompanyAddress)
+                                        ? "-"
+                                        : Model.CompanyAddress)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-2">
+
+                <div class="text-muted small">
+                    City
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CompanyCity)
+                                        ? "-"
+                                        : Model.CompanyCity)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-2">
+
+                <div class="text-muted small">
+                    State
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CompanyState)
+                                        ? "-"
+                                        : Model.CompanyState)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-2">
+
+                <div class="text-muted small">
+                    Postal Code
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CompanyPostalCode)
+                                        ? "-"
+                                        : Model.CompanyPostalCode)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    Country
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CompanyCountry)
+                                        ? "-"
+                                        : Model.CompanyCountry)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    Email
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CompanyEmail)
+                                        ? "-"
+                                        : Model.CompanyEmail)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    Website
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.CompanyWebsite)
+                                        ? "-"
+                                        : Model.CompanyWebsite)
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   Dispatch / Transport Information
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <h5 class="mb-0">
+            Dispatch / Transport Information
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    Transporter
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.TransporterName)
+                                        ? "-"
+                                        : Model.TransporterName)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    Vehicle No.
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.VehicleNumber)
+                                        ? "-"
+                                        : Model.VehicleNumber)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <div class="text-muted small">
+                    LR / Transport Reference
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.TransportReference)
+                                        ? "-"
+                                        : Model.TransportReference)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-6">
+
+                <div class="text-muted small">
+                    Dispatch From
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.DispatchFrom)
+                                        ? "-"
+                                        : Model.DispatchFrom)
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-6">
+
+                <div class="text-muted small">
+                    Destination
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(Model.Destination)
+                                        ? "-"
+                                        : Model.Destination)
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   Dispatch Items
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <h5 class="mb-0">
+            Dispatch Items
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        @if (Model.Items.Count == 0)
+        {
+            <div class="alert alert-info mb-0">
+                No dispatch items found.
+            </div>
+        }
+        else
+        {
+            @foreach (var item in Model.Items)
+            {
+                <div class="border rounded p-3 mb-3">
+
+                    <div class="d-flex justify-content-between
+                                        align-items-center
+                                        flex-wrap
+                                        gap-2
+                                        mb-3">
+
+                        <div class="fw-bold">
+                            Dispatch Line @item.SequenceNumber
+                        </div>
+
+                        <span class="badge bg-secondary">
+                            @item.DispatchQuantity.ToString("0.###")
+                            @item.UnitName
+                        </span>
+
+                    </div>
+
+
+                    @* =====================================
+                       Main Item Information
+                       ===================================== *@
+
+                    <div class="row g-3 mb-3">
+
+                        <div class="col-md-3">
+
+                            <div class="text-muted small">
+                                PDI No.
+                            </div>
+
+                            <div class="fw-semibold">
+                                @item.PreDispatchInspectionCode
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-3">
+
+                            <div class="text-muted small">
+                                Product ID
+                            </div>
+
+                            <div class="fw-semibold">
+
+                                @(string.IsNullOrWhiteSpace(item.ProductReference)
+                                                        ? "-"
+                                                        : item.ProductReference)
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-3">
+
+                            <div class="text-muted small">
+                                HSN No.
+                            </div>
+
+                            <div class="fw-semibold">
+
+                                @(string.IsNullOrWhiteSpace(item.HsnNumber)
+                                                        ? "-"
+                                                        : item.HsnNumber)
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-3">
+
+                            <div class="text-muted small">
+                                Item / Product
+                            </div>
+
+                            <div class="fw-semibold">
+                                @item.ItemName
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    @* =====================================
+                       Production / PO Information
+                       ===================================== *@
+
+                    <div class="row g-3 mb-3">
+
+                        <div class="col-md-3">
+
+                            <div class="text-muted small">
+                                Production Job
+                            </div>
+
+                            <div class="fw-semibold">
+                                @item.ProductionJobCode
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-3">
+
+                            <div class="text-muted small">
+                                Customer PO No.
+                            </div>
+
+                            <div class="fw-semibold">
+                                @item.CustomerPurchaseOrderNumber
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-3">
+
+                            <div class="text-muted small">
+                                Item Code
+                            </div>
+
+                            <div class="fw-semibold">
+                                @item.ItemCode
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-3">
+
+                            <div class="text-muted small">
+                                Customer Item Code
+                            </div>
+
+                            <div class="fw-semibold">
+
+                                @(string.IsNullOrWhiteSpace(item.CustomerItemCode)
+                                                        ? "-"
+                                                        : item.CustomerItemCode)
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    @* =====================================
+                       Internal Traceability
+                       ===================================== *@
+
+                    <div class="row g-3 mb-3">
+
+                        <div class="col-md-4">
+
+                            <div class="text-muted small">
+                                Part No.
+                            </div>
+
+                            <div class="fw-semibold">
+
+                                @(string.IsNullOrWhiteSpace(item.PartNumber)
+                                                        ? "-"
+                                                        : item.PartNumber)
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-4">
+
+                            <div class="text-muted small">
+                                Customer Drawing No.
+                            </div>
+
+                            <div class="fw-semibold">
+
+                                @(string.IsNullOrWhiteSpace(item.CustomerDrawingNumber)
+                                                        ? "-"
+                                                        : item.CustomerDrawingNumber)
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-4">
+
+                            <div class="text-muted small">
+                                Drawing Revision
+                            </div>
+
+                            <div class="fw-semibold">
+
+                                @(string.IsNullOrWhiteSpace(item.CustomerDrawingRevision)
+                                                        ? "-"
+                                                        : item.CustomerDrawingRevision)
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    @* =====================================
+                       Quantity
+                       ===================================== *@
+
+                    <div class="row g-3">
+
+                        <div class="col-md-4">
+
+                            <div class="text-muted small">
+                                PDI Accepted Qty
+                            </div>
+
+                            <div class="fw-semibold">
+                                @item.PdiAcceptedQuantity.ToString("0.###")
+                                @item.UnitName
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-4">
+
+                            <div class="text-muted small">
+                                Dispatch Qty
+                            </div>
+
+                            <div class="fw-semibold">
+                                @item.DispatchQuantity.ToString("0.###")
+                                @item.UnitName
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-4">
+
+                            <div class="text-muted small">
+                                UOM
+                            </div>
+
+                            <div class="fw-semibold">
+
+                                @(string.IsNullOrWhiteSpace(item.UnitName)
+                                                        ? "-"
+                                                        : item.UnitName)
+
+                    </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+                }
+        }
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   Remarks
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <h5 class="mb-0">
+            Remarks
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        @if (string.IsNullOrWhiteSpace(Model.Remarks))
+        {
+            <span class="text-muted">
+                No remarks.
+            </span>
+        }
+        else
+        {
+            <div>
+                @Model.Remarks
+            </div>
+        }
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   Finalization Information
+   ========================================================= *@
+
+@if (isFinalized)
+{
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-light">
+
+            <h5 class="mb-0">
+                Finalization Information
+            </h5>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-md-4">
+
+                    <div class="text-muted small">
+                        Status
+                    </div>
+
+                    <div>
+                        <span class="badge bg-success text-white">
+                            Finalized
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <div class="text-muted small">
+                        Finalized On
+                    </div>
+
+                    <div class="fw-semibold">
+
+                        @(Model.FinalizedOn.HasValue
+                                            ? Model.FinalizedOn.Value.ToString("dd-MM-yyyy HH:mm")
+                                            : "-")
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <div class="text-muted small">
+                        Finalized By
+                    </div>
+
+                    <div class="fw-semibold">
+
+                        @(string.IsNullOrWhiteSpace(Model.FinalizedBy)
+                                            ? "-"
+                                            : Model.FinalizedBy)
+
+                </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+@* =========================================================
+   Draft Actions
+   ========================================================= *@
+
+@if (isDraft)
+{
+    <div class="card shadow-sm border-0">
+
+        <div class="card-body">
+
+            <div class="d-flex
+                            justify-content-end
+                            flex-wrap
+                            gap-2">
+
+                <a asp-action="Edit"
+                   asp-route-id="@Model.Id"
+                   class="btn btn-warning">
+
+                    <i class="bi bi-pencil-square me-1"></i>
+                    Edit Draft
+
+                </a>
+
+
+                <form asp-action="Finalize"
+                      asp-route-id="@Model.Id"
+                      method="post"
+                      class="d-inline">
+
+                    @Html.AntiForgeryToken()
+
+                    <button type="submit"
+                            class="btn btn-success"
+                            onclick="return confirm('Finalize this Delivery Challan? After Finalization it cannot be edited.');">
+
+                        <i class="bi bi-check-circle me-1"></i>
+                        Finalize
+
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+}

@@ -298,8 +298,24 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
                 PreDispatchInspectionService>();
 
             services.AddScoped<
-    IPreDispatchInspectionPdfGenerator,
-    PreDispatchInspectionPdfGenerator>();
+                  IPreDispatchInspectionPdfGenerator,
+                  PreDispatchInspectionPdfGenerator>();
+
+            #endregion
+
+            #region Delivery Challan
+
+            services.AddScoped<
+                IDeliveryChallanRepository,
+                DeliveryChallanRepository>();
+
+            services.AddScoped<
+                IDeliveryChallanService,
+                DeliveryChallanService>();
+
+            services.AddScoped<
+                IDeliveryChallanPdfGenerator,
+                DeliveryChallanPdfGenerator>();
 
             #endregion
 
