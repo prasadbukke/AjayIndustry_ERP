@@ -15,9 +15,7 @@
     <Folder Include="Helpers\" />
     <Folder Include="Filters\" />
     <Folder Include="Constants\" />
-    <Folder Include="Configurations\" />
     <Folder Include="Middlewares\" />
-    <Folder Include="Services\" />
     <Folder Include="wwwroot\fonts\" />
     <Folder Include="wwwroot\icons\" />
     <Folder Include="wwwroot\images\icons\" />

@@ -128,6 +128,21 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
         }
 
         #endregion
+
+        #region CustomerReceipts
+        public DbSet<CustomerReceipt> CustomerReceipts
+        {
+            get;
+            set;
+        }
+        public DbSet<CustomerReceiptAllocation> CustomerReceiptAllocations
+        {
+            get;
+            set;
+        }
+
+        #endregion
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

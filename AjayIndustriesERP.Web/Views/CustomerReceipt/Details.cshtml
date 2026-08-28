@@ -1,0 +1,1064 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.CustomerReceipt.CustomerReceiptDetailsViewModel
+
+@using AjayIndustriesERP.Domain.Enums
+
+@{
+    ViewData["Title"] =
+        "Customer Receipt Details";
+
+
+    var isDraft =
+        Model.Status ==
+        CustomerReceiptStatus.Draft;
+
+
+    var isFinalized =
+        Model.Status ==
+        CustomerReceiptStatus.Finalized;
+}
+
+
+<div class="container-fluid">
+
+    @* =========================================================
+       REGION 1 — PAGE HEADER
+       ========================================================= *@
+
+    <div class="d-flex
+                justify-content-between
+                align-items-center
+                flex-wrap
+                gap-3
+                mb-4">
+
+        <div>
+
+            <div class="d-flex
+                        align-items-center
+                        flex-wrap
+                        gap-2
+                        mb-1">
+
+                <h2 class="fw-bold
+                           mb-0">
+
+                    Customer Receipt
+
+                </h2>
+
+
+                @if (isDraft)
+                {
+                    <span class="badge
+                                     bg-warning
+                                     text-dark">
+
+                        Draft
+
+                    </span>
+                }
+                else if (isFinalized)
+                {
+                    <span class="badge
+                                     bg-success">
+
+                        Finalized
+
+                    </span>
+                }
+
+            </div>
+
+
+            <div class="text-muted">
+
+                @Model.Code
+
+            </div>
+
+        </div>
+
+
+        <div class="d-flex
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <a asp-action="Index"
+               class="btn
+                      btn-outline-secondary">
+
+                <i class="fa-solid
+                          fa-arrow-left
+                          me-1">
+                </i>
+
+                Back to List
+
+            </a>
+
+
+            @if (isFinalized)
+            {
+                <a asp-action="DownloadPdf"
+                   asp-route-id="@Model.Id"
+                   class="btn
+                              btn-outline-primary">
+
+                    <i class="fa-solid
+                                  fa-file-pdf
+                                  me-1">
+                    </i>
+
+                    Download Receipt
+
+                </a>
+            }
+
+        </div>
+
+    </div>
+
+
+    @* =========================================================
+       REGION 2 — RECEIPT INFORMATION
+       ========================================================= *@
+
+    <div class="card
+                shadow-sm
+                border-0
+                mb-4">
+
+        <div class="card-header
+                    bg-white
+                    py-3">
+
+            <h5 class="fw-semibold
+                       mb-0">
+
+                <i class="fa-solid
+                          fa-receipt
+                          me-2">
+                </i>
+
+                Receipt Information
+
+            </h5>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="row g-4">
+
+                <div class="col-md-4">
+
+                    <div class="text-muted
+                                small
+                                mb-1">
+
+                        Receipt No.
+
+                    </div>
+
+
+                    <div class="fw-semibold">
+
+                        @Model.Code
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <div class="text-muted
+                                small
+                                mb-1">
+
+                        Receipt Date
+
+                    </div>
+
+
+                    <div class="fw-semibold">
+
+                        @Model.ReceiptDate.ToString("dd-MM-yyyy")
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <div class="text-muted
+                                small
+                                mb-1">
+
+                        Status
+
+                    </div>
+
+
+                    <div>
+
+                        @if (isDraft)
+                        {
+                            <span class="badge
+                                             bg-warning
+                                             text-dark">
+
+                                Draft
+
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge
+                                             bg-success">
+
+                                Finalized
+
+                            </span>
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =========================================================
+       REGION 3 — CUSTOMER INFORMATION
+       ========================================================= *@
+
+    <div class="card
+                shadow-sm
+                border-0
+                mb-4">
+
+        <div class="card-header
+                    bg-white
+                    py-3">
+
+            <h5 class="fw-semibold
+                       mb-0">
+
+                <i class="fa-solid
+                          fa-user-tie
+                          me-2">
+                </i>
+
+                Customer Information
+
+            </h5>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="row g-4">
+
+                <div class="col-md-4">
+
+                    <div class="text-muted
+                                small
+                                mb-1">
+
+                        Customer Name
+
+                    </div>
+
+
+                    <div class="fw-semibold">
+
+                        @Model.CustomerName
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <div class="text-muted
+                                small
+                                mb-1">
+
+                        Customer Code
+
+                    </div>
+
+
+                    <div class="fw-semibold">
+
+                        @(string.IsNullOrWhiteSpace(
+                                                Model.CustomerCode)
+                                                ? "-"
+                                                : Model.CustomerCode)
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <div class="text-muted
+                                small
+                                mb-1">
+
+                        Company
+
+                    </div>
+
+
+                    <div class="fw-semibold">
+
+                        @(string.IsNullOrWhiteSpace(
+                                                Model.CompanyName)
+                                                ? "-"
+                                                : Model.CompanyName)
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =========================================================
+       REGION 4 — PAYMENT INFORMATION
+       ========================================================= *@
+
+    <div class="card
+                shadow-sm
+                border-0
+                mb-4">
+
+        <div class="card-header
+                    bg-white
+                    py-3">
+
+            <h5 class="fw-semibold
+                       mb-0">
+
+                <i class="fa-solid
+                          fa-money-check-dollar
+                          me-2">
+                </i>
+
+                Payment Information
+
+            </h5>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="row g-4">
+
+                <div class="col-md-4">
+
+                    <div class="text-muted
+                                small
+                                mb-1">
+
+                        Payment Mode
+
+                    </div>
+
+
+                    <div class="fw-semibold">
+
+                        @Model.PaymentMode
+
+                    </div>
+
+                </div>
+
+
+                @if (!string.IsNullOrWhiteSpace(
+                                Model.ReferenceNumber))
+                {
+                    <div class="col-md-4">
+
+                        <div class="text-muted
+                                        small
+                                        mb-1">
+
+                            Transaction / Reference No.
+
+                        </div>
+
+
+                        <div class="fw-semibold">
+
+                            @Model.ReferenceNumber
+
+                        </div>
+
+                    </div>
+                }
+
+
+                @if (!string.IsNullOrWhiteSpace(
+                                Model.BankName))
+                {
+                    <div class="col-md-4">
+
+                        <div class="text-muted
+                                        small
+                                        mb-1">
+
+                            Bank Name
+
+                        </div>
+
+
+                        <div class="fw-semibold">
+
+                            @Model.BankName
+
+                        </div>
+
+                    </div>
+                }
+
+
+                @if (!string.IsNullOrWhiteSpace(
+                                Model.ChequeNumber))
+                {
+                    <div class="col-md-4">
+
+                        <div class="text-muted
+                                        small
+                                        mb-1">
+
+                            Cheque No.
+
+                        </div>
+
+
+                        <div class="fw-semibold">
+
+                            @Model.ChequeNumber
+
+                        </div>
+
+                    </div>
+                }
+
+
+                @if (Model.ChequeDate.HasValue)
+                {
+                    <div class="col-md-4">
+
+                        <div class="text-muted
+                                        small
+                                        mb-1">
+
+                            Cheque Date
+
+                        </div>
+
+
+                        <div class="fw-semibold">
+
+                            @Model.ChequeDate.Value
+                            .ToString("dd-MM-yyyy")
+
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =========================================================
+       REGION 5 — INVOICE ALLOCATIONS
+       ========================================================= *@
+
+    <div class="card
+                shadow-sm
+                border-0
+                mb-4">
+
+        <div class="card-header
+                    bg-white
+                    py-3">
+
+            <div class="d-flex
+                        justify-content-between
+                        align-items-center
+                        flex-wrap
+                        gap-2">
+
+                <div>
+
+                    <h5 class="fw-semibold
+                               mb-1">
+
+                        <i class="fa-solid
+                                  fa-file-invoice-dollar
+                                  me-2">
+                        </i>
+
+                        Invoice Allocations
+
+                    </h5>
+
+
+                    <div class="text-muted
+                                small">
+
+                        Payment allocation against
+                        Customer Invoices.
+
+                    </div>
+
+                </div>
+
+
+                <span class="badge
+                             bg-light
+                             text-dark
+                             border">
+
+                    @Model.Allocations.Count Invoice(s)
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table
+                              table-bordered
+                              table-hover
+                              align-middle
+                              mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+
+                            <th class="text-center"
+                                style="width:55px;">
+
+                                #
+
+                            </th>
+
+
+                            <th>
+
+                                Invoice No.
+
+                            </th>
+
+
+                            <th>
+
+                                Invoice Date
+
+                            </th>
+
+
+                            <th class="text-end">
+
+                                Invoice Amount
+
+                            </th>
+
+
+                            <th class="text-end">
+
+                                Already Received
+
+                            </th>
+
+
+                            <th class="text-end">
+
+                                Outstanding Before
+
+                            </th>
+
+
+                            <th class="text-end">
+
+                                Received
+
+                            </th>
+
+
+                            <th class="text-end">
+
+                                Balance After Receipt
+
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @if (Model.Allocations.Count == 0)
+                        {
+                            <tr>
+
+                                <td colspan="8"
+                                    class="text-center
+                                               text-muted
+                                               py-4">
+
+                                    No Invoice allocations found.
+
+                                </td>
+
+                            </tr>
+                        }
+                        else
+                        {
+                            var serialNumber =
+                            1;
+
+
+                            foreach (var allocation
+                            in Model.Allocations
+                            .OrderBy(x =>
+                            x.SequenceNumber))
+                            {
+                                <tr>
+
+                                    <td class="text-center">
+
+                                        @serialNumber
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <a asp-controller="Invoice"
+                                           asp-action="Details"
+                                           asp-route-id="@allocation.InvoiceId"
+                                           class="fw-semibold
+                                                          text-decoration-none">
+
+                                            @allocation.InvoiceCode
+
+                                        </a>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        @(allocation.InvoiceDate
+                                        .ToString("dd-MM-yyyy"))
+
+                                    </td>
+
+
+                                    <td class="text-end">
+
+                                        ₹ @(allocation.InvoiceGrandTotal
+                                        .ToString("N2"))
+
+                                    </td>
+
+
+                                    <td class="text-end">
+
+                                        ₹ @(allocation.AlreadyReceivedAmount
+                                        .ToString("N2"))
+
+                                    </td>
+
+
+                                    <td class="text-end">
+
+                                        ₹ @(allocation.OutstandingBeforeReceipt
+                                        .ToString("N2"))
+
+                                    </td>
+
+
+                                    <td class="text-end
+                                                       fw-semibold">
+
+                                        ₹ @(allocation.AllocatedAmount
+                                        .ToString("N2"))
+
+                                    </td>
+
+
+                                    <td class="text-end">
+
+                                        @if (allocation.BalanceAfterReceipt <= 0)
+                                        {
+                                            <span class="text-success
+                                                                     fw-semibold">
+
+                                                ₹ 0.00
+
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span>
+
+                                                ₹ @(allocation.BalanceAfterReceipt
+                                                .ToString("N2"))
+
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                </tr>
+
+
+                                serialNumber++;
+                            }
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =========================================================
+       REGION 6 — TOTAL RECEIVED
+       ========================================================= *@
+
+    <div class="row
+                justify-content-end
+                mb-4">
+
+        <div class="col-md-5
+                    col-lg-4">
+
+            <div class="card
+                        shadow-sm
+                        border-0">
+
+                <div class="card-body">
+
+                    <div class="d-flex
+                                justify-content-between
+                                align-items-center">
+
+                        <div>
+
+                            <div class="text-muted
+                                        small">
+
+                                Total Received Amount
+
+                            </div>
+
+
+                            <div class="small
+                                        text-muted">
+
+                                Allocated against
+                                @Model.Allocations.Count Invoice(s)
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="fs-4
+                                    fw-bold">
+
+                            ₹ @(Model.TotalReceivedAmount
+                            .ToString("N2"))
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =========================================================
+       REGION 7 — REMARKS
+       ========================================================= *@
+
+    @if (!string.IsNullOrWhiteSpace(
+        Model.Remarks))
+    {
+        <div class="card
+                        shadow-sm
+                        border-0
+                        mb-4">
+
+            <div class="card-header
+                            bg-white
+                            py-3">
+
+                <h5 class="fw-semibold
+                               mb-0">
+
+                    <i class="fa-solid
+                                  fa-note-sticky
+                                  me-2">
+                    </i>
+
+                    Remarks
+
+                </h5>
+
+            </div>
+
+
+            <div class="card-body">
+
+                @Model.Remarks
+
+            </div>
+
+        </div>
+    }
+
+
+    @* =========================================================
+       REGION 8 — FINALIZATION INFORMATION
+       ========================================================= *@
+
+    @if (isFinalized)
+    {
+        <div class="card
+                        shadow-sm
+                        border-0
+                        mb-4">
+
+            <div class="card-header
+                            bg-white
+                            py-3">
+
+                <h5 class="fw-semibold
+                               mb-0">
+
+                    <i class="fa-solid
+                                  fa-circle-check
+                                  me-2">
+                    </i>
+
+                    Finalization Information
+
+                </h5>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <div class="row g-4">
+
+                    <div class="col-md-6">
+
+                        <div class="text-muted
+                                        small
+                                        mb-1">
+
+                            Finalized On
+
+                        </div>
+
+
+                        <div class="fw-semibold">
+
+                            @(Model.FinalizedOn.HasValue
+                                                    ? Model.FinalizedOn.Value
+                                                    .ToString(
+                                                    "dd-MM-yyyy HH:mm")
+                                                    : "-")
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-6">
+
+                        <div class="text-muted
+                                        small
+                                        mb-1">
+
+                            Finalized By
+
+                        </div>
+
+
+                        <div class="fw-semibold">
+
+                            @(string.IsNullOrWhiteSpace(
+                                                    Model.FinalizedBy)
+                                                    ? "-"
+                                                    : Model.FinalizedBy)
+
+                    </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+        }
+
+
+    @* =========================================================
+       REGION 9 — DRAFT ACTIONS
+       ========================================================= *@
+
+    @if (isDraft)
+    {
+        <div class="card
+                        shadow-sm
+                        border-0
+                        mb-4">
+
+            <div class="card-body">
+
+                <div class="d-flex
+                                justify-content-between
+                                align-items-center
+                                flex-wrap
+                                gap-3">
+
+                    <div class="text-muted
+                                    small">
+
+                        Finalizing this Receipt will apply
+                        these allocations to Invoice outstanding balances.
+
+                    </div>
+
+
+                    <div class="d-flex
+                                    justify-content-end
+                                    align-items-center
+                                    flex-wrap
+                                    gap-2">
+
+                        <form asp-action="Delete"
+                              asp-route-id="@Model.Id"
+                              method="post"
+                              class="d-inline">
+
+                            @Html.AntiForgeryToken()
+
+
+                            <button type="submit"
+                                    class="btn
+                                               btn-outline-danger"
+                                    onclick="return confirm(
+                                            'Delete this Draft Customer Receipt?');">
+
+                                <i class="fa-solid
+                                              fa-trash
+                                              me-1">
+                                </i>
+
+                                Delete
+
+                            </button>
+
+                        </form>
+
+
+                        <a asp-action="Edit"
+                           asp-route-id="@Model.Id"
+                           class="btn
+                                      btn-warning">
+
+                            <i class="fa-solid
+                                          fa-pen
+                                          me-1">
+                            </i>
+
+                            Edit Receipt
+
+                        </a>
+
+
+                        <form asp-action="Finalize"
+                              asp-route-id="@Model.Id"
+                              method="post"
+                              class="d-inline">
+
+                            @Html.AntiForgeryToken()
+
+
+                            <button type="submit"
+                                    class="btn
+                                               btn-success"
+                                    onclick="return confirm(
+                                            'Finalize this Customer Receipt? After finalization it cannot be edited or deleted.');">
+
+                                <i class="fa-solid
+                                              fa-check
+                                              me-1">
+                                </i>
+
+                                Finalize Receipt
+
+                            </button>
+
+                        </form>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    }
+
+</div>

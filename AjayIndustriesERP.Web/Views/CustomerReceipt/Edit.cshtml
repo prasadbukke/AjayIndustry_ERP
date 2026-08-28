@@ -1,0 +1,137 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.CustomerReceipt.CustomerReceiptFormViewModel
+
+@{
+    ViewData["Title"] =
+        "Edit Customer Receipt";
+}
+
+
+<div class="container-fluid">
+
+    @* =========================================================
+       REGION 1 — PAGE HEADER
+       ========================================================= *@
+
+    <div class="d-flex
+                justify-content-between
+                align-items-center
+                flex-wrap
+                gap-3
+                mb-4">
+
+        <div>
+
+            <h2 class="fw-bold
+                       mb-1">
+
+                Edit Customer Receipt
+
+            </h2>
+
+
+            <div class="text-muted">
+
+                Update Draft Customer Receipt and
+                Invoice allocations.
+
+            </div>
+
+        </div>
+
+
+        <div class="d-flex
+                    gap-2">
+
+            <a asp-action="Details"
+               asp-route-id="@Model.Id"
+               class="btn
+                      btn-outline-secondary">
+
+                <i class="fa-solid
+                          fa-arrow-left
+                          me-1">
+                </i>
+
+                Back to Details
+
+            </a>
+
+        </div>
+
+    </div>
+
+
+    @* =========================================================
+       REGION 2 — FORM
+       ========================================================= *@
+
+    <form asp-action="Edit"
+          method="post"
+          id="customerReceiptForm">
+
+        @Html.AntiForgeryToken()
+
+
+        <partial name="_Form"
+                 model="Model" />
+
+
+        @* =====================================================
+           FORM ACTIONS
+           ===================================================== *@
+
+        <div class="card
+                    shadow-sm
+                    border-0
+                    mb-4">
+
+            <div class="card-body">
+
+                <div class="d-flex
+                            justify-content-end
+                            align-items-center
+                            flex-wrap
+                            gap-2">
+
+                    <a asp-action="Details"
+                       asp-route-id="@Model.Id"
+                       class="btn
+                              btn-outline-secondary">
+
+                        Cancel
+
+                    </a>
+
+
+                    <button type="submit"
+                            class="btn
+                                   btn-primary">
+
+                        <i class="fa-solid
+                                  fa-floppy-disk
+                                  me-1">
+                        </i>
+
+                        Update Draft Receipt
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/customer-receipt-form.js"
+            asp-append-version="true">
+    </script>
+}

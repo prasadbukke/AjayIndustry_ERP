@@ -1,0 +1,1061 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.CustomerReceipt.CustomerReceiptFormViewModel
+
+@using AjayIndustriesERP.Domain.Enums
+
+
+@* =========================================================
+   REGION 1 — HIDDEN FIELDS
+   ========================================================= *@
+
+<input asp-for="Id"
+       type="hidden" />
+
+
+@* =========================================================
+   REGION 2 — VALIDATION SUMMARY
+   ========================================================= *@
+
+<div asp-validation-summary="ModelOnly"
+     class="alert alert-danger">
+</div>
+
+
+@* =========================================================
+   REGION 3 — RECEIPT INFORMATION
+   ========================================================= *@
+
+<div class="card
+            shadow-sm
+            border-0
+            mb-4">
+
+    <div class="card-header
+                bg-white
+                py-3">
+
+        <h5 class="mb-0
+                   fw-semibold">
+
+            <i class="fa-solid
+                      fa-receipt
+                      me-2">
+            </i>
+
+            Receipt Information
+
+        </h5>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            @if (Model.Id > 0)
+            {
+                <div class="col-md-4">
+
+                    <label class="form-label
+                                      fw-semibold">
+
+                        Receipt No.
+
+                    </label>
+
+
+                    <input asp-for="Code"
+                           class="form-control"
+                           readonly />
+
+                </div>
+            }
+
+
+            <div class="col-md-4">
+
+                <label asp-for="ReceiptDate"
+                       class="form-label
+                              fw-semibold">
+                </label>
+
+
+                <input asp-for="ReceiptDate"
+                       type="date"
+                       class="form-control" />
+
+
+                <span asp-validation-for="ReceiptDate"
+                      class="text-danger
+                             small">
+                </span>
+
+            </div>
+
+
+            <div class="col-md-4">
+
+                <label asp-for="CustomerId"
+                       class="form-label
+                              fw-semibold">
+                </label>
+
+
+                <select asp-for="CustomerId"
+                        asp-items="Model.AvailableCustomers"
+                        id="customerReceiptCustomerSelector"
+                        class="form-select">
+                </select>
+
+
+                <span asp-validation-for="CustomerId"
+                      class="text-danger
+                             small">
+                </span>
+
+            </div>
+
+
+            @if (Model.Id > 0)
+            {
+                <div class="col-md-4">
+
+                    <label class="form-label
+                                      fw-semibold">
+
+                        Customer Code
+
+                    </label>
+
+
+                    <input asp-for="CustomerCode"
+                           class="form-control"
+                           readonly />
+
+                </div>
+            }
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   REGION 4 — PAYMENT INFORMATION
+   ========================================================= *@
+
+<div class="card
+            shadow-sm
+            border-0
+            mb-4">
+
+    <div class="card-header
+                bg-white
+                py-3">
+
+        <h5 class="mb-0
+                   fw-semibold">
+
+            <i class="fa-solid
+                      fa-money-check-dollar
+                      me-2">
+            </i>
+
+            Payment Information
+
+        </h5>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            <div class="col-md-4">
+
+                <label asp-for="PaymentMode"
+                       class="form-label
+                              fw-semibold">
+                </label>
+
+
+                <select asp-for="PaymentMode"
+                        asp-items="Html.GetEnumSelectList<PaymentMode>()"
+                        id="paymentModeSelector"
+                        class="form-select">
+                </select>
+
+
+                <span asp-validation-for="PaymentMode"
+                      class="text-danger
+                             small">
+                </span>
+
+            </div>
+
+
+            @* =================================================
+               TRANSACTION / REFERENCE
+               ================================================= *@
+
+            <div class="col-md-4"
+                 id="referenceNumberSection">
+
+                <label asp-for="ReferenceNumber"
+                       class="form-label
+                              fw-semibold">
+                </label>
+
+
+                <input asp-for="ReferenceNumber"
+                       id="referenceNumber"
+                       class="form-control"
+                       placeholder="UTR / Transaction ID / Reference No." />
+
+
+                <span asp-validation-for="ReferenceNumber"
+                      class="text-danger
+                             small">
+                </span>
+
+            </div>
+
+
+            @* =================================================
+               BANK NAME
+               ================================================= *@
+
+            <div class="col-md-4"
+                 id="bankNameSection">
+
+                <label asp-for="BankName"
+                       class="form-label
+                              fw-semibold">
+                </label>
+
+
+                <input asp-for="BankName"
+                       id="bankName"
+                       class="form-control"
+                       placeholder="Enter bank name" />
+
+
+                <span asp-validation-for="BankName"
+                      class="text-danger
+                             small">
+                </span>
+
+            </div>
+
+
+            @* =================================================
+               CHEQUE DETAILS
+               ================================================= *@
+
+            <div class="col-md-4"
+                 id="chequeNumberSection">
+
+                <label asp-for="ChequeNumber"
+                       class="form-label
+                              fw-semibold">
+                </label>
+
+
+                <input asp-for="ChequeNumber"
+                       id="chequeNumber"
+                       class="form-control"
+                       placeholder="Enter cheque number" />
+
+
+                <span asp-validation-for="ChequeNumber"
+                      class="text-danger
+                             small">
+                </span>
+
+            </div>
+
+
+            <div class="col-md-4"
+                 id="chequeDateSection">
+
+                <label asp-for="ChequeDate"
+                       class="form-label
+                              fw-semibold">
+                </label>
+
+
+                <input asp-for="ChequeDate"
+                       id="chequeDate"
+                       type="date"
+                       class="form-control" />
+
+
+                <span asp-validation-for="ChequeDate"
+                      class="text-danger
+                             small">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   REGION 5 — INVOICE ALLOCATION
+   ========================================================= *@
+
+<div class="card
+            shadow-sm
+            border-0
+            mb-4">
+
+    <div class="card-header
+                bg-white
+                py-3">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <div>
+
+                <h5 class="mb-1
+                           fw-semibold">
+
+                    <i class="fa-solid
+                              fa-file-invoice-dollar
+                              me-2">
+                    </i>
+
+                    Invoice Allocation
+
+                </h5>
+
+
+                <div class="text-muted
+                            small">
+
+                    Select outstanding finalized invoices
+                    and allocate the received amount.
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body">
+
+        @* =====================================================
+           SOURCE LOAD MESSAGE
+           ===================================================== *@
+
+        <div id="invoiceSourceMessage"
+             class="alert
+                    alert-info
+                    d-none">
+        </div>
+
+
+        @* =====================================================
+           ADD INVOICE
+           ===================================================== *@
+
+        <div class="row
+                    g-3
+                    align-items-end
+                    mb-4">
+
+            <div class="col-md-9">
+
+                <label class="form-label
+                              fw-semibold">
+
+                    Outstanding Invoice
+
+                </label>
+
+
+                <select id="availableInvoiceSelector"
+                        class="form-select"
+                        disabled>
+
+                    <option value="">
+                        -- Select Customer First --
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="col-md-3">
+
+                <button type="button"
+                        id="addInvoiceButton"
+                        class="btn
+                               btn-primary
+                               w-100"
+                        disabled>
+
+                    <i class="fa-solid
+                              fa-plus
+                              me-1">
+                    </i>
+
+                    Add Invoice
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        @* =====================================================
+           ALLOCATION TABLE
+           ===================================================== *@
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-bordered
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th class="text-center"
+                            style="width: 55px;">
+
+                            #
+
+                        </th>
+
+
+                        <th style="min-width: 150px;">
+
+                            Invoice No.
+
+                        </th>
+
+
+                        <th style="min-width: 110px;">
+
+                            Invoice Date
+
+                        </th>
+
+
+                        <th class="text-end"
+                            style="min-width: 125px;">
+
+                            Invoice Amount
+
+                        </th>
+
+
+                        <th class="text-end"
+                            style="min-width: 125px;">
+
+                            Already Received
+
+                        </th>
+
+
+                        <th class="text-end"
+                            style="min-width: 125px;">
+
+                            Outstanding
+
+                        </th>
+
+
+                        <th style="min-width: 150px;">
+
+                            Allocated Amount
+
+                        </th>
+
+
+                        <th class="text-end"
+                            style="min-width: 135px;">
+
+                            Balance After Receipt
+
+                        </th>
+
+
+                        <th class="text-center"
+                            style="width: 70px;">
+
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="customerReceiptAllocationBody">
+
+                    @for (var i = 0;
+                                        i < Model.Allocations.Count;
+                                        i++)
+                    {
+                        var allocation =
+                        Model.Allocations[i];
+
+
+                        <tr class="allocation-row"
+                            data-invoice-id="@allocation.InvoiceId">
+
+                            @* =================================
+                               SERIAL
+                               ================================= *@
+
+                            <td class="text-center
+                                           allocation-sequence">
+
+                                @(i + 1)
+
+                            </td>
+
+
+                            @* =================================
+                               INVOICE
+                               ================================= *@
+
+                            <td>
+
+                                <input asp-for="Allocations[i].Id"
+                                       type="hidden"
+                                       class="allocation-id" />
+
+
+                                <input asp-for="Allocations[i].SequenceNumber"
+                                       type="hidden"
+                                       class="allocation-sequence-input" />
+
+
+                                <input asp-for="Allocations[i].InvoiceId"
+                                       type="hidden"
+                                       class="invoice-id" />
+
+
+                                <input asp-for="Allocations[i].InvoiceCode"
+                                       type="hidden" />
+
+
+                                <div class="fw-semibold">
+                                    @allocation.InvoiceCode
+                                </div>
+
+                            </td>
+
+
+                            @* =================================
+                               DATE
+                               ================================= *@
+
+                            <td>
+
+                                <input asp-for="Allocations[i].InvoiceDate"
+                                       type="hidden" />
+
+
+                                @(allocation.InvoiceDate
+                                .ToString(
+                                "dd-MM-yyyy"))
+
+                            </td>
+
+
+                            @* =================================
+                               INVOICE AMOUNT
+                               ================================= *@
+
+                            <td class="text-end">
+
+                                <input asp-for="Allocations[i].InvoiceGrandTotal"
+                                       type="hidden"
+                                       class="invoice-grand-total" />
+
+
+                                ₹ @(allocation.InvoiceGrandTotal
+                                .ToString("0.00"))
+
+                            </td>
+
+
+                            @* =================================
+                               ALREADY RECEIVED
+                               ================================= *@
+
+                            <td class="text-end">
+
+                                <input asp-for="Allocations[i].AlreadyReceivedAmount"
+                                       type="hidden"
+                                       class="already-received-amount" />
+
+
+                                ₹ @(allocation.AlreadyReceivedAmount
+                                .ToString("0.00"))
+
+                            </td>
+
+
+                            @* =================================
+                               OUTSTANDING
+                               ================================= *@
+
+                            <td class="text-end">
+
+                                <input asp-for="Allocations[i].OutstandingAmount"
+                                       type="hidden"
+                                       class="outstanding-amount" />
+
+
+                                <span class="outstanding-display">
+
+                                    ₹ @(allocation.OutstandingAmount
+                                    .ToString("0.00"))
+
+                                </span>
+
+                            </td>
+
+
+                            @* =================================
+                               ALLOCATED
+                               ================================= *@
+
+                            <td>
+
+                                <div class="input-group">
+
+                                    <span class="input-group-text">
+                                        ₹
+                                    </span>
+
+
+                                    <input asp-for="Allocations[i].AllocatedAmount"
+                                           type="number"
+                                           step="0.01"
+                                           min="0.01"
+                                           class="form-control
+                                                      text-end
+                                                      allocated-amount" />
+
+                                </div>
+
+
+                                <span asp-validation-for="Allocations[i].AllocatedAmount"
+                                      class="text-danger
+                                                 small">
+                                </span>
+
+
+                                <div class="allocation-error
+                                                text-danger
+                                                small
+                                                d-none">
+                                </div>
+
+                            </td>
+
+
+                            @* =================================
+                               BALANCE
+                               ================================= *@
+
+                            <td class="text-end">
+
+                                <input asp-for="Allocations[i].BalanceAfterReceipt"
+                                       type="hidden"
+                                       class="balance-after-receipt" />
+
+
+                                <span class="balance-display">
+
+                                    ₹ @(allocation.BalanceAfterReceipt
+                                    .ToString("0.00"))
+
+                                </span>
+
+                            </td>
+
+
+                            @* =================================
+                               REMOVE
+                               ================================= *@
+
+                            <td class="text-center">
+
+                                <button type="button"
+                                        class="btn
+                                                   btn-sm
+                                                   btn-outline-danger
+                                                   remove-allocation-button"
+                                        title="Remove Invoice">
+
+                                    <i class="fa-solid
+                                                  fa-trash">
+                                    </i>
+
+                                </button>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        @* =====================================================
+           NO ITEMS MESSAGE
+           ===================================================== *@
+
+        <div id="noAllocationMessage"
+             class="text-center
+                    text-muted
+                    py-4
+                    @(Model.Allocations.Count > 0
+                                     ? "d-none"
+                                     : "")">
+
+            <i class="fa-solid
+                      fa-file-invoice
+                      fa-2x
+                      mb-2">
+            </i>
+
+
+            <div>
+
+                Select a Customer and add at least
+                one outstanding Invoice.
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   REGION 6 — TOTAL RECEIVED
+   ========================================================= *@
+
+<div class="card
+            shadow-sm
+            border-0
+            mb-4">
+
+    <div class="card-body">
+
+        <div class="row
+                    justify-content-end">
+
+            <div class="col-md-5
+                        col-lg-4">
+
+                <label asp-for="TotalReceivedAmount"
+                       class="form-label
+                              fw-semibold">
+                </label>
+
+
+                <div class="input-group
+                            input-group-lg">
+
+                    <span class="input-group-text">
+                        ₹
+                    </span>
+
+
+                    <input asp-for="TotalReceivedAmount"
+                           id="totalReceivedAmount"
+                           class="form-control
+                                  text-end
+                                  fw-bold"
+                           readonly />
+
+                </div>
+
+
+                <span asp-validation-for="TotalReceivedAmount"
+                      class="text-danger
+                             small">
+                </span>
+
+
+                <div class="form-text">
+
+                    Automatically calculated from
+                    Invoice allocations.
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   REGION 7 — REMARKS
+   ========================================================= *@
+
+<div class="card
+            shadow-sm
+            border-0
+            mb-4">
+
+    <div class="card-header
+                bg-white
+                py-3">
+
+        <h5 class="mb-0
+                   fw-semibold">
+
+            <i class="fa-solid
+                      fa-note-sticky
+                      me-2">
+            </i>
+
+            Remarks
+
+        </h5>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <textarea asp-for="Remarks"
+                  class="form-control"
+                  rows="3"
+                  placeholder="Optional receipt remarks"></textarea>
+
+
+        <span asp-validation-for="Remarks"
+              class="text-danger
+                     small">
+        </span>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   REGION 8 — DYNAMIC ALLOCATION ROW TEMPLATE
+   ========================================================= *@
+
+<template id="customerReceiptAllocationTemplate">
+
+    <tr class="allocation-row"
+        data-invoice-id="__INVOICE_ID__">
+
+        <td class="text-center
+                   allocation-sequence">
+
+            __SEQUENCE__
+
+        </td>
+
+
+        <td>
+
+            <input type="hidden"
+                   name="Allocations[__INDEX__].Id"
+                   id="Allocations___INDEX___Id"
+                   value="0"
+                   class="allocation-id" />
+
+
+            <input type="hidden"
+                   name="Allocations[__INDEX__].SequenceNumber"
+                   id="Allocations___INDEX___SequenceNumber"
+                   value="__SEQUENCE__"
+                   class="allocation-sequence-input" />
+
+
+            <input type="hidden"
+                   name="Allocations[__INDEX__].InvoiceId"
+                   id="Allocations___INDEX___InvoiceId"
+                   value="__INVOICE_ID__"
+                   class="invoice-id" />
+
+
+            <input type="hidden"
+                   name="Allocations[__INDEX__].InvoiceCode"
+                   id="Allocations___INDEX___InvoiceCode"
+                   value="__INVOICE_CODE__" />
+
+
+            <div class="fw-semibold">
+                __INVOICE_CODE__
+            </div>
+
+        </td>
+
+
+        <td>
+
+            <input type="hidden"
+                   name="Allocations[__INDEX__].InvoiceDate"
+                   id="Allocations___INDEX___InvoiceDate"
+                   value="__INVOICE_DATE__" />
+
+
+            __INVOICE_DATE_DISPLAY__
+
+        </td>
+
+
+        <td class="text-end">
+
+            <input type="hidden"
+                   name="Allocations[__INDEX__].InvoiceGrandTotal"
+                   id="Allocations___INDEX___InvoiceGrandTotal"
+                   value="__INVOICE_TOTAL__"
+                   class="invoice-grand-total" />
+
+
+            ₹ __INVOICE_TOTAL_DISPLAY__
+
+        </td>
+
+
+        <td class="text-end">
+
+            <input type="hidden"
+                   name="Allocations[__INDEX__].AlreadyReceivedAmount"
+                   id="Allocations___INDEX___AlreadyReceivedAmount"
+                   value="__ALREADY_RECEIVED__"
+                   class="already-received-amount" />
+
+
+            ₹ __ALREADY_RECEIVED_DISPLAY__
+
+        </td>
+
+
+        <td class="text-end">
+
+            <input type="hidden"
+                   name="Allocations[__INDEX__].OutstandingAmount"
+                   id="Allocations___INDEX___OutstandingAmount"
+                   value="__OUTSTANDING__"
+                   class="outstanding-amount" />
+
+
+            <span class="outstanding-display">
+
+                ₹ __OUTSTANDING_DISPLAY__
+
+            </span>
+
+        </td>
+
+
+        <td>
+
+            <div class="input-group">
+
+                <span class="input-group-text">
+                    ₹
+                </span>
+
+
+                <input type="number"
+                       name="Allocations[__INDEX__].AllocatedAmount"
+                       id="Allocations___INDEX___AllocatedAmount"
+                       value="__OUTSTANDING__"
+                       step="0.01"
+                       min="0.01"
+                       class="form-control
+                              text-end
+                              allocated-amount" />
+
+            </div>
+
+
+            <span class="text-danger
+                         small field-validation-valid"
+                  data-valmsg-for="Allocations[__INDEX__].AllocatedAmount"
+                  data-valmsg-replace="true">
+            </span>
+
+
+            <div class="allocation-error
+                        text-danger
+                        small
+                        d-none">
+            </div>
+
+        </td>
+
+
+        <td class="text-end">
+
+            <input type="hidden"
+                   name="Allocations[__INDEX__].BalanceAfterReceipt"
+                   id="Allocations___INDEX___BalanceAfterReceipt"
+                   value="0.00"
+                   class="balance-after-receipt" />
+
+
+            <span class="balance-display">
+                ₹ 0.00
+            </span>
+
+        </td>
+
+
+        <td class="text-center">
+
+            <button type="button"
+                    class="btn
+                           btn-sm
+                           btn-outline-danger
+                           remove-allocation-button"
+                    title="Remove Invoice">
+
+                <i class="fa-solid
+                          fa-trash">
+                </i>
+
+            </button>
+
+        </td>
+
+    </tr>
+
+</template>

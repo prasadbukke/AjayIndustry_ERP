@@ -335,6 +335,17 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
 
             #endregion
 
+            services.AddScoped<
+    ICustomerReceiptRepository,
+    CustomerReceiptRepository>();
+
+            services.AddScoped<
+    ICustomerReceiptService,
+    CustomerReceiptService>();
+
+            services.AddScoped<
+    ICustomerReceiptPdfGenerator,
+    CustomerReceiptPdfGenerator>();
             return services;
         }
     }

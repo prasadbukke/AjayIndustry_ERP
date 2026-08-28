@@ -1,0 +1,779 @@
+﻿@model List<AjayIndustriesERP.Domain.Entities.CustomerReceipt>
+
+@{
+    ViewData["Title"] =
+        "Deleted Customer Receipts";
+
+
+    var searchText =
+        ViewBag.SearchText as string
+        ?? string.Empty;
+
+
+    var pageNumber =
+        ViewBag.PageNumber != null
+            ? (int)ViewBag.PageNumber
+            : 1;
+
+
+    var pageSize =
+        ViewBag.PageSize != null
+            ? (int)ViewBag.PageSize
+            : 10;
+
+
+    var totalRecords =
+        ViewBag.TotalRecords != null
+            ? (int)ViewBag.TotalRecords
+            : 0;
+
+
+    var totalPages =
+        ViewBag.TotalPages != null
+            ? (int)ViewBag.TotalPages
+            : 0;
+
+
+    var hasPrevious =
+        ViewBag.HasPrevious != null &&
+        (bool)ViewBag.HasPrevious;
+
+
+    var hasNext =
+        ViewBag.HasNext != null &&
+        (bool)ViewBag.HasNext;
+}
+
+
+<div class="container-fluid">
+
+    @* =========================================================
+       REGION 1 — PAGE HEADER
+       ========================================================= *@
+
+    <div class="d-flex
+                justify-content-between
+                align-items-center
+                flex-wrap
+                gap-3
+                mb-4">
+
+        <div>
+
+            <h2 class="fw-bold
+                       mb-1">
+
+                Deleted Customer Receipts
+
+            </h2>
+
+
+            <div class="text-muted">
+
+                View and restore deleted Draft
+                Customer Receipts.
+
+            </div>
+
+        </div>
+
+
+        <a asp-action="Index"
+           class="btn
+                  btn-outline-secondary">
+
+            <i class="fa-solid
+                      fa-arrow-left
+                      me-1">
+            </i>
+
+            Back to Receipts
+
+        </a>
+
+    </div>
+
+
+    @* =========================================================
+       REGION 2 — SEARCH
+       ========================================================= *@
+
+    <div class="card
+                shadow-sm
+                border-0
+                mb-4">
+
+        <div class="card-body">
+
+            <form asp-action="Deleted"
+                  method="get">
+
+                <div class="row
+                            g-3
+                            align-items-end">
+
+                    <div class="col-lg-7
+                                col-md-6">
+
+                        <label class="form-label
+                                      fw-semibold">
+
+                            Search
+
+                        </label>
+
+
+                        <input type="text"
+                               name="searchText"
+                               value="@searchText"
+                               class="form-control"
+                               placeholder="Receipt No., Customer, Transaction No. or Cheque No." />
+
+                    </div>
+
+
+                    <div class="col-lg-2
+                                col-md-3">
+
+                        <label class="form-label
+                                      fw-semibold">
+
+                            Page Size
+
+                        </label>
+
+
+                        <select name="pageSize"
+                                class="form-select">
+
+                            @if (pageSize == 10)
+                            {
+                                <option value="10"
+                                        selected>
+                                    10
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="10">
+                                    10
+                                </option>
+                            }
+
+
+                            @if (pageSize == 25)
+                            {
+                                <option value="25"
+                                        selected>
+                                    25
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="25">
+                                    25
+                                </option>
+                            }
+
+
+                            @if (pageSize == 50)
+                            {
+                                <option value="50"
+                                        selected>
+                                    50
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="50">
+                                    50
+                                </option>
+                            }
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="col-lg-3
+                                col-md-3">
+
+                        <div class="d-flex
+                                    gap-2">
+
+                            <button type="submit"
+                                    class="btn
+                                           btn-primary
+                                           flex-fill">
+
+                                <i class="fa-solid
+                                          fa-magnifying-glass
+                                          me-1">
+                                </i>
+
+                                Search
+
+                            </button>
+
+
+                            <a asp-action="Deleted"
+                               class="btn
+                                      btn-outline-secondary">
+
+                                Reset
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    @* =========================================================
+       REGION 3 — DELETED RECEIPTS TABLE
+       ========================================================= *@
+
+    <div class="card
+                shadow-sm
+                border-0">
+
+        <div class="card-header
+                    bg-white
+                    py-3">
+
+            <div class="d-flex
+                        justify-content-between
+                        align-items-center
+                        flex-wrap
+                        gap-2">
+
+                <h5 class="fw-semibold
+                           mb-0">
+
+                    Deleted Receipt List
+
+                </h5>
+
+
+                <div class="text-muted
+                            small">
+
+                    Total Records:
+
+                    <span class="fw-semibold">
+                        @totalRecords
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table
+                              table-hover
+                              align-middle
+                              mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+
+                            <th class="text-center"
+                                style="width:60px;">
+
+                                #
+
+                            </th>
+
+
+                            <th style="min-width:170px;">
+
+                                Receipt No.
+
+                            </th>
+
+
+                            <th style="min-width:120px;">
+
+                                Receipt Date
+
+                            </th>
+
+
+                            <th style="min-width:220px;">
+
+                                Customer
+
+                            </th>
+
+
+                            <th style="min-width:140px;">
+
+                                Payment Mode
+
+                            </th>
+
+
+                            <th style="min-width:170px;">
+
+                                Reference
+
+                            </th>
+
+
+                            <th class="text-end"
+                                style="min-width:150px;">
+
+                                Received Amount
+
+                            </th>
+
+
+                            <th style="min-width:150px;">
+
+                                Deleted On
+
+                            </th>
+
+
+                            <th class="text-center"
+                                style="width:120px;">
+
+                                Action
+
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @if (Model == null ||
+                             Model.Count == 0)
+                        {
+                            <tr>
+
+                                <td colspan="9"
+                                    class="text-center
+                                           text-muted
+                                           py-5">
+
+                                    <i class="fa-solid
+                                              fa-trash-can
+                                              fa-2x
+                                              mb-2">
+                                    </i>
+
+
+                                    <div>
+
+                                        No deleted Customer Receipts found.
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+                        }
+                        else
+                        {
+                            var serialNumber =
+                                (
+                                    (pageNumber - 1)
+                                    * pageSize
+                                )
+                                + 1;
+
+
+                            foreach (var receipt
+                                in Model)
+                            {
+                                <tr>
+
+                                    @* =========================
+                                       SERIAL
+                                       ========================= *@
+
+                                    <td class="text-center">
+
+                                        @serialNumber
+
+                                    </td>
+
+
+                                    @* =========================
+                                       RECEIPT NO.
+                                       ========================= *@
+
+                                    <td>
+
+                                        <div class="fw-semibold">
+
+                                            @receipt.Code
+
+                                        </div>
+
+
+                                        <div class="text-muted
+                                                    small">
+
+                                            Draft Receipt
+
+                                        </div>
+
+                                    </td>
+
+
+                                    @* =========================
+                                       RECEIPT DATE
+                                       ========================= *@
+
+                                    <td>
+
+                                        @receipt.ReceiptDate
+                                            .ToString(
+                                                "dd-MM-yyyy")
+
+                                    </td>
+
+
+                                    @* =========================
+                                       CUSTOMER
+                                       ========================= *@
+
+                                    <td>
+
+                                        <div class="fw-semibold">
+
+                                            @receipt.CustomerName
+
+                                        </div>
+
+
+                                        @if (!string.IsNullOrWhiteSpace(
+                                            receipt.CustomerCode))
+                                        {
+                                            <div class="text-muted
+                                                        small">
+
+                                                @receipt.CustomerCode
+
+                                            </div>
+                                        }
+
+                                    </td>
+
+
+                                    @* =========================
+                                       PAYMENT MODE
+                                       ========================= *@
+
+                                    <td>
+
+                                        @receipt.PaymentMode
+
+                                    </td>
+
+
+                                    @* =========================
+                                       REFERENCE
+                                       ========================= *@
+
+                                    <td>
+
+                                        @if (!string.IsNullOrWhiteSpace(
+                                            receipt.ChequeNumber))
+                                        {
+                                            <div>
+
+                                                @receipt.ChequeNumber
+
+                                            </div>
+                                        }
+                                        else if (!string.IsNullOrWhiteSpace(
+                                            receipt.ReferenceNumber))
+                                        {
+                                            <div>
+
+                                                @receipt.ReferenceNumber
+
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">
+                                                -
+                                            </span>
+                                        }
+
+
+                                        @if (!string.IsNullOrWhiteSpace(
+                                            receipt.BankName))
+                                        {
+                                            <div class="text-muted
+                                                        small">
+
+                                                @receipt.BankName
+
+                                            </div>
+                                        }
+
+                                    </td>
+
+
+                                    @* =========================
+                                       AMOUNT
+                                       ========================= *@
+
+                                    <td class="text-end
+                                               fw-semibold">
+
+                                        ₹ @receipt.TotalReceivedAmount
+                                            .ToString("N2")
+
+                                    </td>
+
+
+                                    @* =========================
+                                       DELETED ON
+                                       ========================= *@
+
+                                    <td>
+
+                                        @if (receipt.ModifiedOn.HasValue)
+                                        {
+                                            <div>
+
+                                                @receipt.ModifiedOn.Value
+                                                    .ToString(
+                                                        "dd-MM-yyyy")
+
+                                            </div>
+
+
+                                            <div class="text-muted
+                                                        small">
+
+                                                @receipt.ModifiedOn.Value
+                                                    .ToString(
+                                                        "HH:mm")
+
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">
+                                                -
+                                            </span>
+                                        }
+
+                                    </td>
+
+
+                                    @* =========================
+                                       RESTORE
+                                       ========================= *@
+
+                                    <td class="text-center">
+
+                                        <form asp-action="Restore"
+                                              asp-route-id="@receipt.Id"
+                                              method="post"
+                                              class="d-inline">
+
+                                            @Html.AntiForgeryToken()
+
+
+                                            <button type="submit"
+                                                    class="btn
+                                                           btn-sm
+                                                           btn-outline-success"
+                                                    onclick="return confirm(
+                                                        'Restore Customer Receipt @receipt.Code?');">
+
+                                                <i class="fa-solid
+                                                          fa-rotate-left
+                                                          me-1">
+                                                </i>
+
+                                                Restore
+
+                                            </button>
+
+                                        </form>
+
+                                    </td>
+
+                                </tr>
+
+
+                                serialNumber++;
+                            }
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+
+        @* =====================================================
+           REGION 4 — PAGINATION
+           ===================================================== *@
+
+        @if (totalPages > 1)
+        {
+            <div class="card-footer
+                        bg-white">
+
+                <div class="d-flex
+                            justify-content-between
+                            align-items-center
+                            flex-wrap
+                            gap-3">
+
+                    <div class="text-muted
+                                small">
+
+                        Page
+
+                        <strong>
+                            @pageNumber
+                        </strong>
+
+                        of
+
+                        <strong>
+                            @totalPages
+                        </strong>
+
+                    </div>
+
+
+                    <nav>
+
+                        <ul class="pagination
+                                   pagination-sm
+                                   mb-0">
+
+                            <li class="page-item
+                                       @(hasPrevious
+                                           ? ""
+                                           : "disabled")">
+
+                                <a class="page-link"
+                                   asp-action="Deleted"
+                                   asp-route-searchText="@searchText"
+                                   asp-route-pageNumber="@(pageNumber - 1)"
+                                   asp-route-pageSize="@pageSize">
+
+                                    Previous
+
+                                </a>
+
+                            </li>
+
+
+                            @for (var pageNo = 1;
+      pageNo <= totalPages;
+      pageNo++)
+{
+    if (
+        pageNo == 1
+
+        ||
+
+        pageNo == totalPages
+
+        ||
+
+        (
+            pageNo >= pageNumber - 2
+            &&
+            pageNo <= pageNumber + 2
+        )
+    )
+    {
+        <li class="page-item
+                   @(pageNo == pageNumber
+                       ? "active"
+                       : "")">
+
+            <a class="page-link"
+               asp-action="Index"
+               asp-route-searchText="@searchText"
+               asp-route-pageNumber="@pageNo"
+               asp-route-pageSize="@pageSize">
+
+                @pageNo
+
+            </a>
+
+        </li>
+    }
+    else if (
+        pageNo == pageNumber - 3
+
+        ||
+
+        pageNo == pageNumber + 3
+    )
+    {
+        <li class="page-item disabled">
+
+            <span class="page-link">
+                ...
+            </span>
+
+        </li>
+    }
+}
+
+                            <li class="page-item
+                                       @(hasNext
+                                           ? ""
+                                           : "disabled")">
+
+                                <a class="page-link"
+                                   asp-action="Deleted"
+                                   asp-route-searchText="@searchText"
+                                   asp-route-pageNumber="@(pageNumber + 1)"
+                                   asp-route-pageSize="@pageSize">
+
+                                    Next
+
+                                </a>
+
+                            </li>
+
+                        </ul>
+
+                    </nav>
+
+                </div>
+
+            </div>
+        }
+
+    </div>
+
+</div>

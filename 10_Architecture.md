@@ -57,6 +57,7 @@ ASP.NET Core Web API may reuse Application Services.
 - SQL Server
 - Entity configurations
 - Dependency Injection registration
+- QuestPDF PDF generation
 
 ## Domain
 
@@ -118,34 +119,67 @@ Do not confuse runtime call direction with project-reference direction.
 
 # 5. Business Rule Boundaries
 
-Controller:
+## Controller
+
+Responsible for:
 
 - request/response coordination
 - ModelState
 - TempData
 - redirects
+- ViewModel mapping
+- lightweight AJAX endpoints
+- workflow request coordination
 
-Application Service:
+Controller must not become the authoritative source for transaction business rules.
+
+---
+
+## Application Service
+
+Responsible for:
 
 - business validation
 - calculations
 - transaction workflow
+- source validation
 - snapshot logic
 - code generation
+- financial validation
+- finalization validation
+- warning/confirmation business rules
 
-Repository:
+Application Service is the authoritative business-rule layer.
+
+Browser-posted calculated values or source snapshots must not be blindly trusted.
+
+---
+
+## Repository
+
+Responsible for:
 
 - EF Core database access
 - Includes
 - CRUD persistence
 - search/pagination
 - existence checks
+- source-data queries
+- allocation calculations
+- workflow-support queries
 
-Domain:
+Repository does not own presentation behavior.
+
+---
+
+## Domain
+
+Responsible for:
 
 - entities
 - enums
 - common business data
+- persisted transaction state
 
 ---
 
@@ -191,6 +225,10 @@ Module registrations should follow the existing DI pattern instead of being scat
 - Toast Notification
 - Quick Master pattern
 - Historical transaction snapshot pattern
+- Header-line transaction pattern
+- Explicit transaction workflow actions
+- Server-authoritative financial calculation
+- Server-authoritative transaction source validation
 
 ---
 
@@ -211,8 +249,11 @@ Transaction modules may additionally contain:
 - workflow POST actions
 - PDF/print GET actions
 - lightweight AJAX helper actions
+- source-data lookup actions
 
 Business logic still remains in Services.
+
+AJAX actions may provide data required by the UI, but must not replace Service-level validation.
 
 ---
 
@@ -233,7 +274,12 @@ Typical operations:
 Additional repository methods are allowed when required by a business module, for example:
 
 - last business-code lookup
-- prefix-based Purchase Order sequence lookup
+- prefix-based sequence lookup
+- transaction source lookup
+- remaining quantity calculation
+- allocated quantity calculation
+- workflow existence checks
+- finalized-source checks
 
 ---
 
@@ -257,6 +303,16 @@ Purchase Order examples:
 - MarkAsSentAsync
 - IsIntraStateAsync
 
+Invoice examples:
+
+- PrepareDraftAsync
+- GetRemainingInvoiceQuantityAsync
+- GetProductionJobIdsRequiringWarningAsync
+- FinalizeAsync
+- GeneratePdfAsync
+
+Workflow-specific Service methods are allowed when the business transaction requires them.
+
 ---
 
 # 12. Validation Standard
@@ -279,6 +335,8 @@ Controller catches BusinessException
 
 Toast / validation feedback
 
+Important transaction rules must be validated again in the Application Service even when the browser already performed equivalent validation.
+
 ---
 
 # 13. Database Standard
@@ -300,7 +358,9 @@ Rules:
 - Deleted codes are not reused.
 - Soft Delete is preferred.
 - Restrict is preferred for important Master foreign keys unless a specific transaction relationship requires another behavior.
+- Historical transaction references may remain nullable when the related source is optional in the business process.
 - Breaking database changes require explicit approval.
+- Entity schema changes must be applied through reviewed EF Core migrations.
 
 ---
 
@@ -323,38 +383,352 @@ Inventory owns:
 - Stock Transactions
 - Stock Ledger
 
+Transaction documents may store historical snapshots of Item information required for document accuracy.
+
 Reason:
 
 Single Responsibility and historical transaction accuracy.
 
 ---
 
-# 15. Purchase Order Transaction Architecture
+# 15. Historical Transaction Snapshot Pattern
+
+Transaction documents must preserve important historical information where later Master changes must not alter old business documents.
+
+Examples include:
+
+- Company information
+- Customer information
+- Supplier information
+- Item information
+- Customer PO reference
+- transaction-specific rates
+- GST values
+- billing information
+- payment terms
+
+A finalized historical document should not depend on current Master values for information that was already captured when the transaction was created.
+
+Live source data may still be used for validation before finalization where required.
+
+---
+
+# 16. Purchase Order Transaction Architecture
 
 Purchase Order is the first completed header-line transaction reference.
 
 Flow:
 
 PurchaseOrderController
-→ IPurchaseOrderService
-→ PurchaseOrderService
-→ IPurchaseOrderRepository
-→ PurchaseOrderRepository
-→ ApplicationDbContext
+
+↓
+
+IPurchaseOrderService
+
+↓
+
+PurchaseOrderService
+
+↓
+
+IPurchaseOrderRepository
+
+↓
+
+PurchaseOrderRepository
+
+↓
+
+ApplicationDbContext
 
 PDF flow:
 
 PurchaseOrderController
-→ IPurchaseOrderPdfService
-→ PurchaseOrderPdfService
-→ QuestPDF
-→ PDF file response
+
+↓
+
+IPurchaseOrderPdfService
+
+↓
+
+PurchaseOrderPdfService
+
+↓
+
+QuestPDF
+
+↓
+
+PDF file response
 
 Purchase Order snapshots Master information so historical PDFs do not change when Master records are later edited.
 
 ---
 
-# 16. Development Rule
+# 17. Invoice Transaction Architecture
+
+Invoice follows the same Controller → Service → Repository transaction architecture.
+
+Primary business source flow:
+
+Customer Purchase Order
+
+↓
+
+Production Job
+
+↓
+
+Production Completed
+
+↓
+
+Invoice
+
+Invoice does not require Delivery Challan as its mandatory transaction source.
+
+A Production Job must belong to the selected Customer Purchase Order and must be completed before it can be invoiced.
+
+Runtime flow:
+
+InvoiceController
+
+↓
+
+IInvoiceService
+
+↓
+
+InvoiceService
+
+↓
+
+IInvoiceRepository
+
+↓
+
+InvoiceRepository
+
+↓
+
+ApplicationDbContext
+
+Invoice creation UI may use lightweight AJAX lookup to load eligible completed Production Jobs for the selected Customer Purchase Order.
+
+The Service must revalidate the selected Production Jobs before Create, Update or Finalize.
+
+---
+
+# 18. Invoice Source Validation Rule
+
+Status: LOCKED
+
+The authoritative Invoice eligibility condition is:
+
+**Production Job must be Completed.**
+
+PDI and Delivery Challan are not mandatory gates for Invoice creation/finalization.
+
+If either required operational document is missing:
+
+- Finalized PDI missing, or
+- Delivery Challan missing
+
+the system shows a warning.
+
+The user may explicitly confirm the warning and continue with the Invoice.
+
+Therefore:
+
+Production Completed
+
+→ mandatory
+
+PDI / Delivery Challan
+
+→ warning-based operational controls
+
+The confirmation must not bypass the Production Completed requirement.
+
+The Application Service owns this validation.
+
+---
+
+# 19. Invoice Quantity Architecture
+
+Invoice quantity validation is server authoritative.
+
+The system must validate:
+
+- selected Production Job
+- completed production source
+- already invoiced quantity
+- remaining invoiceable quantity
+- requested Invoice Quantity
+
+The UI may display:
+
+- Production Quantity
+- Already Invoiced Quantity
+- Available Quantity
+
+but these values are informational.
+
+Create/Update/Finalize must revalidate quantities through the Service/Repository before persistence or workflow completion.
+
+---
+
+# 20. Invoice Historical Reference Architecture
+
+InvoiceItem stores transaction snapshots and traceability information.
+
+Primary current source:
+
+- ProductionJobId
+- ProductionJobCode
+- CustomerPurchaseOrderItemId
+- CustomerPurchaseOrderCode
+- CustomerPurchaseOrderNumber
+
+Product snapshots include values such as:
+
+- Item
+- Item Code
+- Item Name
+- Part Number
+- Customer Item Code
+- Unit
+- HSN
+- Product Reference
+
+Legacy/historical Delivery Challan references may remain available as nullable fields.
+
+Delivery Challan information is not required for new Invoice creation.
+
+This allows historical compatibility without making Delivery Challan mandatory in the current Invoice process.
+
+---
+
+# 21. Invoice Financial Calculation Architecture
+
+Invoice financial calculations are controlled by the Application Service.
+
+Typical calculated values include:
+
+- Gross Amount
+- Discount Amount
+- Taxable Amount
+- CGST
+- SGST
+- IGST
+- Total Tax
+- Other Charges
+- Round Off
+- Grand Total
+
+The browser may calculate values for immediate UI feedback.
+
+However, posted calculated totals must not be treated as authoritative.
+
+The Service recalculates and validates financial values before persistence/finalization.
+
+---
+
+# 22. Invoice Finalization Architecture
+
+Draft Invoice:
+
+- may be edited
+- may be deleted
+- may be finalized
+
+Finalization performs business validation again.
+
+When PDI or Delivery Challan warning exists:
+
+- user confirmation is required
+- confirmation is explicitly submitted
+- Service validates the warning confirmation
+- Invoice can then be finalized
+
+After finalization, the document becomes the historical transaction record according to the module workflow rules.
+
+---
+
+# 23. Invoice PDF Architecture
+
+PDF flow:
+
+InvoiceController
+
+↓
+
+IInvoicePdfGenerator / Invoice PDF contract
+
+↓
+
+InvoicePdfGenerator
+
+↓
+
+QuestPDF
+
+↓
+
+PDF file response
+
+Invoice PDF uses persisted transaction information and saved snapshots.
+
+Current PDF includes:
+
+- Company information
+- Invoice number/date/due date
+- Customer billing information
+- Customer PO reference in BILL TO
+- Customer PO reference at item level
+- Item/Product information
+- HSN Number
+- Quantity
+- Rate
+- Discount
+- GST
+- financial summary
+- Amount In Words
+- Bank Details
+- Terms & Conditions
+- Authorized Signature
+
+GST summary should display applicable rates, for example:
+
+- CGST (9%)
+- SGST (9%)
+
+or
+
+- IGST (18%)
+
+depending on the transaction.
+
+---
+
+# 24. Shared Transaction UI Architecture
+
+Create/Edit transaction pages may share a common partial View when they represent the same business form.
+
+Current Invoice pattern:
+
+- `Create.cshtml`
+- `Edit.cshtml`
+- shared `_Form.cshtml`
+- separate `invoice-form.js`
+
+JavaScript-specific transaction behavior remains in the dedicated JavaScript file instead of being duplicated inside Create/Edit pages.
+
+Server-side validation remains authoritative regardless of client-side JavaScript behavior.
+
+---
+
+# 25. Development Rule
 
 Requirement
 
@@ -392,7 +766,7 @@ Git Commit
 
 ---
 
-# 17. Change Policy
+# 26. Change Policy
 
 Architecture breaking change:
 
@@ -408,9 +782,27 @@ Not allowed casually.
 
 Business rules may grow while preserving the frozen architecture.
 
+Changes inside an existing module are not considered architecture changes when they continue to follow the established:
+
+Controller
+
+↓
+
+Service
+
+↓
+
+Repository
+
+↓
+
+DbContext
+
+pattern.
+
 ---
 
-# 18. Reference Modules
+# 27. Reference Modules
 
 Baseline CRUD:
 
@@ -422,4 +814,20 @@ Item + Drawing
 
 Transaction header-lines / PDF:
 
-Purchase Order
+- Purchase Order
+- Invoice
+
+Workflow/source-validation transaction:
+
+- Invoice
+
+Invoice is the current reference implementation for:
+
+- Customer PO based source selection
+- Completed Production validation
+- transaction allocation validation
+- warning-with-confirmation workflow
+- historical transaction snapshots
+- server-authoritative financial calculations
+- finalization
+- PDF generation

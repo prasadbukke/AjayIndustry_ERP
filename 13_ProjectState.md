@@ -4,15 +4,33 @@
 
 Ajay Industries ERP
 
-## Current Status
+---
 
-Master-data foundation is stable.
+# Current Status
 
-Item Master, Drawing Master and Purchase Order are finalized to the current business scope.
+ERP foundation and major Purchase / Sales operational flow are now established.
 
-Current next module:
+Completed major areas include:
 
-**GRN - Goods Receipt Note**
+- Core Master Data
+- Item / Drawing Engineering
+- Supplier Master
+- Purchase Order
+- GRN Phase 1
+- Customer Master
+- Customer Purchase Order
+- Machine Master
+- Production-related operational flow
+- PDI / Delivery Challan integration
+- Customer Invoice
+
+Latest completed milestone:
+
+**Customer Invoice Module**
+
+Current next planned module:
+
+**Customer Payment / Receipt / Accounts Receivable**
 
 ---
 
@@ -62,6 +80,8 @@ Location:
 
 DbContext applies configurations from the Infrastructure assembly.
 
+Database changes are managed using EF Core migrations.
+
 ---
 
 # Dependency Injection
@@ -99,15 +119,19 @@ Available:
 - Quick Add Master Modal
 - Dynamic Item Specification rows
 - Drawing revision history/actions
-- Dynamic Purchase Order line rows
-- State-based GST preview
-- Purchase Order PDF download
+- Dynamic transaction line rows
+- State-based GST calculation/preview
+- QuestPDF document generation
+- Soft Delete / Restore patterns
+- Draft workflow actions
+- Shared Create/Edit form partials where applicable
+- Separate page-specific JavaScript files
 
 ---
 
 # Completed Masters
 
-Finalized:
+Completed / established:
 
 - Company
 - Employee
@@ -120,19 +144,25 @@ Finalized:
 - Supplier
 - Item
 - Drawing
+- Customer
+- Machine
 
 ---
 
 # Company Master Current State
 
-Company includes standard business/contact/address fields.
+Company includes standard:
 
-Current Purchase-related additions:
+- Business information
+- Contact information
+- Address information
+- GST information
+- State
+- Bank details
+- Terms & Conditions fields
+- Website / presentation information where configured
 
-- GST Number is optional.
-- State is required and is used for Purchase Order GST type.
-- PurchaseOrderTermsAndConditions stores standard PO terms.
-- Company Website is available for company/PDF presentation where configured.
+Company information is also used for historical transaction snapshots and PDFs.
 
 ---
 
@@ -244,13 +274,15 @@ SupplierCode:
 
 `SUP00001`
 
-Supplier transaction values are not stored in Supplier Master.
+Supplier transaction values are not stored permanently in Supplier Master.
+
+Transaction documents use snapshots where historical accuracy is required.
 
 ---
 
 # Purchase Order Module Final State
 
-Purchase Order uses header + lines.
+Purchase Order uses Header + Lines.
 
 ## Header
 
@@ -369,7 +401,7 @@ Service performs authoritative calculation.
 
 # Purchase Order Calculation
 
-Final current rule:
+Current rule:
 
 Quantity × UnitPrice
 = Taxable Amount
@@ -390,14 +422,14 @@ No separate GST on Transport/Other Charges at the current business-rule version.
 
 # Purchase Order Terms & Conditions
 
-Company Master stores standard PO Terms & Conditions.
+Company Master stores standard Purchase Order Terms & Conditions.
 
 During Draft Create/Update:
 
 Company.PurchaseOrderTermsAndConditions
 → PurchaseOrder.TermsAndConditions
 
-The Purchase Order stores a historical snapshot.
+Purchase Order stores the historical snapshot.
 
 ---
 
@@ -425,12 +457,9 @@ Sent:
 - Edit blocked
 - Delete blocked
 
-No separate Cancel action is implemented.
+No separate Cancel action is currently implemented.
 
-Future GRN integration will use:
-
-- PartiallyReceived
-- Received
+GRN integration handles receipt progression separately.
 
 ---
 
@@ -438,7 +467,7 @@ Future GRN integration will use:
 
 Implemented using QuestPDF.
 
-PDF is supplier-facing and includes:
+Supplier-facing PDF includes:
 
 - Company logo
 - Company details
@@ -456,7 +485,7 @@ PDF is supplier-facing and includes:
 - Terms & Conditions
 - Prepared / Checked By
 - Authorized Signatory
-- footer/page number
+- Footer / Page number
 
 Supplier PDF intentionally does not show Purchase Order Status.
 
@@ -464,78 +493,523 @@ Supplier PDF intentionally does not show Purchase Order Status.
 
 # Purchase Order Stock Rule
 
-Purchase Order does not increase stock.
+Purchase Order itself does not increase physical stock.
 
-Inventory impact will start from GRN/material receipt.
+Material receipt / GRN is responsible for inventory impact.
 
 ---
 
-# Database Migrations Added During Purchase Order Work
+# GRN Module State
 
-Confirmed Purchase Order work includes migrations for:
+## GRN Phase 1
 
-- Purchase Order module
-- Company reference/snapshot in Purchase Order
-- Purchase Order Terms & Conditions
-- Company/Purchase Order website snapshot support where applied
+Completed.
 
-Exact migration class names should remain in source control as the database history of record.
+GRN is connected to the Purchase Order receipt flow.
+
+Core receipt architecture was established before moving further into later ERP modules.
+
+Stock impact starts from material receipt rather than Purchase Order creation.
+
+Further inventory depth such as complete stock-ledger reporting and advanced stock control can continue independently.
+
+---
+
+# Customer Master State
+
+Customer Master is completed.
+
+Customer is the base commercial master for:
+
+- Customer Purchase Order
+- Production traceability
+- Delivery
+- Invoice
+- Future Payment / Outstanding tracking
+
+Customer information required for historical financial documents is snapshotted into transactions where applicable.
+
+---
+
+# Customer Purchase Order Module State
+
+Customer Purchase Order is completed and forms the commercial source for downstream Sales / Production flow.
+
+Current downstream relationship:
+
+Customer
+→ Customer Purchase Order
+→ Customer Purchase Order Items
+→ Production Jobs
+→ Invoice / Delivery related transactions
+
+Customer Purchase Order information is retained as traceability throughout downstream transactions.
+
+---
+
+# Machine Master State
+
+Machine Master is completed.
+
+It forms part of the Production / Process foundation.
+
+Machine information can be associated with manufacturing operations as required by the Production workflow.
+
+---
+
+# Production Flow Current State
+
+Production Jobs are connected to Customer Purchase Order Items.
+
+Important current Production Job data includes:
+
+- Production Job Id
+- Production Job Code
+- Customer Purchase Order Item
+- Item
+- Job Quantity
+- Production Steps
+- Status
+- Completion Date
+- Active / Deleted state
+
+Production Job completion rule is based on completion of the required active production steps.
+
+Completed Production Jobs are used as the authoritative production source for Customer Invoice eligibility.
+
+---
+
+# PDI / Delivery Challan Position
+
+PDI and Delivery Challan exist as downstream operational documents.
+
+For the current Invoice business flow:
+
+- PDI is NOT a mandatory prerequisite for Invoice.
+- Delivery Challan is NOT a mandatory prerequisite for Invoice.
+- Missing PDI or Delivery Challan generates a warning.
+- User may explicitly confirm the warning and continue.
+- Production must still be Completed.
+
+Therefore:
+
+Production Completion
+= Invoice eligibility gate
+
+PDI / Delivery Challan
+= warning / operational traceability
+
+not hard Invoice blockers.
+
+---
+
+# Customer Invoice Module Final State
+
+Customer Invoice module is completed to the current business scope.
+
+## Invoice Source Flow
+
+Final flow:
+
+Customer Purchase Order
+→ Completed Production Jobs
+→ Invoice
+
+Invoice creation no longer depends on selecting Delivery Challans.
+
+User selects a Customer Purchase Order.
+
+System loads eligible Production Jobs where:
+
+- Production Job belongs to the selected Customer PO.
+- Production Job status is Completed.
+- Invoiceable quantity remains available.
+
+PDI or Delivery Challan does not need to exist for the Production Job.
+
+---
+
+# Invoice PDI / Delivery Challan Warning Rule
+
+For selected Completed Production Jobs:
+
+If PDI or Delivery Challan is missing:
+
+System shows:
+
+PDI / Delivery Challan Warning
+
+User must explicitly confirm that Invoice processing may continue despite the pending PDI / Delivery Challan.
+
+Without confirmation:
+
+Invoice Create / Finalize operation is blocked.
+
+With confirmation:
+
+Invoice may continue.
+
+The service layer performs authoritative validation.
+
+---
+
+# Invoice Item Source Design
+
+Primary operational source:
+
+`ProductionJobId`
+
+InvoiceItem keeps Production Job traceability.
+
+Customer Purchase Order traceability is also stored through:
+
+- CustomerPurchaseOrderItemId
+- CustomerPurchaseOrderCode
+- CustomerPurchaseOrderNumber
+
+Delivery Challan references remain available as optional / historical fields.
+
+They are not mandatory for new Invoice creation.
+
+This preserves compatibility with previously created Invoice records while supporting the new Production-based process.
+
+---
+
+# Invoice Quantity Rule
+
+Current Invoice eligibility uses Completed Production Job quantity.
+
+System checks:
+
+Production Quantity
+- Already Invoiced Quantity
+= Available Invoice Quantity
+
+Invoice quantity must:
+
+- be greater than zero
+- not exceed remaining available quantity
+
+Service layer performs authoritative validation.
+
+---
+
+# Invoice Financial Calculation
+
+Invoice supports:
+
+- Quantity
+- Rate
+- Discount %
+- Taxable Amount
+- GST %
+- CGST
+- SGST
+- IGST
+- Other Charges
+- Round Off
+- Grand Total
+
+Same-state transaction:
+
+CGST + SGST
+
+Inter-state transaction:
+
+IGST
+
+Browser calculation provides live preview.
+
+Application Service performs authoritative financial calculation and validation.
+
+---
+
+# Invoice GST Display
+
+Invoice Details / PDF display GST rates together with tax labels.
+
+Examples:
+
+Same State with GST 18%:
+
+- CGST (9%)
+- SGST (9%)
+
+Inter State with GST 18%:
+
+- IGST (18%)
+
+Mixed GST rates are handled as mixed rates where applicable.
+
+---
+
+# Invoice Number
+
+Format:
+
+`AI/INV/26-27/00001`
+
+Financial Year:
+
+April to March
+
+Sequence:
+
+Five digits.
+
+Invoice number generation belongs to the Invoice Service.
+
+Deleted document numbers are not reused.
+
+---
+
+# Invoice Workflow
+
+Current core workflow:
+
+Draft
+→ Finalized
+
+Draft:
+
+- Edit allowed
+- Delete allowed
+- Finalize allowed
+
+Finalized:
+
+- Edit blocked
+- Delete blocked
+
+When PDI / Delivery Challan warning exists, user confirmation is required before Finalize.
+
+Finalized Invoice is treated as the commercial document of record.
+
+---
+
+# Invoice UI Architecture
+
+Create and Edit use shared:
+
+`_Form.cshtml`
+
+Invoice-specific JavaScript is maintained separately:
+
+`wwwroot/js/invoice-form.js`
+
+The JavaScript handles:
+
+- Customer PO selection
+- Completed Production Job loading
+- Production quantity display
+- Already invoiced quantity
+- Available quantity
+- Invoice quantity validation
+- Warning display
+- GST calculations
+- totals
+- ASP.NET collection re-indexing
+
+Business rules remain authoritative in Application Service.
+
+---
+
+# Invoice Details Screen
+
+Invoice Details shows:
+
+- Invoice information
+- Customer / billing information
+- Customer PO
+- Production Job
+- Item / Product
+- HSN
+- Invoice quantity
+- Rate
+- Discount
+- GST
+- Taxable amount
+- Line total
+- Financial summary
+- Terms
+- Finalization information
+
+For Draft invoices requiring source warning:
+
+- PDI / Delivery Challan warning is displayed.
+- Explicit checkbox confirmation is required.
+- Validation message is displayed when user attempts Finalize without confirmation.
+
+---
+
+# Invoice PDF
+
+Implemented using QuestPDF.
+
+PDF includes:
+
+- Company header
+- Invoice Number
+- Invoice Date
+- Due Date
+- Customer details
+- Billing Address
+- Customer PO in BILL TO section
+- Customer PO on Invoice Item rows
+- Product information
+- HSN Number
+- Quantity / UOM
+- Rate
+- Discount
+- GST
+- CGST / SGST or IGST with percentage
+- Financial summary
+- Amount in Words
+- Bank Details
+- Terms & Conditions
+- Remarks
+- Authorized Signatory
+- Footer / Page number
+
+Delivery Challan is not shown as the primary Invoice source.
+
+---
+
+# Transaction Snapshot Principle
+
+For commercial and historical documents, transaction-time values should be stored as snapshots where required.
+
+This prevents later changes to Masters from incorrectly changing historical documents.
+
+Examples include:
+
+- Company snapshot
+- Customer snapshot
+- Supplier snapshot
+- Item information snapshot
+- Customer PO references
+- Drawing references
+- Terms & Conditions
+
+---
+
+# Soft Delete Principle
+
+Where implemented:
+
+- Records use IsDeleted.
+- Active state is separately represented using IsActive where required.
+- Deleted records are excluded from normal operational queries.
+- Restore is supported where business rules permit.
+- Transaction integrity takes priority over physical database deletion.
+
+---
+
+# Database Migration State
+
+EF Core migrations are maintained as the database schema history.
+
+Migrations have been added throughout development for completed modules and schema changes.
+
+Latest Invoice source-flow work includes schema changes required for optional Delivery Challan references / Production-based Invoice processing where applicable.
+
+Exact migration class names remain in source control and EF migration history as the authoritative record.
 
 ---
 
 # Git State
 
-Core Purchase Order workflow/GST/T&C milestone has been committed.
+Latest completed milestone:
 
-Current milestone being finalized:
+**Invoice Production Source Flow**
 
-- Purchase Order PDF
-- final Purchase Order documentation
-- documentation cleanup
+Implemented, tested and committed.
 
-After this documentation update, commit the completed Purchase Order milestone.
+The current Invoice flow has been manually tested after the latest changes.
+
+---
+
+# Current End-to-End Sales / Manufacturing Flow
+
+Current implemented business flow can be represented as:
+
+Customer
+→ Customer Purchase Order
+→ Production Job
+→ Production Completion
+→ PDI / Delivery Challan where applicable
+→ Customer Invoice
+
+For Invoice:
+
+Production Completion is mandatory.
+
+PDI / Delivery Challan are not mandatory Invoice blockers.
 
 ---
 
 # Current Next Module
 
-## GRN - Goods Receipt Note
+## Customer Payment / Receipt / Accounts Receivable
 
-Before coding finalize:
+Before coding, finalize:
 
-- GRN Number format
-- PO reference rule
-- Supplier reference/snapshot needs
-- multiple GRNs against one PO
-- partial receipt
-- received/pending quantity logic
-- warehouse
-- receipt date
-- challan/invoice reference requirements
-- accepted/rejected quantity if required
-- PO status update
-- stock transaction design
-- stock ledger design
-- delete/reversal rules
+- Receipt Number format
+- Customer selection rule
+- Finalized Invoice selection
+- Invoice Outstanding Amount
+- Full Payment
+- Partial Payment
+- Multiple payments against one Invoice
+- One payment against multiple Invoices, if required
+- Payment Date
+- Payment Mode
+- Cash
+- Bank Transfer
+- NEFT / RTGS
+- UPI
+- Cheque
+- Transaction / UTR / Cheque Number
+- Bank reference
+- Remarks
+- Already Received Amount
+- Remaining Balance
+- Invoice payment status
+- Unpaid
+- Partially Paid
+- Paid
+- Customer-wise outstanding
+- Payment Receipt PDF
+- Delete / reversal rules
+- Accounting integration boundary
+
+Entity/table design must be finalized before implementation.
 
 ---
 
-# Deferred Modules
+# Pending / Future Areas
 
-- Purchase Requisition
+Major future areas include:
+
+- Customer Payment / Receipt
+- Accounts Receivable
+- Customer Outstanding
 - Purchase Invoice
+- Supplier Payment / Payables
 - Purchase Return
-- Full Inventory / Stock Ledger
+- Sales Return
+- Advanced Inventory / Stock Ledger reporting
 - Opening Stock
 - Minimum / Maximum Stock
 - BOM
-- Production
-- Quality
-- Sales
+- Advanced Production planning
+- Advanced Quality workflow
 - Accounting
 - GST reporting
 - Supplier balances
+- Customer balances
 - Full Drawing approval workflow
+- Management reports / dashboards
 
 ---
 
@@ -553,19 +1027,5 @@ Before starting coding for a new major module:
 8. Test.
 9. Update canonical documentation.
 10. Git commit.
-→ GRN Phase 1 completed
-→ Next = Inventory / Stock Ledger
 
-ACTION: UPDATE Current State
-ADD:
-- Customer Master = Completed
-- Next Module = Customer PO / Sales Order
-
-ACTION: UPDATE
-
-Customer Master          = Completed
-Customer Purchase Order  = Completed
-Next Module              = Machine Master
-
-- Machine Master = Completed
-- Next Module = Operation / Process Master
+No major module should begin coding before its core business design is frozen.
