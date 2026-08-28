@@ -55,6 +55,42 @@
                     <div class="form-control bg-light">@Model.PanNumber</div>
                 </div>
 
+                @* =========================================================
+   ISO Certification
+   ========================================================= *@
+
+                <div class="card shadow-sm border-0 mb-4">
+
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            ISO Certification
+                        </h5>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+
+                                <div class="text-muted small">
+                                    ISO Certification Number
+                                </div>
+
+                                <div class="fw-semibold">
+                                    @(string.IsNullOrWhiteSpace(Model.IsoCertificationNumber)
+                                                                        ? "-"
+                                                                        : Model.IsoCertificationNumber)
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
                 <div class="col-md-6 mb-3">
                     <label class="fw-semibold">Phone Number</label>
                     <div class="form-control bg-light">@Model.PhoneNumber</div>
@@ -98,6 +134,186 @@
                 <div class="col-md-3 mb-3">
                     <label class="fw-semibold">Postal Code</label>
                     <div class="form-control bg-light">@Model.PostalCode</div>
+                </div>
+
+                @* =========================================================
+   Bank Details
+   ========================================================= *@
+
+                <div class="card shadow-sm border-0 mb-4">
+
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            Bank Details
+                        </h5>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+
+                                <div class="text-muted small">
+                                    Bank Name
+                                </div>
+
+                                <div class="fw-semibold">
+                                    @(string.IsNullOrWhiteSpace(Model.BankName)
+                                                                        ? "-"
+                                                                        : Model.BankName)
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-4">
+
+                                <div class="text-muted small">
+                                    Account Holder Name
+                                </div>
+
+                                <div class="fw-semibold">
+                                    @(string.IsNullOrWhiteSpace(Model.BankAccountHolderName)
+                                                                        ? "-"
+                                                                        : Model.BankAccountHolderName)
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-4">
+
+                                <div class="text-muted small">
+                                    Account Number
+                                </div>
+
+                                <div class="fw-semibold">
+                                    @(string.IsNullOrWhiteSpace(Model.BankAccountNumber)
+                                                                        ? "-"
+                                                                        : Model.BankAccountNumber)
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-4">
+
+                                <div class="text-muted small">
+                                    IFSC Code
+                                </div>
+
+                                <div class="fw-semibold">
+                                    @(string.IsNullOrWhiteSpace(Model.BankIfscCode)
+                                                                        ? "-"
+                                                                        : Model.BankIfscCode)
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-4">
+
+                                <div class="text-muted small">
+                                    Branch Name
+                                </div>
+
+                                <div class="fw-semibold">
+                                    @(string.IsNullOrWhiteSpace(Model.BankBranchName)
+                                                                        ? "-"
+                                                                        : Model.BankBranchName)
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-4">
+
+                                <div class="text-muted small">
+                                    Account Type
+                                </div>
+
+                                <div class="fw-semibold">
+                                    @(string.IsNullOrWhiteSpace(Model.BankAccountType)
+                                                                        ? "-"
+                                                                        : Model.BankAccountType)
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                @* =========================================================
+   Terms And Conditions
+   ========================================================= *@
+
+                <div class="card shadow-sm border-0 mb-4">
+
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            Terms &amp; Conditions
+                        </h5>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-4">
+
+                            <div class="col-md-6">
+
+                                <div class="text-muted small mb-2">
+                                    Purchase Order Terms &amp; Conditions
+                                </div>
+
+                                @if (string.IsNullOrWhiteSpace(
+                                                                Model.PurchaseOrderTermsAndConditions))
+                                {
+                                    <div class="text-muted">
+                                        -
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="fw-semibold"
+                                         style="white-space: pre-line;">
+                                        @Model.PurchaseOrderTermsAndConditions
+                                    </div>
+                                }
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <div class="text-muted small mb-2">
+                                    Invoice Terms &amp; Conditions
+                                </div>
+
+                                @if (string.IsNullOrWhiteSpace(
+                                                                Model.InvoiceTermsAndConditions))
+                                {
+                                    <div class="text-muted">
+                                        -
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="fw-semibold"
+                                         style="white-space: pre-line;">
+                                        @Model.InvoiceTermsAndConditions
+                                    </div>
+                                }
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
                 </div>
 
                 <div class="col-md-4 mb-3">

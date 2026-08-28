@@ -113,6 +113,21 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
 
         #endregion
 
+        #region Invoice
+
+        public DbSet<Invoice> Invoices
+        {
+            get;
+            set;
+        }
+
+        public DbSet<InvoiceItem> InvoiceItems
+        {
+            get;
+            set;
+        }
+
+        #endregion
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

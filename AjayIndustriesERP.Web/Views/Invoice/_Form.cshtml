@@ -1,0 +1,1829 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Invoice.InvoiceFormViewModel
+
+@using AjayIndustriesERP.Domain.Enums
+@using System.Globalization
+
+@{
+    var isEdit =
+        Model.Id > 0;
+
+    var customerPurchaseOrderNumbers =
+        Model.Items
+            .Where(x =>
+                !string.IsNullOrWhiteSpace(
+                    x.CustomerPurchaseOrderNumber))
+            .Select(x =>
+                x.CustomerPurchaseOrderNumber!)
+            .Distinct()
+            .ToList();
+
+    var hasSourceWarning =
+        Model.Items.Any(x =>
+            x.RequiresSourceWarning);
+}
+
+
+@*
+============================================================
+File: _Form.cshtml
+
+Module:
+Invoice
+
+Purpose:
+Shared Create / Edit Invoice form.
+
+Responsibilities:
+- Display essential Invoice information.
+- Select Customer Purchase Order.
+- Auto-load Completed Production Jobs.
+- Display Customer and Billing information.
+- Display Invoice lines in compact table format.
+- Accept Invoice Qty, Rate, Discount and GST.
+- Display PDI / Delivery Challan warning.
+- Accept warning confirmation.
+- Display live Invoice amount summary.
+- Allow Invoice Terms and Remarks editing.
+
+Important:
+- New Invoice source flow:
+  Customer PO → Completed Production Job → Invoice.
+- Delivery Challan is NOT mandatory.
+- PDI is NOT mandatory.
+- Missing PDI / Delivery Challan is warning-only.
+- All Completed Production Jobs having invoiceable
+  quantity are auto-loaded after Customer PO selection.
+- Browser calculations are preview only.
+- InvoiceService performs authoritative calculations.
+- Wrapper Create/Edit view owns the <form>.
+============================================================
+*@
+
+
+@* =========================================================
+   REGION 1 — HIDDEN VALUES
+   ========================================================= *@
+
+<input asp-for="Id"
+       type="hidden" />
+
+<input asp-for="Code"
+       type="hidden" />
+
+<input asp-for="Status"
+       type="hidden" />
+
+<input asp-for="CustomerId"
+       type="hidden" />
+
+<input asp-for="CompanyId"
+       type="hidden" />
+
+<input asp-for="CompanyState"
+       type="hidden" />
+
+<input asp-for="IsInterState"
+       type="hidden" />
+
+<input asp-for="BillingDistrict"
+       type="hidden" />
+
+
+@* =========================================================
+   REGION 2 — VALIDATION
+   ========================================================= *@
+
+<div asp-validation-summary="ModelOnly"
+     class="text-danger mb-3">
+</div>
+
+
+@* =========================================================
+   REGION 3 — INVOICE INFORMATION
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid
+                          fa-file-invoice-dollar
+                          me-1">
+                </i>
+
+                Invoice Information
+
+            </span>
+
+
+            <div>
+
+                <span class="text-muted me-1">
+                    Invoice No:
+                </span>
+
+                @if (
+                                isEdit &&
+                                !string.IsNullOrWhiteSpace(
+                                Model.Code)
+                                )
+                {
+                    <span class="fw-bold">
+                        @Model.Code
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">
+                        Auto Generated
+                    </span>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            @* -------------------------------------------------
+               Invoice Date
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="InvoiceDate"
+                       class="form-label">
+                </label>
+
+                <input asp-for="InvoiceDate"
+                       type="date"
+                       class="form-control" />
+
+                <span asp-validation-for="InvoiceDate"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Due Date
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="DueDate"
+                       class="form-label">
+                </label>
+
+                <input asp-for="DueDate"
+                       type="date"
+                       class="form-control"
+                       readonly />
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Status
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <label class="form-label">
+                    Status
+                </label>
+
+                <div>
+
+                    @if (
+                                        Model.Status ==
+                                        InvoiceStatus.Finalized
+                                        )
+                    {
+                        <span class="badge bg-success">
+                            Finalized
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge
+                                         bg-warning
+                                         text-dark">
+
+                            Draft
+
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   REGION 4 — CUSTOMER / BILLING INFORMATION
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-user
+                      me-1">
+            </i>
+
+            Customer &amp; Billing Information
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            @* -------------------------------------------------
+               Customer
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="CustomerName"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerName"
+                       class="form-control"
+                       readonly />
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Customer GSTIN
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="CustomerGstin"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CustomerGstin"
+                       class="form-control"
+                       readonly />
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Customer PO Number
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <label class="form-label">
+                    Customer PO No.
+                </label>
+
+                <div class="form-control bg-light">
+
+                    <span id="customerPONumbers">
+
+                        @if (
+                                                customerPurchaseOrderNumbers.Any()
+                                                )
+                        {
+                            @string.Join(
+                            ", ",
+                                                customerPurchaseOrderNumbers)
+                                                }
+                        else
+                        {
+                            <span class="text-muted">
+                                -
+                            </span>
+                        }
+
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Payment Terms
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="PaymentTerms"
+                       class="form-label">
+                </label>
+
+                <input asp-for="PaymentTerms"
+                       class="form-control"
+                       readonly />
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Credit Days
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="CreditDays"
+                       class="form-label">
+                </label>
+
+                <input asp-for="CreditDays"
+                       class="form-control"
+                       readonly />
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Place Of Supply
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <label asp-for="PlaceOfSupply"
+                       class="form-label">
+                </label>
+
+                <input asp-for="PlaceOfSupply"
+                       class="form-control"
+                       readonly />
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Billing Address Line 1
+               ------------------------------------------------- *@
+
+            <div class="col-lg-6">
+
+                <label asp-for="BillingAddressLine1"
+                       class="form-label">
+                </label>
+
+                <textarea asp-for="BillingAddressLine1"
+                          class="form-control"
+                          rows="2"></textarea>
+
+                <span asp-validation-for="BillingAddressLine1"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Billing Address Line 2
+               ------------------------------------------------- *@
+
+            <div class="col-lg-6">
+
+                <label asp-for="BillingAddressLine2"
+                       class="form-label">
+                </label>
+
+                <textarea asp-for="BillingAddressLine2"
+                          class="form-control"
+                          rows="2"></textarea>
+
+                <span asp-validation-for="BillingAddressLine2"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            @* -------------------------------------------------
+               City
+               ------------------------------------------------- *@
+
+            <div class="col-lg-3 col-md-6">
+
+                <label asp-for="BillingCity"
+                       class="form-label">
+                </label>
+
+                <input asp-for="BillingCity"
+                       class="form-control" />
+
+                <span asp-validation-for="BillingCity"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            @* -------------------------------------------------
+               State
+               ------------------------------------------------- *@
+
+            <div class="col-lg-3 col-md-6">
+
+                <label asp-for="BillingState"
+                       class="form-label">
+                </label>
+
+                <input asp-for="BillingState"
+                       class="form-control" />
+
+                <span asp-validation-for="BillingState"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Pincode
+               ------------------------------------------------- *@
+
+            <div class="col-lg-3 col-md-6">
+
+                <label asp-for="BillingPincode"
+                       class="form-label">
+                </label>
+
+                <input asp-for="BillingPincode"
+                       class="form-control" />
+
+                <span asp-validation-for="BillingPincode"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Country
+               ------------------------------------------------- *@
+
+            <div class="col-lg-3 col-md-6">
+
+                <label asp-for="BillingCountry"
+                       class="form-label">
+                </label>
+
+                <input asp-for="BillingCountry"
+                       class="form-control" />
+
+                <span asp-validation-for="BillingCountry"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            @* -------------------------------------------------
+               GST Transaction Type
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <label class="form-label">
+                    GST Type
+                </label>
+
+                <input id="gstTransactionType"
+                       class="form-control"
+                       value="@(Model.IsInterState
+                                                  ? "IGST"
+                                                  : "CGST + SGST")"
+                       readonly />
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   REGION 5 — INVOICE ITEMS
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-boxes-stacked
+                      me-1">
+            </i>
+
+            Invoice Items
+
+        </span>
+
+    </div>
+
+
+    @* =====================================================
+       Customer PO Selector
+       ===================================================== *@
+
+    <div class="card-body border-bottom">
+
+        <div class="row g-3">
+
+            <div class="col-lg-8">
+
+                <label asp-for="CustomerPurchaseOrderId"
+                       class="form-label">
+
+                    Customer Purchase Order
+
+                </label>
+
+
+                <select asp-for="CustomerPurchaseOrderId"
+                        asp-items="Model.AvailableCustomerPurchaseOrders"
+                        id="invoiceCustomerPOSelector"
+                        class="form-select">
+                </select>
+
+
+                <span asp-validation-for="CustomerPurchaseOrderId"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+
+            <div class="col-lg-4">
+
+                <label class="form-label">
+                    Source
+                </label>
+
+                <div class="form-control bg-light">
+
+                    <i class="fa-solid
+                              fa-industry
+                              me-1">
+                    </i>
+
+                    Completed Production
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="form-text mt-2">
+
+            Select a Customer PO. All completed Production Jobs
+            having invoiceable quantity will load automatically.
+            PDI or Delivery Challan is not mandatory for Invoice.
+
+        </div>
+
+
+        <div id="sourceLoadMessage"
+             class="alert alert-danger mt-3 mb-0 d-none">
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       Source Warning
+       ===================================================== *@
+
+    <div id="sourceWarningBox"
+         class="alert
+                alert-warning
+                rounded-0
+                border-start-0
+                border-end-0
+                border-top-0
+                mb-0
+                @(hasSourceWarning ? "" : "d-none")">
+
+        <div class="d-flex
+                    align-items-start
+                    gap-2">
+
+            <i class="fa-solid
+                      fa-triangle-exclamation
+                      mt-1">
+            </i>
+
+
+            <div class="flex-grow-1">
+
+                <div class="fw-semibold mb-1">
+                    PDI / Delivery Challan Warning
+                </div>
+
+                <div class="small mb-2">
+
+                    One or more selected Production Jobs do not
+                    have Finalized PDI or Delivery Challan.
+
+                    Invoice can still be created.
+
+                </div>
+
+
+                <div class="form-check">
+
+                    <input asp-for="ConfirmSourceWarning"
+                           class="form-check-input"
+                           type="checkbox"
+                           id="confirmSourceWarning" />
+
+                    <label asp-for="ConfirmSourceWarning"
+                           class="form-check-label fw-semibold">
+
+                        I have checked the warning and want
+                        to continue with this Invoice.
+
+                    </label>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       Invoice Items Table
+       ===================================================== *@
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-bordered
+                          align-middle
+                          mb-0"
+                   id="invoiceItemsTable">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th class="text-center">
+                            #
+                        </th>
+
+                        <th>
+                            Production Job
+                        </th>
+
+                        <th>
+                            Item / Product
+                        </th>
+
+                        <th>
+                            HSN
+                        </th>
+
+                        <th class="text-end">
+                            Production Qty
+                        </th>
+
+                        <th class="text-end">
+                            Already Invoiced
+                        </th>
+
+                        <th class="text-end">
+                            Available Qty
+                        </th>
+
+                        <th class="text-end">
+                            Invoice Qty
+                        </th>
+
+                        <th class="text-center">
+                            UOM
+                        </th>
+
+                        <th class="text-end">
+                            Rate
+                        </th>
+
+                        <th class="text-end">
+                            Disc %
+                        </th>
+
+                        <th class="text-end">
+                            GST %
+                        </th>
+
+                        <th class="text-end">
+                            Taxable
+                        </th>
+
+                        <th class="text-end">
+                            Line Total
+                        </th>
+
+                        <th class="text-center">
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="invoiceItemsBody">
+
+                    @for (
+                                        var index = 0;
+                                        index < Model.Items.Count;
+                                        index++
+                                        )
+                    {
+                        var item =
+                        Model.Items[index];
+
+                        var gstRate =
+                        !isEdit &&
+                        item.GstRate == 0
+                        ? 18
+                        : item.GstRate;
+
+
+                        <tr class="invoice-item-row"
+                            data-production-job-id="@item.ProductionJobId"
+                            data-customer-po-number="@item.CustomerPurchaseOrderNumber"
+                            data-requires-warning="@(item.RequiresSourceWarning ? "true" : "false")">
+
+
+                            @* --------------------------------
+                               Sequence / Source
+                               -------------------------------- *@
+
+                            <td class="text-center">
+
+                                <span class="line-number">
+                                    @(index + 1)
+                                </span>
+
+
+                                <input asp-for="Items[index].Id"
+                                       type="hidden"
+                                       class="item-id" />
+
+                                <input asp-for="Items[index].SequenceNumber"
+                                       type="hidden"
+                                       class="sequence-input" />
+
+                                <input asp-for="Items[index].ProductionJobId"
+                                       type="hidden"
+                                       class="production-job-id" />
+
+                            </td>
+
+
+                            @* --------------------------------
+                               Production Job
+                               -------------------------------- *@
+
+                            <td>
+
+                                <span class="fw-semibold
+                                                 production-job-code">
+
+                                    @(string.IsNullOrWhiteSpace(
+                                                                    item.ProductionJobCode)
+                                                                    ? "-"
+                                                                    : item.ProductionJobCode)
+
+                            </span>
+
+                            @if (item.RequiresSourceWarning)
+                                {
+                                    <div class="small
+                                                        text-warning
+                                                        source-warning-label">
+
+                                        <i class="fa-solid
+                                                          fa-triangle-exclamation
+                                                          me-1">
+                                        </i>
+
+                                        PDI / Challan pending
+
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="small
+                                                        text-warning
+                                                        source-warning-label
+                                                        d-none">
+
+                                        <i class="fa-solid
+                                                          fa-triangle-exclamation
+                                                          me-1">
+                                        </i>
+
+                                        PDI / Challan pending
+
+                                    </div>
+                                }
+
+                            </td>
+
+
+                            @* --------------------------------
+                               Item / Product
+                               -------------------------------- *@
+
+                            <td>
+
+                                <div class="fw-semibold item-name">
+                                    @item.ItemName
+                                </div>
+
+
+                                @if (
+                                                            !string.IsNullOrWhiteSpace(
+                                                            item.ItemCode)
+                                                            )
+                                {
+                                    <div class="small text-muted">
+
+                                        Code:
+                                        <span class="item-code">
+                                            @item.ItemCode
+                                        </span>
+
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="small
+                                                        text-muted
+                                                        item-code-row
+                                                        d-none">
+
+                                        Code:
+                                        <span class="item-code">
+                                        </span>
+
+                                    </div>
+                                }
+
+
+                                @if (
+                                                            !string.IsNullOrWhiteSpace(
+                                                            item.ProductReference)
+                                                            )
+                                {
+                                    <div class="small text-muted">
+
+                                        Product:
+                                        <span class="product-reference">
+                                            @item.ProductReference
+                                        </span>
+
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="small
+                                                        text-muted
+                                                        product-reference-row
+                                                        d-none">
+
+                                        Product:
+                                        <span class="product-reference">
+                                        </span>
+
+                                    </div>
+                                }
+
+                        </td>
+
+
+                        @* --------------------------------
+                               HSN
+                               -------------------------------- *@
+
+                        <td>
+
+                            <span class="hsn-number">
+
+                                @(string.IsNullOrWhiteSpace(
+                                                                item.HsnNumber)
+                                                                ? "-"
+                                                                : item.HsnNumber)
+
+                            </span>
+
+                        </td>
+
+
+                        @* --------------------------------
+                               Production Quantity
+                               -------------------------------- *@
+
+                        <td class="text-end">
+
+                            <span class="production-qty">
+
+                                @item.ProductionQuantity
+                                .ToString("0.###")
+
+                            </span>
+
+                        </td>
+
+
+                        @* --------------------------------
+                               Already Invoiced
+                               -------------------------------- *@
+
+                        <td class="text-end">
+
+                            <span class="already-invoiced-qty">
+
+                                @item.AlreadyInvoicedQuantity
+                                .ToString("0.###")
+
+                            </span>
+
+                        </td>
+
+
+                        @* --------------------------------
+                               Available Quantity
+                               -------------------------------- *@
+
+                        <td class="text-end">
+
+                            <span class="available-qty">
+
+                                @item.AvailableQuantity
+                                .ToString("0.###")
+
+                            </span>
+
+                        </td>
+
+
+                        @* --------------------------------
+                               Invoice Quantity
+                               -------------------------------- *@
+
+                        <td>
+
+                            <input asp-for="Items[index].InvoiceQuantity"
+                                   type="number"
+                                   step="0.001"
+                                   min="0.001"
+                                   class="form-control
+                                              form-control-sm
+                                              text-end
+                                              calc-field
+                                              quantity-input" />
+
+                            <span asp-validation-for="Items[index].InvoiceQuantity"
+                                  class="text-danger
+                                             small
+                                             quantity-validation">
+                            </span>
+
+                        </td>
+
+
+                        @* --------------------------------
+                               UOM
+                               -------------------------------- *@
+
+                        <td class="text-center">
+
+                            <span class="badge
+                                             bg-light
+                                             text-dark
+                                             border
+                                             item-uom">
+
+                                @(string.IsNullOrWhiteSpace(
+                                                                item.UnitName)
+                                                                ? "-"
+                                                                : item.UnitName)
+
+                            </span>
+
+                        </td>
+
+
+                        @* --------------------------------
+                               Rate
+                               -------------------------------- *@
+
+                        <td>
+
+                            <input asp-for="Items[index].Rate"
+                                   type="number"
+                                   step="0.0001"
+                                   min="0.0001"
+                                   class="form-control
+                                              form-control-sm
+                                              text-end
+                                              calc-field
+                                              rate-input" />
+
+                            <span asp-validation-for="Items[index].Rate"
+                                  class="text-danger
+                                             small
+                                             rate-validation">
+                            </span>
+
+                        </td>
+
+
+                        @* --------------------------------
+                               Discount
+                               -------------------------------- *@
+
+                        <td>
+
+                            <input asp-for="Items[index].DiscountPercent"
+                                   type="number"
+                                   step="0.01"
+                                   min="0"
+                                   max="100"
+                                   class="form-control
+                                              form-control-sm
+                                              text-end
+                                              calc-field
+                                              discount-input" />
+
+                            <span asp-validation-for="Items[index].DiscountPercent"
+                                  class="text-danger
+                                             small
+                                             discount-validation">
+                            </span>
+
+                        </td>
+
+
+                        @* --------------------------------
+                               GST
+                               -------------------------------- *@
+
+                        <td>
+
+                            <input name="Items[@index].GstRate"
+                                   id="Items_@(index)__GstRate"
+                                   type="number"
+                                   value="@gstRate.ToString(
+                                                                              "0.##",
+                                                                              CultureInfo.InvariantCulture)"
+                                   step="0.01"
+                                   min="0"
+                                   max="100"
+                                   class="form-control
+                                              form-control-sm
+                                              text-end
+                                              calc-field
+                                              gst-input" />
+
+                                <span data-valmsg-for="Items[@index].GstRate"
+                                      data-valmsg-replace="true"
+                                      class="text-danger
+                                                 small
+                                                 gst-validation">
+                                </span>
+
+                            </td>
+
+
+                            @* --------------------------------
+                               Taxable
+                               -------------------------------- *@
+
+                            <td class="text-end">
+
+                                <span class="fw-semibold
+                                                 taxable-amount">
+
+                                    @item.TaxableAmount
+                                    .ToString("N2")
+
+                                </span>
+
+                            </td>
+
+
+                            @* --------------------------------
+                               Line Total
+                               -------------------------------- *@
+
+                            <td class="text-end">
+
+                                <span class="fw-semibold
+                                                 line-total">
+
+                                    @item.LineTotal
+                                    .ToString("N2")
+
+                                </span>
+
+                            </td>
+
+
+                            @* --------------------------------
+                               Remove
+                               -------------------------------- *@
+
+                            <td class="text-center">
+
+                                <button type="button"
+                                        class="btn
+                                                   btn-sm
+                                                   btn-outline-danger
+                                                   remove-item-row"
+                                        title="Remove Item">
+
+                                    <i class="fa-solid fa-xmark">
+                                    </i>
+
+                                </button>
+
+                            </td>
+
+                        </tr>
+                                        }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <div id="invoiceNoItemsMessage"
+             class="text-center
+                    text-muted
+                    py-4
+                    @(Model.Items.Any()
+                                     ? "d-none"
+                                     : "")">
+
+            Select a Customer Purchase Order
+            to load Completed Production Jobs.
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   REGION 6 — TERMS / AMOUNT SUMMARY
+   ========================================================= *@
+
+<div class="row g-4 mb-4">
+
+
+    @* =====================================================
+       Terms & Remarks
+       ===================================================== *@
+
+    <div class="col-lg-7">
+
+        <div class="card
+                    shadow-sm
+                    border-0
+                    h-100">
+
+            <div class="card-header bg-light">
+
+                <span class="fw-semibold">
+
+                    <i class="fa-solid
+                              fa-file-contract
+                              me-1">
+                    </i>
+
+                    Terms &amp; Conditions
+
+                </span>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <label asp-for="InvoiceTermsAndConditions"
+                       class="form-label">
+                </label>
+
+                <textarea asp-for="InvoiceTermsAndConditions"
+                          class="form-control"
+                          rows="6"></textarea>
+
+                <span asp-validation-for="InvoiceTermsAndConditions"
+                      class="text-danger">
+                </span>
+
+
+                <hr />
+
+
+                <label asp-for="Remarks"
+                       class="form-label">
+                </label>
+
+                <textarea asp-for="Remarks"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Optional remarks"></textarea>
+
+                <span asp-validation-for="Remarks"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       Amount Summary
+       ===================================================== *@
+
+    <div class="col-lg-5">
+
+        <div class="card shadow-sm border-0">
+
+            <div class="card-header bg-light">
+
+                <span class="fw-semibold">
+
+                    <i class="fa-solid
+                              fa-calculator
+                              me-1">
+                    </i>
+
+                    Amount Summary
+
+                </span>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-2">
+
+                    <span class="text-muted">
+                        Gross Amount
+                    </span>
+
+                    <span id="summaryGross">
+                        ₹ @Model.GrossAmount.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-2">
+
+                    <span class="text-muted">
+                        Discount
+                    </span>
+
+                    <span id="summaryDiscount">
+                        ₹ @Model.DiscountAmount.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-2">
+
+                    <span class="text-muted">
+                        Taxable Amount
+                    </span>
+
+                    <span id="summaryTaxable">
+                        ₹ @Model.TaxableAmount.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-2">
+
+                    <span class="text-muted">
+                        CGST
+                    </span>
+
+                    <span id="summaryCGST">
+                        ₹ @Model.CgstAmount.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-2">
+
+                    <span class="text-muted">
+                        SGST
+                    </span>
+
+                    <span id="summarySGST">
+                        ₹ @Model.SgstAmount.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-3">
+
+                    <span class="text-muted">
+                        IGST
+                    </span>
+
+                    <span id="summaryIGST">
+                        ₹ @Model.IgstAmount.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <hr />
+
+
+                <div class="row
+                            align-items-center
+                            g-2
+                            mb-2">
+
+                    <div class="col">
+
+                        <label asp-for="OtherCharges"
+                               class="form-label mb-0">
+                        </label>
+
+                    </div>
+
+                    <div class="col-5">
+
+                        <input asp-for="OtherCharges"
+                               type="number"
+                               step="0.01"
+                               min="0"
+                               class="form-control
+                                      form-control-sm
+                                      text-end
+                                      header-calc-field" />
+
+                    </div>
+
+                </div>
+
+                <span asp-validation-for="OtherCharges"
+                      class="text-danger small">
+                </span>
+
+
+                <div class="d-flex
+                            justify-content-between
+                            mt-3
+                            mb-2">
+
+                    <span class="text-muted">
+                        Round Off
+                    </span>
+
+                    <span id="summaryRoundOff">
+                        ₹ @Model.RoundOffAmount.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <hr />
+
+
+                <div class="d-flex
+                            justify-content-between
+                            align-items-center">
+
+                    <span class="fw-bold fs-5">
+                        Grand Total
+                    </span>
+
+                    <span id="summaryGrandTotal"
+                          class="fw-bold fs-5">
+
+                        ₹ @Model.GrandTotal.ToString("N2")
+
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   REGION 7 — DYNAMIC INVOICE ITEM TEMPLATE
+   ========================================================= *@
+
+<template id="invoiceItemTemplate">
+
+    <tr class="invoice-item-row"
+        data-production-job-id=""
+        data-customer-po-number=""
+        data-requires-warning="false">
+
+
+        @* -------------------------------------------------
+           Sequence / Hidden Source
+           ------------------------------------------------- *@
+
+        <td class="text-center">
+
+            <span class="line-number">
+                __lineNumber__
+            </span>
+
+
+            <input type="hidden"
+                   name="Items[__index__].Id"
+                   value="0"
+                   class="item-id" />
+
+            <input type="hidden"
+                   name="Items[__index__].SequenceNumber"
+                   value="__lineNumber__"
+                   class="sequence-input" />
+
+            <input type="hidden"
+                   name="Items[__index__].ProductionJobId"
+                   value=""
+                   class="production-job-id" />
+
+        </td>
+
+
+        @* -------------------------------------------------
+           Production Job
+           ------------------------------------------------- *@
+
+        <td>
+
+            <span class="fw-semibold
+                         production-job-code">
+            </span>
+
+            <div class="small
+                        text-warning
+                        source-warning-label
+                        d-none">
+
+                <i class="fa-solid
+                          fa-triangle-exclamation
+                          me-1">
+                </i>
+
+                PDI / Challan pending
+
+            </div>
+
+        </td>
+
+
+        @* -------------------------------------------------
+           Item / Product
+           ------------------------------------------------- *@
+
+        <td>
+
+            <div class="fw-semibold item-name">
+            </div>
+
+
+            <div class="small
+                        text-muted
+                        item-code-row
+                        d-none">
+
+                Code:
+                <span class="item-code">
+                </span>
+
+            </div>
+
+
+            <div class="small
+                        text-muted
+                        product-reference-row
+                        d-none">
+
+                Product:
+                <span class="product-reference">
+                </span>
+
+            </div>
+
+        </td>
+
+
+        @* -------------------------------------------------
+           HSN
+           ------------------------------------------------- *@
+
+        <td>
+
+            <span class="hsn-number">
+                -
+            </span>
+
+        </td>
+
+
+        @* -------------------------------------------------
+           Production Qty
+           ------------------------------------------------- *@
+
+        <td class="text-end">
+
+            <span class="production-qty">
+                0
+            </span>
+
+        </td>
+
+
+        @* -------------------------------------------------
+           Already Invoiced
+           ------------------------------------------------- *@
+
+        <td class="text-end">
+
+            <span class="already-invoiced-qty">
+                0
+            </span>
+
+        </td>
+
+
+        @* -------------------------------------------------
+           Available Qty
+           ------------------------------------------------- *@
+
+        <td class="text-end">
+
+            <span class="available-qty">
+                0
+            </span>
+
+        </td>
+
+
+        @* -------------------------------------------------
+           Invoice Qty
+           ------------------------------------------------- *@
+
+        <td>
+
+            <input name="Items[__index__].InvoiceQuantity"
+                   type="number"
+                   step="0.001"
+                   min="0.001"
+                   class="form-control
+                          form-control-sm
+                          text-end
+                          calc-field
+                          quantity-input"
+                   required />
+
+            <span data-valmsg-for="Items[__index__].InvoiceQuantity"
+                  data-valmsg-replace="true"
+                  class="text-danger
+                         small
+                         quantity-validation">
+            </span>
+
+        </td>
+
+
+        @* -------------------------------------------------
+           UOM
+           ------------------------------------------------- *@
+
+        <td class="text-center">
+
+            <span class="badge
+                         bg-light
+                         text-dark
+                         border
+                         item-uom">
+
+                -
+
+            </span>
+
+        </td>
+
+
+        @* -------------------------------------------------
+           Rate
+           ------------------------------------------------- *@
+
+        <td>
+
+            <input name="Items[__index__].Rate"
+                   type="number"
+                   step="0.0001"
+                   min="0.0001"
+                   class="form-control
+                          form-control-sm
+                          text-end
+                          calc-field
+                          rate-input"
+                   required />
+
+            <span data-valmsg-for="Items[__index__].Rate"
+                  data-valmsg-replace="true"
+                  class="text-danger
+                         small
+                         rate-validation">
+            </span>
+
+        </td>
+
+
+        @* -------------------------------------------------
+           Discount
+           ------------------------------------------------- *@
+
+        <td>
+
+            <input name="Items[__index__].DiscountPercent"
+                   type="number"
+                   value="0"
+                   step="0.01"
+                   min="0"
+                   max="100"
+                   class="form-control
+                          form-control-sm
+                          text-end
+                          calc-field
+                          discount-input" />
+
+            <span data-valmsg-for="Items[__index__].DiscountPercent"
+                  data-valmsg-replace="true"
+                  class="text-danger
+                         small
+                         discount-validation">
+            </span>
+
+        </td>
+
+
+        @* -------------------------------------------------
+           GST
+           ------------------------------------------------- *@
+
+        <td>
+
+            <input name="Items[__index__].GstRate"
+                   type="number"
+                   value="18"
+                   step="0.01"
+                   min="0"
+                   max="100"
+                   class="form-control
+                          form-control-sm
+                          text-end
+                          calc-field
+                          gst-input" />
+
+            <span data-valmsg-for="Items[__index__].GstRate"
+                  data-valmsg-replace="true"
+                  class="text-danger
+                         small
+                         gst-validation">
+            </span>
+
+        </td>
+
+
+        @* -------------------------------------------------
+           Taxable
+           ------------------------------------------------- *@
+
+        <td class="text-end">
+
+            <span class="fw-semibold taxable-amount">
+                0.00
+            </span>
+
+        </td>
+
+
+        @* -------------------------------------------------
+           Line Total
+           ------------------------------------------------- *@
+
+        <td class="text-end">
+
+            <span class="fw-semibold line-total">
+                0.00
+            </span>
+
+        </td>
+
+
+        @* -------------------------------------------------
+           Remove
+           ------------------------------------------------- *@
+
+        <td class="text-center">
+
+            <button type="button"
+                    class="btn
+                           btn-sm
+                           btn-outline-danger
+                           remove-item-row"
+                    title="Remove Item">
+
+                <i class="fa-solid fa-xmark">
+                </i>
+
+            </button>
+
+        </td>
+
+    </tr>
+
+</template>
+
+

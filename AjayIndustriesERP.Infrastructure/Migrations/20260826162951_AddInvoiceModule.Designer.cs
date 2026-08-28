@@ -4,6 +4,7 @@ using AjayIndustriesERP.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AjayIndustriesERP.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260826162951_AddInvoiceModule")]
+    partial class AddInvoiceModule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1447,16 +1450,17 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                         .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("DeliveryChallanCode")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int?>("DeliveryChallanId")
+                    b.Property<int>("DeliveryChallanId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("DeliveryChallanItemId")
+                    b.Property<int>("DeliveryChallanItemId")
                         .HasColumnType("int");
 
-                    b.Property<decimal?>("DeliveryChallanQuantity")
+                    b.Property<decimal>("DeliveryChallanQuantity")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
 
@@ -1568,8 +1572,6 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CustomerPurchaseOrderItemId");
-
                     b.HasIndex("DeliveryChallanId");
 
                     b.HasIndex("DeliveryChallanItemId");
@@ -1580,11 +1582,8 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
 
                     b.HasIndex("ItemId");
 
-                    b.HasIndex("ProductionJobId");
-
-                    b.HasIndex("InvoiceId", "ProductionJobId")
-                        .IsUnique()
-                        .HasFilter("[ProductionJobId] IS NOT NULL");
+                    b.HasIndex("InvoiceId", "DeliveryChallanItemId")
+                        .IsUnique();
 
                     b.HasIndex("InvoiceId", "SequenceNumber")
                         .IsUnique();
@@ -3459,12 +3458,14 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                     b.HasOne("AjayIndustriesERP.Domain.Entities.DeliveryChallan", "DeliveryChallan")
                         .WithMany()
                         .HasForeignKey("DeliveryChallanId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("AjayIndustriesERP.Domain.Entities.DeliveryChallanItem", "DeliveryChallanItem")
                         .WithMany()
                         .HasForeignKey("DeliveryChallanItemId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("AjayIndustriesERP.Domain.Entities.Invoice", "Invoice")
                         .WithMany("Items")

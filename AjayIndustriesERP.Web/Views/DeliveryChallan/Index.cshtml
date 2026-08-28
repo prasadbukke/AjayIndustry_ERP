@@ -143,13 +143,11 @@
                             Item
                         </th>
 
-                        <th class="text-end text-nowrap">
+                        <th>
                             Dispatch Qty
                         </th>
 
-                        <th>
-                            Transport / Vehicle
-                        </th>
+                        
 
                         <th class="text-center">
                             Status
@@ -279,7 +277,7 @@
 
                                 <!-- DISPATCH QUANTITY -->
 
-                                <td class="text-end text-nowrap">
+                                <td>
 
                                     <span class="fw-semibold">
 
@@ -305,45 +303,7 @@
                                 </td>
 
 
-                                <!-- TRANSPORT -->
-
-                                <td>
-
-                                    @if (!string.IsNullOrWhiteSpace(
-                                        challan.TransporterName))
-                                    {
-                                        <div class="fw-semibold">
-                                            @challan.TransporterName
-                                        </div>
-                                    }
-
-
-                                    @if (!string.IsNullOrWhiteSpace(
-                                        challan.VehicleNumber))
-                                    {
-                                        <div class="small text-muted">
-
-                                            Vehicle:
-                                            @challan.VehicleNumber
-
-                                        </div>
-                                    }
-
-
-                                    @if (
-                                        string.IsNullOrWhiteSpace(
-                                            challan.TransporterName)
-                                        &&
-                                        string.IsNullOrWhiteSpace(
-                                            challan.VehicleNumber)
-                                    )
-                                    {
-                                        <span class="text-muted">
-                                            -
-                                        </span>
-                                    }
-
-                                </td>
+                                
 
 
                                 <!-- STATUS -->

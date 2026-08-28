@@ -96,6 +96,42 @@
 
     </div>
 
+    @* =========================================================
+   ISO Certification
+   ========================================================= *@
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                ISO Certification
+            </h5>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-md-4">
+
+                    <label asp-for="IsoCertificationNumber"
+                           class="form-label">
+                    </label>
+
+                    <input asp-for="IsoCertificationNumber"
+                           class="form-control" />
+
+                    <span asp-validation-for="IsoCertificationNumber"
+                          class="text-danger">
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
 
     <!-- =====================================================
          REGION 4 — Contact Information
@@ -250,56 +286,172 @@
 
     </div>
 
+    @* =========================================================
+   Bank Details
+   ========================================================= *@
 
-    <!-- =====================================================
-         REGION 6 — Purchase Order Terms & Conditions
-         ===================================================== -->
+    <div class="card shadow-sm border-0 mb-4">
 
-    <div class="col-12 mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                Bank Details
+            </h5>
+        </div>
 
-        <div class="card border-0 bg-light">
+        <div class="card-body">
 
-            <div class="card-body">
+            <div class="row g-3">
 
-                <div class="mb-3">
+                <div class="col-md-4">
 
-                    <h6 class="fw-bold mb-1">
+                    <label asp-for="BankName"
+                           class="form-label">
+                    </label>
 
-                        <i class="fa-solid
-                                  fa-file-contract
-                                  me-1">
-                        </i>
+                    <input asp-for="BankName"
+                           class="form-control" />
 
-                        Purchase Order Terms & Conditions
-
-                    </h6>
-
-                    <div class="text-muted small">
-
-                        These are the standard Terms & Conditions
-                        used for new Purchase Orders.
-
-                    </div>
+                    <span asp-validation-for="BankName"
+                          class="text-danger">
+                    </span>
 
                 </div>
 
 
-                <textarea asp-for="PurchaseOrderTermsAndConditions"
-                          class="form-control"
-                          rows="8"
-                          maxlength="4000"
-                          placeholder="Enter standard Purchase Order Terms & Conditions..."></textarea>
+                <div class="col-md-4">
+
+                    <label asp-for="BankAccountHolderName"
+                           class="form-label">
+                    </label>
+
+                    <input asp-for="BankAccountHolderName"
+                           class="form-control" />
+
+                    <span asp-validation-for="BankAccountHolderName"
+                          class="text-danger">
+                    </span>
+
+                </div>
 
 
-                <span asp-validation-for="PurchaseOrderTermsAndConditions"
-                      class="text-danger">
-                </span>
+                <div class="col-md-4">
+
+                    <label asp-for="BankAccountNumber"
+                           class="form-label">
+                    </label>
+
+                    <input asp-for="BankAccountNumber"
+                           class="form-control" />
+
+                    <span asp-validation-for="BankAccountNumber"
+                          class="text-danger">
+                    </span>
+
+                </div>
 
 
-                <div class="form-text">
+                <div class="col-md-4">
 
-                    These terms will be copied to each new
-                    Purchase Order and preserved with that PO.
+                    <label asp-for="BankIfscCode"
+                           class="form-label">
+                    </label>
+
+                    <input asp-for="BankIfscCode"
+                           class="form-control text-uppercase" />
+
+                    <span asp-validation-for="BankIfscCode"
+                          class="text-danger">
+                    </span>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label asp-for="BankBranchName"
+                           class="form-label">
+                    </label>
+
+                    <input asp-for="BankBranchName"
+                           class="form-control" />
+
+                    <span asp-validation-for="BankBranchName"
+                          class="text-danger">
+                    </span>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <label asp-for="BankAccountType"
+                           class="form-label">
+                    </label>
+
+                    <input asp-for="BankAccountType"
+                           class="form-control"
+                           placeholder="e.g. Current Account" />
+
+                    <span asp-validation-for="BankAccountType"
+                          class="text-danger">
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    @* =========================================================
+   Terms And Conditions
+   ========================================================= *@
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                Terms &amp; Conditions
+            </h5>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-md-6">
+
+                    <label asp-for="PurchaseOrderTermsAndConditions"
+                           class="form-label">
+                    </label>
+
+                    <textarea asp-for="PurchaseOrderTermsAndConditions"
+                              class="form-control"
+                              rows="7"
+                              placeholder="Default terms and conditions for Purchase Orders"></textarea>
+
+                    <span asp-validation-for="PurchaseOrderTermsAndConditions"
+                          class="text-danger">
+                    </span>
+
+                </div>
+
+
+                <div class="col-md-6">
+
+                    <label asp-for="InvoiceTermsAndConditions"
+                           class="form-label">
+                    </label>
+
+                    <textarea asp-for="InvoiceTermsAndConditions"
+                              class="form-control"
+                              rows="7"
+                              placeholder="Default terms and conditions for Invoices"></textarea>
+
+                    <span asp-validation-for="InvoiceTermsAndConditions"
+                          class="text-danger">
+                    </span>
 
                 </div>
 

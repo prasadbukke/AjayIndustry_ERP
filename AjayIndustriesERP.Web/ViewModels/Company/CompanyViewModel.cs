@@ -67,13 +67,115 @@ namespace AjayIndustriesERP.Web.ViewModels.Company
         [Display(Name = "Postal Code")]
         public string PostalCode { get; set; } = string.Empty;
 
-        [StringLength(4000, ErrorMessage = "Purchase Order Terms & Conditions cannot exceed 4000 characters.")]
+        #region ISO Certification
+
+        [Display(Name = "ISO Certification Number")]
+        [StringLength(
+            100,
+            ErrorMessage = "ISO Certification Number cannot exceed 100 characters.")]
+        public string? IsoCertificationNumber
+        {
+            get;
+            set;
+        }
+
+        #endregion
+
+
+        #region Bank Details
+
+        [Display(Name = "Bank Name")]
+        [StringLength(
+            200,
+            ErrorMessage = "Bank Name cannot exceed 200 characters.")]
+        public string? BankName
+        {
+            get;
+            set;
+        }
+
+
+        [Display(Name = "Account Holder Name")]
+        [StringLength(
+            200,
+            ErrorMessage = "Account Holder Name cannot exceed 200 characters.")]
+        public string? BankAccountHolderName
+        {
+            get;
+            set;
+        }
+
+
+        [Display(Name = "Account Number")]
+        [StringLength(
+            100,
+            ErrorMessage = "Account Number cannot exceed 100 characters.")]
+        public string? BankAccountNumber
+        {
+            get;
+            set;
+        }
+
+
+        [Display(Name = "IFSC Code")]
+        [StringLength(
+            20,
+            ErrorMessage = "IFSC Code cannot exceed 20 characters.")]
+        public string? BankIfscCode
+        {
+            get;
+            set;
+        }
+
+
+        [Display(Name = "Branch Name")]
+        [StringLength(
+            200,
+            ErrorMessage = "Branch Name cannot exceed 200 characters.")]
+        public string? BankBranchName
+        {
+            get;
+            set;
+        }
+
+
+        [Display(Name = "Account Type")]
+        [StringLength(
+            50,
+            ErrorMessage = "Account Type cannot exceed 50 characters.")]
+        public string? BankAccountType
+        {
+            get;
+            set;
+        }
+
+        #endregion
+
+
+        #region Terms And Conditions
+
         [Display(Name = "Purchase Order Terms & Conditions")]
+        [StringLength(
+            4000,
+            ErrorMessage = "Purchase Order Terms & Conditions cannot exceed 4000 characters.")]
         public string? PurchaseOrderTermsAndConditions
         {
             get;
             set;
         }
+
+
+        [Display(Name = "Invoice Terms & Conditions")]
+        [StringLength(
+            4000,
+            ErrorMessage = "Invoice Terms & Conditions cannot exceed 4000 characters.")]
+        public string? InvoiceTermsAndConditions
+        {
+            get;
+            set;
+        }
+
+        #endregion
         public bool IsActive { get; set; } = true;
     }
 }

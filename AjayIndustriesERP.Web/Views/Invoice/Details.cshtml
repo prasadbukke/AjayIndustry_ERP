@@ -1,0 +1,1560 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Invoice.InvoiceDetailsViewModel
+
+@using AjayIndustriesERP.Domain.Enums
+
+@*
+============================================================
+File: Details.cshtml
+
+Module:
+Invoice
+
+Purpose:
+Displays essential Invoice details.
+
+Responsibilities:
+- Display Invoice header.
+- Display Customer and Billing information.
+- Display Customer PO references.
+- Display Production Job traceability.
+- Display Invoice Items in compact table format.
+- Display GST and amount summary.
+- Display Terms and Remarks.
+- Display Draft / Finalized actions.
+- Display source warning confirmation before Finalization.
+
+Important:
+- New Invoice source:
+  Customer PO → Completed Production Job → Invoice.
+- Production Job is the primary source reference.
+- Delivery Challan is NOT mandatory.
+- PDI is NOT mandatory.
+- Historical DC data remains stored but is not used
+  as the primary source on this screen.
+- Company / ISO / Bank Details are intentionally
+  not displayed on screen.
+- Company snapshot remains available for Invoice PDF.
+============================================================
+*@
+
+@{
+    ViewData["Title"] =
+        "Invoice Details";
+
+
+    var isDraft =
+        Model.Status ==
+        InvoiceStatus.Draft;
+
+
+    var isFinalized =
+        Model.Status ==
+        InvoiceStatus.Finalized;
+
+
+    var customerPurchaseOrderNumbers =
+        Model.Items
+            .Where(x =>
+                !string.IsNullOrWhiteSpace(
+                    x.CustomerPurchaseOrderNumber))
+            .Select(x =>
+                x.CustomerPurchaseOrderNumber!)
+            .Distinct()
+            .ToList();
+
+
+    /*
+     * Controller will populate this from
+     * GetProductionJobIdsRequiringWarningAsync().
+     *
+     * Default false keeps this View compile-safe
+     * until controller patch is applied.
+     */
+    var requiresSourceWarning =
+        ViewBag.RequiresSourceWarning is bool warning &&
+        warning;
+
+        var gstRates =
+    Model.Items
+        .Select(x => x.GstRate)
+        .Distinct()
+        .ToList();
+
+
+string cgstLabel;
+string sgstLabel;
+string igstLabel;
+
+
+if (gstRates.Count == 1)
+{
+    var gstRate =
+        gstRates[0];
+
+    cgstLabel =
+        $"CGST ({(gstRate / 2).ToString("0.##")}%)";
+
+    sgstLabel =
+        $"SGST ({(gstRate / 2).ToString("0.##")}%)";
+
+    igstLabel =
+        $"IGST ({gstRate.ToString("0.##")}%)";
+}
+else if (gstRates.Count > 1)
+{
+    cgstLabel =
+        "CGST (Mixed)";
+
+    sgstLabel =
+        "SGST (Mixed)";
+
+    igstLabel =
+        "IGST (Mixed)";
+}
+else
+{
+    cgstLabel =
+        "CGST";
+
+    sgstLabel =
+        "SGST";
+
+    igstLabel =
+        "IGST";
+}
+}
+
+
+@* =========================================================
+   REGION 1 — PAGE HEADER
+   ========================================================= *@
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-2
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Invoice Details
+        </h2>
+
+        <div class="text-muted">
+            @Model.Code
+        </div>
+
+    </div>
+
+
+    <div class="d-flex
+                align-items-center
+                flex-wrap
+                gap-2">
+
+        @if (isDraft)
+        {
+            <span class="badge
+                         bg-warning
+                         text-dark">
+
+                Draft
+
+            </span>
+
+
+            <a asp-action="Edit"
+               asp-route-id="@Model.Id"
+               class="btn btn-warning">
+
+                <i class="fa-solid
+                          fa-pen
+                          me-1">
+                </i>
+
+                Edit
+
+            </a>
+        }
+
+
+        @if (isFinalized)
+        {
+            <span class="badge bg-success">
+                Finalized
+            </span>
+
+
+            <a asp-action="DownloadPdf"
+               asp-route-id="@Model.Id"
+               class="btn btn-outline-primary">
+
+                <i class="fa-solid
+                          fa-file-pdf
+                          me-1">
+                </i>
+
+                Download PDF
+
+            </a>
+        }
+
+
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid
+                      fa-arrow-left
+                      me-1">
+            </i>
+
+            Back
+
+        </a>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   REGION 2 — INVOICE INFORMATION
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-file-invoice-dollar
+                      me-1">
+            </i>
+
+            Invoice Information
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted">
+                    Invoice No.
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.Code
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted">
+                    Invoice Date
+                </div>
+
+                <div class="fw-semibold">
+
+                    @Model.InvoiceDate
+                        .ToString(
+                            "dd-MM-yyyy")
+
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted">
+                    Due Date
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(Model.DueDate.HasValue
+                        ? Model.DueDate.Value
+                            .ToString(
+                                "dd-MM-yyyy")
+                        : "-")
+
+                </div>
+
+            </div>
+
+
+            <div class="col-lg-3 col-md-6">
+
+                <div class="small text-muted">
+                    Status
+                </div>
+
+                <div>
+
+                    @if (isDraft)
+                    {
+                        <span class="badge
+                                     bg-warning
+                                     text-dark">
+
+                            Draft
+
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success">
+                            Finalized
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   REGION 3 — CUSTOMER / BILLING INFORMATION
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-user
+                      me-1">
+            </i>
+
+            Customer &amp; Billing Information
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            @* -------------------------------------------------
+               Customer
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted">
+                    Customer Name
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.CustomerName
+                </div>
+
+            </div>
+
+
+            @* -------------------------------------------------
+               GSTIN
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted">
+                    GSTIN
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.CustomerGstin)
+                        ? "-"
+                        : Model.CustomerGstin)
+
+                </div>
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Customer PO
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted">
+                    Customer PO No.
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(customerPurchaseOrderNumbers.Any()
+                        ? string.Join(
+                            ", ",
+                            customerPurchaseOrderNumbers)
+                        : "-")
+
+                </div>
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Payment Terms
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted">
+                    Payment Terms
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.PaymentTerms)
+                        ? "-"
+                        : Model.PaymentTerms)
+
+                </div>
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Credit Days
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted">
+                    Credit Days
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(Model.CreditDays.HasValue
+                        ? Model.CreditDays.Value
+                            .ToString()
+                        : "-")
+
+                </div>
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Place Of Supply
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted">
+                    Place of Supply
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.PlaceOfSupply)
+                        ? "-"
+                        : Model.PlaceOfSupply)
+
+                </div>
+
+            </div>
+
+
+            @* -------------------------------------------------
+               GST Type
+               ------------------------------------------------- *@
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted">
+                    GST Type
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(Model.IsInterState
+                        ? "IGST"
+                        : "CGST + SGST")
+
+                </div>
+
+            </div>
+
+
+            @* -------------------------------------------------
+               Billing Address
+               ------------------------------------------------- *@
+
+            <div class="col-lg-8">
+
+                <div class="small text-muted mb-1">
+                    Billing Address
+                </div>
+
+                <div class="fw-semibold">
+
+                    @if (
+                        !string.IsNullOrWhiteSpace(
+                            Model.BillingAddressLine1)
+                    )
+                    {
+                        <div>
+                            @Model.BillingAddressLine1
+                        </div>
+                    }
+
+
+                    @if (
+                        !string.IsNullOrWhiteSpace(
+                            Model.BillingAddressLine2)
+                    )
+                    {
+                        <div>
+                            @Model.BillingAddressLine2
+                        </div>
+                    }
+
+
+                    <div>
+
+                        @{
+                            var cityStateParts =
+                                new List<string>();
+
+
+                            if (
+                                !string.IsNullOrWhiteSpace(
+                                    Model.BillingCity)
+                            )
+                            {
+                                cityStateParts.Add(
+                                    Model.BillingCity);
+                            }
+
+
+                            if (
+                                !string.IsNullOrWhiteSpace(
+                                    Model.BillingState)
+                            )
+                            {
+                                cityStateParts.Add(
+                                    Model.BillingState);
+                            }
+
+
+                            if (
+                                !string.IsNullOrWhiteSpace(
+                                    Model.BillingPincode)
+                            )
+                            {
+                                cityStateParts.Add(
+                                    Model.BillingPincode);
+                            }
+                        }
+
+
+                        @(cityStateParts.Any()
+                            ? string.Join(
+                                ", ",
+                                cityStateParts)
+                            : "-")
+
+                    </div>
+
+
+                    @if (
+                        !string.IsNullOrWhiteSpace(
+                            Model.BillingCountry)
+                    )
+                    {
+                        <div>
+                            @Model.BillingCountry
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   REGION 4 — INVOICE ITEMS
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-light">
+
+        <span class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-boxes-stacked
+                      me-1">
+            </i>
+
+            Invoice Items
+
+        </span>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-bordered
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th class="text-center">
+                            #
+                        </th>
+
+                        <th>
+                            Customer PO
+                        </th>
+
+                        <th>
+                            Production Job
+                        </th>
+
+                        <th>
+                            Item / Product
+                        </th>
+
+                        <th>
+                            HSN
+                        </th>
+
+                        <th class="text-end">
+                            Invoice Qty
+                        </th>
+
+                        <th class="text-center">
+                            UOM
+                        </th>
+
+                        <th class="text-end">
+                            Rate
+                        </th>
+
+                        <th class="text-end">
+                            Disc %
+                        </th>
+
+                        <th class="text-end">
+                            GST %
+                        </th>
+
+                        <th class="text-end">
+                            Taxable
+                        </th>
+
+                        <th class="text-end">
+                            Line Total
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model.Items.Any())
+                    {
+                        @foreach (
+                            var item
+                            in Model.Items
+                                .OrderBy(x =>
+                                    x.SequenceNumber)
+                        )
+                        {
+                            <tr>
+
+                                @* -------------------------
+                                   Sequence
+                                   ------------------------- *@
+
+                                <td class="text-center">
+
+                                    @item.SequenceNumber
+
+                                </td>
+
+
+                                @* -------------------------
+                                   Customer PO
+                                   ------------------------- *@
+
+                                <td>
+
+                                    <div class="fw-semibold">
+
+                                        @(string.IsNullOrWhiteSpace(
+                                            item.CustomerPurchaseOrderNumber)
+                                            ? (
+                                                string.IsNullOrWhiteSpace(
+                                                    item.CustomerPurchaseOrderCode)
+                                                    ? "-"
+                                                    : item.CustomerPurchaseOrderCode
+                                            )
+                                            : item.CustomerPurchaseOrderNumber)
+
+                                    </div>
+
+
+                                    @if (
+                                        !string.IsNullOrWhiteSpace(
+                                            item.CustomerPurchaseOrderCode)
+                                        &&
+                                        !string.Equals(
+                                            item.CustomerPurchaseOrderCode,
+                                            item.CustomerPurchaseOrderNumber,
+                                            StringComparison.OrdinalIgnoreCase)
+                                    )
+                                    {
+                                        <div class="small text-muted">
+
+                                            @item.CustomerPurchaseOrderCode
+
+                                        </div>
+                                    }
+
+                                </td>
+
+
+                                @* -------------------------
+                                   Production Job
+                                   ------------------------- *@
+
+                                <td>
+
+                                    <span class="fw-semibold">
+
+                                        @(string.IsNullOrWhiteSpace(
+                                            item.ProductionJobCode)
+                                            ? (
+                                                item.ProductionJobId.HasValue
+                                                    ? $"#{item.ProductionJobId.Value}"
+                                                    : "-"
+                                            )
+                                            : item.ProductionJobCode)
+
+                                    </span>
+
+                                </td>
+
+
+                                @* -------------------------
+                                   Item
+                                   ------------------------- *@
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        @item.ItemName
+                                    </div>
+
+
+                                    @if (
+                                        !string.IsNullOrWhiteSpace(
+                                            item.ItemCode)
+                                    )
+                                    {
+                                        <div class="small text-muted">
+
+                                            Code:
+                                            @item.ItemCode
+
+                                        </div>
+                                    }
+
+
+                                    @if (
+                                        !string.IsNullOrWhiteSpace(
+                                            item.ProductReference)
+                                    )
+                                    {
+                                        <div class="small text-muted">
+
+                                            Product:
+                                            @item.ProductReference
+
+                                        </div>
+                                    }
+
+
+                                    @if (
+                                        !string.IsNullOrWhiteSpace(
+                                            item.PartNumber)
+                                    )
+                                    {
+                                        <div class="small text-muted">
+
+                                            Part:
+                                            @item.PartNumber
+
+                                        </div>
+                                    }
+
+                                </td>
+
+
+                                @* -------------------------
+                                   HSN
+                                   ------------------------- *@
+
+                                <td>
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        item.HsnNumber)
+                                        ? "-"
+                                        : item.HsnNumber)
+
+                                </td>
+
+
+                                @* -------------------------
+                                   Invoice Quantity
+                                   ------------------------- *@
+
+                                <td class="text-end">
+
+                                    @item.InvoiceQuantity
+                                        .ToString(
+                                            "0.###")
+
+                                </td>
+
+
+                                @* -------------------------
+                                   UOM
+                                   ------------------------- *@
+
+                                <td class="text-center">
+
+                                    <span class="badge
+                                                 bg-light
+                                                 text-dark
+                                                 border">
+
+                                        @(string.IsNullOrWhiteSpace(
+                                            item.UnitName)
+                                            ? "-"
+                                            : item.UnitName)
+
+                                    </span>
+
+                                </td>
+
+
+                                @* -------------------------
+                                   Rate
+                                   ------------------------- *@
+
+                                <td class="text-end">
+
+                                    ₹
+                                    @item.Rate
+                                        .ToString(
+                                            "N2")
+
+                                </td>
+
+
+                                @* -------------------------
+                                   Discount
+                                   ------------------------- *@
+
+                                <td class="text-end">
+
+                                    @item.DiscountPercent
+                                        .ToString(
+                                            "0.##")%
+
+                                </td>
+
+
+                                @* -------------------------
+                                   GST
+                                   ------------------------- *@
+
+                                <td class="text-end">
+
+                                    @item.GstRate
+                                        .ToString(
+                                            "0.##")%
+
+                                </td>
+
+
+                                @* -------------------------
+                                   Taxable
+                                   ------------------------- *@
+
+                                <td class="text-end">
+
+                                    ₹
+                                    @item.TaxableAmount
+                                        .ToString(
+                                            "N2")
+
+                                </td>
+
+
+                                @* -------------------------
+                                   Line Total
+                                   ------------------------- *@
+
+                                <td class="text-end fw-semibold">
+
+                                    ₹
+                                    @item.LineTotal
+                                        .ToString(
+                                            "N2")
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="12"
+                                class="text-center
+                                       text-muted
+                                       py-4">
+
+                                No Invoice Items found.
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   REGION 5 — TERMS / AMOUNT SUMMARY
+   ========================================================= *@
+
+<div class="row g-4 mb-4">
+
+
+    @* =====================================================
+       Terms / Remarks
+       ===================================================== *@
+
+    <div class="col-lg-7">
+
+        <div class="card
+                    shadow-sm
+                    border-0
+                    h-100">
+
+            <div class="card-header bg-light">
+
+                <span class="fw-semibold">
+
+                    <i class="fa-solid
+                              fa-file-contract
+                              me-1">
+                    </i>
+
+                    Terms &amp; Conditions
+
+                </span>
+
+            </div>
+
+
+            <div class="card-body">
+
+                @if (
+                    string.IsNullOrWhiteSpace(
+                        Model.InvoiceTermsAndConditions)
+                )
+                {
+                    <span class="text-muted">
+                        -
+                    </span>
+                }
+                else
+                {
+                    @foreach (
+                        var line
+                        in Model.InvoiceTermsAndConditions
+                            .Split('\n')
+                    )
+                    {
+                        <div>
+                            @line.TrimEnd('\r')
+                        </div>
+                    }
+                }
+
+
+                @if (
+                    !string.IsNullOrWhiteSpace(
+                        Model.Remarks)
+                )
+                {
+                    <hr />
+
+
+                    <div class="small text-muted mb-1">
+                        Remarks
+                    </div>
+
+
+                    <div>
+                        @Model.Remarks
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       Amount Summary
+       ===================================================== *@
+
+    <div class="col-lg-5">
+
+        <div class="card shadow-sm border-0">
+
+            <div class="card-header bg-light">
+
+                <span class="fw-semibold">
+
+                    <i class="fa-solid
+                              fa-calculator
+                              me-1">
+                    </i>
+
+                    Amount Summary
+
+                </span>
+
+            </div>
+
+
+            <div class="card-body">
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-2">
+
+                    <span class="text-muted">
+                        Gross Amount
+                    </span>
+
+                    <span>
+                        ₹ @Model.GrossAmount.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-2">
+
+                    <span class="text-muted">
+                        Discount
+                    </span>
+
+                    <span>
+                        ₹ @Model.DiscountAmount.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-2">
+
+                    <span class="text-muted">
+                        Taxable Amount
+                    </span>
+
+                    <span>
+                        ₹ @Model.TaxableAmount.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                @if (Model.IsInterState)
+                {
+                    <div class="d-flex
+                                justify-content-between
+                                mb-2">
+
+                        <span class="text-muted">
+    @igstLabel
+</span>
+
+                        <span>
+                            ₹ @Model.IgstAmount.ToString("N2")
+                        </span>
+
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex
+                                justify-content-between
+                                mb-2">
+
+                        <span class="text-muted">
+    @cgstLabel
+</span>
+
+                        <span>
+                            ₹ @Model.CgstAmount.ToString("N2")
+                        </span>
+
+                    </div>
+
+
+                    <div class="d-flex
+                                justify-content-between
+                                mb-2">
+
+                        <span class="text-muted">
+    @sgstLabel
+</span>
+
+                        <span>
+                            ₹ @Model.SgstAmount.ToString("N2")
+                        </span>
+
+                    </div>
+                }
+
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-2">
+
+                    <span class="text-muted">
+                        Other Charges
+                    </span>
+
+                    <span>
+                        ₹ @Model.OtherCharges.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <div class="d-flex
+                            justify-content-between
+                            mb-3">
+
+                    <span class="text-muted">
+                        Round Off
+                    </span>
+
+                    <span>
+                        ₹ @Model.RoundOffAmount.ToString("N2")
+                    </span>
+
+                </div>
+
+
+                <hr />
+
+
+                <div class="d-flex
+                            justify-content-between
+                            align-items-center">
+
+                    <span class="fw-bold fs-5">
+                        Grand Total
+                    </span>
+
+                    <span class="fw-bold fs-5">
+
+                        ₹ @Model.GrandTotal.ToString("N2")
+
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   REGION 6 — FINALIZATION INFORMATION
+   ========================================================= *@
+
+@if (isFinalized)
+{
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-md-6">
+
+                    <span class="text-muted">
+                        Finalized On:
+                    </span>
+
+                    <span class="fw-semibold ms-1">
+
+                        @(Model.FinalizedOn.HasValue
+                            ? Model.FinalizedOn.Value
+                                .ToString(
+                                    "dd-MM-yyyy HH:mm")
+                            : "-")
+
+                    </span>
+
+                </div>
+
+
+                <div class="col-md-6">
+
+                    <span class="text-muted">
+                        Finalized By:
+                    </span>
+
+                    <span class="fw-semibold ms-1">
+
+                        @(string.IsNullOrWhiteSpace(
+                            Model.FinalizedBy)
+                            ? "-"
+                            : Model.FinalizedBy)
+
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+@* =========================================================
+   REGION 7 — DRAFT ACTIONS
+   ========================================================= *@
+
+@* =========================================================
+   REGION 7 — DRAFT ACTIONS
+   ========================================================= *@
+
+@if (isDraft)
+{
+    <div class="card
+                shadow-sm
+                border-0
+                mb-4">
+
+        <div class="card-body">
+
+            @if (requiresSourceWarning)
+            {
+                <div class="alert
+                            alert-warning
+                            mb-4">
+
+                    <div class="d-flex
+                                align-items-start
+                                gap-2">
+
+                        <i class="fa-solid
+                                  fa-triangle-exclamation
+                                  mt-1">
+                        </i>
+
+
+                        <div>
+
+                            <div class="fw-semibold">
+                                PDI / Delivery Challan Warning
+                            </div>
+
+                            <div class="small">
+
+                                One or more Production Jobs
+                                do not have Finalized PDI or
+                                Delivery Challan.
+
+                                You can still finalize this
+                                Invoice after confirming the
+                                warning below.
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            }
+
+
+            <div class="d-flex
+                        justify-content-between
+                        align-items-end
+                        flex-wrap
+                        gap-3">
+
+                <div>
+
+                    @if (requiresSourceWarning)
+                    {
+                        <form asp-action="Finalize"
+                              asp-route-id="@Model.Id"
+                              method="post"
+                              id="finalizeInvoiceForm">
+
+                            @Html.AntiForgeryToken()
+
+
+                            <div class="form-check mb-1">
+
+                                <input type="checkbox"
+                                       id="finalizeSourceWarning"
+                                       name="confirmSourceWarning"
+                                       value="true"
+                                       class="form-check-input"
+                                       onchange="
+                                           document
+                                               .getElementById(
+                                                   'finalizeWarningValidation')
+                                               ?.classList
+                                               .toggle(
+                                                   'd-none',
+                                                   this.checked);
+                                       " />
+
+
+                                <label for="finalizeSourceWarning"
+                                       class="form-check-label">
+
+                                    Continue even though
+                                    PDI / Delivery Challan
+                                    is pending.
+
+                                </label>
+
+                            </div>
+
+
+                            <div id="finalizeWarningValidation"
+                                 class="text-danger
+                                        small
+                                        d-none">
+
+                                <i class="fa-solid
+                                          fa-circle-exclamation
+                                          me-1">
+                                </i>
+
+                                Please confirm the
+                                PDI / Delivery Challan
+                                warning before finalizing
+                                the Invoice.
+
+                            </div>
+
+                        </form>
+                    }
+
+                </div>
+
+
+                <div class="d-flex
+                            justify-content-end
+                            align-items-center
+                            flex-wrap
+                            gap-2">
+
+                    <button type="button"
+                            class="btn btn-outline-danger"
+                            onclick="confirmDelete(
+                                '@Url.Action(
+                                    "Delete",
+                                    "Invoice",
+                                    new
+                                    {
+                                        id = Model.Id
+                                    })')">
+
+                        <i class="fa-solid
+                                  fa-trash
+                                  me-1">
+                        </i>
+
+                        Delete
+
+                    </button>
+
+
+                    <a asp-action="Edit"
+                       asp-route-id="@Model.Id"
+                       class="btn btn-warning">
+
+                        <i class="fa-solid
+                                  fa-pen
+                                  me-1">
+                        </i>
+
+                        Edit Invoice
+
+                    </a>
+
+
+                    @if (requiresSourceWarning)
+                    {
+                        <button type="button"
+                                class="btn btn-success"
+                                onclick="
+                                    const checkbox =
+                                        document.getElementById(
+                                            'finalizeSourceWarning');
+
+                                    const validation =
+                                        document.getElementById(
+                                            'finalizeWarningValidation');
+
+                                    if (!checkbox ||
+                                        !checkbox.checked)
+                                    {
+                                        validation
+                                            ?.classList
+                                            .remove(
+                                                'd-none');
+
+                                        checkbox
+                                            ?.focus();
+
+                                        return;
+                                    }
+
+                                    validation
+                                        ?.classList
+                                        .add(
+                                            'd-none');
+
+                                    if (confirm(
+                                        'Finalize this Invoice? After Finalization it cannot be edited or deleted.'))
+                                    {
+                                        document
+                                            .getElementById(
+                                                'finalizeInvoiceForm')
+                                            ?.submit();
+                                    }
+                                ">
+
+                            <i class="fa-solid
+                                      fa-check
+                                      me-1">
+                            </i>
+
+                            Finalize Invoice
+
+                        </button>
+                    }
+                    else
+                    {
+                        <form asp-action="Finalize"
+                              asp-route-id="@Model.Id"
+                              method="post"
+                              class="d-inline">
+
+                            @Html.AntiForgeryToken()
+
+
+                            <button type="submit"
+                                    class="btn btn-success"
+                                    onclick="return confirm(
+                                        'Finalize this Invoice? After Finalization it cannot be edited or deleted.');">
+
+                                <i class="fa-solid
+                                          fa-check
+                                          me-1">
+                                </i>
+
+                                Finalize Invoice
+
+                            </button>
+
+                        </form>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}

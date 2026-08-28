@@ -319,6 +319,22 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
 
             #endregion
 
+            #region Invoice Module
+
+            services.AddScoped<
+                IInvoiceRepository,
+                InvoiceRepository>();
+
+            services.AddScoped<
+                IInvoiceService,
+                InvoiceService>();
+
+            services.AddScoped<
+                IInvoicePdfGenerator,
+                InvoicePdfGenerator>();
+
+            #endregion
+
             return services;
         }
     }

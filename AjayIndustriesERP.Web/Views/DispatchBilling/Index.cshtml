@@ -16,8 +16,7 @@ Responsibilities:
 
 Important:
 - Delivery Challan module is active.
-- Invoice module will be connected after its
-  backend implementation is completed.
+- Invoice module is active.
 - No custom CSS is used.
 ============================================================
 *@
@@ -153,9 +152,9 @@ Important:
 
 
                 <p class="text-muted mb-4">
-                    Create Sales Invoices with quantity,
-                    rate, taxable value, GST and billing
-                    information.
+                    Create Sales Invoices from Finalized
+                    Delivery Challans with quantity, rate,
+                    taxable value, GST and billing information.
                 </p>
 
 
@@ -164,19 +163,24 @@ Important:
                             flex-wrap
                             gap-2">
 
-                    <button type="button"
-                            class="btn btn-secondary"
-                            disabled>
+                    <a asp-controller="Invoice"
+                       asp-action="Index"
+                       class="btn btn-primary">
 
-                        <i class="bi bi-receipt me-1"></i>
+                        <i class="bi bi-list-ul me-1"></i>
                         Open Invoices
 
-                    </button>
+                    </a>
 
 
-                    <span class="badge text-bg-warning">
-                        Coming Soon
-                    </span>
+                    <a asp-controller="Invoice"
+                       asp-action="Create"
+                       class="btn btn-outline-primary">
+
+                        <i class="bi bi-plus-lg me-1"></i>
+                        Create Invoice
+
+                    </a>
 
                 </div>
 

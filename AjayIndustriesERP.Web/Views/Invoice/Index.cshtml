@@ -1,0 +1,519 @@
+﻿@*
+============================================================
+File: Index.cshtml
+
+Module:
+Invoice
+
+Purpose:
+Displays Invoice list.
+
+Responsibilities:
+- Display Invoice records.
+- Support shared Search.
+- Support shared Pagination.
+- Display Invoice Date and Customer.
+- Display source Delivery Challan references.
+- Display Taxable Amount and Grand Total.
+- Display Draft / Finalized status.
+- Open Invoice Details.
+- Edit Draft Invoice.
+- Delete Draft Invoice.
+- Download Finalized Invoice PDF.
+- Navigate to Deleted Invoices.
+
+Important:
+- Draft Invoice may be edited and deleted.
+- Finalized Invoice is locked.
+- Finalized Invoice PDF can be downloaded.
+============================================================
+*@
+
+@model List<AjayIndustriesERP.Domain.Entities.Invoice>
+
+@using AjayIndustriesERP.Domain.Enums
+
+@{
+    ViewData["Title"] =
+        "Invoice Management";
+
+    var pageNumber =
+        (int)ViewBag.PageNumber;
+
+    var pageSize =
+        (int)ViewBag.PageSize;
+
+    var totalRecords =
+        (int)ViewBag.TotalRecords;
+
+    var serialNumber =
+        ((pageNumber - 1) * pageSize) + 1;
+}
+
+
+@* =========================================================
+   PAGE HEADER
+   ========================================================= *@
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Invoice Management
+        </h2>
+
+        <p class="text-muted mb-0">
+            Create and manage customer invoices.
+        </p>
+
+    </div>
+
+
+    <div class="d-flex
+                align-items-center
+                gap-2
+                flex-wrap">
+
+        <a asp-action="Deleted"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid fa-trash-can me-1"></i>
+
+            Deleted Invoices
+
+        </a>
+
+
+        <a asp-action="Create"
+           class="btn btn-primary">
+
+            <i class="fa-solid fa-plus me-1"></i>
+
+            Create Invoice
+
+        </a>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   SEARCH
+   ========================================================= *@
+
+<partial name="Components/_SearchBar"
+         model='@(ViewBag.SearchText as string ?? "")' />
+
+
+@* =========================================================
+   INVOICE LIST
+   ========================================================= *@
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th class="text-nowrap">
+                            #
+                        </th>
+
+
+                        <th class="text-nowrap">
+                            Invoice No.
+                        </th>
+
+
+                        <th class="text-nowrap">
+                            Invoice Date
+                        </th>
+
+
+                        <th>
+                            Customer
+                        </th>
+
+
+                        <th>
+                            Delivery Challan
+                        </th>
+
+
+                        <th class="text-end text-nowrap">
+                            Taxable Amount
+                        </th>
+
+
+                        <th class="text-end text-nowrap">
+                            Grand Total
+                        </th>
+
+
+                        <th class="text-center text-nowrap">
+                            Status
+                        </th>
+
+
+                        <th class="text-center text-nowrap">
+                            Actions
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model != null &&
+                                        Model.Any())
+                    {
+                        @foreach (var invoice in Model)
+                        {
+                            var isDraft =
+                            invoice.Status ==
+                            InvoiceStatus.Draft;
+
+                            var isFinalized =
+                            invoice.Status ==
+                            InvoiceStatus.Finalized;
+
+
+                            var deliveryChallanCodes =
+                            invoice.Items
+                            .Where(x =>
+                            !x.IsDeleted &&
+                            x.IsActive)
+                            .Select(x =>
+                            x.DeliveryChallanCode)
+                            .Where(x =>
+                            !string.IsNullOrWhiteSpace(x))
+                            .Distinct()
+                            .ToList();
+
+
+                            <tr>
+
+                                @* =========================
+                                   Serial Number
+                                   ========================= *@
+
+                                <td>
+                                    @serialNumber
+                                </td>
+
+
+                                @* =========================
+                                   Invoice Number
+                                   ========================= *@
+
+                                <td class="text-nowrap">
+
+                                    <a asp-action="Details"
+                                       asp-route-id="@invoice.Id"
+                                       class="fw-semibold
+                                                      text-decoration-none">
+
+                                        @invoice.Code
+
+                                    </a>
+
+                                </td>
+
+
+                                @* =========================
+                                   Invoice Date
+                                   ========================= *@
+
+                                <td class="text-nowrap">
+
+                                    @(invoice.InvoiceDate
+                                    .ToString("dd-MM-yyyy"))
+
+                                </td>
+
+
+                                @* =========================
+                                   Customer
+                                   ========================= *@
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        @invoice.CustomerName
+                                    </div>
+
+                                   
+
+                                </td>
+
+
+                                @* =========================
+                                   Delivery Challans
+                                   ========================= *@
+
+                                <td>
+
+                                    @if (deliveryChallanCodes.Any())
+                                    {
+                                        @foreach (var challanCode
+                                                                    in deliveryChallanCodes)
+                                        {
+                                            <div class="text-nowrap">
+                                                @challanCode
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =========================
+                                   Taxable Amount
+                                   ========================= *@
+
+                                <td class="text-end text-nowrap">
+
+                                    ₹
+                                    @(invoice.TaxableAmount
+                                    .ToString("N2"))
+
+                                </td>
+
+
+                                @* =========================
+                                   Grand Total
+                                   ========================= *@
+
+                                <td class="text-end text-nowrap">
+
+                                    <span class="fw-semibold">
+
+                                        ₹
+                                        @(invoice.GrandTotal
+                                        .ToString("N2"))
+
+                                    </span>
+
+                                </td>
+
+
+                                @* =========================
+                                   Status
+                                   ========================= *@
+
+                                <td class="text-center">
+
+                                    @if (isDraft)
+                                    {
+                                        <span class="badge
+                                                                 bg-warning
+                                                                 text-dark">
+
+                                            Draft
+
+                                        </span>
+                                    }
+                                    else if (isFinalized)
+                                    {
+                                        <span class="badge
+                                                                 bg-success
+                                                                 text-white">
+
+                                            Finalized
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge
+                                                                 bg-secondary">
+
+                                            @invoice.Status
+
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =========================
+                                   Actions
+                                   ========================= *@
+
+                                <td class="text-center">
+
+                                    <div class="d-flex
+                                                        justify-content-center
+                                                        align-items-center
+                                                        gap-1">
+
+                                        @* -----------------
+                                           Details
+                                           ----------------- *@
+
+                                        <a asp-action="Details"
+                                           asp-route-id="@invoice.Id"
+                                           class="btn
+                                                          btn-sm
+                                                          btn-outline-info"
+                                           title="View Invoice">
+
+                                            <i class="fa-solid fa-eye"></i>
+
+                                        </a>
+
+
+                                        @if (isDraft)
+                                        {
+                                            @* -------------
+                                               Edit
+                                               ------------- *@
+
+                                            <a asp-action="Edit"
+                                               asp-route-id="@invoice.Id"
+                                               class="btn
+                                                                  btn-sm
+                                                                  btn-outline-warning"
+                                               title="Edit Draft Invoice">
+
+                                                <i class="fa-solid fa-pen"></i>
+
+                                            </a>
+
+
+                                            @* -------------
+                                               Delete
+                                               ------------- *@
+
+                                            <button type="button"
+                                                    class="btn
+                                                                       btn-sm
+                                                                       btn-outline-danger"
+                                                    title="Delete Draft Invoice"
+                                                    onclick="confirmDelete(
+                                                                    '@Url.Action(
+                                                                                                                "Delete",
+                                                                                                                "Invoice",
+                                                                                                                new
+                                                                                                                {
+                                                                                                                    id = invoice.Id
+                                                                                                                })')">
+
+                                    <i class="fa-solid fa-trash"></i>
+
+                                            </button>
+                                                                }
+
+
+                                        @if (isFinalized)
+                                        {
+                                            @* -------------
+                                               PDF
+                                               ------------- *@
+
+                                            <a asp-action="DownloadPdf"
+                                               asp-route-id="@invoice.Id"
+                                               class="btn
+                                                                  btn-sm
+                                                                  btn-outline-primary"
+                                               title="Download Invoice PDF">
+
+                                                <i class="fa-solid
+                                                                      fa-file-pdf">
+                                                </i>
+
+                                            </a>
+                                        }
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+
+                            serialNumber++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="9"
+                                class="text-center
+                                           text-muted
+                                           py-5">
+
+                                <i class="fa-solid
+                                              fa-file-invoice-dollar
+                                              fa-2x
+                                              mb-3">
+                                </i>
+
+
+                                <div class="fw-semibold mb-1">
+                                    No Invoices Found
+                                </div>
+
+
+                                <div class="small">
+                                    Create an Invoice from a
+                                    Finalized Delivery Challan.
+                                </div>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   PAGINATION
+   ========================================================= *@
+
+@if (totalRecords > 0)
+{
+    <div class="mt-3">
+
+        <partial name="Components/_Pagination"
+                 model='(
+                                      (int)ViewBag.PageNumber,
+                                      (int)ViewBag.PageSize
+                                  )' />
+
+</div>
+}

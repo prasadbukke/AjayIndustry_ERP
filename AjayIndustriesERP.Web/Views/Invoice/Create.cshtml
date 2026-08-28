@@ -1,0 +1,120 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.Invoice.InvoiceFormViewModel
+
+@*
+============================================================
+File: Create.cshtml
+
+Module:
+Invoice
+
+Purpose:
+Creates a new Draft Invoice.
+
+Responsibilities:
+- Own the HTML <form>.
+- Render shared Invoice _Form partial.
+- Submit Invoice Create request.
+- Load client validation.
+- Load Invoice form JavaScript.
+
+Important:
+- Business rules remain in InvoiceService.
+- _Form.cshtml must not contain its own <form>.
+============================================================
+*@
+
+@{
+    ViewData["Title"] =
+        "Create Invoice";
+}
+
+
+@* =========================================================
+   Page Header
+   ========================================================= *@
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-2
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Create Invoice
+        </h2>
+
+        <div class="text-muted">
+            Create Invoice from Customer Purchase Order and Completed Production.
+        </div>
+
+    </div>
+
+
+    <a asp-action="Index"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid fa-arrow-left me-1"></i>
+
+        Back
+
+    </a>
+
+</div>
+
+
+@* =========================================================
+   Create Form
+   ========================================================= *@
+
+<form asp-action="Create"
+      method="post">
+
+    @Html.AntiForgeryToken()
+
+
+    <partial name="_Form"
+             model="Model" />
+
+
+    @* =====================================================
+       Actions
+       ===================================================== *@
+
+    <div class="d-flex
+                justify-content-end
+                gap-2
+                mb-4">
+
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            Cancel
+
+        </a>
+
+
+        <button type="submit"
+                class="btn btn-primary">
+
+            <i class="fa-solid fa-floppy-disk me-1"></i>
+
+            Save Draft
+
+        </button>
+
+    </div>
+
+</form>
+
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/invoice-form.js"
+            asp-append-version="true">
+    </script>
+}

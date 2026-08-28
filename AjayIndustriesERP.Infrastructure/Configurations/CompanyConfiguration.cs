@@ -61,8 +61,46 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
             builder.Property(x => x.PostalCode)
                 .HasMaxLength(10);
 
+            #region ISO Certification
+
+            builder.Property(x => x.IsoCertificationNumber)
+                .HasMaxLength(100);
+
+            #endregion
+
+
+            #region Bank Details
+
+            builder.Property(x => x.BankName)
+                .HasMaxLength(200);
+
+            builder.Property(x => x.BankAccountHolderName)
+                .HasMaxLength(200);
+
+            builder.Property(x => x.BankAccountNumber)
+                .HasMaxLength(100);
+
+            builder.Property(x => x.BankIfscCode)
+                .HasMaxLength(20);
+
+            builder.Property(x => x.BankBranchName)
+                .HasMaxLength(200);
+
+            builder.Property(x => x.BankAccountType)
+                .HasMaxLength(50);
+
+            #endregion
+
+
+            #region Terms And Conditions
+
             builder.Property(x => x.PurchaseOrderTermsAndConditions)
-    .HasMaxLength(4000);
+                .HasMaxLength(4000);
+
+            builder.Property(x => x.InvoiceTermsAndConditions)
+                .HasMaxLength(4000);
+
+            #endregion
 
             builder.Property(x => x.CreatedBy)
                 .HasMaxLength(100);

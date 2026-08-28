@@ -99,8 +99,46 @@ namespace AjayIndustriesERP.Web.Controllers
                 Country = model.Country,
                 PostalCode = model.PostalCode,
 
+                #region ISO Certification
+
+                IsoCertificationNumber =
+    model.IsoCertificationNumber,
+
+                #endregion
+
+
+                #region Bank Details
+
+                BankName =
+    model.BankName,
+
+                BankAccountHolderName =
+    model.BankAccountHolderName,
+
+                BankAccountNumber =
+    model.BankAccountNumber,
+
+                BankIfscCode =
+    model.BankIfscCode,
+
+                BankBranchName =
+    model.BankBranchName,
+
+                BankAccountType =
+    model.BankAccountType,
+
+                #endregion
+
+
+                #region Terms And Conditions
+
                 PurchaseOrderTermsAndConditions =
-        model.PurchaseOrderTermsAndConditions,
+    model.PurchaseOrderTermsAndConditions,
+
+                InvoiceTermsAndConditions =
+    model.InvoiceTermsAndConditions,
+
+                #endregion
 
                 IsActive = model.IsActive
             };
@@ -162,8 +200,46 @@ namespace AjayIndustriesERP.Web.Controllers
                 Country = company.Country,
                 PostalCode = company.PostalCode,
 
+                #region ISO Certification
+
+                IsoCertificationNumber =
+    company.IsoCertificationNumber,
+
+                #endregion
+
+
+                #region Bank Details
+
+                BankName =
+    company.BankName,
+
+                BankAccountHolderName =
+    company.BankAccountHolderName,
+
+                BankAccountNumber =
+    company.BankAccountNumber,
+
+                BankIfscCode =
+    company.BankIfscCode,
+
+                BankBranchName =
+    company.BankBranchName,
+
+                BankAccountType =
+    company.BankAccountType,
+
+                #endregion
+
+
+                #region Terms And Conditions
+
                 PurchaseOrderTermsAndConditions =
-        company.PurchaseOrderTermsAndConditions,
+    company.PurchaseOrderTermsAndConditions,
+
+                InvoiceTermsAndConditions =
+    company.InvoiceTermsAndConditions,
+
+                #endregion
 
                 IsActive = company.IsActive
             };
@@ -228,8 +304,46 @@ namespace AjayIndustriesERP.Web.Controllers
                     PostalCode =
         model.PostalCode,
 
+                    #region ISO Certification
+
+                    IsoCertificationNumber =
+    model.IsoCertificationNumber,
+
+                    #endregion
+
+
+                    #region Bank Details
+
+                    BankName =
+    model.BankName,
+
+                    BankAccountHolderName =
+    model.BankAccountHolderName,
+
+                    BankAccountNumber =
+    model.BankAccountNumber,
+
+                    BankIfscCode =
+    model.BankIfscCode,
+
+                    BankBranchName =
+    model.BankBranchName,
+
+                    BankAccountType =
+    model.BankAccountType,
+
+                    #endregion
+
+
+                    #region Terms And Conditions
+
                     PurchaseOrderTermsAndConditions =
-        model.PurchaseOrderTermsAndConditions,
+    model.PurchaseOrderTermsAndConditions,
+
+                    InvoiceTermsAndConditions =
+    model.InvoiceTermsAndConditions,
+
+                    #endregion
 
                     IsActive =
         model.IsActive
