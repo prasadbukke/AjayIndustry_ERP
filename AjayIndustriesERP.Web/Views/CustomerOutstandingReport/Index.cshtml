@@ -1,0 +1,1208 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.CustomerOutstandingReport.CustomerOutstandingReportViewModel
+
+@{
+    ViewData["Title"] =
+        "Customer Outstanding Report";
+}
+
+
+<div class="container-fluid">
+
+    @* =========================================================
+       REGION 1 — PAGE HEADER
+       ========================================================= *@
+
+    <div class="d-flex
+                justify-content-between
+                align-items-center
+                flex-wrap
+                gap-3
+                mb-4">
+
+        <div>
+
+            <h2 class="fw-bold
+                       mb-1">
+
+                Customer Outstanding Report
+
+            </h2>
+
+
+            <div class="text-muted">
+
+                Track Customer receivables,
+                received payments and pending Invoice balances.
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =========================================================
+       REGION 2 — ERROR MESSAGE
+       ========================================================= *@
+
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-danger">
+
+            <i class="fa-solid
+                          fa-circle-exclamation
+                          me-1">
+            </i>
+
+            @ViewBag.ErrorMessage
+
+        </div>
+    }
+
+
+    @* =========================================================
+       REGION 3 — FILTERS
+       ========================================================= *@
+
+    <div class="card
+                shadow-sm
+                border-0
+                mb-4">
+
+        <div class="card-header
+                    bg-white
+                    py-3">
+
+            <h5 class="fw-semibold
+                       mb-0">
+
+                <i class="fa-solid
+                          fa-filter
+                          me-2">
+                </i>
+
+                Filters
+
+            </h5>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <form asp-action="Index"
+                  method="get">
+
+                <div class="row
+                            g-3
+                            align-items-end">
+
+                    @* =========================================
+                       CUSTOMER
+                       ========================================= *@
+
+                    <div class="col-xl-3
+                                col-lg-4
+                                col-md-6">
+
+                        <label class="form-label
+                                      fw-semibold">
+
+                            Customer
+
+                        </label>
+
+
+                        <select asp-for="CustomerId"
+                                asp-items="Model.AvailableCustomers"
+                                class="form-select">
+                        </select>
+
+                    </div>
+
+
+                    @* =========================================
+                       FROM DATE
+                       ========================================= *@
+
+                    <div class="col-xl-2
+                                col-lg-4
+                                col-md-6">
+
+                        <label class="form-label
+                                      fw-semibold">
+
+                            From Invoice Date
+
+                        </label>
+
+
+                        <input asp-for="FromDate"
+                               type="date"
+                               class="form-control" />
+
+                    </div>
+
+
+                    @* =========================================
+                       TO DATE
+                       ========================================= *@
+
+                    <div class="col-xl-2
+                                col-lg-4
+                                col-md-6">
+
+                        <label class="form-label
+                                      fw-semibold">
+
+                            To Invoice Date
+
+                        </label>
+
+
+                        <input asp-for="ToDate"
+                               type="date"
+                               class="form-control" />
+
+                    </div>
+
+
+                    @* =========================================
+                       PAYMENT STATUS
+                       ========================================= *@
+
+                    <div class="col-xl-2
+                                col-lg-4
+                                col-md-6">
+
+                        <label class="form-label
+                                      fw-semibold">
+
+                            Payment Status
+
+                        </label>
+
+
+                        <select asp-for="PaymentStatus"
+                                asp-items="Model.AvailablePaymentStatuses"
+                                class="form-select">
+                        </select>
+
+                    </div>
+
+
+                    @* =========================================
+                       SEARCH
+                       ========================================= *@
+
+                    <div class="col-xl-3
+                                col-lg-8
+                                col-md-12">
+
+                        <label class="form-label
+                                      fw-semibold">
+
+                            Search
+
+                        </label>
+
+
+                        <input asp-for="SearchText"
+                               class="form-control"
+                               placeholder="Invoice No. or Customer Name" />
+
+                    </div>
+
+
+                    @* =========================================
+                       PAGE SIZE
+                       ========================================= *@
+
+                    <div class="col-xl-2
+                                col-lg-3
+                                col-md-4">
+
+                        <label class="form-label
+                                      fw-semibold">
+
+                            Page Size
+
+                        </label>
+
+
+                        <select asp-for="PageSize"
+                                class="form-select">
+
+                            @if (Model.PageSize == 10)
+                            {
+                                <option value="10"
+                                        selected>
+                                    10
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="10">
+                                    10
+                                </option>
+                            }
+
+
+                            @if (Model.PageSize == 25)
+                            {
+                                <option value="25"
+                                        selected>
+                                    25
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="25">
+                                    25
+                                </option>
+                            }
+
+
+                            @if (Model.PageSize == 50)
+                            {
+                                <option value="50"
+                                        selected>
+                                    50
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="50">
+                                    50
+                                </option>
+                            }
+
+                        </select>
+
+                    </div>
+
+
+                    @* =========================================
+                       ACTIONS
+                       ========================================= *@
+
+                    <div class="col-xl-4
+                                col-lg-5
+                                col-md-8">
+
+                        <div class="d-flex
+                                    gap-2">
+
+                            <button type="submit"
+                                    class="btn
+                                           btn-primary
+                                           flex-fill">
+
+                                <i class="fa-solid
+                                          fa-magnifying-glass
+                                          me-1">
+                                </i>
+
+                                Apply Filters
+
+                            </button>
+
+
+                            <a asp-action="Index"
+                               class="btn
+                                      btn-outline-secondary">
+
+                                Reset
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    @* =========================================================
+       REGION 4 — SUMMARY CARDS
+       ========================================================= *@
+
+    <div class="row
+                g-3
+                mb-4">
+
+        @* =============================================
+           TOTAL INVOICE AMOUNT
+           ============================================= *@
+
+        <div class="col-xl-3
+                    col-md-6">
+
+            <div class="card
+                        shadow-sm
+                        border-0
+                        h-100">
+
+                <div class="card-body">
+
+                    <div class="d-flex
+                                justify-content-between
+                                align-items-start">
+
+                        <div>
+
+                            <div class="text-muted
+                                        small
+                                        mb-1">
+
+                                Total Invoice Amount
+
+                            </div>
+
+
+                            <div class="fs-4
+                                        fw-bold">
+
+                                ₹ @(Model.TotalInvoiceAmount
+                                .ToString("N2"))
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="fs-4
+                                    text-muted">
+
+                            <i class="fa-solid
+                                      fa-file-invoice">
+                            </i>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        @* =============================================
+           TOTAL RECEIVED
+           ============================================= *@
+
+        <div class="col-xl-3
+                    col-md-6">
+
+            <div class="card
+                        shadow-sm
+                        border-0
+                        h-100">
+
+                <div class="card-body">
+
+                    <div class="d-flex
+                                justify-content-between
+                                align-items-start">
+
+                        <div>
+
+                            <div class="text-muted
+                                        small
+                                        mb-1">
+
+                                Total Received
+
+                            </div>
+
+
+                            <div class="fs-4
+                                        fw-bold
+                                        text-success">
+
+                                ₹ @(Model.TotalReceivedAmount
+                                .ToString("N2"))
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="fs-4
+                                    text-success">
+
+                            <i class="fa-solid
+                                      fa-circle-check">
+                            </i>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        @* =============================================
+           TOTAL OUTSTANDING
+           ============================================= *@
+
+        <div class="col-xl-3
+                    col-md-6">
+
+            <div class="card
+                        shadow-sm
+                        border-0
+                        h-100">
+
+                <div class="card-body">
+
+                    <div class="d-flex
+                                justify-content-between
+                                align-items-start">
+
+                        <div>
+
+                            <div class="text-muted
+                                        small
+                                        mb-1">
+
+                                Total Outstanding
+
+                            </div>
+
+
+                            <div class="fs-4
+                                        fw-bold
+                                        text-danger">
+
+                                ₹ @(Model.TotalOutstandingAmount
+                                .ToString("N2"))
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="fs-4
+                                    text-danger">
+
+                            <i class="fa-solid
+                                      fa-indian-rupee-sign">
+                            </i>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        @* =============================================
+           OUTSTANDING INVOICE COUNT
+           ============================================= *@
+
+        <div class="col-xl-3
+                    col-md-6">
+
+            <div class="card
+                        shadow-sm
+                        border-0
+                        h-100">
+
+                <div class="card-body">
+
+                    <div class="d-flex
+                                justify-content-between
+                                align-items-start">
+
+                        <div>
+
+                            <div class="text-muted
+                                        small
+                                        mb-1">
+
+                                Outstanding Invoices
+
+                            </div>
+
+
+                            <div class="fs-4
+                                        fw-bold">
+
+                                @Model.OutstandingInvoiceCount
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="fs-4
+                                    text-warning">
+
+                            <i class="fa-solid
+                                      fa-clock">
+                            </i>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =========================================================
+       REGION 5 — REPORT TABLE
+       ========================================================= *@
+
+    <div class="card
+                shadow-sm
+                border-0">
+
+        <div class="card-header
+                    bg-white
+                    py-3">
+
+            <div class="d-flex
+                        justify-content-between
+                        align-items-center
+                        flex-wrap
+                        gap-2">
+
+                <div>
+
+                    <h5 class="fw-semibold
+                               mb-1">
+
+                        Receivables
+
+                    </h5>
+
+
+                    <div class="text-muted
+                                small">
+
+                        Invoice-wise Customer payment status
+                        and outstanding balance.
+
+                    </div>
+
+                </div>
+
+
+                <div class="text-muted
+                            small">
+
+                    Total Records:
+
+                    <span class="fw-semibold">
+                        @Model.TotalRecords
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table
+                              table-hover
+                              align-middle
+                              mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+
+                            <th class="text-center"
+                                style="width:55px;">
+
+                                #
+
+                            </th>
+
+
+                            <th style="min-width:210px;">
+
+                                Customer
+
+                            </th>
+
+
+                            <th style="min-width:170px;">
+
+                                Invoice No.
+
+                            </th>
+
+
+                            <th style="min-width:115px;">
+
+                                Invoice Date
+
+                            </th>
+
+
+                            <th style="min-width:115px;">
+
+                                Due Date
+
+                            </th>
+
+
+                            <th class="text-end"
+                                style="min-width:135px;">
+
+                                Invoice Amount
+
+                            </th>
+
+
+                            <th class="text-end"
+                                style="min-width:130px;">
+
+                                Received
+
+                            </th>
+
+
+                            <th class="text-end"
+                                style="min-width:135px;">
+
+                                Outstanding
+
+                            </th>
+
+
+                            <th class="text-center"
+                                style="min-width:130px;">
+
+                                Status
+
+                            </th>
+
+
+                            <th class="text-center"
+                                style="min-width:95px;">
+
+                                Age
+
+                            </th>
+
+
+                            <th class="text-center"
+                                style="min-width:110px;">
+
+                                Overdue
+
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @if (Model.Items.Count == 0)
+                        {
+                            <tr>
+
+                                <td colspan="11"
+                                    class="text-center
+                                               text-muted
+                                               py-5">
+
+                                    <i class="fa-solid
+                                                  fa-file-invoice-dollar
+                                                  fa-2x
+                                                  mb-2">
+                                    </i>
+
+
+                                    <div>
+
+                                        No Invoice records found
+                                        for the selected filters.
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+                        }
+                        else
+                        {
+                            var serialNumber =
+                            (
+                            (Model.PageNumber - 1)
+                            *
+                            Model.PageSize
+                            )
+                            + 1;
+
+
+                            foreach (var item
+                            in Model.Items)
+                            {
+                                <tr>
+
+                                    @* =========================
+                                       SERIAL
+                                       ========================= *@
+
+                                    <td class="text-center">
+
+                                        @serialNumber
+
+                                    </td>
+
+
+                                    @* =========================
+                                       CUSTOMER
+                                       ========================= *@
+
+                                    <td>
+
+                                        <div class="fw-semibold">
+
+                                            @item.CustomerName
+
+                                        </div>
+
+
+                                        @if (!string.IsNullOrWhiteSpace(
+                                                                        item.CustomerCode))
+                                        {
+                                            <div class="text-muted
+                                                                    small">
+
+                                                @item.CustomerCode
+
+                                            </div>
+                                        }
+
+                                    </td>
+
+
+                                    @* =========================
+                                       INVOICE
+                                       ========================= *@
+
+                                    <td>
+
+                                        <a asp-controller="Invoice"
+                                           asp-action="Details"
+                                           asp-route-id="@item.InvoiceId"
+                                           class="fw-semibold
+                                                          text-decoration-none">
+
+                                            @item.InvoiceCode
+
+                                        </a>
+
+                                    </td>
+
+
+                                    @* =========================
+                                       INVOICE DATE
+                                       ========================= *@
+
+                                    <td>
+
+                                        @(item.InvoiceDate
+                                        .ToString(
+                                        "dd-MM-yyyy"))
+
+                                    </td>
+
+
+                                    @* =========================
+                                       DUE DATE
+                                       ========================= *@
+
+                                    <td>
+
+                                        @if (item.DueDate.HasValue)
+                                        {
+                                @(item.DueDate.Value.ToString(
+                                                                "dd-MM-yyyy"))
+                                                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">
+                                                -
+                                            </span>
+                                        }
+
+                                    </td>
+
+
+                                    @* =========================
+                                       INVOICE AMOUNT
+                                       ========================= *@
+
+                                    <td class="text-end">
+
+                                        ₹ @(item.InvoiceAmount
+                                        .ToString("N2"))
+
+                                    </td>
+
+
+                                    @* =========================
+                                       RECEIVED
+                                       ========================= *@
+
+                                    <td class="text-end
+                                                       text-success">
+
+                                        ₹ @(item.ReceivedAmount
+                                        .ToString("N2"))
+
+                                    </td>
+
+
+                                    @* =========================
+                                       OUTSTANDING
+                                       ========================= *@
+
+                                    <td class="text-end
+                                                       fw-semibold">
+
+                                        @if (item.OutstandingAmount > 0)
+                                        {
+                                            <span class="text-danger">
+
+                                                ₹ @(item.OutstandingAmount
+                                                .ToString("N2"))
+
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-success">
+
+                                                ₹ 0.00
+
+                                            </span>
+                                        }
+
+                                    </td>
+
+
+                                    @* =========================
+                                       PAYMENT STATUS
+                                       ========================= *@
+
+                                    <td class="text-center">
+
+                                        @if (item.PaymentStatus ==
+                                                                        "Unpaid")
+                                        {
+                                            <span class="badge
+                                                                     bg-danger">
+
+                                                Unpaid
+
+                                            </span>
+                                        }
+                                        else if (item.PaymentStatus ==
+                                        "Partially Paid")
+                                        {
+                                            <span class="badge
+                                                                     bg-warning
+                                                                     text-dark">
+
+                                                Partially Paid
+
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge
+                                                                     bg-success">
+
+                                                Paid
+
+                                            </span>
+                                        }
+
+                                    </td>
+
+
+                                    @* =========================
+                                       AGE
+                                       ========================= *@
+
+                                    <td class="text-center">
+
+                                        <span class="fw-semibold">
+
+                                            @item.AgeDays
+
+                                        </span>
+
+                                        <span class="text-muted
+                                                             small">
+
+                                            day(s)
+
+                                        </span>
+
+                                    </td>
+
+
+                                    @* =========================
+                                       OVERDUE
+                                       ========================= *@
+
+                                    <td class="text-center">
+
+                                        @if (item.IsOverdue)
+                                        {
+                                            <span class="badge
+                                                                     bg-danger">
+
+                                                @item.OverdueDays day(s)
+
+                                            </span>
+                                        }
+                                        else if (item.OutstandingAmount > 0 &&
+                                        item.DueDate.HasValue)
+                                        {
+                                            <span class="badge
+                                                                     bg-light
+                                                                     text-dark
+                                                                     border">
+
+                                                Not Due
+
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">
+                                                -
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                </tr>
+
+
+                                serialNumber++;
+                            }
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+
+        @* =====================================================
+           REGION 6 — PAGINATION
+           ===================================================== *@
+
+        @if (Model.TotalPages > 1)
+        {
+            <div class="card-footer
+                            bg-white">
+
+                <div class="d-flex
+                                justify-content-between
+                                align-items-center
+                                flex-wrap
+                                gap-3">
+
+                    <div class="text-muted
+                                    small">
+
+                        Page
+
+                        <strong>
+                            @Model.PageNumber
+                        </strong>
+
+                        of
+
+                        <strong>
+                            @Model.TotalPages
+                        </strong>
+
+                    </div>
+
+
+                    <nav>
+
+                        <ul class="pagination
+                                       pagination-sm
+                                       mb-0">
+
+                            @* =================================
+                               PREVIOUS
+                               ================================= *@
+
+                            <li class="page-item
+                                           @(Model.HasPrevious
+                                                                           ? ""
+                                                                           : "disabled")">
+
+                            <a class="page-link"
+                               asp-action="Index"
+                               asp-route-customerId="@Model.CustomerId"
+                               asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                               asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                               asp-route-paymentStatus="@Model.PaymentStatus"
+                               asp-route-searchText="@Model.SearchText"
+                               asp-route-pageNumber="@(Model.PageNumber - 1)"
+                               asp-route-pageSize="@Model.PageSize">
+
+                                    Previous
+
+                                </a>
+
+                            </li>
+
+
+                            @* =================================
+                               PAGE NUMBERS
+                               ================================= *@
+
+                        @for (var pageNo = 1;
+                                                pageNo <= Model.TotalPages;
+                                                pageNo++)
+                            {
+                                if (
+                                pageNo == 1
+
+                                ||
+
+                                pageNo ==
+                                Model.TotalPages
+
+                                ||
+
+                                (
+                                pageNo >=
+                                Model.PageNumber - 2
+
+                                &&
+
+                                pageNo <=
+                                Model.PageNumber + 2
+                                )
+                                )
+                                {
+                                    <li class="page-item
+                                                           @(pageNo ==
+                                                                                         Model.PageNumber
+                                                                                           ? "active"
+                                                                                           : "")">
+
+                            <a class="page-link"
+                               asp-action="Index"
+                               asp-route-customerId="@Model.CustomerId"
+                               asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                               asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                               asp-route-paymentStatus="@Model.PaymentStatus"
+                               asp-route-searchText="@Model.SearchText"
+                               asp-route-pageNumber="@pageNo"
+                               asp-route-pageSize="@Model.PageSize">
+
+                                            @pageNo
+
+                                        </a>
+
+                                    </li>
+                                                }
+                                else if (
+                                pageNo ==
+                                Model.PageNumber - 3
+
+                                ||
+
+                                pageNo ==
+                                Model.PageNumber + 3
+                                )
+                                {
+                                    <li class="page-item
+                                                           disabled">
+
+                                        <span class="page-link">
+                                            ...
+                                        </span>
+
+                                    </li>
+                                }
+                            }
+
+
+                        @* =================================
+                               NEXT
+                               ================================= *@
+
+                        <li class="page-item
+                                       @(Model.HasNext
+                                                                       ? ""
+                                                                       : "disabled")">
+
+                            <a class="page-link"
+                               asp-action="Index"
+                               asp-route-customerId="@Model.CustomerId"
+                               asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                               asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                               asp-route-paymentStatus="@Model.PaymentStatus"
+                               asp-route-searchText="@Model.SearchText"
+                               asp-route-pageNumber="@(Model.PageNumber + 1)"
+                               asp-route-pageSize="@Model.PageSize">
+
+                                    Next
+
+                                </a>
+
+                            </li>
+
+                        </ul>
+
+                    </nav>
+
+                </div>
+
+            </div>
+                }
+
+    </div>
+
+</div>
