@@ -1,0 +1,712 @@
+﻿@model AjayIndustriesERP.Application.Common.PagedResult<AjayIndustriesERP.Domain.Entities.PurchaseInvoice>
+
+@using AjayIndustriesERP.Domain.Enums
+
+@{
+    ViewData["Title"] = "Purchase Invoices";
+
+    var searchText =
+        ViewBag.SearchText as string ?? "";
+
+    var pageSize =
+        ViewBag.PageSize != null
+            ? Convert.ToInt32(ViewBag.PageSize)
+            : 10;
+}
+
+
+@* =========================================================
+   MESSAGES
+   ========================================================= *@
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show"
+         role="alert">
+
+        @TempData["SuccessMessage"]
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+        </button>
+
+    </div>
+}
+
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show"
+         role="alert">
+
+        @TempData["ErrorMessage"]
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+        </button>
+
+    </div>
+}
+
+
+@* =========================================================
+   HEADER
+   ========================================================= *@
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Purchase Invoices
+        </h2>
+
+        <div class="text-muted">
+            Supplier bills recorded against received GRN material.
+        </div>
+
+    </div>
+
+
+    <div class="d-flex
+                flex-wrap
+                gap-2">
+
+        <a asp-action="Deleted"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid fa-trash-can-arrow-up me-1"></i>
+
+            Deleted
+
+        </a>
+
+
+        <a asp-action="Create"
+           class="btn btn-primary">
+
+            <i class="fa-solid fa-plus me-1"></i>
+
+            New Purchase Invoice
+
+        </a>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   SEARCH / FILTER
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-body">
+
+        <form asp-action="Index"
+              method="get">
+
+            <div class="row g-3 align-items-end">
+
+                <div class="col-xl-6 col-lg-6">
+
+                    <label class="form-label fw-semibold">
+                        Search
+                    </label>
+
+
+                    <input type="text"
+                           name="searchText"
+                           value="@searchText"
+                           class="form-control"
+                           placeholder="ERP Invoice No. / Supplier Invoice No. / Supplier / PO" />
+
+                </div>
+
+
+                <div class="col-xl-2 col-lg-2 col-md-4">
+
+                    <label class="form-label fw-semibold">
+                        Page Size
+                    </label>
+
+
+                    <select name="pageSize"
+                            class="form-select">
+
+                        @if (pageSize == 10)
+                        {
+                            <option value="10" selected>10</option>
+                        }
+                        else
+                        {
+                            <option value="10">10</option>
+                        }
+
+
+                        @if (pageSize == 25)
+                        {
+                            <option value="25" selected>25</option>
+                        }
+                        else
+                        {
+                            <option value="25">25</option>
+                        }
+
+
+                        @if (pageSize == 50)
+                        {
+                            <option value="50" selected>50</option>
+                        }
+                        else
+                        {
+                            <option value="50">50</option>
+                        }
+
+
+                        @if (pageSize == 100)
+                        {
+                            <option value="100" selected>100</option>
+                        }
+                        else
+                        {
+                            <option value="100">100</option>
+                        }
+
+                    </select>
+
+                </div>
+
+
+                <div class="col-xl-4 col-lg-4 col-md-8">
+
+                    <div class="d-flex gap-2">
+
+                        <button type="submit"
+                                class="btn btn-primary">
+
+                            <i class="fa-solid fa-magnifying-glass me-1"></i>
+
+                            Search
+
+                        </button>
+
+
+                        <a asp-action="Index"
+                           class="btn btn-outline-secondary">
+
+                            Clear
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   TABLE
+   ========================================================= *@
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th style="min-width:160px;">
+                            ERP Invoice
+                        </th>
+
+                        <th style="min-width:130px;">
+                            Date
+                        </th>
+
+                        <th style="min-width:190px;">
+                            Supplier Invoice
+                        </th>
+
+                        <th style="min-width:220px;">
+                            Supplier
+                        </th>
+
+                        <th style="min-width:160px;">
+                            Purchase Order
+                        </th>
+
+                        <th style="min-width:130px;">
+                            Due Date
+                        </th>
+
+                        <th class="text-end"
+                            style="min-width:150px;">
+                            Grand Total
+                        </th>
+
+                        <th class="text-center"
+                            style="min-width:110px;">
+                            Status
+                        </th>
+
+                        <th class="text-end"
+                            style="min-width:170px;">
+                            Actions
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model.Items == null ||
+                         Model.Items.Count == 0)
+                    {
+                        <tr>
+
+                            <td colspan="9"
+                                class="text-center
+                                       text-muted
+                                       py-5">
+
+                                <i class="fa-solid
+                                          fa-file-invoice
+                                          fa-2x
+                                          mb-3
+                                          d-block">
+                                </i>
+
+                                No Purchase Invoices found.
+
+                            </td>
+
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model.Items)
+                        {
+                            var isDraft =
+                                item.Status ==
+                                PurchaseInvoiceStatus.Draft;
+
+
+                            <tr>
+
+                                @* =============================
+                                   ERP INVOICE
+                                   ============================= *@
+
+                                <td>
+
+                                    <a asp-action="Details"
+                                       asp-route-id="@item.Id"
+                                       class="fw-semibold
+                                              text-decoration-none">
+
+                                        @item.Code
+
+                                    </a>
+
+                                </td>
+
+
+                                @* =============================
+                                   PURCHASE INVOICE DATE
+                                   ============================= *@
+
+                                <td>
+
+                                    @item.PurchaseInvoiceDate
+                                        .ToString("dd-MM-yyyy")
+
+                                </td>
+
+
+                                @* =============================
+                                   SUPPLIER INVOICE
+                                   ============================= *@
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        @item.SupplierInvoiceNumber
+                                    </div>
+
+
+                                    <div class="text-muted small">
+
+                                        @item.SupplierInvoiceDate
+                                            .ToString("dd-MM-yyyy")
+
+                                    </div>
+
+                                </td>
+
+
+                                @* =============================
+                                   SUPPLIER
+                                   ============================= *@
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        @item.SupplierName
+                                    </div>
+
+                                </td>
+
+
+                                @* =============================
+                                   PURCHASE ORDER
+                                   ============================= *@
+
+                                <td>
+
+                                    <a asp-controller="PurchaseOrder"
+                                       asp-action="Details"
+                                       asp-route-id="@item.PurchaseOrderId"
+                                       class="text-decoration-none">
+
+                                        @item.PurchaseOrderCode
+
+                                    </a>
+
+                                </td>
+
+
+                                @* =============================
+                                   DUE DATE
+                                   ============================= *@
+
+                                <td>
+
+                                    @if (item.DueDate.HasValue)
+                                    {
+                                        @(item.DueDate.Value.ToString("dd-MM-yyyy"))
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =============================
+                                   GRAND TOTAL
+                                   ============================= *@
+
+                                <td class="text-end fw-semibold">
+
+                                    ₹ @item.GrandTotal.ToString("N2")
+
+                                </td>
+
+
+                                @* =============================
+                                   STATUS
+                                   ============================= *@
+
+                                <td class="text-center">
+
+                                    @if (isDraft)
+                                    {
+                                        <span class="badge bg-warning text-dark">
+
+                                            Draft
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">
+
+                                            Finalized
+
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =============================
+                                   ACTIONS
+                                   ============================= *@
+
+                                <td>
+
+                                    <div class="d-flex
+                                                justify-content-end
+                                                gap-1">
+
+                                        <a asp-action="Details"
+                                           asp-route-id="@item.Id"
+                                           class="btn
+                                                  btn-sm
+                                                  btn-outline-secondary"
+                                           title="Details">
+
+                                            <i class="fa-solid fa-eye"></i>
+
+                                        </a>
+
+
+                                        @if (isDraft)
+                                        {
+                                            <a asp-action="Edit"
+                                               asp-route-id="@item.Id"
+                                               class="btn
+                                                      btn-sm
+                                                      btn-outline-primary"
+                                               title="Edit">
+
+                                                <i class="fa-solid fa-pen-to-square"></i>
+
+                                            </a>
+                                        }
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       PAGINATION FOOTER
+       ===================================================== *@
+
+    @if (Model.TotalRecords > 0)
+    {
+        <div class="card-footer bg-white py-3">
+
+            <div class="d-flex
+                        justify-content-between
+                        align-items-center
+                        flex-wrap
+                        gap-3">
+
+                <div class="text-muted small">
+
+                    Showing page
+
+                    <strong>
+                        @Model.PageNumber
+                    </strong>
+
+                    of
+
+                    <strong>
+                        @Model.TotalPages
+                    </strong>
+
+                    &nbsp;•&nbsp;
+
+                    Total Records:
+
+                    <strong>
+                        @Model.TotalRecords
+                    </strong>
+
+                </div>
+
+
+                @if (Model.TotalPages > 1)
+                {
+                    <nav>
+
+                        <ul class="pagination pagination-sm mb-0">
+
+                            @* =============================
+                               PREVIOUS
+                               ============================= *@
+
+                            <li class="page-item
+                                @(Model.HasPrevious
+                                    ? ""
+                                    : "disabled")">
+
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-searchText="@searchText"
+                                   asp-route-pageSize="@pageSize"
+                                   asp-route-pageNumber="@(Model.PageNumber - 1)">
+
+                                    Previous
+
+                                </a>
+
+                            </li>
+
+
+                            @* =============================
+                               PAGE NUMBERS
+                               ============================= *@
+
+                            @{
+                                var startPage =
+                                    Math.Max(
+                                        1,
+                                        Model.PageNumber - 2);
+
+                                var endPage =
+                                    Math.Min(
+                                        Model.TotalPages,
+                                        Model.PageNumber + 2);
+                            }
+
+
+                            @if (startPage > 1)
+                            {
+                                <li class="page-item">
+
+                                    <a class="page-link"
+                                       asp-action="Index"
+                                       asp-route-searchText="@searchText"
+                                       asp-route-pageSize="@pageSize"
+                                       asp-route-pageNumber="1">
+
+                                        1
+
+                                    </a>
+
+                                </li>
+
+
+                                @if (startPage > 2)
+                                {
+                                    <li class="page-item disabled">
+
+                                        <span class="page-link">
+                                            ...
+                                        </span>
+
+                                    </li>
+                                }
+                            }
+
+
+                            @for (var pageNo = startPage;
+                                                pageNo <= endPage;
+                                                pageNo++)
+                            {
+                                <li class="page-item
+                    @(pageNo == Model.PageNumber
+                                                ? "active"
+                                                : "")">
+
+                        <a class="page-link"
+                           asp-action="Index"
+                           asp-route-searchText="@searchText"
+                           asp-route-pageSize="@pageSize"
+                           asp-route-pageNumber="@pageNo">
+
+                                        @pageNo
+
+                                    </a>
+
+                                </li>
+                                        }
+
+                            @if (endPage < Model.TotalPages)
+                            {
+                                @if (endPage <
+                                     Model.TotalPages - 1)
+                                {
+                                    <li class="page-item disabled">
+
+                                        <span class="page-link">
+                                            ...
+                                        </span>
+
+                                    </li>
+                                }
+
+
+                                <li class="page-item">
+
+                                    <a class="page-link"
+                                       asp-action="Index"
+                                       asp-route-searchText="@searchText"
+                                       asp-route-pageSize="@pageSize"
+                                       asp-route-pageNumber="@Model.TotalPages">
+
+                                        @Model.TotalPages
+
+                                    </a>
+
+                                </li>
+                            }
+
+
+                            @* =============================
+                               NEXT
+                               ============================= *@
+
+                            <li class="page-item
+                                @(Model.HasNext
+                                    ? ""
+                                    : "disabled")">
+
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-searchText="@searchText"
+                                   asp-route-pageSize="@pageSize"
+                                   asp-route-pageNumber="@(Model.PageNumber + 1)">
+
+                                    Next
+
+                                </a>
+
+                            </li>
+
+                        </ul>
+
+                    </nav>
+                }
+
+            </div>
+
+        </div>
+    }
+
+</div>

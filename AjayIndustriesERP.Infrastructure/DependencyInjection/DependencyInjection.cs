@@ -355,6 +355,14 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
     ICustomerOutstandingReportService,
     CustomerOutstandingReportService>();
 
+
+            services.AddScoped<
+    IPurchaseInvoiceRepository,
+    PurchaseInvoiceRepository>();
+
+            services.AddScoped<
+    IPurchaseInvoiceService,
+    PurchaseInvoiceService>();
             return services;
         }
     }

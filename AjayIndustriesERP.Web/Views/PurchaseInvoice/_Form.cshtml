@@ -1,0 +1,1438 @@
+﻿@model AjayIndustriesERP.Web.ViewModels.PurchaseInvoice.PurchaseInvoiceFormViewModel
+
+@{
+    var isEdit = Model.Id > 0;
+}
+
+<input asp-for="Id"
+       type="hidden" />
+
+<input asp-for="Code"
+       type="hidden" />
+
+
+@* =========================================================
+   VALIDATION
+   ========================================================= *@
+
+<div asp-validation-summary="ModelOnly"
+     class="alert alert-danger mb-4">
+</div>
+
+
+@* =========================================================
+   PURCHASE ORDER / SUPPLIER INVOICE
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-white py-3">
+
+        <h5 class="fw-semibold mb-0">
+
+            <i class="fa-solid fa-file-invoice me-2"></i>
+
+            Purchase Invoice Information
+
+        </h5>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            @* =============================================
+               PURCHASE ORDER
+               ============================================= *@
+
+            <div class="col-xl-4 col-lg-6">
+
+                <label class="form-label fw-semibold">
+
+                    Purchase Order
+
+                    <span class="text-danger">*</span>
+
+                </label>
+
+
+                @if (isEdit)
+                {
+                    <input asp-for="PurchaseOrderId"
+                           type="hidden" />
+
+                    <input type="text"
+                           class="form-control"
+                           value="@Model.PurchaseOrderCode"
+                           readonly />
+                }
+                else
+                {
+                    <select asp-for="PurchaseOrderId"
+                            asp-items="Model.AvailablePurchaseOrders"
+                            id="purchaseOrderSelector"
+                            class="form-select"
+                            data-create-url="@Url.Action("Create", "PurchaseInvoice")">
+                    </select>
+                }
+
+
+                <span asp-validation-for="PurchaseOrderId"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            @* =============================================
+               INTERNAL PURCHASE INVOICE DATE
+               ============================================= *@
+
+            <div class="col-xl-2 col-lg-3 col-md-6">
+
+                <label asp-for="PurchaseInvoiceDate"
+                       class="form-label fw-semibold">
+                </label>
+
+                <span class="text-danger">*</span>
+
+
+                <input asp-for="PurchaseInvoiceDate"
+                       type="date"
+                       class="form-control" />
+
+
+                <span asp-validation-for="PurchaseInvoiceDate"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            @* =============================================
+               SUPPLIER INVOICE NUMBER
+               ============================================= *@
+
+            <div class="col-xl-3 col-lg-6">
+
+                <label asp-for="SupplierInvoiceNumber"
+                       class="form-label fw-semibold">
+                </label>
+
+                <span class="text-danger">*</span>
+
+
+                <input asp-for="SupplierInvoiceNumber"
+                       class="form-control"
+                       placeholder="Supplier Invoice / Bill No." />
+
+
+                <span asp-validation-for="SupplierInvoiceNumber"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            @* =============================================
+               SUPPLIER INVOICE DATE
+               ============================================= *@
+
+            <div class="col-xl-3 col-lg-3 col-md-6">
+
+                <label asp-for="SupplierInvoiceDate"
+                       class="form-label fw-semibold">
+                </label>
+
+                <span class="text-danger">*</span>
+
+
+                <input asp-for="SupplierInvoiceDate"
+                       type="date"
+                       id="supplierInvoiceDate"
+                       class="form-control"
+                       data-credit-days="@(Model.CreditDays?.ToString() ?? "")" />
+
+
+                <span asp-validation-for="SupplierInvoiceDate"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@if (Model.PurchaseOrderId > 0)
+{
+    @* =====================================================
+       SUPPLIER + COMPANY INFORMATION
+       ===================================================== *@
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-white py-3">
+
+            <h5 class="fw-semibold mb-0">
+
+                <i class="fa-solid fa-building me-2"></i>
+
+                Supplier & Company Information
+
+            </h5>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="row g-4">
+
+                @* =========================================
+                   SUPPLIER
+                   ========================================= *@
+
+                <div class="col-lg-6">
+
+                    <div class="border rounded p-3 h-100">
+
+                        <div class="fw-bold mb-3">
+
+                            Supplier
+
+                        </div>
+
+
+                        <div class="row g-3">
+
+                            <div class="col-md-8">
+
+                                <div class="text-muted small">
+                                    Supplier Name
+                                </div>
+
+                                <div class="fw-semibold">
+                                    @Model.SupplierName
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-4">
+
+                                <div class="text-muted small">
+                                    Supplier Code
+                                </div>
+
+                                <div class="fw-semibold">
+                                    @(string.IsNullOrWhiteSpace(Model.SupplierCode)
+                                        ? "-"
+                                        : Model.SupplierCode)
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <div class="text-muted small">
+                                    GSTIN
+                                </div>
+
+                                <div>
+                                    @(string.IsNullOrWhiteSpace(Model.SupplierGstin)
+                                        ? "-"
+                                        : Model.SupplierGstin)
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <div class="text-muted small">
+                                    State
+                                </div>
+
+                                <div>
+                                    @(string.IsNullOrWhiteSpace(Model.SupplierState)
+                                        ? "-"
+                                        : Model.SupplierState)
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-12">
+
+                                <div class="text-muted small">
+                                    Address
+                                </div>
+
+                                <div>
+                                    @(string.IsNullOrWhiteSpace(Model.SupplierAddress)
+                                        ? "-"
+                                        : Model.SupplierAddress)
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                @* =========================================
+                   COMPANY
+                   ========================================= *@
+
+                <div class="col-lg-6">
+
+                    <div class="border rounded p-3 h-100">
+
+                        <div class="fw-bold mb-3">
+
+                            Company / Workshop
+
+                        </div>
+
+
+                        <div class="row g-3">
+
+                            <div class="col-md-8">
+
+                                <div class="text-muted small">
+                                    Company Name
+                                </div>
+
+                                <div class="fw-semibold">
+                                    @Model.CompanyName
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-4">
+
+                                <div class="text-muted small">
+                                    GST Type
+                                </div>
+
+                                <div class="fw-semibold">
+
+                                    @if (Model.IsInterState)
+                                    {
+                                        <span class="badge bg-primary">
+                                            IGST
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">
+                                            CGST + SGST
+                                        </span>
+                                    }
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <div class="text-muted small">
+                                    GSTIN
+                                </div>
+
+                                <div>
+                                    @(string.IsNullOrWhiteSpace(Model.CompanyGstin)
+                                        ? "-"
+                                        : Model.CompanyGstin)
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <div class="text-muted small">
+                                    State
+                                </div>
+
+                                <div>
+                                    @(string.IsNullOrWhiteSpace(Model.CompanyState)
+                                        ? "-"
+                                        : Model.CompanyState)
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <div class="text-muted small">
+                                    Place of Supply
+                                </div>
+
+                                <div>
+                                    @(string.IsNullOrWhiteSpace(Model.PlaceOfSupply)
+                                        ? "-"
+                                        : Model.PlaceOfSupply)
+                                </div>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <div class="text-muted small">
+                                    Payment Terms
+                                </div>
+
+                                <div>
+                                    @(string.IsNullOrWhiteSpace(Model.PaymentTerms)
+                                        ? "-"
+                                        : Model.PaymentTerms)
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            @* =============================================
+               PAYMENT TERMS
+               ============================================= *@
+
+            <hr class="my-4" />
+
+
+            <div class="row g-3">
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label class="form-label fw-semibold">
+                        Payment Terms
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@Model.PaymentTerms"
+                           readonly />
+
+                </div>
+
+
+                <div class="col-lg-2 col-md-3">
+
+                    <label class="form-label fw-semibold">
+                        Credit Days
+                    </label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@(Model.CreditDays?.ToString() ?? "-")"
+                           readonly />
+
+                </div>
+
+
+                <div class="col-lg-3 col-md-3">
+
+                    <label class="form-label fw-semibold">
+                        Due Date
+                    </label>
+
+                    <input type="date"
+                           id="dueDateDisplay"
+                           class="form-control"
+                           value="@Model.DueDate?.ToString("yyyy-MM-dd")"
+                           readonly />
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       GRN RECEIVED ITEMS
+       ===================================================== *@
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-white py-3">
+
+            <div class="d-flex
+                        justify-content-between
+                        align-items-center
+                        flex-wrap
+                        gap-2">
+
+                <div>
+
+                    <h5 class="fw-semibold mb-1">
+
+                        <i class="fa-solid fa-boxes-stacked me-2"></i>
+
+                        Received Material / GRN Lines
+
+                    </h5>
+
+                    <div class="text-muted small">
+
+                        Select only the received lines included
+                        in this Supplier Invoice.
+
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <button type="button"
+                            id="selectAllPurchaseInvoiceItems"
+                            class="btn btn-sm btn-outline-primary">
+
+                        Select All
+
+                    </button>
+
+
+                    <button type="button"
+                            id="clearAllPurchaseInvoiceItems"
+                            class="btn btn-sm btn-outline-secondary">
+
+                        Clear
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table
+                              table-hover
+                              align-middle
+                              mb-0"
+                       id="purchaseInvoiceItemsTable">
+
+                    <thead class="table-light">
+
+                        <tr>
+
+                            <th class="text-center"
+                                style="width:55px;">
+                                Use
+                            </th>
+
+                            <th style="min-width:125px;">
+                                GRN
+                            </th>
+
+                            <th style="min-width:130px;">
+                                Challan
+                            </th>
+
+                            <th style="min-width:240px;">
+                                Item
+                            </th>
+
+                            <th style="min-width:110px;">
+                                HSN
+                            </th>
+
+                            <th class="text-end"
+                                style="min-width:105px;">
+                                Received
+                            </th>
+
+                            <th class="text-end"
+                                style="min-width:105px;">
+                                Already Billed
+                            </th>
+
+                            <th class="text-end"
+                                style="min-width:105px;">
+                                Available
+                            </th>
+
+                            <th style="min-width:145px;">
+                                Invoice Qty
+                            </th>
+
+                            <th class="text-end"
+                                style="min-width:105px;">
+                                Rate
+                            </th>
+
+                            <th class="text-end"
+                                style="min-width:85px;">
+                                GST %
+                            </th>
+
+                            <th class="text-end"
+                                style="min-width:130px;">
+                                Taxable
+                            </th>
+
+                            <th class="text-end"
+                                style="min-width:130px;">
+                                Line Total
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @if (Model.Items.Count == 0)
+                        {
+                            <tr>
+
+                                <td colspan="13"
+                                    class="text-center
+                                           text-muted
+                                           py-5">
+
+                                    No received GRN quantity is
+                                    available for Purchase Invoice.
+
+                                </td>
+
+                            </tr>
+                        }
+                        else
+                        {
+                            for (var i = 0;
+                                 i < Model.Items.Count;
+                                 i++)
+                            {
+                                var item =
+                                    Model.Items[i];
+
+
+                                <tr class="purchase-invoice-item-row"
+    data-index="@i"
+    data-gst-rate="@item.GstRate"
+    data-available-quantity="@item.AvailableQuantity">
+
+                                    @* =========================
+                                       HIDDEN POST VALUES
+                                       ========================= *@
+
+                                    <input asp-for="Items[i].Id"
+                                           type="hidden" />
+
+                                    <input asp-for="Items[i].SequenceNumber"
+                                           type="hidden" />
+
+                                    <input asp-for="Items[i].GoodsReceiptNoteItemId"
+                                           type="hidden" />
+
+
+                                    @* =========================
+                                       SELECT
+                                       ========================= *@
+
+                                    <td class="text-center">
+
+                                        <div class="form-check
+                                                    d-flex
+                                                    justify-content-center">
+
+                                            <input asp-for="Items[i].IsSelected"
+                                                   class="form-check-input
+                                                          purchase-item-selector"
+                                                   type="checkbox" />
+
+                                        </div>
+
+                                    </td>
+
+
+                                    @* =========================
+                                       GRN
+                                       ========================= *@
+
+                                    <td>
+
+                                        <div class="fw-semibold">
+                                            @item.GoodsReceiptNoteCode
+                                        </div>
+
+
+                                        @if (item.GoodsReceiptNoteDate.HasValue)
+                                        {
+                                            <div class="text-muted small">
+
+                                                @item.GoodsReceiptNoteDate.Value
+                                                    .ToString("dd-MM-yyyy")
+
+                                            </div>
+                                        }
+
+
+                                        @if (!string.IsNullOrWhiteSpace(
+                                            item.MaterialStatus))
+                                        {
+                                            <div class="mt-1">
+
+                                                @if (item.MaterialStatus ==
+                                                     "Approved")
+                                                {
+                                                    <span class="badge bg-success">
+                                                        Approved
+                                                    </span>
+                                                }
+                                                else if (item.MaterialStatus ==
+                                                         "Rejected")
+                                                {
+                                                    <span class="badge bg-danger">
+                                                        Rejected
+                                                    </span>
+                                                }
+                                                else if (item.MaterialStatus ==
+                                                         "Failure")
+                                                {
+                                                    <span class="badge bg-warning text-dark">
+                                                        Failure
+                                                    </span>
+                                                }
+                                                else if (item.MaterialStatus ==
+                                                         "Return")
+                                                {
+                                                    <span class="badge bg-secondary">
+                                                        Return
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-light
+                                                                 text-dark
+                                                                 border">
+
+                                                        @item.MaterialStatus
+
+                                                    </span>
+                                                }
+
+                                            </div>
+                                        }
+
+                                    </td>
+
+
+                                    @* =========================
+                                       SUPPLIER CHALLAN
+                                       ========================= *@
+
+                                    <td>
+
+                                        @if (!string.IsNullOrWhiteSpace(
+                                            item.SupplierChallanNumber))
+                                        {
+                                            <div class="fw-semibold">
+                                                @item.SupplierChallanNumber
+                                            </div>
+
+
+                                            @if (item.SupplierChallanDate.HasValue)
+                                            {
+                                                <div class="text-muted small">
+
+                                                    @item.SupplierChallanDate.Value
+                                                        .ToString("dd-MM-yyyy")
+
+                                                </div>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">
+                                                -
+                                            </span>
+                                        }
+
+                                    </td>
+
+
+                                    @* =========================
+                                       ITEM
+                                       ========================= *@
+
+                                    <td>
+
+                                        <div class="fw-semibold">
+                                            @item.ItemName
+                                        </div>
+
+
+                                        <div class="text-muted small">
+                                            @item.ItemCode
+                                        </div>
+
+
+                                        @if (!string.IsNullOrWhiteSpace(
+                                            item.Specification))
+                                        {
+                                            <div class="small mt-1">
+
+                                                <span class="text-muted">
+                                                    Spec:
+                                                </span>
+
+                                                @item.Specification
+
+                                            </div>
+                                        }
+
+
+                                        @if (!string.IsNullOrWhiteSpace(
+                                            item.DrawingNumber))
+                                        {
+                                            <div class="small">
+
+                                                <span class="text-muted">
+                                                    Drawing:
+                                                </span>
+
+                                                @item.DrawingNumber
+
+                                                @if (!string.IsNullOrWhiteSpace(
+                                                    item.DrawingRevision))
+                                                {
+                                                    <span>
+                                                        / Rev:
+                                                        @item.DrawingRevision
+                                                    </span>
+                                                }
+
+                                            </div>
+                                        }
+
+                                    </td>
+
+
+                                    @* =========================
+                                       HSN
+                                       ========================= *@
+
+                                    <td>
+
+                                        @(string.IsNullOrWhiteSpace(
+                                            item.HsnCode)
+                                            ? "-"
+                                            : item.HsnCode)
+
+                                    </td>
+
+
+                                    @* =========================
+                                       RECEIVED
+                                       ========================= *@
+
+                                    <td class="text-end">
+
+                                        @item.GoodsReceiptQuantity
+                                            .ToString("N3")
+
+                                        <div class="text-muted small">
+                                            @item.UnitName
+                                        </div>
+
+                                    </td>
+
+
+                                    @* =========================
+                                       ALREADY BILLED
+                                       ========================= *@
+
+                                    <td class="text-end">
+
+                                        @item.AlreadyBilledQuantity
+                                            .ToString("N3")
+
+                                    </td>
+
+
+                                    @* =========================
+                                       AVAILABLE
+                                       ========================= *@
+
+                                    <td class="text-end">
+
+                                        <span class="fw-semibold
+                                                     text-success">
+
+                                            @item.AvailableQuantity
+                                                .ToString("N3")
+
+                                        </span>
+
+                                    </td>
+
+
+                                    @* =========================
+                                       INVOICE QUANTITY
+                                       ========================= *@
+
+                                    <td>
+
+                                        <input asp-for="Items[i].PurchaseInvoiceQuantity"
+                                               type="number"
+                                               step="0.001"
+                                               min="0"
+                                               max="@item.AvailableQuantity"
+                                               class="form-control
+                                                      text-end
+                                                      purchase-invoice-quantity" />
+
+
+                                        <span asp-validation-for="Items[i].PurchaseInvoiceQuantity"
+                                              class="text-danger small">
+                                        </span>
+
+                                    </td>
+
+
+                                    @* =========================
+   RATE
+   ========================= *@
+
+<td>
+
+    <div class="input-group input-group-sm">
+
+        <span class="input-group-text">
+            ₹
+        </span>
+
+        <input asp-for="Items[i].Rate"
+               type="number"
+               step="0.01"
+               min="0"
+               class="form-control
+                      text-end
+                      purchase-invoice-rate"
+               placeholder="0.00" />
+
+    </div>
+
+    <span asp-validation-for="Items[i].Rate"
+          class="text-danger small">
+    </span>
+
+</td>
+
+
+                                    @* =========================
+                                       GST
+                                       ========================= *@
+
+                                    <td class="text-end">
+
+                                        @item.GstRate
+                                            .ToString("N2")
+
+                                    </td>
+
+
+                                    @* =========================
+                                       TAXABLE
+                                       ========================= *@
+
+                                    <td class="text-end">
+
+                                        ₹
+                                        <span class="purchase-row-taxable">
+
+                                            @item.TaxableAmount
+                                                .ToString("N2")
+
+                                        </span>
+
+                                    </td>
+
+
+                                    @* =========================
+                                       LINE TOTAL
+                                       ========================= *@
+
+                                    <td class="text-end fw-semibold">
+
+                                        ₹
+                                        <span class="purchase-row-total">
+
+                                            @item.LineTotal
+                                                .ToString("N2")
+
+                                        </span>
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       CHARGES / TOTALS
+       ===================================================== *@
+
+    <div class="row g-4 mb-4">
+
+        @* =============================================
+           REMARKS / CHARGES
+           ============================================= *@
+
+        <div class="col-xl-7">
+
+            <div class="card shadow-sm border-0 h-100">
+
+                <div class="card-header bg-white py-3">
+
+                    <h5 class="fw-semibold mb-0">
+
+                        Additional Information
+
+                    </h5>
+
+                </div>
+
+
+                <div class="card-body">
+
+                    <div class="row g-3">
+
+                        <div class="col-md-4">
+
+                            <label asp-for="TransportCharges"
+                                   class="form-label fw-semibold">
+                            </label>
+
+
+                            <input asp-for="TransportCharges"
+                                   type="number"
+                                   step="0.01"
+                                   min="0"
+                                   id="transportCharges"
+                                   class="form-control text-end" />
+
+
+                            <span asp-validation-for="TransportCharges"
+                                  class="text-danger small">
+                            </span>
+
+                        </div>
+
+
+                        <div class="col-md-4">
+
+                            <label asp-for="OtherCharges"
+                                   class="form-label fw-semibold">
+                            </label>
+
+
+                            <input asp-for="OtherCharges"
+                                   type="number"
+                                   step="0.01"
+                                   min="0"
+                                   id="otherCharges"
+                                   class="form-control text-end" />
+
+
+                            <span asp-validation-for="OtherCharges"
+                                  class="text-danger small">
+                            </span>
+
+                        </div>
+
+
+                        <div class="col-md-4">
+
+                            <label asp-for="RoundOffAmount"
+                                   class="form-label fw-semibold">
+                            </label>
+
+
+                            <input asp-for="RoundOffAmount"
+                                   type="number"
+                                   step="0.01"
+                                   id="roundOffAmount"
+                                   class="form-control text-end" />
+
+                        </div>
+
+
+                        <div class="col-12">
+
+                            <label asp-for="Remarks"
+                                   class="form-label fw-semibold">
+                            </label>
+
+
+                            <textarea asp-for="Remarks"
+                                      rows="4"
+                                      class="form-control"
+                                      placeholder="Optional remarks">
+                            </textarea>
+
+
+                            <span asp-validation-for="Remarks"
+                                  class="text-danger small">
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        @* =============================================
+           TOTALS
+           ============================================= *@
+
+        <div class="col-xl-5">
+
+            <div class="card shadow-sm border-0 h-100">
+
+                <div class="card-header bg-white py-3">
+
+                    <h5 class="fw-semibold mb-0">
+
+                        Invoice Summary
+
+                    </h5>
+
+                </div>
+
+
+                <div class="card-body">
+
+                    <table class="table
+                                  table-sm
+                                  align-middle
+                                  mb-0">
+
+                        <tbody>
+
+                            <tr>
+
+                                <td>
+                                    Gross Amount
+                                </td>
+
+                                <td class="text-end fw-semibold">
+
+                                    ₹
+                                    <span id="purchaseGrossAmount">
+                                        @Model.GrossAmount.ToString("N2")
+                                    </span>
+
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <td>
+                                    Taxable Amount
+                                </td>
+
+                                <td class="text-end fw-semibold">
+
+                                    ₹
+                                    <span id="purchaseTaxableAmount">
+                                        @Model.TaxableAmount.ToString("N2")
+                                    </span>
+
+                                </td>
+
+                            </tr>
+
+
+                            @if (Model.IsInterState)
+                            {
+                                <tr>
+
+                                    <td>
+                                        IGST
+                                    </td>
+
+                                    <td class="text-end">
+
+                                        ₹
+                                        <span id="purchaseIgstAmount">
+                                            @Model.IgstAmount.ToString("N2")
+                                        </span>
+
+                                    </td>
+
+                                </tr>
+                            }
+                            else
+                            {
+                                <tr>
+
+                                    <td>
+                                        CGST
+                                    </td>
+
+                                    <td class="text-end">
+
+                                        ₹
+                                        <span id="purchaseCgstAmount">
+                                            @Model.CgstAmount.ToString("N2")
+                                        </span>
+
+                                    </td>
+
+                                </tr>
+
+
+                                <tr>
+
+                                    <td>
+                                        SGST
+                                    </td>
+
+                                    <td class="text-end">
+
+                                        ₹
+                                        <span id="purchaseSgstAmount">
+                                            @Model.SgstAmount.ToString("N2")
+                                        </span>
+
+                                    </td>
+
+                                </tr>
+                            }
+
+
+                            <tr>
+
+                                <td>
+                                    Transport Charges
+                                </td>
+
+                                <td class="text-end">
+
+                                    ₹
+                                    <span id="purchaseTransportSummary">
+                                        @Model.TransportCharges.ToString("N2")
+                                    </span>
+
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <td>
+                                    Other Charges
+                                </td>
+
+                                <td class="text-end">
+
+                                    ₹
+                                    <span id="purchaseOtherSummary">
+                                        @Model.OtherCharges.ToString("N2")
+                                    </span>
+
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <td>
+                                    Round Off
+                                </td>
+
+                                <td class="text-end">
+
+                                    ₹
+                                    <span id="purchaseRoundOffSummary">
+                                        @Model.RoundOffAmount.ToString("N2")
+                                    </span>
+
+                                </td>
+
+                            </tr>
+
+
+                            <tr class="border-top">
+
+                                <td class="fs-5 fw-bold pt-3">
+
+                                    Grand Total
+
+                                </td>
+
+                                <td class="text-end
+                                           fs-5
+                                           fw-bold
+                                           text-primary
+                                           pt-3">
+
+                                    ₹
+                                    <span id="purchaseGrandTotal">
+                                        @Model.GrandTotal.ToString("N2")
+                                    </span>
+
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       ACTIONS
+       ===================================================== *@
+
+    <div class="d-flex
+                justify-content-end
+                gap-2
+                mb-4">
+
+        @if (isEdit)
+        {
+            <a asp-action="Details"
+               asp-route-id="@Model.Id"
+               class="btn btn-outline-secondary">
+
+                Cancel
+
+            </a>
+
+
+            <button type="submit"
+                    class="btn btn-primary px-4">
+
+                <i class="fa-solid fa-floppy-disk me-1"></i>
+
+                Update Draft
+
+            </button>
+        }
+        else
+        {
+            <a asp-action="Index"
+               class="btn btn-outline-secondary">
+
+                Cancel
+
+            </a>
+
+
+            <button type="submit"
+                    class="btn btn-primary px-4"
+                    @(Model.PurchaseOrderId <= 0 ||
+                      Model.Items.Count == 0
+                        ? "disabled"
+                        : null)>
+
+                <i class="fa-solid fa-floppy-disk me-1"></i>
+
+                Create Purchase Invoice
+
+            </button>
+        }
+
+    </div>
+}
+else
+{
+    @* =====================================================
+       NO PO SELECTED
+       ===================================================== *@
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-body
+                    text-center
+                    py-5">
+
+            <i class="fa-solid
+                      fa-file-circle-plus
+                      fa-3x
+                      text-muted
+                      mb-3">
+            </i>
+
+
+            <h5 class="fw-semibold">
+
+                Select a Purchase Order
+
+            </h5>
+
+
+            <p class="text-muted mb-0">
+
+                Select a Purchase Order having received GRN
+                quantity to prepare the Purchase Invoice.
+
+            </p>
+
+        </div>
+
+    </div>
+}
