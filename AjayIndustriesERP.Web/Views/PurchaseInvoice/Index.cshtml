@@ -3,8 +3,7 @@
 @using AjayIndustriesERP.Domain.Enums
 
 @{
-    ViewData["Title"] =
-        "Purchase Invoices";
+    ViewData["Title"] = "Purchase Invoices";
 
     var searchText =
         ViewBag.SearchText as string
@@ -71,17 +70,13 @@
         </h2>
 
         <div class="text-muted">
-
             Supplier bills recorded against received GRN material.
-
         </div>
 
     </div>
 
 
-    <div class="d-flex
-                flex-wrap
-                gap-2">
+    <div class="d-flex flex-wrap gap-2">
 
         <a asp-action="Deleted"
            class="btn btn-outline-secondary">
@@ -108,25 +103,33 @@
 
 
 @* =========================================================
-   SEARCH / PAGE SIZE
+   COMPACT SEARCH
    ========================================================= *@
 
 <div class="card shadow-sm border-0 mb-4">
 
-    <div class="card-body">
+    <div class="card-body py-3">
 
         <form asp-action="Index"
               method="get">
 
-            <div class="row
-                        g-3
-                        align-items-end">
+            @* Preserve current Page Size while searching *@
+
+            <input type="hidden"
+                   name="pageSize"
+                   value="@pageSize" />
+
+
+            <div class="d-flex
+                        align-items-end
+                        flex-wrap
+                        gap-2">
 
                 @* =================================================
-                   SEARCH
+                   SEARCH BOX
                    ================================================= *@
 
-                <div class="col-xl-6 col-lg-6">
+                <div style="width: 420px; max-width: 100%;">
 
                     <label class="form-label fw-semibold">
                         Search
@@ -137,115 +140,43 @@
                            name="searchText"
                            value="@searchText"
                            class="form-control"
-                           placeholder="ERP Invoice No. / Supplier Invoice No. / Supplier / PO" />
+                           placeholder="Invoice No. / Supplier / PO / Date" />
 
                 </div>
 
 
                 @* =================================================
-                   PAGE SIZE
+                   SEARCH BUTTON
                    ================================================= *@
 
-                <div class="col-xl-2 col-lg-2 col-md-4">
+                <div>
 
-                    <label class="form-label fw-semibold">
-                        Page Size
-                    </label>
+                    <button type="submit"
+                            class="btn btn-primary">
 
+                        <i class="fa-solid fa-magnifying-glass me-1"></i>
 
-                    <select name="pageSize"
-                            class="form-select">
+                        Search
 
-                        @if (pageSize == 10)
-                        {
-                            <option value="10"
-                                    selected>
-                                10
-                            </option>
-                        }
-                        else
-                        {
-                            <option value="10">
-                                10
-                            </option>
-                        }
-
-
-                        @if (pageSize == 25)
-                        {
-                            <option value="25"
-                                    selected>
-                                25
-                            </option>
-                        }
-                        else
-                        {
-                            <option value="25">
-                                25
-                            </option>
-                        }
-
-
-                        @if (pageSize == 50)
-                        {
-                            <option value="50"
-                                    selected>
-                                50
-                            </option>
-                        }
-                        else
-                        {
-                            <option value="50">
-                                50
-                            </option>
-                        }
-
-
-                        @if (pageSize == 100)
-                        {
-                            <option value="100"
-                                    selected>
-                                100
-                            </option>
-                        }
-                        else
-                        {
-                            <option value="100">
-                                100
-                            </option>
-                        }
-
-                    </select>
+                    </button>
 
                 </div>
 
 
                 @* =================================================
-                   SEARCH BUTTONS
+                   CLEAR BUTTON
                    ================================================= *@
 
-                <div class="col-xl-4 col-lg-4 col-md-8">
+                <div>
 
-                    <div class="d-flex gap-2">
+                    <a asp-action="Index"
+                       asp-route-pageSize="@pageSize"
+                       class="btn btn-outline-secondary"
+                       title="Clear Search">
 
-                        <button type="submit"
-                                class="btn btn-primary">
+                        <i class="fa-solid fa-xmark"></i>
 
-                            <i class="fa-solid fa-magnifying-glass me-1"></i>
-
-                            Search
-
-                        </button>
-
-
-                        <a asp-action="Index"
-                           class="btn btn-outline-secondary">
-
-                            Clear
-
-                        </a>
-
-                    </div>
+                    </a>
 
                 </div>
 
@@ -277,47 +208,51 @@
 
                     <tr>
 
-                        <th style="min-width:165px;">
+                        <th style="min-width:155px;">
                             ERP Invoice
                         </th>
 
-                        <th style="min-width:120px;">
-                            Date
+                        <th style="min-width:105px;">
+                            PI Date
                         </th>
 
-                        <th style="min-width:180px;">
+                        <th style="min-width:155px;">
                             Supplier Invoice
                         </th>
 
-                        <th style="min-width:220px;">
+                        <th style="min-width:115px;">
+                            Supplier Inv. Date
+                        </th>
+
+                        <th style="min-width:180px;">
                             Supplier
                         </th>
 
-                        <th style="min-width:160px;">
+                        <th style="min-width:150px;">
                             Purchase Order
                         </th>
 
-                        <th style="min-width:125px;">
+                        <th style="min-width:110px;">
                             Due Date
                         </th>
 
                         <th class="text-center"
-                            style="min-width:90px;">
+                            style="width:65px;">
                             PDF
                         </th>
 
                         <th class="text-end"
-                            style="min-width:145px;">
+                            style="min-width:125px;">
                             Grand Total
                         </th>
 
                         <th class="text-center"
-                            style="min-width:110px;">
+                            style="width:100px;">
                             Status
                         </th>
 
-                        <th class="text-end"
-                            style="min-width:160px;">
+                        <th class="text-center"
+                            style="min-width:190px;">
                             Actions
                         </th>
 
@@ -333,7 +268,7 @@
                     {
                         <tr>
 
-                            <td colspan="10"
+                            <td colspan="11"
                                 class="text-center
                                            text-muted
                                            py-5">
@@ -360,18 +295,22 @@
                             PurchaseInvoiceStatus.Draft;
 
 
+                            var isFinalized =
+                            item.Status ==
+                            PurchaseInvoiceStatus.Finalized;
+
+
                             <tr>
 
                                 @* =================================
-                                   ERP PURCHASE INVOICE
+                                   ERP INVOICE
                                    ================================= *@
 
                                 <td>
 
                                     <a asp-action="Details"
                                        asp-route-id="@item.Id"
-                                       class="fw-semibold
-                                                      text-decoration-none">
+                                       class="fw-semibold text-decoration-none">
 
                                         @item.Code
 
@@ -393,24 +332,26 @@
 
 
                                 @* =================================
-                                   SUPPLIER INVOICE
+                                   SUPPLIER INVOICE NUMBER
                                    ================================= *@
 
                                 <td>
 
                                     <div class="fw-semibold">
-
                                         @item.SupplierInvoiceNumber
-
                                     </div>
 
+                                </td>
 
-                                    <div class="text-muted small">
 
-                                        @(item.SupplierInvoiceDate
-                                                                        .ToString("dd-MM-yyyy"))
+                                @* =================================
+                                   SUPPLIER INVOICE DATE
+                                   ================================= *@
 
-                                    </div>
+                                <td>
+
+                                    @(item.SupplierInvoiceDate
+                                                                .ToString("dd-MM-yyyy"))
 
                                 </td>
 
@@ -422,9 +363,7 @@
                                 <td>
 
                                     <div class="fw-semibold">
-
                                         @item.SupplierName
-
                                     </div>
 
                                 </td>
@@ -462,7 +401,7 @@
 
 
                                 @* =================================
-                                   SUPPLIER INVOICE PDF
+                                   PDF
                                    ================================= *@
 
                                 <td class="text-center">
@@ -484,11 +423,8 @@
                                     }
                                     else
                                     {
-                                        <span class="text-muted"
-                                              title="No PDF attached">
-
+                                        <span class="text-muted">
                                             —
-
                                         </span>
                                     }
 
@@ -514,17 +450,27 @@
 
                                     @if (isDraft)
                                     {
-                                        <span class="badge bg-warning text-dark">
+                                        <span class="badge
+                                                                 bg-warning
+                                                                 text-dark">
 
                                             Draft
 
                                         </span>
                                     }
-                                    else
+                                    else if (isFinalized)
                                     {
                                         <span class="badge bg-success">
 
                                             Finalized
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+
+                                            @item.Status
 
                                         </span>
                                     }
@@ -534,13 +480,24 @@
 
                                 @* =================================
                                    ACTIONS
+
+                                   Details  -> Always Enabled
+                                   Edit     -> Draft Only
+                                   Approve  -> Draft Only
+                                   Delete   -> Always Enabled
                                    ================================= *@
 
                                 <td>
 
                                     <div class="d-flex
-                                                        justify-content-end
+                                                        justify-content-center
+                                                        align-items-center
+                                                        flex-nowrap
                                                         gap-1">
+
+                                        @* =========================
+                                           DETAILS
+                                           ========================= *@
 
                                         <a asp-action="Details"
                                            asp-route-id="@item.Id"
@@ -554,6 +511,10 @@
                                         </a>
 
 
+                                        @* =========================
+                                           EDIT
+                                           ========================= *@
+
                                         @if (isDraft)
                                         {
                                             <a asp-action="Edit"
@@ -563,10 +524,99 @@
                                                                   btn-outline-primary"
                                                title="Edit">
 
-                                                <i class="fa-solid fa-pen-to-square"></i>
+                                                <i class="fa-solid
+                                                                      fa-pen-to-square">
+                                                </i>
 
                                             </a>
                                         }
+                                        else
+                                        {
+                                            <button type="button"
+                                                    class="btn
+                                                                       btn-sm
+                                                                       btn-outline-primary"
+                                                    title="Finalized Invoice cannot be edited"
+                                                    disabled>
+
+                                                <i class="fa-solid
+                                                                      fa-pen-to-square">
+                                                </i>
+
+                                            </button>
+                                        }
+
+
+                                        @* =========================
+                                           APPROVE
+                                           ========================= *@
+
+                                        @if (isDraft)
+                                        {
+                                            <form asp-action="Finalize"
+                                                  asp-route-id="@item.Id"
+                                                  method="post"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Approve this Purchase Invoice? After approval financial information cannot be edited.');">
+
+                                                @Html.AntiForgeryToken()
+
+
+                                                <button type="submit"
+                                                        class="btn
+                                                                           btn-sm
+                                                                           btn-outline-success"
+                                                        title="Approve">
+
+                                                    <i class="fa-solid
+                                                                          fa-circle-check">
+                                                    </i>
+
+                                                </button>
+
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <button type="button"
+                                                    class="btn
+                                                                       btn-sm
+                                                                       btn-outline-success"
+                                                    title="Already Approved"
+                                                    disabled>
+
+                                                <i class="fa-solid
+                                                                      fa-circle-check">
+                                                </i>
+
+                                            </button>
+                                        }
+
+
+                                        @* =========================
+                                           DELETE - ALWAYS ENABLED
+                                           ========================= *@
+
+                                        <form asp-action="Delete"
+                                              asp-route-id="@item.Id"
+                                              method="post"
+                                              class="d-inline"
+                                              onsubmit="return confirm('Delete this Purchase Invoice? It can be restored later.');">
+
+                                            @Html.AntiForgeryToken()
+
+
+                                            <button type="submit"
+                                                    class="btn
+                                                                   btn-sm
+                                                                   btn-outline-danger"
+                                                    title="Delete">
+
+                                                <i class="fa-solid fa-trash"></i>
+
+                                            </button>
+
+                                        </form>
 
                                     </div>
 
@@ -586,7 +636,16 @@
 
 
     @* =====================================================
-       PAGINATION
+       FOOTER
+
+       Left:
+       Page / Total Records
+
+       Center:
+       Pagination
+
+       Right:
+       Page Size
        ===================================================== *@
 
     @if (Model.TotalRecords > 0)
@@ -594,18 +653,18 @@
         <div class="card-footer bg-white py-3">
 
             <div class="d-flex
-                            justify-content-between
                             align-items-center
+                            justify-content-between
                             flex-wrap
                             gap-3">
 
                 @* =============================================
-                   PAGE INFORMATION
+                   PAGE INFORMATION - LEFT
                    ============================================= *@
 
                 <div class="text-muted small">
 
-                    Showing page
+                    Page
 
                     <strong>
                         @Model.PageNumber
@@ -631,20 +690,20 @@
 
 
                 @* =============================================
-                   PAGE LINKS
+                   PAGINATION - CENTER
                    ============================================= *@
 
                 @if (Model.TotalPages > 1)
                 {
-                    <nav aria-label="Purchase Invoice pages">
+                    <nav aria-label="Purchase Invoice Pagination">
 
                         <ul class="pagination
                                            pagination-sm
                                            mb-0">
 
-                            @* =================================
+                            @* ==============================
                                PREVIOUS
-                               ================================= *@
+                               ============================== *@
 
                             <li class="page-item
                                         @(Model.HasPrevious
@@ -664,14 +723,6 @@
                             </li>
 
 
-                            @* =================================
-                               PAGE NUMBER RANGE
-
-                               IMPORTANT:
-                               variable is pageNo, NOT page.
-                               @page is a reserved Razor directive.
-                               ================================= *@
-
                     @{
                                 var startPage =
                                 Math.Max(
@@ -685,9 +736,9 @@
                             }
 
 
-                            @* =================================
-                               FIRST PAGE / LEFT ELLIPSIS
-                               ================================= *@
+                            @* ==============================
+                               FIRST PAGE
+                               ============================== *@
 
                             @if (startPage > 1)
                             {
@@ -719,9 +770,13 @@
                             }
 
 
-                            @* =================================
+                            @* ==============================
                                CURRENT PAGE RANGE
-                               ================================= *@
+
+                               IMPORTANT:
+                               pageNo used intentionally.
+                               Do not use variable named page.
+                               ============================== *@
 
                             @for (var pageNo = startPage;
                                                 pageNo <= endPage;
@@ -746,9 +801,9 @@
                                         }
 
 
-                            @* =================================
-                               LAST PAGE / RIGHT ELLIPSIS
-                               ================================= *@
+                            @* ==============================
+                               LAST PAGE
+                               ============================== *@
 
                             @if (endPage < Model.TotalPages)
                             {
@@ -781,9 +836,9 @@
                             }
 
 
-                        @* =================================
+                        @* ==============================
                                NEXT
-                               ================================= *@
+                               ============================== *@
 
                         <li class="page-item
                                     @(Model.HasNext
@@ -806,6 +861,99 @@
 
                     </nav>
                         }
+
+
+                @* =============================================
+                   PAGE SIZE - BOTTOM RIGHT
+                   ============================================= *@
+
+                <form asp-action="Index"
+                      method="get"
+                      class="d-flex
+                                 align-items-center
+                                 gap-2
+                                 ms-auto">
+
+                    @* Preserve current search *@
+
+                    <input type="hidden"
+                           name="searchText"
+                           value="@searchText" />
+
+
+                    <label class="text-muted
+                                      small
+                                      text-nowrap
+                                      mb-0">
+
+                        Page Size
+
+                    </label>
+
+
+                    <select name="pageSize"
+                            class="form-select form-select-sm"
+                            style="width: 80px;"
+                            onchange="this.form.submit()">
+
+                        @if (pageSize == 10)
+                        {
+                            <option value="10" selected>
+                                10
+                            </option>
+                        }
+                        else
+                        {
+                            <option value="10">
+                                10
+                            </option>
+                        }
+
+
+                        @if (pageSize == 25)
+                        {
+                            <option value="25" selected>
+                                25
+                            </option>
+                        }
+                        else
+                        {
+                            <option value="25">
+                                25
+                            </option>
+                        }
+
+
+                        @if (pageSize == 50)
+                        {
+                            <option value="50" selected>
+                                50
+                            </option>
+                        }
+                        else
+                        {
+                            <option value="50">
+                                50
+                            </option>
+                        }
+
+
+                        @if (pageSize == 100)
+                        {
+                            <option value="100" selected>
+                                100
+                            </option>
+                        }
+                        else
+                        {
+                            <option value="100">
+                                100
+                            </option>
+                        }
+
+                    </select>
+
+                </form>
 
             </div>
 

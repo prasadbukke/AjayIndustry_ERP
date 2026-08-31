@@ -1,92 +1,70 @@
-﻿/*
-============================================================
-File: IPurchaseInvoiceService.cs
-
-Module:
-Purchase Invoice / Supplier Bill
-
-Purpose:
-Defines Purchase Invoice business operations.
-
-Source Flow:
-Purchase Order
-    → Goods Receipt Note
-    → Purchase Invoice
-    → Supplier Payment
-    → Supplier Outstanding
-
-Responsibilities:
-- Read / search Purchase Invoices.
-- Load Purchase Orders having received material.
-- Load available received GRN quantities.
-- Calculate remaining billable quantity.
-- Prepare new Purchase Invoice Draft.
-- Create trusted Purchase Invoice.
-- Update Draft Purchase Invoice.
-- Finalize Purchase Invoice.
-- Soft-delete Draft Purchase Invoice.
-- Restore deleted Draft Purchase Invoice.
-
-Important:
-- Purchase Invoice is based on actual GRN
-  ReceivedQuantity.
-- Draft + Finalized active Purchase Invoices reserve
-  GRN received quantity.
-- Deleted Purchase Invoices do not reserve quantity.
-- Finalized Purchase Invoice cannot be edited/deleted.
-- Supplier Invoice Number must be unique per Supplier.
-- MaterialStatus is currently informational only and
-  does not block Purchase Invoice creation in Phase 1.
-============================================================
-*/
-
-using AjayIndustriesERP.Application.Common;
+﻿using AjayIndustriesERP.Application.Common;
 using AjayIndustriesERP.Domain.Entities;
 
 namespace AjayIndustriesERP.Application.Interfaces
 {
     public interface IPurchaseInvoiceService
     {
-        #region Read Operations
+        // =====================================================
+        // READ
+        // =====================================================
 
-        Task<PurchaseInvoice?>
-            GetByIdAsync(
-                int id);
+        #region Read
+
+        Task<PurchaseInvoice?> GetByIdAsync(
+            int id);
+
+
+        Task<PagedResult<PurchaseInvoice>> GetPagedAsync(
+            int pageNumber,
+            int pageSize);
+
+
+        /*
+         * Search / Filter Purchase Invoices.
+         *
+         * searchText supports:
+         * - ERP Purchase Invoice Code
+         * - Supplier Invoice Number
+         * - Supplier Name
+         * - Purchase Order Code
+         *
+         * purchaseInvoiceDate:
+         * - ERP Purchase Invoice Date
+         *
+         * supplierInvoiceDate:
+         * - Supplier's actual Invoice Date
+         *
+         * All filters are optional and may be combined.
+         */
+        Task<PagedResult<PurchaseInvoice>> SearchPagedAsync(
+            string? searchText,
+            DateTime? purchaseInvoiceDate,
+            DateTime? supplierInvoiceDate,
+            int pageNumber,
+            int pageSize);
 
         #endregion
 
 
-        #region Search And Pagination
+        // =====================================================
+        // PURCHASE ORDER SOURCE
+        // =====================================================
 
-        Task<PagedResult<PurchaseInvoice>>
-            GetPagedAsync(
-                int pageNumber,
-                int pageSize);
+        #region Purchase Order Source
 
-
-        Task<PagedResult<PurchaseInvoice>>
-            SearchPagedAsync(
-                string searchText,
-                int pageNumber,
-                int pageSize);
-
-        #endregion
-
-
-        #region Purchase Order Sources
-
-        /// <summary>
-        /// Returns Purchase Orders having received
-        /// GRN quantity available for Purchase Invoice.
-        /// </summary>
+        /*
+         * Returns Purchase Orders which have GRN received
+         * quantity still available for Purchase Invoice.
+         */
         Task<List<PurchaseOrder>>
             GetPurchaseOrdersForInvoiceAsync();
 
 
-        /// <summary>
-        /// Loads one Purchase Order used as
-        /// Purchase Invoice source.
-        /// </summary>
+        /*
+         * Loads trusted Purchase Order with Supplier,
+         * Company and Items required by Purchase Invoice.
+         */
         Task<PurchaseOrder?>
             GetPurchaseOrderForInvoiceAsync(
                 int purchaseOrderId);
@@ -94,36 +72,33 @@ namespace AjayIndustriesERP.Application.Interfaces
         #endregion
 
 
-        #region GRN Sources
+        // =====================================================
+        // GRN AVAILABILITY
+        // =====================================================
 
-        /// <summary>
-        /// Returns received GRN lines against the
-        /// selected Purchase Order that still have
-        /// quantity available for Purchase Invoice.
-        ///
-        /// When editing, excludePurchaseInvoiceId allows
-        /// the current Draft Purchase Invoice quantity
-        /// to remain available to itself.
-        /// </summary>
+        #region GRN Availability
+
+        /*
+         * Returns received GRN items having quantity
+         * available for Purchase Invoice.
+         *
+         * excludePurchaseInvoiceId:
+         * Used during Edit / Finalize / Restore so current
+         * invoice quantity does not block itself.
+         */
         Task<List<GoodsReceiptNoteItem>>
             GetAvailableGoodsReceiptItemsAsync(
                 int purchaseOrderId,
                 int? excludePurchaseInvoiceId = null);
 
 
-        /// <summary>
-        /// Calculates remaining billable quantity
-        /// against one exact GRN Item.
-        ///
-        /// Formula:
-        ///
-        /// GRN ReceivedQuantity
-        /// -
-        /// Active Draft / Finalized
-        /// PurchaseInvoiceQuantity
-        /// =
-        /// Remaining Billable Quantity
-        /// </summary>
+        /*
+         * Remaining Billable Quantity:
+         *
+         * GRN Received Quantity
+         *      -
+         * Active Purchase Invoice allocated quantity
+         */
         Task<decimal>
             GetRemainingPurchaseInvoiceQuantityAsync(
                 int goodsReceiptNoteItemId,
@@ -132,23 +107,22 @@ namespace AjayIndustriesERP.Application.Interfaces
         #endregion
 
 
+        // =====================================================
+        // PREPARE CREATE
+        // =====================================================
+
         #region Prepare Draft
 
-        /// <summary>
-        /// Prepares an unsaved Purchase Invoice from
-        /// one selected Purchase Order.
-        ///
-        /// Loads:
-        /// - Supplier
-        /// - Company
-        /// - Payment Terms
-        /// - Due Date
-        /// - Available GRN received quantities
-        /// - PO Rate
-        /// - HSN
-        /// - GST
-        /// - Item snapshots
-        /// </summary>
+        /*
+         * Prepares Purchase Invoice form from selected PO.
+         *
+         * Important:
+         * - GRN received quantity is loaded.
+         * - GST / HSN / Drawing / Item data comes from
+         *   trusted source.
+         * - Supplier Invoice Rate starts at zero because
+         *   user enters actual Supplier Bill Rate manually.
+         */
         Task<PurchaseInvoice>
             PrepareDraftAsync(
                 int purchaseOrderId);
@@ -156,8 +130,18 @@ namespace AjayIndustriesERP.Application.Interfaces
         #endregion
 
 
+        // =====================================================
+        // CREATE
+        // =====================================================
+
         #region Create
 
+        /*
+         * Creates Purchase Invoice in Draft status.
+         *
+         * Supplier Invoice PDF metadata, when supplied,
+         * is stored with Purchase Invoice.
+         */
         Task<PurchaseInvoice>
             CreateAsync(
                 PurchaseInvoice purchaseInvoice);
@@ -165,11 +149,18 @@ namespace AjayIndustriesERP.Application.Interfaces
         #endregion
 
 
+        // =====================================================
+        // UPDATE
+        // =====================================================
+
         #region Update
 
-        /// <summary>
-        /// Only Draft Purchase Invoice can be updated.
-        /// </summary>
+        /*
+         * Only Draft Purchase Invoice financial data
+         * can be edited.
+         *
+         * Finalized Purchase Invoice remains locked.
+         */
         Task<PurchaseInvoice>
             UpdateAsync(
                 PurchaseInvoice purchaseInvoice);
@@ -177,15 +168,21 @@ namespace AjayIndustriesERP.Application.Interfaces
         #endregion
 
 
+        // =====================================================
+        // APPROVE / FINALIZE
+        // =====================================================
+
         #region Finalize
 
-        /// <summary>
-        /// Revalidates all GRN quantities and
-        /// financial values before Finalization.
-        ///
-        /// Finalized Purchase Invoice becomes the
-        /// accounting source for Supplier Payment.
-        /// </summary>
+        /*
+         * UI label:
+         *      Approve
+         *
+         * Internal workflow/status:
+         *      Draft -> Finalized
+         *
+         * No separate Approved status is required.
+         */
         Task<PurchaseInvoice>
             FinalizeAsync(
                 int id);
@@ -193,28 +190,68 @@ namespace AjayIndustriesERP.Application.Interfaces
         #endregion
 
 
+        // =====================================================
+        // DELETE
+        // =====================================================
+
         #region Delete
 
-        /// <summary>
-        /// Only Draft Purchase Invoice can be
-        /// soft-deleted.
-        /// </summary>
+        /*
+         * Soft Delete is allowed for:
+         *
+         * - Draft Purchase Invoice
+         * - Finalized Purchase Invoice
+         *
+         * Delete does NOT physically delete Supplier PDF.
+         *
+         * Deleted Purchase Invoice stops reserving GRN
+         * quantity.
+         *
+         * Future:
+         * When Supplier Payment module is available,
+         * dependency validation can prevent deletion of an
+         * Invoice having linked payments.
+         */
         Task DeleteAsync(
             int id);
 
         #endregion
 
 
-        #region Deleted Purchase Invoices
+        // =====================================================
+        // DELETED LIST
+        // =====================================================
 
+        #region Deleted
+
+        /*
+         * Returns all soft-deleted Purchase Invoices,
+         * including Draft and Finalized invoices.
+         */
         Task<List<PurchaseInvoice>>
             GetDeletedAsync();
 
+        #endregion
 
-        /// <summary>
-        /// Restores deleted Draft Purchase Invoice
-        /// only after rechecking available GRN quantity.
-        /// </summary>
+
+        // =====================================================
+        // RESTORE
+        // =====================================================
+
+        #region Restore
+
+        /*
+         * Restore is allowed for deleted:
+         *
+         * - Draft
+         * - Finalized
+         *
+         * Before Restore:
+         * - Supplier Invoice Number is revalidated.
+         * - GRN available quantity is revalidated.
+         *
+         * Original workflow status is preserved.
+         */
         Task RestoreAsync(
             int id);
 

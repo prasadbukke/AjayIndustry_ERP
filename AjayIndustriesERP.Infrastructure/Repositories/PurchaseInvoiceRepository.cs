@@ -1,43 +1,10 @@
-﻿/*
-============================================================
-File: PurchaseInvoiceRepository.cs
-
-Module:
-Purchase Invoice / Supplier Bill
-
-Purpose:
-Handles Entity Framework Core database operations required
-by Purchase Invoice module.
-
-Responsibilities:
-- Read Purchase Invoice details.
-- Search and paginate Purchase Invoices.
-- Load Draft Purchase Invoice for Edit.
-- Load deleted Purchase Invoices.
-- Load Purchase Orders having GRN receipts.
-- Load exact GRN receipt lines.
-- Calculate quantity already allocated to Purchase Invoices.
-- Load Supplier / Company.
-- Validate Supplier Invoice Number duplicate.
-- Generate internal Purchase Invoice number.
-- Add / Update Purchase Invoice.
-
-Important:
-- Business rules remain in PurchaseInvoiceService.
-- Purchase Invoice quantity source is exact
-  GoodsReceiptNoteItem.ReceivedQuantity.
-- Draft + Finalized active Purchase Invoices reserve
-  GRN received quantity.
-- Deleted Purchase Invoices do not reserve quantity.
-============================================================
-*/
-
-using AjayIndustriesERP.Application.Common;
+﻿using AjayIndustriesERP.Application.Common;
 using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Domain.Entities;
 using AjayIndustriesERP.Domain.Enums;
 using AjayIndustriesERP.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace AjayIndustriesERP.Infrastructure.Repositories
 {
@@ -64,7 +31,11 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         #endregion
 
 
-        #region Get By Id
+        // =====================================================
+        // PURCHASE INVOICE - READ
+        // =====================================================
+
+        #region Purchase Invoice Read
 
         public async Task<PurchaseInvoice?>
             GetByIdAsync(
@@ -73,9 +44,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             return await _context
                 .PurchaseInvoices
                 .AsNoTracking()
-                .Where(x =>
-                    x.Id == id &&
-                    !x.IsDeleted)
                 .Include(x =>
                     x.PurchaseOrder)
                 .Include(x =>
@@ -85,45 +53,17 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 .Include(x =>
                     x.Items)
                     .ThenInclude(x =>
-                        x.PurchaseOrderItem)
-                .Include(x =>
-                    x.Items)
-                    .ThenInclude(x =>
                         x.GoodsReceiptNote)
                 .Include(x =>
                     x.Items)
                     .ThenInclude(x =>
                         x.GoodsReceiptNoteItem)
-                .Include(x =>
-                    x.Items)
-                    .ThenInclude(x =>
-                        x.Item)
-                .FirstOrDefaultAsync();
-        }
-
-        #endregion
-
-
-        #region Get For Update
-
-        public async Task<PurchaseInvoice?>
-            GetForUpdateAsync(
-                int id)
-        {
-            return await _context
-                .PurchaseInvoices
-                .Where(x =>
+                .FirstOrDefaultAsync(x =>
                     x.Id == id &&
-                    !x.IsDeleted)
-                .Include(x =>
-                    x.Items)
-                .FirstOrDefaultAsync();
+                    !x.IsDeleted &&
+                    x.IsActive);
         }
 
-        #endregion
-
-
-        #region Pagination
 
         public async Task<PagedResult<PurchaseInvoice>>
             GetPagedAsync(
@@ -135,58 +75,464 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     .PurchaseInvoices
                     .AsNoTracking()
                     .Where(x =>
-                        !x.IsDeleted)
-                    .OrderByDescending(x =>
-                        x.PurchaseInvoiceDate)
-                    .ThenByDescending(x =>
-                        x.Id);
+                        !x.IsDeleted &&
+                        x.IsActive);
 
 
-            var totalRecords =
-                await query
-                    .CountAsync();
-
-
-            var items =
-                await query
-                    .Skip(
-                        (pageNumber - 1) *
-                        pageSize)
-                    .Take(
-                        pageSize)
-                    .ToListAsync();
-
-
-            return new PagedResult<PurchaseInvoice>
-            {
-                Items =
-                    items,
-
-                PageNumber =
-                    pageNumber,
-
-                PageSize =
-                    pageSize,
-
-                TotalRecords =
-                    totalRecords
-            };
+            return await ToPagedResultAsync(
+                query,
+                pageNumber,
+                pageSize);
         }
 
         #endregion
 
 
-        #region Search Pagination
+        // =====================================================
+        // PURCHASE INVOICE - SEARCH / FILTER
+        // =====================================================
+
+        #region Purchase Invoice Search
 
         public async Task<PagedResult<PurchaseInvoice>>
             SearchPagedAsync(
-                string searchText,
+                string? searchText,
+                DateTime? purchaseInvoiceDate,
+                DateTime? supplierInvoiceDate,
                 int pageNumber,
                 int pageSize)
         {
-            var search =
-                searchText
-                    .Trim();
+            var query =
+                _context
+                    .PurchaseInvoices
+                    .AsNoTracking()
+                    .Where(x =>
+                        !x.IsDeleted &&
+                        x.IsActive);
+
+
+            // =================================================
+            // SEARCH BOX
+            //
+            // Search supports:
+            //
+            // - ERP Purchase Invoice Code
+            // - Supplier Invoice Number
+            // - Supplier Name
+            // - Purchase Order Code
+            // - Purchase Invoice Date
+            // - Supplier Invoice Date
+            //
+            // If entered text is recognized as a date,
+            // both invoice date fields are searched.
+            // =================================================
+
+            if (!string.IsNullOrWhiteSpace(
+                searchText))
+            {
+                var search =
+                    searchText.Trim();
+
+
+                // ---------------------------------------------
+                // Try to recognize entered value as Date.
+                // ---------------------------------------------
+
+                if (TryParseSearchDate(
+                    search,
+                    out var searchDate))
+                {
+                    var fromDate =
+                        searchDate.Date;
+
+
+                    var toDate =
+                        fromDate.AddDays(1);
+
+
+                    /*
+                     * Match EITHER:
+                     *
+                     * Purchase Invoice Date
+                     * OR
+                     * Supplier Invoice Date
+                     */
+                    query =
+                        query.Where(x =>
+                            (
+                                x.PurchaseInvoiceDate >= fromDate &&
+                                x.PurchaseInvoiceDate < toDate
+                            )
+                            ||
+                            (
+                                x.SupplierInvoiceDate >= fromDate &&
+                                x.SupplierInvoiceDate < toDate
+                            ));
+                }
+                else
+                {
+                    // -----------------------------------------
+                    // Normal text search.
+                    // -----------------------------------------
+
+                    query =
+                        query.Where(x =>
+                            x.Code.Contains(
+                                search)
+                            ||
+                            x.SupplierInvoiceNumber.Contains(
+                                search)
+                            ||
+                            x.SupplierName.Contains(
+                                search)
+                            ||
+                            x.PurchaseOrderCode.Contains(
+                                search));
+                }
+            }
+
+
+            // =================================================
+            // OPTIONAL OLD DATE FILTER SUPPORT
+            //
+            // These are kept for backward compatibility.
+            //
+            // Index UI will no longer show separate date
+            // filters, but an old bookmarked URL containing
+            // these parameters will still work.
+            // =================================================
+
+            if (purchaseInvoiceDate.HasValue)
+            {
+                var fromDate =
+                    purchaseInvoiceDate.Value.Date;
+
+
+                var toDate =
+                    fromDate.AddDays(1);
+
+
+                query =
+                    query.Where(x =>
+                        x.PurchaseInvoiceDate >= fromDate &&
+                        x.PurchaseInvoiceDate < toDate);
+            }
+
+
+            if (supplierInvoiceDate.HasValue)
+            {
+                var fromDate =
+                    supplierInvoiceDate.Value.Date;
+
+
+                var toDate =
+                    fromDate.AddDays(1);
+
+
+                query =
+                    query.Where(x =>
+                        x.SupplierInvoiceDate >= fromDate &&
+                        x.SupplierInvoiceDate < toDate);
+            }
+
+
+            return await ToPagedResultAsync(
+                query,
+                pageNumber,
+                pageSize);
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // PURCHASE INVOICE - CREATE
+        // =====================================================
+
+        #region Purchase Invoice Create
+
+        public async Task AddAsync(
+            PurchaseInvoice purchaseInvoice)
+        {
+            await _context
+                .PurchaseInvoices
+                .AddAsync(
+                    purchaseInvoice);
+
+
+            await _context
+                .SaveChangesAsync();
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // PURCHASE INVOICE - UPDATE
+        // =====================================================
+
+        #region Purchase Invoice Update
+
+        public async Task<PurchaseInvoice?>
+            GetForUpdateAsync(
+                int id)
+        {
+            return await _context
+                .PurchaseInvoices
+                .Include(x =>
+                    x.Items)
+                    .ThenInclude(x =>
+                        x.GoodsReceiptNote)
+                .Include(x =>
+                    x.Items)
+                    .ThenInclude(x =>
+                        x.GoodsReceiptNoteItem)
+                .FirstOrDefaultAsync(x =>
+                    x.Id == id &&
+                    !x.IsDeleted &&
+                    x.IsActive);
+        }
+
+
+        public async Task UpdateAsync(
+            PurchaseInvoice purchaseInvoice)
+        {
+            _context
+                .PurchaseInvoices
+                .Update(
+                    purchaseInvoice);
+
+
+            await _context
+                .SaveChangesAsync();
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // DELETED / RESTORE
+        // =====================================================
+
+        #region Deleted Purchase Invoices
+
+        public async Task<List<PurchaseInvoice>>
+            GetDeletedAsync()
+        {
+            return await _context
+                .PurchaseInvoices
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(x =>
+                    x.IsDeleted)
+                .OrderByDescending(x =>
+                    x.ModifiedOn)
+                .ThenByDescending(x =>
+                    x.Id)
+                .ToListAsync();
+        }
+
+
+        public async Task<PurchaseInvoice?>
+            GetDeletedForUpdateAsync(
+                int id)
+        {
+            return await _context
+                .PurchaseInvoices
+                .IgnoreQueryFilters()
+                .Include(x =>
+                    x.Items)
+                .FirstOrDefaultAsync(x =>
+                    x.Id == id &&
+                    x.IsDeleted);
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // PURCHASE ORDER SOURCE
+        // =====================================================
+
+        #region Purchase Order Source
+
+        public async Task<List<PurchaseOrder>>
+            GetPurchaseOrdersForInvoiceAsync()
+        {
+            return await _context
+                .PurchaseOrders
+                .AsNoTracking()
+                .Include(x =>
+                    x.Supplier)
+                .Include(x =>
+                    x.Company)
+                .Where(x =>
+                    !x.IsDeleted &&
+                    x.IsActive)
+                .OrderByDescending(x =>
+                    x.CreatedOn)
+                .ThenByDescending(x =>
+                    x.Id)
+                .ToListAsync();
+        }
+
+
+        public async Task<PurchaseOrder?>
+            GetPurchaseOrderForInvoiceAsync(
+                int purchaseOrderId)
+        {
+            return await _context
+                .PurchaseOrders
+                .AsNoTracking()
+                .Include(x =>
+                    x.Supplier)
+                .Include(x =>
+                    x.Company)
+                .Include(x =>
+                    x.Items)
+                .FirstOrDefaultAsync(x =>
+                    x.Id == purchaseOrderId &&
+                    !x.IsDeleted &&
+                    x.IsActive);
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // GRN SOURCE
+        // =====================================================
+
+        #region GRN Source
+
+        public async Task<List<GoodsReceiptNoteItem>>
+            GetReceivedGoodsReceiptItemsForInvoiceAsync(
+                int purchaseOrderId)
+        {
+            return await _context
+                .GoodsReceiptNoteItems
+                .AsNoTracking()
+                .Include(x =>
+                    x.GoodsReceiptNote)
+                .Include(x =>
+                    x.PurchaseOrderItem)
+                .Where(x =>
+                    !x.IsDeleted &&
+                    x.IsActive &&
+
+                    x.ReceivedQuantity > 0m &&
+
+                    x.GoodsReceiptNote != null &&
+
+                    !x.GoodsReceiptNote.IsDeleted &&
+                    x.GoodsReceiptNote.IsActive &&
+
+                    x.GoodsReceiptNote.PurchaseOrderId ==
+                    purchaseOrderId)
+                .OrderBy(x =>
+                    x.GoodsReceiptNote.GRNDate)
+                .ThenBy(x =>
+                    x.GoodsReceiptNoteId)
+                .ThenBy(x =>
+                    x.Id)
+                .ToListAsync();
+        }
+
+
+        public async Task<GoodsReceiptNoteItem?>
+            GetGoodsReceiptNoteItemForInvoiceAsync(
+                int goodsReceiptNoteItemId)
+        {
+            return await _context
+                .GoodsReceiptNoteItems
+                .AsNoTracking()
+                .Include(x =>
+                    x.GoodsReceiptNote)
+                .Include(x =>
+                    x.PurchaseOrderItem)
+                .FirstOrDefaultAsync(x =>
+                    x.Id ==
+                    goodsReceiptNoteItemId &&
+
+                    !x.IsDeleted &&
+                    x.IsActive &&
+
+                    x.GoodsReceiptNote != null &&
+
+                    !x.GoodsReceiptNote.IsDeleted &&
+                    x.GoodsReceiptNote.IsActive);
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // QUANTITY RESERVATION
+        // =====================================================
+
+        #region Quantity Reservation
+
+        public async Task<decimal>
+            GetAllocatedPurchaseInvoiceQuantityAsync(
+                int goodsReceiptNoteItemId,
+                int? excludePurchaseInvoiceId = null)
+        {
+            var query =
+                _context
+                    .PurchaseInvoiceItems
+                    .AsNoTracking()
+                    .Where(x =>
+                        x.GoodsReceiptNoteItemId ==
+                        goodsReceiptNoteItemId &&
+
+                        !x.IsDeleted &&
+                        x.IsActive &&
+
+                        !x.PurchaseInvoice.IsDeleted &&
+                        x.PurchaseInvoice.IsActive &&
+
+                        (
+                            x.PurchaseInvoice.Status ==
+                            PurchaseInvoiceStatus.Draft
+                            ||
+                            x.PurchaseInvoice.Status ==
+                            PurchaseInvoiceStatus.Finalized
+                        ));
+
+
+            if (excludePurchaseInvoiceId.HasValue)
+            {
+                query =
+                    query.Where(x =>
+                        x.PurchaseInvoiceId !=
+                        excludePurchaseInvoiceId.Value);
+            }
+
+
+            return await query
+                .SumAsync(x =>
+                    (decimal?)
+                    x.PurchaseInvoiceQuantity)
+                ?? 0m;
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // SUPPLIER INVOICE NUMBER VALIDATION
+        // =====================================================
+
+        #region Supplier Invoice Number Validation
+
+        public async Task<bool>
+            SupplierInvoiceNumberExistsAsync(
+                int supplierId,
+                string supplierInvoiceNumber,
+                int? excludePurchaseInvoiceId = null)
+        {
+            var normalizedNumber =
+                supplierInvoiceNumber.Trim();
 
 
             var query =
@@ -195,30 +541,131 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     .AsNoTracking()
                     .Where(x =>
                         !x.IsDeleted &&
-                        (
-                            x.Code.Contains(
-                                search)
+                        x.IsActive &&
 
-                            ||
+                        x.SupplierId ==
+                        supplierId &&
 
-                            x.SupplierInvoiceNumber.Contains(
-                                search)
+                        x.SupplierInvoiceNumber ==
+                        normalizedNumber);
 
-                            ||
 
-                            x.SupplierName.Contains(
-                                search)
+            if (excludePurchaseInvoiceId.HasValue)
+            {
+                query =
+                    query.Where(x =>
+                        x.Id !=
+                        excludePurchaseInvoiceId.Value);
+            }
 
-                            ||
 
-                            x.PurchaseOrderCode.Contains(
-                                search)
-                        ));
+            return await query
+                .AnyAsync();
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // PURCHASE INVOICE CODE
+        // =====================================================
+
+        #region Purchase Invoice Code
+
+        public async Task<string?>
+            GetLastCodeAsync(
+                string prefix)
+        {
+            return await _context
+                .PurchaseInvoices
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(x =>
+                    x.Code.StartsWith(
+                        prefix))
+                .OrderByDescending(x =>
+                    x.Code)
+                .Select(x =>
+                    x.Code)
+                .FirstOrDefaultAsync();
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // SEARCH DATE PARSER
+        // =====================================================
+
+        #region Search Date Parser
+
+        private static bool TryParseSearchDate(
+            string searchText,
+            out DateTime date)
+        {
+            /*
+             * Explicit formats prevent values such as
+             * Supplier Invoice No. "123456" from being
+             * accidentally interpreted as a date.
+             */
+            var formats =
+                new[]
+                {
+                    "dd-MM-yyyy",
+                    "dd/MM/yyyy",
+                    "yyyy-MM-dd",
+                    "MM/dd/yyyy",
+                    "dd-MM-yy",
+                    "dd/MM/yy"
+                };
+
+
+            return DateTime.TryParseExact(
+                searchText,
+                formats,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out date);
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // PAGINATION
+        // =====================================================
+
+        #region Pagination Helper
+
+        private static async Task<PagedResult<PurchaseInvoice>>
+            ToPagedResultAsync(
+                IQueryable<PurchaseInvoice> query,
+                int pageNumber,
+                int pageSize)
+        {
+            if (pageNumber <= 0)
+            {
+                pageNumber =
+                    1;
+            }
+
+
+            if (pageSize <= 0)
+            {
+                pageSize =
+                    10;
+            }
+
+
+            if (pageSize > 100)
+            {
+                pageSize =
+                    100;
+            }
 
 
             var totalRecords =
-                await query
-                    .CountAsync();
+                await query.CountAsync();
 
 
             var items =
@@ -249,382 +696,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 TotalRecords =
                     totalRecords
             };
-        }
-
-        #endregion
-
-
-        #region Deleted Purchase Invoices
-
-        public async Task<List<PurchaseInvoice>>
-            GetDeletedAsync()
-        {
-            return await _context
-                .PurchaseInvoices
-                .AsNoTracking()
-                .Where(x =>
-                    x.IsDeleted)
-                .OrderByDescending(x =>
-                    x.ModifiedOn)
-                .ThenByDescending(x =>
-                    x.Id)
-                .ToListAsync();
-        }
-
-
-        public async Task<PurchaseInvoice?>
-            GetDeletedForUpdateAsync(
-                int id)
-        {
-            return await _context
-                .PurchaseInvoices
-                .Where(x =>
-                    x.Id == id &&
-                    x.IsDeleted)
-                .Include(x =>
-                    x.Items)
-                .FirstOrDefaultAsync();
-        }
-
-        #endregion
-
-
-        #region Purchase Orders For Invoice
-
-        public async Task<List<PurchaseOrder>>
-            GetPurchaseOrdersForInvoiceAsync()
-        {
-            /*
-             * Do NOT depend on PO workflow status here.
-             *
-             * Current GRN Phase does not yet update
-             * PO Status to PartiallyReceived / Received.
-             *
-             * Actual eligibility source is:
-             * active GRN Item with ReceivedQuantity > 0.
-             */
-            return await _context
-                .PurchaseOrders
-                .AsNoTracking()
-                .Where(po =>
-                    !po.IsDeleted &&
-                    po.IsActive &&
-                    _context
-                        .GoodsReceiptNoteItems
-                        .Any(grnItem =>
-                            !grnItem.IsDeleted &&
-                            grnItem.IsActive &&
-                            grnItem.ReceivedQuantity > 0 &&
-                            !grnItem.GoodsReceiptNote.IsDeleted &&
-                            grnItem.GoodsReceiptNote.IsActive &&
-                            grnItem.GoodsReceiptNote
-                                .PurchaseOrderId ==
-                                po.Id))
-                .Include(x =>
-                    x.Supplier)
-                .OrderByDescending(x =>
-                    x.PODate)
-                .ThenByDescending(x =>
-                    x.Id)
-                .ToListAsync();
-        }
-
-        #endregion
-
-
-        #region Purchase Order For Invoice
-
-        public async Task<PurchaseOrder?>
-            GetPurchaseOrderForInvoiceAsync(
-                int purchaseOrderId)
-        {
-            return await _context
-                .PurchaseOrders
-                .AsNoTracking()
-                .Where(x =>
-                    x.Id ==
-                        purchaseOrderId &&
-                    !x.IsDeleted &&
-                    x.IsActive)
-                .Include(x =>
-                    x.Supplier)
-                .Include(x =>
-                    x.Company)
-                .Include(x =>
-                    x.Items)
-                    .ThenInclude(x =>
-                        x.Item)
-                .FirstOrDefaultAsync();
-        }
-
-        #endregion
-
-
-        #region Received GRN Items
-
-        public async Task<List<GoodsReceiptNoteItem>>
-            GetReceivedGoodsReceiptItemsForInvoiceAsync(
-                int purchaseOrderId)
-        {
-            return await _context
-                .GoodsReceiptNoteItems
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDeleted &&
-                    x.IsActive &&
-                    x.ReceivedQuantity > 0 &&
-
-                    !x.GoodsReceiptNote.IsDeleted &&
-                    x.GoodsReceiptNote.IsActive &&
-
-                    x.GoodsReceiptNote
-                        .PurchaseOrderId ==
-                        purchaseOrderId)
-                .Include(x =>
-                    x.GoodsReceiptNote)
-                .Include(x =>
-                    x.PurchaseOrderItem)
-                .Include(x =>
-                    x.Item)
-                .OrderBy(x =>
-                    x.GoodsReceiptNote.GRNDate)
-                .ThenBy(x =>
-                    x.GoodsReceiptNoteId)
-                .ThenBy(x =>
-                    x.Id)
-                .ToListAsync();
-        }
-
-        #endregion
-
-
-        #region Exact GRN Item
-
-        public async Task<GoodsReceiptNoteItem?>
-            GetGoodsReceiptNoteItemForInvoiceAsync(
-                int goodsReceiptNoteItemId)
-        {
-            return await _context
-                .GoodsReceiptNoteItems
-                .AsNoTracking()
-                .Where(x =>
-                    x.Id ==
-                        goodsReceiptNoteItemId &&
-
-                    !x.IsDeleted &&
-                    x.IsActive &&
-
-                    x.ReceivedQuantity > 0 &&
-
-                    !x.GoodsReceiptNote.IsDeleted &&
-                    x.GoodsReceiptNote.IsActive)
-                .Include(x =>
-                    x.GoodsReceiptNote)
-                    .ThenInclude(x =>
-                        x.PurchaseOrder)
-                .Include(x =>
-                    x.PurchaseOrderItem)
-                .Include(x =>
-                    x.Item)
-                .FirstOrDefaultAsync();
-        }
-
-        #endregion
-
-
-        #region Allocated Purchase Invoice Quantity
-
-        public async Task<decimal>
-            GetAllocatedPurchaseInvoiceQuantityAsync(
-                int goodsReceiptNoteItemId,
-                int? excludePurchaseInvoiceId = null)
-        {
-            var query =
-                _context
-                    .PurchaseInvoiceItems
-                    .AsNoTracking()
-                    .Where(x =>
-                        x.GoodsReceiptNoteItemId ==
-                            goodsReceiptNoteItemId &&
-
-                        !x.IsDeleted &&
-                        x.IsActive &&
-
-                        !x.PurchaseInvoice.IsDeleted &&
-                        x.PurchaseInvoice.IsActive &&
-
-                        (
-                            x.PurchaseInvoice.Status ==
-                                PurchaseInvoiceStatus.Draft
-
-                            ||
-
-                            x.PurchaseInvoice.Status ==
-                                PurchaseInvoiceStatus.Finalized
-                        ));
-
-
-            if (excludePurchaseInvoiceId.HasValue)
-            {
-                query =
-                    query.Where(x =>
-                        x.PurchaseInvoiceId !=
-                            excludePurchaseInvoiceId.Value);
-            }
-
-
-            return await query
-                .SumAsync(x =>
-                    (decimal?)
-                        x.PurchaseInvoiceQuantity)
-
-                ?? 0m;
-        }
-
-        #endregion
-
-
-        #region Supplier
-
-        public async Task<Supplier?>
-            GetSupplierForPurchaseInvoiceAsync(
-                int supplierId)
-        {
-            return await _context
-                .Suppliers
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x =>
-                    x.SupplierId ==
-                        supplierId &&
-                    !x.IsDeleted);
-        }
-
-        #endregion
-
-
-        #region Supplier Invoice Duplicate
-
-        public async Task<bool>
-            SupplierInvoiceNumberExistsAsync(
-                int supplierId,
-                string supplierInvoiceNumber,
-                int? excludePurchaseInvoiceId = null)
-        {
-            var normalizedInvoiceNumber =
-                supplierInvoiceNumber
-                    .Trim();
-
-
-            var query =
-                _context
-                    .PurchaseInvoices
-                    .AsNoTracking()
-                    .Where(x =>
-                        !x.IsDeleted &&
-                        x.IsActive &&
-
-                        x.SupplierId ==
-                            supplierId &&
-
-                        x.SupplierInvoiceNumber ==
-                            normalizedInvoiceNumber);
-
-
-            if (excludePurchaseInvoiceId.HasValue)
-            {
-                query =
-                    query.Where(x =>
-                        x.Id !=
-                            excludePurchaseInvoiceId.Value);
-            }
-
-
-            return await query
-                .AnyAsync();
-        }
-
-        #endregion
-
-
-        #region Company
-
-        public async Task<Company?>
-            GetCompanyForPurchaseInvoiceAsync()
-        {
-            return await _context
-                .Companies
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDeleted &&
-                    x.IsActive)
-                .OrderBy(x =>
-                    x.CompanyId)
-                .FirstOrDefaultAsync();
-        }
-
-        #endregion
-
-
-        #region Last Code
-
-        public async Task<string?>
-            GetLastCodeAsync(
-                string codePrefix)
-        {
-            /*
-             * Deleted Purchase Invoice numbers are
-             * intentionally included.
-             *
-             * Internal accounting numbers must never
-             * be reused.
-             */
-            return await _context
-                .PurchaseInvoices
-                .AsNoTracking()
-                .Where(x =>
-                    x.Code.StartsWith(
-                        codePrefix))
-                .OrderByDescending(x =>
-                    x.Id)
-                .Select(x =>
-                    x.Code)
-                .FirstOrDefaultAsync();
-        }
-
-        #endregion
-
-
-        #region Add
-
-        public async Task AddAsync(
-            PurchaseInvoice purchaseInvoice)
-        {
-            await _context
-                .PurchaseInvoices
-                .AddAsync(
-                    purchaseInvoice);
-
-
-            await _context
-                .SaveChangesAsync();
-        }
-
-        #endregion
-
-
-        #region Update
-
-        public async Task UpdateAsync(
-            PurchaseInvoice purchaseInvoice)
-        {
-            _context
-                .PurchaseInvoices
-                .Update(
-                    purchaseInvoice);
-
-
-            await _context
-                .SaveChangesAsync();
         }
 
         #endregion

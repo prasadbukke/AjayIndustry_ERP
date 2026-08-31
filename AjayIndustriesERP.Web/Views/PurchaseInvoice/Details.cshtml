@@ -121,74 +121,166 @@
        ACTION BUTTONS
        ===================================================== *@
 
-    <div class="d-flex
-                flex-wrap
-                gap-2">
+    @* =====================================================
+   ACTION BUTTONS
 
-        <a asp-action="Index"
-           class="btn btn-outline-secondary">
+   RULE:
 
-            <i class="fa-solid fa-arrow-left me-1"></i>
+   Back
+     -> Always Enabled
 
-            Back
+   Edit
+     -> Draft Enabled
+     -> Finalized Disabled
+
+   Approve
+     -> Draft Enabled
+     -> Finalized Disabled
+
+   Delete
+     -> Always Enabled
+
+   Delete is Soft Delete.
+   Draft and Finalized invoices can both be restored.
+   ===================================================== *@
+
+<div class="d-flex
+            flex-wrap
+            gap-2">
+
+    @* =================================================
+       BACK
+       ================================================= *@
+
+    <a asp-action="Index"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid fa-arrow-left me-1"></i>
+
+        Back
+
+    </a>
+
+
+    @* =================================================
+       EDIT
+
+       Only Draft Purchase Invoice can be edited.
+       Button remains visible after Finalization,
+       but becomes disabled.
+       ================================================= *@
+
+    @if (isDraft)
+    {
+        <a asp-action="Edit"
+           asp-route-id="@Model.Id"
+           class="btn btn-outline-primary">
+
+            <i class="fa-solid fa-pen-to-square me-1"></i>
+
+            Edit
 
         </a>
+    }
+    else
+    {
+        <button type="button"
+                class="btn btn-outline-primary"
+                title="Finalized Purchase Invoice cannot be edited"
+                disabled>
+
+            <i class="fa-solid fa-pen-to-square me-1"></i>
+
+            Edit
+
+        </button>
+    }
 
 
-        @if (isDraft)
-        {
-            <a asp-action="Edit"
-               asp-route-id="@Model.Id"
-               class="btn btn-outline-primary">
+    @* =================================================
+       APPROVE
 
-                <i class="fa-solid fa-pen-to-square me-1"></i>
+       UI Label:
+       Approve
 
-                Edit
+       Backend Action:
+       Finalize
 
-            </a>
+       Internal Status:
+       Draft -> Finalized
+       ================================================= *@
 
+    @if (isDraft)
+    {
+        <form asp-action="Finalize"
+              asp-route-id="@Model.Id"
+              method="post"
+              class="d-inline"
+              onsubmit="return confirm('Approve this Purchase Invoice? After approval financial information cannot be edited.');">
 
-            <form asp-action="Finalize"
-                  asp-route-id="@Model.Id"
-                  method="post"
-                  class="d-inline"
-                  onsubmit="return confirm('Finalize this Purchase Invoice? After finalization financial information cannot be edited.');">
-
-                @Html.AntiForgeryToken()
-
-                <button type="submit"
-                        class="btn btn-success">
-
-                    <i class="fa-solid fa-circle-check me-1"></i>
-
-                    Finalize
-
-                </button>
-
-            </form>
+            @Html.AntiForgeryToken()
 
 
-            <form asp-action="Delete"
-                  asp-route-id="@Model.Id"
-                  method="post"
-                  class="d-inline"
-                  onsubmit="return confirm('Delete this Draft Purchase Invoice?');">
+            <button type="submit"
+                    class="btn btn-success">
 
-                @Html.AntiForgeryToken()
+                <i class="fa-solid fa-circle-check me-1"></i>
 
-                <button type="submit"
-                        class="btn btn-outline-danger">
+                Approve
 
-                    <i class="fa-solid fa-trash me-1"></i>
+            </button>
 
-                    Delete
+        </form>
+    }
+    else
+    {
+        <button type="button"
+                class="btn btn-success"
+                title="Purchase Invoice is already approved"
+                disabled>
 
-                </button>
+            <i class="fa-solid fa-circle-check me-1"></i>
 
-            </form>
-        }
+            Approve
 
-    </div>
+        </button>
+    }
+
+
+    @* =================================================
+       DELETE
+
+       Always Enabled for:
+       - Draft
+       - Finalized
+
+       This is Soft Delete only.
+
+       Supplier Invoice PDF remains stored.
+       Invoice can be restored from Deleted list.
+       ================================================= *@
+
+    <form asp-action="Delete"
+          asp-route-id="@Model.Id"
+          method="post"
+          class="d-inline"
+          onsubmit="return confirm('Delete this Purchase Invoice? It can be restored later.');">
+
+        @Html.AntiForgeryToken()
+
+
+        <button type="submit"
+                class="btn btn-outline-danger">
+
+            <i class="fa-solid fa-trash me-1"></i>
+
+            Delete
+
+        </button>
+
+    </form>
+
+</div>
 
 </div>
 

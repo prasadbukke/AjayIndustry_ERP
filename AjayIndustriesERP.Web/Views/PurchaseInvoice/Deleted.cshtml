@@ -1,5 +1,7 @@
 ﻿@model IEnumerable<AjayIndustriesERP.Domain.Entities.PurchaseInvoice>
 
+@using AjayIndustriesERP.Domain.Enums
+
 @{
     ViewData["Title"] =
         "Deleted Purchase Invoices";
@@ -12,7 +14,11 @@
 
 @if (TempData["SuccessMessage"] != null)
 {
-    <div class="alert alert-success alert-dismissible fade show"
+    <div class="alert
+                alert-success
+                alert-dismissible
+                fade
+                show"
          role="alert">
 
         @TempData["SuccessMessage"]
@@ -28,7 +34,11 @@
 
 @if (TempData["ErrorMessage"] != null)
 {
-    <div class="alert alert-danger alert-dismissible fade show"
+    <div class="alert
+                alert-danger
+                alert-dismissible
+                fade
+                show"
          role="alert">
 
         @TempData["ErrorMessage"]
@@ -59,9 +69,11 @@
             Deleted Purchase Invoices
         </h2>
 
+
         <div class="text-muted">
 
-            Restore previously deleted Draft Purchase Invoices.
+            Restore soft-deleted Draft or Finalized
+            Purchase Invoices.
 
         </div>
 
@@ -73,11 +85,48 @@
         <a asp-action="Index"
            class="btn btn-outline-secondary">
 
-            <i class="fa-solid fa-arrow-left me-1"></i>
+            <i class="fa-solid
+                      fa-arrow-left
+                      me-1">
+            </i>
 
             Back to Purchase Invoices
 
         </a>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   INFORMATION
+   ========================================================= *@
+
+<div class="alert alert-light border mb-4">
+
+    <div class="d-flex gap-2">
+
+        <i class="fa-solid
+                  fa-circle-info
+                  text-primary
+                  mt-1">
+        </i>
+
+
+        <div class="small">
+
+            Restoring a Purchase Invoice will revalidate its
+            Supplier Invoice Number and available GRN quantity.
+
+            <strong>
+                Original status is preserved.
+            </strong>
+
+            A deleted Draft returns as Draft and a deleted
+            Finalized invoice returns as Finalized.
+
+        </div>
 
     </div>
 
@@ -103,16 +152,20 @@
 
                     <tr>
 
-                        <th style="min-width:165px;">
+                        <th style="min-width:170px;">
                             ERP Invoice
                         </th>
 
                         <th style="min-width:120px;">
-                            Date
+                            PI Date
                         </th>
 
-                        <th style="min-width:190px;">
+                        <th style="min-width:180px;">
                             Supplier Invoice
+                        </th>
+
+                        <th style="min-width:120px;">
+                            Supplier Inv. Date
                         </th>
 
                         <th style="min-width:220px;">
@@ -124,26 +177,26 @@
                         </th>
 
                         <th class="text-center"
-                            style="min-width:90px;">
+                            style="min-width:80px;">
                             PDF
                         </th>
 
                         <th class="text-end"
-                            style="min-width:145px;">
+                            style="min-width:140px;">
                             Grand Total
                         </th>
 
-                        <th style="min-width:155px;">
+                        <th style="min-width:150px;">
                             Deleted On
                         </th>
 
                         <th class="text-center"
-                            style="min-width:120px;">
+                            style="min-width:145px;">
                             Status
                         </th>
 
-                        <th class="text-end"
-                            style="min-width:125px;">
+                        <th class="text-center"
+                            style="min-width:120px;">
                             Action
                         </th>
 
@@ -159,7 +212,7 @@
                     {
                         <tr>
 
-                            <td colspan="10"
+                            <td colspan="11"
                                 class="text-center
                                        text-muted
                                        py-5">
@@ -181,6 +234,16 @@
                     {
                         foreach (var item in Model)
                         {
+                            var wasDraft =
+                                item.Status ==
+                                PurchaseInvoiceStatus.Draft;
+
+
+                            var wasFinalized =
+                                item.Status ==
+                                PurchaseInvoiceStatus.Finalized;
+
+
                             <tr>
 
                                 @* =================================
@@ -209,7 +272,7 @@
 
 
                                 @* =================================
-                                   SUPPLIER INVOICE
+                                   SUPPLIER INVOICE NUMBER
                                    ================================= *@
 
                                 <td>
@@ -220,13 +283,17 @@
 
                                     </div>
 
+                                </td>
 
-                                    <div class="text-muted small">
 
-                                        @(item.SupplierInvoiceDate
-                                            .ToString("dd-MM-yyyy"))
+                                @* =================================
+                                   SUPPLIER INVOICE DATE
+                                   ================================= *@
 
-                                    </div>
+                                <td>
+
+                                    @(item.SupplierInvoiceDate
+                                        .ToString("dd-MM-yyyy"))
 
                                 </td>
 
@@ -238,7 +305,9 @@
                                 <td>
 
                                     <div class="fw-semibold">
+
                                         @item.SupplierName
+
                                     </div>
 
                                 </td>
@@ -265,9 +334,12 @@
                                 @* =================================
                                    SUPPLIER INVOICE PDF
 
-                                   PDF remains physically stored during
-                                   soft delete so it is available after
-                                   Restore.
+                                   PDF is not physically deleted during
+                                   Purchase Invoice soft delete.
+
+                                   We only show attachment availability
+                                   here because normal PDF View action
+                                   loads active Purchase Invoices.
                                    ================================= *@
 
                                 <td class="text-center">
@@ -276,16 +348,22 @@
                                         item.SupplierInvoicePdfPath))
                                     {
                                         <span class="text-success"
-                                              title="PDF attached">
+                                              title="Supplier Invoice PDF retained">
 
-                                            <i class="fa-solid fa-file-pdf"></i>
+                                            <i class="fa-solid
+                                                      fa-file-pdf
+                                                      fa-lg">
+                                            </i>
 
                                         </span>
                                     }
                                     else
                                     {
-                                        <span class="text-muted">
+                                        <span class="text-muted"
+                                              title="No PDF attached">
+
                                             —
+
                                         </span>
                                     }
 
@@ -304,11 +382,13 @@
 
 
                                 @* =================================
-                                   DELETED DATE
+                                   DELETED ON
 
-                                   Current BaseEntity has no separate
-                                   DeletedOn property, therefore latest
-                                   ModifiedOn is displayed.
+                                   BaseEntity currently has no separate
+                                   DeletedOn property.
+
+                                   Delete operation updates ModifiedOn,
+                                   therefore ModifiedOn is displayed here.
                                    ================================= *@
 
                                 <td>
@@ -341,54 +421,87 @@
 
 
                                 @* =================================
-                                   STATUS
+                                   ORIGINAL STATUS
+
+                                   IMPORTANT:
+                                   Delete does NOT change workflow status.
+
+                                   Draft -> Deleted Draft
+                                   Finalized -> Deleted Finalized
                                    ================================= *@
 
                                 <td class="text-center">
 
-                                    <span class="badge bg-secondary">
+                                    @if (wasDraft)
+                                    {
+                                        <span class="badge
+                                                     bg-warning
+                                                     text-dark">
 
-                                        Deleted Draft
+                                            Deleted Draft
 
-                                    </span>
+                                        </span>
+                                    }
+                                    else if (wasFinalized)
+                                    {
+                                        <span class="badge bg-success">
+
+                                            Deleted Finalized
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+
+                                            Deleted @item.Status
+
+                                        </span>
+                                    }
 
                                 </td>
 
 
                                 @* =================================
                                    RESTORE
+
+                                   Enabled for both:
+                                   - Deleted Draft
+                                   - Deleted Finalized
+
+                                   Backend performs:
+                                   - Supplier Invoice duplicate check
+                                   - GRN quantity availability check
+                                   - Original status preservation
                                    ================================= *@
 
-                                <td>
+                                <td class="text-center">
 
-                                    <div class="d-flex
-                                                justify-content-end">
+                                    <form asp-action="Restore"
+                                          asp-route-id="@item.Id"
+                                          method="post"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Restore this Purchase Invoice? Supplier Invoice Number and GRN available quantity will be validated again.');">
 
-                                        <form asp-action="Restore"
-                                              asp-route-id="@item.Id"
-                                              method="post"
-                                              onsubmit="return confirm('Restore this Purchase Invoice? GRN available quantity and Supplier Invoice Number will be validated again.');">
-
-                                            @Html.AntiForgeryToken()
+                                        @Html.AntiForgeryToken()
 
 
-                                            <button type="submit"
-                                                    class="btn
-                                                           btn-sm
-                                                           btn-outline-success">
+                                        <button type="submit"
+                                                class="btn
+                                                       btn-sm
+                                                       btn-outline-success"
+                                                title="Restore Purchase Invoice">
 
-                                                <i class="fa-solid
-                                                          fa-trash-can-arrow-up
-                                                          me-1">
-                                                </i>
+                                            <i class="fa-solid
+                                                      fa-trash-can-arrow-up
+                                                      me-1">
+                                            </i>
 
-                                                Restore
+                                            Restore
 
-                                            </button>
+                                        </button>
 
-                                        </form>
-
-                                    </div>
+                                    </form>
 
                                 </td>
 

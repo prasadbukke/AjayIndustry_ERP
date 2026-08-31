@@ -1,47 +1,4 @@
-﻿/*
-============================================================
-File: PurchaseInvoiceController.cs
-
-Module:
-Purchase Invoice / Supplier Bill
-
-Purpose:
-Handles Purchase Invoice Web operations.
-
-Business Flow:
-Purchase Order
-    → GRN
-    → Purchase Invoice
-    → Supplier Payment
-    → Supplier Outstanding
-
-Supplier Invoice PDF:
-- Optional.
-- PDF file is stored under:
-      wwwroot/uploads/purchase-invoices/
-- Database stores only:
-      SupplierInvoicePdfPath
-      SupplierInvoicePdfOriginalName
-      SupplierInvoicePdfUploadedOn
-- Maximum size: 10 MB.
-- Only valid PDF files are accepted.
-- Physical PDF is NOT deleted during soft delete.
-- Draft Edit can replace an existing PDF.
-
-Security:
-- Browser-posted Item / GST / HSN / GRN snapshots are
-  not trusted.
-- PurchaseInvoiceService reloads trusted source data.
-- Controller accepts only:
-      GRN Item Id
-      Invoice Quantity
-      Supplier Invoice Rate
-      Header input
-      Optional Supplier Invoice PDF
-============================================================
-*/
-
-using AjayIndustriesERP.Application.Exceptions;
+﻿using AjayIndustriesERP.Application.Exceptions;
 using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Domain.Entities;
 using AjayIndustriesERP.Domain.Enums;
@@ -54,10 +11,19 @@ namespace AjayIndustriesERP.Web.Controllers
 {
     public class PurchaseInvoiceController : Controller
     {
+        // =====================================================
+        // CONSTANTS
+        // =====================================================
+
         #region Constants
 
+        /*
+         * Supplier Invoice PDF:
+         * Maximum allowed size = 10 MB.
+         */
         private const long MaxSupplierInvoicePdfSize =
             10 * 1024 * 1024;
+
 
         private const string PurchaseInvoiceUploadFolder =
             "uploads/purchase-invoices";
@@ -65,16 +31,25 @@ namespace AjayIndustriesERP.Web.Controllers
         #endregion
 
 
+        // =====================================================
+        // FIELDS
+        // =====================================================
+
         #region Fields
 
         private readonly IPurchaseInvoiceService
             _service;
+
 
         private readonly IWebHostEnvironment
             _webHostEnvironment;
 
         #endregion
 
+
+        // =====================================================
+        // CONSTRUCTOR
+        // =====================================================
 
         #region Constructor
 
@@ -85,6 +60,7 @@ namespace AjayIndustriesERP.Web.Controllers
             _service =
                 service;
 
+
             _webHostEnvironment =
                 webHostEnvironment;
         }
@@ -93,7 +69,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // INDEX
+        // INDEX / SEARCH / FILTER
         // =====================================================
 
         #region Index
@@ -101,29 +77,61 @@ namespace AjayIndustriesERP.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Index(
             string? searchText,
+            DateTime? purchaseInvoiceDate,
+            DateTime? supplierInvoiceDate,
             int pageNumber = 1,
             int pageSize = 10)
         {
+            // ---------------------------------------------
+            // Preserve filters for Index View.
+            // ---------------------------------------------
+
             ViewBag.SearchText =
                 searchText;
+
+
+            ViewBag.PurchaseInvoiceDate =
+                purchaseInvoiceDate?
+                    .ToString(
+                        "yyyy-MM-dd");
+
+
+            ViewBag.SupplierInvoiceDate =
+                supplierInvoiceDate?
+                    .ToString(
+                        "yyyy-MM-dd");
 
 
             ViewBag.PageSize =
                 pageSize;
 
 
-            var result =
-                string.IsNullOrWhiteSpace(
+            // ---------------------------------------------
+            // Determine whether any filter is active.
+            // ---------------------------------------------
+
+            var hasFilters =
+                !string.IsNullOrWhiteSpace(
                     searchText)
+                ||
+                purchaseInvoiceDate.HasValue
+                ||
+                supplierInvoiceDate.HasValue;
+
+
+            var result =
+                hasFilters
 
                     ? await _service
-                        .GetPagedAsync(
+                        .SearchPagedAsync(
+                            searchText,
+                            purchaseInvoiceDate,
+                            supplierInvoiceDate,
                             pageNumber,
                             pageSize)
 
                     : await _service
-                        .SearchPagedAsync(
-                            searchText,
+                        .GetPagedAsync(
                             pageNumber,
                             pageSize);
 
@@ -232,7 +240,9 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 // ---------------------------------------------
-                // Build trusted transaction input.
+                // Build transaction input.
+                //
+                // Service reloads trusted PO / GRN data.
                 // ---------------------------------------------
 
                 var purchaseInvoice =
@@ -242,10 +252,6 @@ namespace AjayIndustriesERP.Web.Controllers
 
                 // ---------------------------------------------
                 // Optional Supplier Invoice PDF.
-                //
-                // File is saved first.
-                // If Purchase Invoice creation fails,
-                // newly uploaded file is removed.
                 // ---------------------------------------------
 
                 if (viewModel.SupplierInvoicePdf != null)
@@ -266,8 +272,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 // ---------------------------------------------
-                // Service validates trusted PO / GRN source,
-                // quantity, Rate, GST and totals.
+                // Create Draft Purchase Invoice.
                 // ---------------------------------------------
 
                 var created =
@@ -291,8 +296,8 @@ namespace AjayIndustriesERP.Web.Controllers
             catch (BusinessException ex)
             {
                 /*
-                 * Creation failed after a new PDF was saved.
-                 * Remove orphan physical file.
+                 * Remove only newly uploaded file if
+                 * Purchase Invoice creation failed.
                  */
                 DeleteFileIfExists(
                     newlyUploadedPdfPath);
@@ -359,6 +364,14 @@ namespace AjayIndustriesERP.Web.Controllers
             }
 
 
+            /*
+             * Financial Edit remains Draft-only.
+             *
+             * Finalized Purchase Invoice:
+             * - Details allowed
+             * - Delete allowed
+             * - Edit disabled
+             */
             if (purchaseInvoice.Status !=
                 PurchaseInvoiceStatus.Draft)
             {
@@ -420,10 +433,10 @@ namespace AjayIndustriesERP.Web.Controllers
             try
             {
                 // ---------------------------------------------
-                // Always reload existing Purchase Invoice.
+                // Reload existing Purchase Invoice.
                 //
-                // Existing PDF information from browser POST
-                // is intentionally NOT trusted.
+                // Browser-posted existing PDF metadata
+                // is intentionally not trusted.
                 // ---------------------------------------------
 
                 var existing =
@@ -465,8 +478,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 // ---------------------------------------------
-                // Preserve current PDF unless user selected
-                // a replacement PDF.
+                // Preserve existing PDF by default.
                 // ---------------------------------------------
 
                 CopyExistingPdfInformation(
@@ -475,7 +487,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 // ---------------------------------------------
-                // Replace PDF if a new file is selected.
+                // Replace PDF only when new file is selected.
                 // ---------------------------------------------
 
                 if (viewModel.SupplierInvoicePdf != null)
@@ -501,15 +513,18 @@ namespace AjayIndustriesERP.Web.Controllers
                             purchaseInvoice);
 
 
-                /*
-                 * New PDF has been successfully saved to DB.
-                 * Old physical PDF can now be removed.
-                 */
+                // ---------------------------------------------
+                // Database now points to new PDF.
+                // Old physical PDF can safely be removed.
+                // ---------------------------------------------
+
                 if (
                     !string.IsNullOrWhiteSpace(
-                        newlyUploadedPdfPath) &&
+                        newlyUploadedPdfPath)
+                    &&
                     !string.IsNullOrWhiteSpace(
-                        oldPdfPath) &&
+                        oldPdfPath)
+                    &&
                     !string.Equals(
                         newlyUploadedPdfPath,
                         oldPdfPath,
@@ -536,9 +551,7 @@ namespace AjayIndustriesERP.Web.Controllers
             catch (BusinessException ex)
             {
                 /*
-                 * Update failed.
-                 *
-                 * Keep old existing PDF.
+                 * Keep old PDF.
                  * Remove only newly uploaded replacement.
                  */
                 DeleteFileIfExists(
@@ -656,7 +669,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
             if (
                 string.IsNullOrWhiteSpace(
-                    physicalPath) ||
+                    physicalPath)
+                ||
                 !System.IO.File.Exists(
                     physicalPath)
             )
@@ -715,7 +729,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
             if (
                 string.IsNullOrWhiteSpace(
-                    physicalPath) ||
+                    physicalPath)
+                ||
                 !System.IO.File.Exists(
                     physicalPath)
             )
@@ -751,11 +766,21 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // FINALIZE
+        // APPROVE / FINALIZE
         // =====================================================
 
-        #region Finalize
+        #region Finalize / Approve
 
+        /*
+         * UI label:
+         *      Approve
+         *
+         * Internal status:
+         *      Finalized
+         *
+         * We intentionally do NOT add another
+         * Approved enum/status.
+         */
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Finalize(
@@ -770,7 +795,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 TempData["SuccessMessage"] =
-                    $"Purchase Invoice {finalized.Code} finalized successfully.";
+                    $"Purchase Invoice {finalized.Code} approved successfully.";
             }
             catch (BusinessException ex)
             {
@@ -796,6 +821,16 @@ namespace AjayIndustriesERP.Web.Controllers
 
         #region Delete
 
+        /*
+         * Delete is ALWAYS available for active:
+         *
+         * - Draft
+         * - Finalized
+         *
+         * Service performs soft delete.
+         *
+         * Supplier Invoice PDF is NOT physically deleted.
+         */
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(
@@ -803,13 +838,6 @@ namespace AjayIndustriesERP.Web.Controllers
         {
             try
             {
-                /*
-                 * Soft delete only.
-                 *
-                 * Supplier Invoice PDF is intentionally kept
-                 * on disk because Purchase Invoice may later
-                 * be restored.
-                 */
                 await _service
                     .DeleteAsync(
                         id);
@@ -833,7 +861,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // DELETED
+        // DELETED LIST
         // =====================================================
 
         #region Deleted
@@ -859,6 +887,15 @@ namespace AjayIndustriesERP.Web.Controllers
 
         #region Restore
 
+        /*
+         * Restore supports both:
+         *
+         * - Deleted Draft
+         * - Deleted Finalized
+         *
+         * Service preserves original status and
+         * revalidates Supplier Invoice Number + GRN Qty.
+         */
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Restore(
@@ -1162,7 +1199,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                     // -----------------------------------------
-                    // Existing PDF
+                    // Existing Supplier Invoice PDF
                     // -----------------------------------------
 
                     ExistingSupplierInvoicePdfPath =
@@ -1282,13 +1319,10 @@ namespace AjayIndustriesERP.Web.Controllers
                 };
 
 
-            /*
-             * Current Purchase Invoice is excluded from
-             * allocation calculation.
-             *
-             * Therefore quantities already present in this
-             * Draft remain available while editing.
-             */
+            // ---------------------------------------------
+            // Exclude current Draft from reserved qty.
+            // ---------------------------------------------
+
             var sourceItems =
                 await _service
                     .GetAvailableGoodsReceiptItemsAsync(
@@ -1398,8 +1432,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             // ---------------------------------------------
-            // Reload existing PDF metadata from database.
-            // Do not trust posted hidden PDF values.
+            // Reload trusted existing PDF metadata.
             // ---------------------------------------------
 
             if (excludePurchaseInvoiceId.HasValue)
@@ -1451,7 +1484,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             // ---------------------------------------------
-            // Header display information
+            // PO / Supplier / Company display information.
             // ---------------------------------------------
 
             viewModel.PurchaseOrderCode =
@@ -1463,17 +1496,22 @@ namespace AjayIndustriesERP.Web.Controllers
                 viewModel.SupplierId =
                     purchaseOrder.Supplier.SupplierId;
 
+
                 viewModel.SupplierName =
                     purchaseOrder.Supplier.SupplierName;
+
 
                 viewModel.SupplierCode =
                     purchaseOrder.Supplier.SupplierCode;
 
+
                 viewModel.SupplierGstin =
                     purchaseOrder.Supplier.Gstin;
 
+
                 viewModel.SupplierState =
                     purchaseOrder.Supplier.State;
+
 
                 viewModel.SupplierAddress =
                     BuildSupplierAddress(
@@ -1486,11 +1524,14 @@ namespace AjayIndustriesERP.Web.Controllers
                 viewModel.CompanyId =
                     purchaseOrder.Company.CompanyId;
 
+
                 viewModel.CompanyName =
                     purchaseOrder.Company.CompanyName;
 
+
                 viewModel.CompanyGstin =
                     purchaseOrder.Company.GstNumber;
+
 
                 viewModel.CompanyState =
                     purchaseOrder.Company.State;
@@ -1498,7 +1539,11 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             // ---------------------------------------------
-            // Preserve posted checkbox / Qty / Rate.
+            // Preserve browser-posted:
+            //
+            // - Checkbox
+            // - Qty
+            // - Manual Supplier Rate
             // ---------------------------------------------
 
             var postedItems =
@@ -1571,8 +1616,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 /*
-                 * Preserve manually entered Supplier Rate
-                 * when validation fails.
+                 * Preserve manually entered Supplier Invoice
+                 * Rate when validation fails.
                  */
                 if (postedItem != null)
                 {
@@ -1661,12 +1706,14 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             /*
-             * During Edit the selected PO may not appear in
-             * normal available list because all available
-             * quantity belongs to the current Draft itself.
+             * Edit case:
+             * Current PO might no longer appear in normal
+             * available list because its quantity is fully
+             * held by this Draft.
              */
             if (
-                viewModel.PurchaseOrderId > 0 &&
+                viewModel.PurchaseOrderId > 0
+                &&
                 !options.Any(x =>
                     x.Value ==
                     viewModel.PurchaseOrderId
@@ -1699,7 +1746,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // BUILD SUBMITTED ENTITY
+        // BUILD SUBMITTED PURCHASE INVOICE
         // =====================================================
 
         #region Build Submitted Purchase Invoice
@@ -1726,6 +1773,7 @@ namespace AjayIndustriesERP.Web.Controllers
                     SupplierInvoiceNumber =
                         viewModel.SupplierInvoiceNumber,
 
+
                     SupplierInvoiceDate =
                         viewModel.SupplierInvoiceDate,
 
@@ -1733,8 +1781,10 @@ namespace AjayIndustriesERP.Web.Controllers
                     TransportCharges =
                         viewModel.TransportCharges,
 
+
                     OtherCharges =
                         viewModel.OtherCharges,
+
 
                     RoundOffAmount =
                         viewModel.RoundOffAmount,
@@ -1759,19 +1809,22 @@ namespace AjayIndustriesERP.Web.Controllers
                     new PurchaseInvoiceItem
                     {
                         /*
-                         * Trusted transaction inputs only.
+                         * Only actual transaction inputs
+                         * are trusted from browser.
                          *
-                         * Service reloads all source snapshot
-                         * information from database.
+                         * Service reloads all item/GRN/PO
+                         * source information.
                          */
                         GoodsReceiptNoteItemId =
                             item.GoodsReceiptNoteItemId,
 
+
                         PurchaseInvoiceQuantity =
                             item.PurchaseInvoiceQuantity,
 
+
                         /*
-                         * Actual Rate from Supplier Invoice.
+                         * Actual Supplier Invoice Rate.
                          */
                         Rate =
                             item.Rate
@@ -1805,6 +1858,7 @@ namespace AjayIndustriesERP.Web.Controllers
                 Id =
                     item.Id,
 
+
                 SequenceNumber =
                     item.SequenceNumber,
 
@@ -1816,8 +1870,10 @@ namespace AjayIndustriesERP.Web.Controllers
                 PurchaseOrderItemId =
                     item.PurchaseOrderItemId,
 
+
                 PurchaseOrderCode =
                     item.PurchaseOrderCode,
+
 
                 PurchaseOrderQuantity =
                     item.PurchaseOrderQuantity,
@@ -1826,8 +1882,10 @@ namespace AjayIndustriesERP.Web.Controllers
                 GoodsReceiptNoteId =
                     item.GoodsReceiptNoteId,
 
+
                 GoodsReceiptNoteCode =
                     item.GoodsReceiptNoteCode,
+
 
                 GoodsReceiptNoteDate =
                     sourceItem?
@@ -1843,12 +1901,14 @@ namespace AjayIndustriesERP.Web.Controllers
                 GoodsReceiptNoteItemId =
                     item.GoodsReceiptNoteItemId,
 
+
                 GoodsReceiptQuantity =
                     item.GoodsReceiptQuantity,
 
 
                 SupplierChallanNumber =
                     item.SupplierChallanNumber,
+
 
                 SupplierChallanDate =
                     item.SupplierChallanDate,
@@ -1857,8 +1917,10 @@ namespace AjayIndustriesERP.Web.Controllers
                 AlreadyBilledQuantity =
                     alreadyBilledQuantity,
 
+
                 AvailableQuantity =
                     availableQuantity,
+
 
                 PurchaseInvoiceQuantity =
                     purchaseInvoiceQuantity,
@@ -1867,20 +1929,26 @@ namespace AjayIndustriesERP.Web.Controllers
                 ItemId =
                     item.ItemId,
 
+
                 ItemCode =
                     item.ItemCode,
+
 
                 ItemName =
                     item.ItemName,
 
+
                 Description =
                     item.Description,
+
 
                 Specification =
                     item.Specification,
 
+
                 UnitName =
                     item.UnitName,
+
 
                 HsnCode =
                     item.HsnCode,
@@ -1889,15 +1957,17 @@ namespace AjayIndustriesERP.Web.Controllers
                 DrawingId =
                     item.DrawingId,
 
+
                 DrawingNumber =
                     item.DrawingNumber,
+
 
                 DrawingRevision =
                     item.DrawingRevision,
 
 
                 /*
-                 * Actual Supplier Invoice Rate.
+                 * Actual manually entered Supplier Rate.
                  */
                 Rate =
                     item.Rate,
@@ -1906,11 +1976,14 @@ namespace AjayIndustriesERP.Web.Controllers
                 GrossAmount =
                     item.GrossAmount,
 
+
                 DiscountPercent =
                     item.DiscountPercent,
 
+
                 DiscountAmount =
                     item.DiscountAmount,
+
 
                 TaxableAmount =
                     item.TaxableAmount,
@@ -1919,23 +1992,30 @@ namespace AjayIndustriesERP.Web.Controllers
                 GstRate =
                     item.GstRate,
 
+
                 CgstRate =
                     item.CgstRate,
+
 
                 SgstRate =
                     item.SgstRate,
 
+
                 IgstRate =
                     item.IgstRate,
+
 
                 CgstAmount =
                     item.CgstAmount,
 
+
                 SgstAmount =
                     item.SgstAmount,
 
+
                 IgstAmount =
                     item.IgstAmount,
+
 
                 TotalTaxAmount =
                     item.TotalTaxAmount,
@@ -1962,7 +2042,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // DISPLAY ITEM FROM GRN
+        // DISPLAY ITEM FROM TRUSTED GRN SOURCE
         // =====================================================
 
         #region Build Display Item From Source
@@ -1981,8 +2061,10 @@ namespace AjayIndustriesERP.Web.Controllers
                 PurchaseOrderItemId =
                     sourceItem.PurchaseOrderItemId,
 
+
                 PurchaseOrderCode =
                     purchaseInvoice.PurchaseOrderCode,
+
 
                 PurchaseOrderQuantity =
                     poItem?.Quantity
@@ -1993,13 +2075,16 @@ namespace AjayIndustriesERP.Web.Controllers
                 GoodsReceiptNoteId =
                     sourceItem.GoodsReceiptNoteId,
 
+
                 GoodsReceiptNoteCode =
                     sourceItem
                         .GoodsReceiptNote
                         .Code,
 
+
                 GoodsReceiptNoteItemId =
                     sourceItem.Id,
+
 
                 GoodsReceiptQuantity =
                     sourceItem.ReceivedQuantity,
@@ -2010,6 +2095,7 @@ namespace AjayIndustriesERP.Web.Controllers
                         .GoodsReceiptNote
                         .SupplierChallanNumber,
 
+
                 SupplierChallanDate =
                     sourceItem
                         .GoodsReceiptNote
@@ -2019,20 +2105,26 @@ namespace AjayIndustriesERP.Web.Controllers
                 ItemId =
                     sourceItem.ItemId,
 
+
                 ItemCode =
                     sourceItem.ItemCode,
+
 
                 ItemName =
                     sourceItem.ItemName,
 
+
                 Description =
                     poItem?.Description,
+
 
                 Specification =
                     sourceItem.Specification,
 
+
                 UnitName =
                     sourceItem.UnitName,
+
 
                 HsnCode =
                     poItem?.HSNCode,
@@ -2041,8 +2133,10 @@ namespace AjayIndustriesERP.Web.Controllers
                 DrawingId =
                     poItem?.DrawingId,
 
+
                 DrawingNumber =
                     poItem?.DrawingNumber,
+
 
                 DrawingRevision =
                     poItem?.DrawingRevision,
@@ -2051,9 +2145,9 @@ namespace AjayIndustriesERP.Web.Controllers
                 /*
                  * IMPORTANT:
                  *
-                 * Do NOT load PO UnitPrice here.
-                 * Supplier Invoice Rate must be entered
-                 * manually by user.
+                 * Do NOT load Purchase Order UnitPrice here.
+                 *
+                 * Supplier Invoice Rate is manually entered.
                  */
                 Rate =
                     0m,
@@ -2096,12 +2190,15 @@ namespace AjayIndustriesERP.Web.Controllers
                     Id =
                         purchaseInvoice.Id,
 
+
                     Code =
                         purchaseInvoice.Code,
+
 
                     PurchaseInvoiceDate =
                         purchaseInvoice
                             .PurchaseInvoiceDate,
+
 
                     Status =
                         purchaseInvoice.Status
@@ -2111,6 +2208,7 @@ namespace AjayIndustriesERP.Web.Controllers
                     SupplierInvoiceNumber =
                         purchaseInvoice
                             .SupplierInvoiceNumber,
+
 
                     SupplierInvoiceDate =
                         purchaseInvoice
@@ -2125,9 +2223,11 @@ namespace AjayIndustriesERP.Web.Controllers
                         purchaseInvoice
                             .SupplierInvoicePdfPath,
 
+
                     SupplierInvoicePdfOriginalName =
                         purchaseInvoice
                             .SupplierInvoicePdfOriginalName,
+
 
                     SupplierInvoicePdfUploadedOn =
                         purchaseInvoice
@@ -2138,6 +2238,7 @@ namespace AjayIndustriesERP.Web.Controllers
                         purchaseInvoice
                             .PurchaseOrderId,
 
+
                     PurchaseOrderCode =
                         purchaseInvoice
                             .PurchaseOrderCode,
@@ -2146,42 +2247,51 @@ namespace AjayIndustriesERP.Web.Controllers
                     SupplierId =
                         purchaseInvoice.SupplierId,
 
+
                     SupplierName =
                         purchaseInvoice.SupplierName,
+
 
                     SupplierCode =
                         GetSnapshotString(
                             supplierSnapshot,
                             "SupplierCode"),
 
+
                     SupplierGstin =
                         GetSnapshotString(
                             supplierSnapshot,
                             "Gstin"),
+
 
                     SupplierPan =
                         GetSnapshotString(
                             supplierSnapshot,
                             "Pan"),
 
+
                     SupplierContactPerson =
                         GetSnapshotString(
                             supplierSnapshot,
                             "ContactPerson"),
+
 
                     SupplierMobileNumber =
                         GetSnapshotString(
                             supplierSnapshot,
                             "MobileNumber"),
 
+
                     SupplierEmail =
                         GetSnapshotString(
                             supplierSnapshot,
                             "Email"),
 
+
                     SupplierAddress =
                         BuildSupplierAddress(
                             supplierSnapshot),
+
 
                     SupplierState =
                         GetSnapshotString(
@@ -2192,13 +2302,16 @@ namespace AjayIndustriesERP.Web.Controllers
                     CompanyId =
                         purchaseInvoice.CompanyId,
 
+
                     CompanyName =
                         purchaseInvoice.CompanyName,
+
 
                     CompanyGstin =
                         GetSnapshotString(
                             companySnapshot,
                             "GstNumber"),
+
 
                     CompanyPan =
                         FirstSnapshotValue(
@@ -2207,19 +2320,23 @@ namespace AjayIndustriesERP.Web.Controllers
                             "PAN",
                             "PanNumber"),
 
+
                     CompanyAddress =
                         BuildCompanyAddress(
                             companySnapshot),
+
 
                     CompanyState =
                         GetSnapshotString(
                             companySnapshot,
                             "State"),
 
+
                     CompanyPhone =
                         GetSnapshotString(
                             companySnapshot,
                             "PhoneNumber"),
+
 
                     CompanyEmail =
                         GetSnapshotString(
@@ -2230,8 +2347,10 @@ namespace AjayIndustriesERP.Web.Controllers
                     PaymentTerms =
                         purchaseInvoice.PaymentTerms,
 
+
                     CreditDays =
                         purchaseInvoice.CreditDays,
+
 
                     DueDate =
                         purchaseInvoice.DueDate,
@@ -2240,6 +2359,7 @@ namespace AjayIndustriesERP.Web.Controllers
                     PlaceOfSupply =
                         purchaseInvoice.PlaceOfSupply,
 
+
                     IsInterState =
                         purchaseInvoice.IsInterState,
 
@@ -2247,30 +2367,39 @@ namespace AjayIndustriesERP.Web.Controllers
                     GrossAmount =
                         purchaseInvoice.GrossAmount,
 
+
                     DiscountAmount =
                         purchaseInvoice.DiscountAmount,
+
 
                     TaxableAmount =
                         purchaseInvoice.TaxableAmount,
 
+
                     CgstAmount =
                         purchaseInvoice.CgstAmount,
+
 
                     SgstAmount =
                         purchaseInvoice.SgstAmount,
 
+
                     IgstAmount =
                         purchaseInvoice.IgstAmount,
+
 
                     TransportCharges =
                         purchaseInvoice
                             .TransportCharges,
 
+
                     OtherCharges =
                         purchaseInvoice.OtherCharges,
 
+
                     RoundOffAmount =
                         purchaseInvoice.RoundOffAmount,
+
 
                     GrandTotal =
                         purchaseInvoice.GrandTotal,
@@ -2283,6 +2412,7 @@ namespace AjayIndustriesERP.Web.Controllers
                     FinalizedOn =
                         purchaseInvoice.FinalizedOn,
 
+
                     FinalizedBy =
                         purchaseInvoice.FinalizedBy,
 
@@ -2290,11 +2420,14 @@ namespace AjayIndustriesERP.Web.Controllers
                     CreatedOn =
                         purchaseInvoice.CreatedOn,
 
+
                     CreatedBy =
                         purchaseInvoice.CreatedBy,
 
+
                     ModifiedOn =
                         purchaseInvoice.ModifiedOn,
+
 
                     ModifiedBy =
                         purchaseInvoice.ModifiedBy
@@ -2315,6 +2448,7 @@ namespace AjayIndustriesERP.Web.Controllers
                         Id =
                             item.Id,
 
+
                         SequenceNumber =
                             item.SequenceNumber,
 
@@ -2322,8 +2456,10 @@ namespace AjayIndustriesERP.Web.Controllers
                         PurchaseOrderItemId =
                             item.PurchaseOrderItemId,
 
+
                         PurchaseOrderCode =
                             item.PurchaseOrderCode,
+
 
                         PurchaseOrderQuantity =
                             item.PurchaseOrderQuantity,
@@ -2332,24 +2468,31 @@ namespace AjayIndustriesERP.Web.Controllers
                         GoodsReceiptNoteId =
                             item.GoodsReceiptNoteId,
 
+
                         GoodsReceiptNoteCode =
                             item.GoodsReceiptNoteCode,
+
 
                         GoodsReceiptNoteDate =
                             item.GoodsReceiptNote?
                                 .GRNDate,
 
+
                         GoodsReceiptNoteItemId =
                             item.GoodsReceiptNoteItemId,
+
 
                         GoodsReceiptQuantity =
                             item.GoodsReceiptQuantity,
 
+
                         SupplierChallanNumber =
                             item.SupplierChallanNumber,
 
+
                         SupplierChallanDate =
                             item.SupplierChallanDate,
+
 
                         MaterialStatus =
                             item.GoodsReceiptNoteItem?
@@ -2360,20 +2503,26 @@ namespace AjayIndustriesERP.Web.Controllers
                         ItemId =
                             item.ItemId,
 
+
                         ItemCode =
                             item.ItemCode,
+
 
                         ItemName =
                             item.ItemName,
 
+
                         Description =
                             item.Description,
+
 
                         Specification =
                             item.Specification,
 
+
                         UnitName =
                             item.UnitName,
+
 
                         HsnCode =
                             item.HsnCode,
@@ -2381,6 +2530,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
                         DrawingNumber =
                             item.DrawingNumber,
+
 
                         DrawingRevision =
                             item.DrawingRevision,
@@ -2393,14 +2543,18 @@ namespace AjayIndustriesERP.Web.Controllers
                         Rate =
                             item.Rate,
 
+
                         GrossAmount =
                             item.GrossAmount,
+
 
                         DiscountPercent =
                             item.DiscountPercent,
 
+
                         DiscountAmount =
                             item.DiscountAmount,
+
 
                         TaxableAmount =
                             item.TaxableAmount,
@@ -2409,23 +2563,30 @@ namespace AjayIndustriesERP.Web.Controllers
                         GstRate =
                             item.GstRate,
 
+
                         CgstRate =
                             item.CgstRate,
+
 
                         SgstRate =
                             item.SgstRate,
 
+
                         IgstRate =
                             item.IgstRate,
+
 
                         CgstAmount =
                             item.CgstAmount,
 
+
                         SgstAmount =
                             item.SgstAmount,
 
+
                         IgstAmount =
                             item.IgstAmount,
+
 
                         TotalTaxAmount =
                             item.TotalTaxAmount,
@@ -2444,7 +2605,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // PDF VALIDATION / SAVE
+        // SUPPLIER INVOICE PDF - SAVE
         // =====================================================
 
         #region Supplier Invoice PDF - Save
@@ -2470,11 +2631,6 @@ namespace AjayIndustriesERP.Web.Controllers
 
             /*
              * Never use browser filename as physical filename.
-             *
-             * Random GUID avoids:
-             * - duplicate names
-             * - invalid path characters
-             * - path traversal
              */
             var storedFileName =
                 $"{Guid.NewGuid():N}.pdf";
@@ -2497,7 +2653,8 @@ namespace AjayIndustriesERP.Web.Controllers
                         FileAccess.Write,
                         FileShare.None,
                         81920,
-                        useAsync: true))
+                        useAsync:
+                            true))
             {
                 await sourceStream
                     .CopyToAsync(
@@ -2526,8 +2683,10 @@ namespace AjayIndustriesERP.Web.Controllers
                 RelativePath =
                     relativePath,
 
+
                 OriginalFileName =
                     originalFileName,
+
 
                 UploadedOn =
                     DateTime.Now
@@ -2538,7 +2697,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // PDF VALIDATION
+        // SUPPLIER INVOICE PDF - VALIDATION
         // =====================================================
 
         #region Supplier Invoice PDF - Validation
@@ -2547,12 +2706,20 @@ namespace AjayIndustriesERP.Web.Controllers
             ValidateSupplierInvoicePdfAsync(
                 IFormFile file)
         {
+            // ---------------------------------------------
+            // Empty File
+            // ---------------------------------------------
+
             if (file.Length <= 0)
             {
                 throw new BusinessException(
                     "Selected Supplier Invoice PDF is empty.");
             }
 
+
+            // ---------------------------------------------
+            // Maximum 10 MB
+            // ---------------------------------------------
 
             if (file.Length >
                 MaxSupplierInvoicePdfSize)
@@ -2561,6 +2728,10 @@ namespace AjayIndustriesERP.Web.Controllers
                     "Supplier Invoice PDF cannot be larger than 10 MB.");
             }
 
+
+            // ---------------------------------------------
+            // Extension Validation
+            // ---------------------------------------------
 
             var extension =
                 Path.GetExtension(
@@ -2577,19 +2748,19 @@ namespace AjayIndustriesERP.Web.Controllers
             }
 
 
-            /*
-             * Browsers normally send application/pdf.
-             * application/octet-stream is also accepted
-             * because some browsers / systems use generic
-             * binary MIME type for valid PDFs.
-             */
+            // ---------------------------------------------
+            // MIME Validation
+            // ---------------------------------------------
+
             if (
                 !string.IsNullOrWhiteSpace(
-                    file.ContentType) &&
+                    file.ContentType)
+                &&
                 !string.Equals(
                     file.ContentType,
                     "application/pdf",
-                    StringComparison.OrdinalIgnoreCase) &&
+                    StringComparison.OrdinalIgnoreCase)
+                &&
                 !string.Equals(
                     file.ContentType,
                     "application/octet-stream",
@@ -2601,16 +2772,13 @@ namespace AjayIndustriesERP.Web.Controllers
             }
 
 
-            /*
-             * Validate real PDF file signature.
-             *
-             * Valid PDF starts with:
-             * %PDF-
-             *
-             * This prevents a renamed .exe/.jpg/etc.
-             * from being accepted merely because it has
-             * a .pdf extension.
-             */
+            // ---------------------------------------------
+            // Actual PDF Header Validation
+            //
+            // Valid PDF starts with:
+            // %PDF-
+            // ---------------------------------------------
+
             var header =
                 new byte[5];
 
@@ -2627,11 +2795,16 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             if (
-                bytesRead < 5 ||
-                header[0] != (byte)'%' ||
-                header[1] != (byte)'P' ||
-                header[2] != (byte)'D' ||
-                header[3] != (byte)'F' ||
+                bytesRead < 5
+                ||
+                header[0] != (byte)'%'
+                ||
+                header[1] != (byte)'P'
+                ||
+                header[2] != (byte)'D'
+                ||
+                header[3] != (byte)'F'
+                ||
                 header[4] != (byte)'-'
             )
             {
@@ -2644,7 +2817,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // PDF ENTITY MAPPING
+        // SUPPLIER INVOICE PDF - ENTITY MAPPING
         // =====================================================
 
         #region Supplier Invoice PDF - Entity Mapping
@@ -2686,7 +2859,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // SAFE PDF PHYSICAL PATH
+        // SUPPLIER INVOICE PDF - SAFE PATH
         // =====================================================
 
         #region Supplier Invoice PDF - Safe Path
@@ -2735,8 +2908,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             /*
-             * Ensure DB path cannot escape configured
-             * Purchase Invoice upload directory.
+             * Prevent path escaping outside our
+             * Purchase Invoice PDF folder.
              */
             if (!physicalPath.StartsWith(
                 requiredPrefix,
@@ -2753,7 +2926,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // PDF FILE CLEANUP
+        // SUPPLIER INVOICE PDF - CLEANUP
         // =====================================================
 
         #region Supplier Invoice PDF - Delete Physical File
@@ -2777,7 +2950,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
                 if (
                     !string.IsNullOrWhiteSpace(
-                        physicalPath) &&
+                        physicalPath)
+                    &&
                     System.IO.File.Exists(
                         physicalPath)
                 )
@@ -2789,11 +2963,8 @@ namespace AjayIndustriesERP.Web.Controllers
             catch
             {
                 /*
-                 * File cleanup must never hide the original
+                 * Cleanup failure must not hide original
                  * Purchase Invoice business error.
-                 *
-                 * Failed orphan cleanup can be handled by
-                 * maintenance later.
                  */
             }
         }
