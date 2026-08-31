@@ -1,8 +1,14 @@
 ﻿@model AjayIndustriesERP.Web.ViewModels.PurchaseInvoice.PurchaseInvoiceFormViewModel
 
 @{
-    ViewData["Title"] = "Create Purchase Invoice";
+    ViewData["Title"] =
+        "Create Purchase Invoice";
 }
+
+
+@* =========================================================
+   PAGE HEADER
+   ========================================================= *@
 
 <div class="d-flex
             justify-content-between
@@ -18,7 +24,9 @@
         </h2>
 
         <div class="text-muted">
-            Create supplier bill against received GRN material.
+
+            Record Supplier Invoice against received GRN material.
+
         </div>
 
     </div>
@@ -40,11 +48,24 @@
 </div>
 
 
+@* =========================================================
+   CREATE FORM
+
+   enctype="multipart/form-data" is REQUIRED because
+   Supplier Invoice PDF can be uploaded.
+   ========================================================= *@
+
 <form asp-action="Create"
       method="post"
+      enctype="multipart/form-data"
       autocomplete="off">
 
     @Html.AntiForgeryToken()
+
+
+    @* =====================================================
+       SHARED PURCHASE INVOICE FORM
+       ===================================================== *@
 
     <partial name="_Form"
              model="Model" />
@@ -52,9 +73,18 @@
 </form>
 
 
+@* =========================================================
+   PAGE SCRIPTS
+   ========================================================= *@
+
 @section Scripts
 {
+    @* Client-side ASP.NET validation *@
+
     <partial name="_ValidationScriptsPartial" />
+
+
+    @* Purchase Invoice calculations / behaviour *@
 
     <script src="~/js/purchase-invoice-form.js"
             asp-append-version="true">

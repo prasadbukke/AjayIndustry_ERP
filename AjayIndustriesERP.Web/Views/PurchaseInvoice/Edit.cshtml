@@ -1,8 +1,14 @@
 ﻿@model AjayIndustriesERP.Web.ViewModels.PurchaseInvoice.PurchaseInvoiceFormViewModel
 
 @{
-    ViewData["Title"] = "Edit Purchase Invoice";
+    ViewData["Title"] =
+        "Edit Purchase Invoice";
 }
+
+
+@* =========================================================
+   PAGE HEADER
+   ========================================================= *@
 
 <div class="d-flex
             justify-content-between
@@ -13,23 +19,57 @@
 
     <div>
 
-        <h2 class="fw-bold mb-1">
-            Edit Purchase Invoice
-        </h2>
+        <div class="d-flex
+                    align-items-center
+                    flex-wrap
+                    gap-2
+                    mb-1">
 
-        <div class="text-muted">
+            <h2 class="fw-bold mb-0">
+                Edit Purchase Invoice
+            </h2>
 
-            @if (!string.IsNullOrWhiteSpace(Model.Code))
+
+            @if (!string.IsNullOrWhiteSpace(
+                Model.Status))
             {
-                <span>
-                    @Model.Code
+                <span class="badge bg-warning text-dark">
+
+                    @Model.Status
+
                 </span>
             }
 
-            @if (!string.IsNullOrWhiteSpace(Model.Status))
+        </div>
+
+
+        <div class="text-muted">
+
+            @if (!string.IsNullOrWhiteSpace(
+                Model.Code))
             {
-                <span class="ms-2 badge bg-warning text-dark">
-                    @Model.Status
+                <span class="fw-semibold">
+
+                    @Model.Code
+
+                </span>
+            }
+
+
+            @if (!string.IsNullOrWhiteSpace(
+                Model.SupplierInvoiceNumber))
+            {
+                <span class="mx-2">
+                    •
+                </span>
+
+                <span>
+
+                    Supplier Invoice:
+                    <strong>
+                        @Model.SupplierInvoiceNumber
+                    </strong>
+
                 </span>
             }
 
@@ -38,7 +78,9 @@
     </div>
 
 
-    <div class="d-flex gap-2">
+    <div class="d-flex
+                flex-wrap
+                gap-2">
 
         <a asp-action="Details"
            asp-route-id="@Model.Id"
@@ -55,12 +97,26 @@
 </div>
 
 
+@* =========================================================
+   EDIT FORM
+
+   enctype="multipart/form-data" is REQUIRED because:
+   - existing PDF can be preserved
+   - Draft can optionally upload a replacement PDF
+   ========================================================= *@
+
 <form asp-action="Edit"
       asp-route-id="@Model.Id"
       method="post"
+      enctype="multipart/form-data"
       autocomplete="off">
 
     @Html.AntiForgeryToken()
+
+
+    @* =====================================================
+       SHARED PURCHASE INVOICE FORM
+       ===================================================== *@
 
     <partial name="_Form"
              model="Model" />
@@ -68,9 +124,18 @@
 </form>
 
 
+@* =========================================================
+   PAGE SCRIPTS
+   ========================================================= *@
+
 @section Scripts
 {
+    @* Client-side ASP.NET validation *@
+
     <partial name="_ValidationScriptsPartial" />
+
+
+    @* Purchase Invoice calculations / behaviour *@
 
     <script src="~/js/purchase-invoice-form.js"
             asp-append-version="true">

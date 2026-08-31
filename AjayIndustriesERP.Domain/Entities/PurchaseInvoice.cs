@@ -6,36 +6,22 @@ Module:
 Purchase Invoice / Supplier Bill
 
 Purpose:
-Represents one Supplier Purchase Invoice.
+Represents Supplier's actual Invoice / Bill recorded
+against material received through GRN.
 
-Source Flow:
+Business Flow:
 Purchase Order
-    → Goods Receipt Note
+    → GRN
     → Purchase Invoice
     → Supplier Payment
     → Supplier Outstanding
 
-Responsibilities:
-- Store internal Purchase Invoice number.
-- Store Supplier's actual Invoice Number and Date.
-- Maintain Purchase Order traceability.
-- Store Supplier historical snapshot.
-- Store Company historical snapshot.
-- Store payment terms and due date.
-- Store GST / financial totals.
-- Maintain Purchase Invoice workflow.
-- Maintain Purchase Invoice line items.
-- Maintain finalization information.
-
 Important:
-- Purchase Invoice is created only against actually
-  received GRN quantities.
-- Draft + Finalized active Purchase Invoices reserve
-  received quantity.
-- Deleted Purchase Invoices do not reserve quantity.
-- Finalized Purchase Invoice cannot be edited/deleted.
-- Supplier Payment will later be allocated against
-  Finalized Purchase Invoices.
+- One Purchase Invoice belongs to one Purchase Order.
+- Multiple GRN lines of that PO may be billed.
+- Supplier Invoice Number is the supplier's actual bill no.
+- Code is ERP's internal Purchase Invoice number.
+- Supplier's original invoice PDF may optionally be attached.
 ============================================================
 */
 
@@ -44,10 +30,11 @@ using AjayIndustriesERP.Domain.Enums;
 
 namespace AjayIndustriesERP.Domain.Entities
 {
-    public class PurchaseInvoice
-        : BaseEntity
+    public class PurchaseInvoice : BaseEntity
     {
-        #region Identification
+        // =====================================================
+        // PRIMARY KEY
+        // =====================================================
 
         public int Id
         {
@@ -56,12 +43,10 @@ namespace AjayIndustriesERP.Domain.Entities
         }
 
 
-        /// <summary>
-        /// Internal ERP Purchase Invoice number.
-        ///
-        /// Example:
-        /// AI/PINV/26-27/00001
-        /// </summary>
+        // =====================================================
+        // ERP PURCHASE INVOICE
+        // =====================================================
+
         public string Code
         {
             get;
@@ -69,10 +54,6 @@ namespace AjayIndustriesERP.Domain.Entities
         } = string.Empty;
 
 
-        /// <summary>
-        /// ERP posting / Purchase Invoice date.
-        /// Used for internal financial-year numbering.
-        /// </summary>
         public DateTime PurchaseInvoiceDate
         {
             get;
@@ -86,18 +67,11 @@ namespace AjayIndustriesERP.Domain.Entities
             set;
         } = PurchaseInvoiceStatus.Draft;
 
-        #endregion
 
+        // =====================================================
+        // SUPPLIER'S ACTUAL INVOICE
+        // =====================================================
 
-        #region Supplier Invoice Information
-
-        /// <summary>
-        /// Actual Invoice Number printed on
-        /// Supplier's Tax Invoice / Bill.
-        ///
-        /// Duplicate Supplier Invoice Number for the
-        /// same Supplier will be prevented by Service.
-        /// </summary>
         public string SupplierInvoiceNumber
         {
             get;
@@ -105,28 +79,59 @@ namespace AjayIndustriesERP.Domain.Entities
         } = string.Empty;
 
 
-        /// <summary>
-        /// Actual Invoice Date printed on Supplier Bill.
-        /// </summary>
         public DateTime SupplierInvoiceDate
         {
             get;
             set;
         }
 
-        #endregion
 
-
-        #region Purchase Order Reference
+        // =====================================================
+        // SUPPLIER INVOICE PDF
+        // =====================================================
 
         /*
-         * Current ERP Phase:
+         * Relative path of the uploaded Supplier Invoice PDF.
          *
-         * One Purchase Invoice belongs to one Purchase Order.
+         * Example:
+         * /uploads/purchase-invoices/AI_PINV_26-27_00001_xxx.pdf
          *
-         * Multiple GRNs against that same PO can contribute
-         * quantities to this Purchase Invoice.
+         * Actual file is stored on disk.
+         * Database stores only the relative path.
          */
+        public string? SupplierInvoicePdfPath
+        {
+            get;
+            set;
+        }
+
+
+        /*
+         * Original filename uploaded by user.
+         *
+         * Example:
+         * Supplier-Invoice-125.pdf
+         */
+        public string? SupplierInvoicePdfOriginalName
+        {
+            get;
+            set;
+        }
+
+
+        /*
+         * Date/time when Supplier Invoice PDF was attached.
+         */
+        public DateTime? SupplierInvoicePdfUploadedOn
+        {
+            get;
+            set;
+        }
+
+
+        // =====================================================
+        // PURCHASE ORDER
+        // =====================================================
 
         public int PurchaseOrderId
         {
@@ -142,19 +147,19 @@ namespace AjayIndustriesERP.Domain.Entities
         } = null!;
 
 
-        /// <summary>
-        /// Historical PO Number snapshot.
-        /// </summary>
+        /*
+         * Snapshot / quick display reference.
+         */
         public string PurchaseOrderCode
         {
             get;
             set;
         } = string.Empty;
 
-        #endregion
 
-
-        #region Supplier Reference / Snapshot
+        // =====================================================
+        // SUPPLIER
+        // =====================================================
 
         public int SupplierId
         {
@@ -170,9 +175,6 @@ namespace AjayIndustriesERP.Domain.Entities
         } = null!;
 
 
-        /// <summary>
-        /// Supplier Name snapshot for convenient display.
-        /// </summary>
         public string SupplierName
         {
             get;
@@ -180,29 +182,19 @@ namespace AjayIndustriesERP.Domain.Entities
         } = string.Empty;
 
 
-        /// <summary>
-        /// Generic scalar snapshot of Supplier Master.
-        ///
-        /// Includes:
-        /// SupplierCode
-        /// GSTIN
-        /// PAN
-        /// Contact Information
-        /// Address
-        /// State
-        /// PaymentTermsDays
-        /// and future scalar Supplier fields.
-        /// </summary>
+        /*
+         * Frozen Supplier snapshot at Purchase Invoice creation.
+         */
         public string? SupplierSnapshotJson
         {
             get;
             set;
         }
 
-        #endregion
 
-
-        #region Company Reference / Snapshot
+        // =====================================================
+        // COMPANY
+        // =====================================================
 
         public int CompanyId
         {
@@ -225,37 +217,20 @@ namespace AjayIndustriesERP.Domain.Entities
         } = string.Empty;
 
 
-        /// <summary>
-        /// Generic scalar Company snapshot.
-        ///
-        /// Includes:
-        /// Address
-        /// GST
-        /// PAN
-        /// State
-        /// Contact Details
-        /// Bank / ISO information
-        /// and future scalar Company fields.
-        /// </summary>
+        /*
+         * Frozen Company snapshot at Purchase Invoice creation.
+         */
         public string? CompanySnapshotJson
         {
             get;
             set;
         }
 
-        #endregion
 
+        // =====================================================
+        // PAYMENT TERMS
+        // =====================================================
 
-        #region Payment Information
-
-        /// <summary>
-        /// Supplier payment terms snapshot.
-        ///
-        /// Example:
-        /// 30 Days
-        /// 45 Days
-        /// Immediate
-        /// </summary>
         public string? PaymentTerms
         {
             get;
@@ -263,9 +238,6 @@ namespace AjayIndustriesERP.Domain.Entities
         }
 
 
-        /// <summary>
-        /// Supplier PaymentTermsDays snapshot.
-        /// </summary>
         public int? CreditDays
         {
             get;
@@ -273,26 +245,21 @@ namespace AjayIndustriesERP.Domain.Entities
         }
 
 
-        /// <summary>
-        /// Normally:
-        ///
-        /// SupplierInvoiceDate + CreditDays
-        /// </summary>
         public DateTime? DueDate
         {
             get;
             set;
         }
 
-        #endregion
 
+        // =====================================================
+        // GST
+        // =====================================================
 
-        #region GST Information
-
-        /// <summary>
-        /// Supplier State used as Place of Supply /
-        /// GST transaction reference.
-        /// </summary>
+        /*
+         * For purchase transaction, recipient is our Company.
+         * Therefore Place of Supply is currently Company State.
+         */
         public string? PlaceOfSupply
         {
             get;
@@ -300,29 +267,17 @@ namespace AjayIndustriesERP.Domain.Entities
         }
 
 
-        /// <summary>
-        /// True:
-        /// Supplier State != Company State
-        /// → IGST
-        ///
-        /// False:
-        /// Supplier State == Company State
-        /// → CGST + SGST
-        /// </summary>
         public bool IsInterState
         {
             get;
             set;
         }
 
-        #endregion
 
+        // =====================================================
+        // FINANCIAL TOTALS
+        // =====================================================
 
-        #region Financial Totals
-
-        /// <summary>
-        /// Sum of Purchase Invoice line quantities × rates.
-        /// </summary>
         public decimal GrossAmount
         {
             get;
@@ -330,11 +285,6 @@ namespace AjayIndustriesERP.Domain.Entities
         }
 
 
-        /// <summary>
-        /// Current Purchase flow does not use discount,
-        /// but the field is retained for accounting
-        /// compatibility and future use.
-        /// </summary>
         public decimal DiscountAmount
         {
             get;
@@ -370,9 +320,6 @@ namespace AjayIndustriesERP.Domain.Entities
         }
 
 
-        /// <summary>
-        /// Freight / transport amount charged by Supplier.
-        /// </summary>
         public decimal TransportCharges
         {
             get;
@@ -380,9 +327,6 @@ namespace AjayIndustriesERP.Domain.Entities
         }
 
 
-        /// <summary>
-        /// Other Supplier Invoice charges.
-        /// </summary>
         public decimal OtherCharges
         {
             get;
@@ -390,9 +334,10 @@ namespace AjayIndustriesERP.Domain.Entities
         }
 
 
-        /// <summary>
-        /// Positive or negative Supplier Invoice round-off.
-        /// </summary>
+        /*
+         * Supplier's actual Invoice Round Off.
+         * Can be positive or negative.
+         */
         public decimal RoundOffAmount
         {
             get;
@@ -400,22 +345,16 @@ namespace AjayIndustriesERP.Domain.Entities
         }
 
 
-        /// <summary>
-        /// Final payable amount to Supplier.
-        ///
-        /// This amount will later become the source amount
-        /// for Supplier Payment / Outstanding calculation.
-        /// </summary>
         public decimal GrandTotal
         {
             get;
             set;
         }
 
-        #endregion
 
-
-        #region Remarks
+        // =====================================================
+        // REMARKS
+        // =====================================================
 
         public string? Remarks
         {
@@ -423,10 +362,10 @@ namespace AjayIndustriesERP.Domain.Entities
             set;
         }
 
-        #endregion
 
-
-        #region Finalization
+        // =====================================================
+        // FINALIZATION
+        // =====================================================
 
         public DateTime? FinalizedOn
         {
@@ -441,17 +380,15 @@ namespace AjayIndustriesERP.Domain.Entities
             set;
         }
 
-        #endregion
 
-
-        #region Navigation
+        // =====================================================
+        // ITEMS
+        // =====================================================
 
         public ICollection<PurchaseInvoiceItem> Items
         {
             get;
             set;
         } = new List<PurchaseInvoiceItem>();
-
-        #endregion
     }
 }

@@ -3,10 +3,12 @@
 @using AjayIndustriesERP.Domain.Enums
 
 @{
-    ViewData["Title"] = "Purchase Invoices";
+    ViewData["Title"] =
+        "Purchase Invoices";
 
     var searchText =
-        ViewBag.SearchText as string ?? "";
+        ViewBag.SearchText as string
+        ?? string.Empty;
 
     var pageSize =
         ViewBag.PageSize != null
@@ -16,7 +18,7 @@
 
 
 @* =========================================================
-   MESSAGES
+   SUCCESS / ERROR MESSAGES
    ========================================================= *@
 
 @if (TempData["SuccessMessage"] != null)
@@ -52,7 +54,7 @@
 
 
 @* =========================================================
-   HEADER
+   PAGE HEADER
    ========================================================= *@
 
 <div class="d-flex
@@ -69,7 +71,9 @@
         </h2>
 
         <div class="text-muted">
+
             Supplier bills recorded against received GRN material.
+
         </div>
 
     </div>
@@ -104,7 +108,7 @@
 
 
 @* =========================================================
-   SEARCH / FILTER
+   SEARCH / PAGE SIZE
    ========================================================= *@
 
 <div class="card shadow-sm border-0 mb-4">
@@ -114,7 +118,13 @@
         <form asp-action="Index"
               method="get">
 
-            <div class="row g-3 align-items-end">
+            <div class="row
+                        g-3
+                        align-items-end">
+
+                @* =================================================
+                   SEARCH
+                   ================================================= *@
 
                 <div class="col-xl-6 col-lg-6">
 
@@ -132,6 +142,10 @@
                 </div>
 
 
+                @* =================================================
+                   PAGE SIZE
+                   ================================================= *@
+
                 <div class="col-xl-2 col-lg-2 col-md-4">
 
                     <label class="form-label fw-semibold">
@@ -144,47 +158,71 @@
 
                         @if (pageSize == 10)
                         {
-                            <option value="10" selected>10</option>
+                            <option value="10"
+                                    selected>
+                                10
+                            </option>
                         }
                         else
                         {
-                            <option value="10">10</option>
+                            <option value="10">
+                                10
+                            </option>
                         }
 
 
                         @if (pageSize == 25)
                         {
-                            <option value="25" selected>25</option>
+                            <option value="25"
+                                    selected>
+                                25
+                            </option>
                         }
                         else
                         {
-                            <option value="25">25</option>
+                            <option value="25">
+                                25
+                            </option>
                         }
 
 
                         @if (pageSize == 50)
                         {
-                            <option value="50" selected>50</option>
+                            <option value="50"
+                                    selected>
+                                50
+                            </option>
                         }
                         else
                         {
-                            <option value="50">50</option>
+                            <option value="50">
+                                50
+                            </option>
                         }
 
 
                         @if (pageSize == 100)
                         {
-                            <option value="100" selected>100</option>
+                            <option value="100"
+                                    selected>
+                                100
+                            </option>
                         }
                         else
                         {
-                            <option value="100">100</option>
+                            <option value="100">
+                                100
+                            </option>
                         }
 
                     </select>
 
                 </div>
 
+
+                @* =================================================
+                   SEARCH BUTTONS
+                   ================================================= *@
 
                 <div class="col-xl-4 col-lg-4 col-md-8">
 
@@ -221,7 +259,7 @@
 
 
 @* =========================================================
-   TABLE
+   PURCHASE INVOICE LIST
    ========================================================= *@
 
 <div class="card shadow-sm border-0">
@@ -239,15 +277,15 @@
 
                     <tr>
 
-                        <th style="min-width:160px;">
+                        <th style="min-width:165px;">
                             ERP Invoice
                         </th>
 
-                        <th style="min-width:130px;">
+                        <th style="min-width:120px;">
                             Date
                         </th>
 
-                        <th style="min-width:190px;">
+                        <th style="min-width:180px;">
                             Supplier Invoice
                         </th>
 
@@ -259,12 +297,17 @@
                             Purchase Order
                         </th>
 
-                        <th style="min-width:130px;">
+                        <th style="min-width:125px;">
                             Due Date
                         </th>
 
+                        <th class="text-center"
+                            style="min-width:90px;">
+                            PDF
+                        </th>
+
                         <th class="text-end"
-                            style="min-width:150px;">
+                            style="min-width:145px;">
                             Grand Total
                         </th>
 
@@ -274,7 +317,7 @@
                         </th>
 
                         <th class="text-end"
-                            style="min-width:170px;">
+                            style="min-width:160px;">
                             Actions
                         </th>
 
@@ -286,20 +329,20 @@
                 <tbody>
 
                     @if (Model.Items == null ||
-                         Model.Items.Count == 0)
+                                        Model.Items.Count == 0)
                     {
                         <tr>
 
-                            <td colspan="9"
+                            <td colspan="10"
                                 class="text-center
-                                       text-muted
-                                       py-5">
+                                           text-muted
+                                           py-5">
 
                                 <i class="fa-solid
-                                          fa-file-invoice
-                                          fa-2x
-                                          mb-3
-                                          d-block">
+                                              fa-file-invoice
+                                              fa-2x
+                                              d-block
+                                              mb-3">
                                 </i>
 
                                 No Purchase Invoices found.
@@ -313,22 +356,22 @@
                         foreach (var item in Model.Items)
                         {
                             var isDraft =
-                                item.Status ==
-                                PurchaseInvoiceStatus.Draft;
+                            item.Status ==
+                            PurchaseInvoiceStatus.Draft;
 
 
                             <tr>
 
-                                @* =============================
-                                   ERP INVOICE
-                                   ============================= *@
+                                @* =================================
+                                   ERP PURCHASE INVOICE
+                                   ================================= *@
 
                                 <td>
 
                                     <a asp-action="Details"
                                        asp-route-id="@item.Id"
                                        class="fw-semibold
-                                              text-decoration-none">
+                                                      text-decoration-none">
 
                                         @item.Code
 
@@ -337,55 +380,59 @@
                                 </td>
 
 
-                                @* =============================
+                                @* =================================
                                    PURCHASE INVOICE DATE
-                                   ============================= *@
+                                   ================================= *@
 
                                 <td>
 
-                                    @item.PurchaseInvoiceDate
-                                        .ToString("dd-MM-yyyy")
+                                    @(item.PurchaseInvoiceDate
+                                                                .ToString("dd-MM-yyyy"))
 
                                 </td>
 
 
-                                @* =============================
+                                @* =================================
                                    SUPPLIER INVOICE
-                                   ============================= *@
+                                   ================================= *@
 
                                 <td>
 
                                     <div class="fw-semibold">
+
                                         @item.SupplierInvoiceNumber
+
                                     </div>
 
 
                                     <div class="text-muted small">
 
-                                        @item.SupplierInvoiceDate
-                                            .ToString("dd-MM-yyyy")
+                                        @(item.SupplierInvoiceDate
+                                                                        .ToString("dd-MM-yyyy"))
 
                                     </div>
 
                                 </td>
 
 
-                                @* =============================
+                                @* =================================
                                    SUPPLIER
-                                   ============================= *@
+                                   ================================= *@
 
                                 <td>
 
                                     <div class="fw-semibold">
+
                                         @item.SupplierName
+
                                     </div>
 
                                 </td>
 
 
-                                @* =============================
+                                @* =================================
                                    PURCHASE ORDER
-                                   ============================= *@
+                                   ================================= *@
 
                                 <td>
 
@@ -401,40 +448,67 @@
                                 </td>
 
 
-                                @* =============================
+                                @* =================================
                                    DUE DATE
-                                   ============================= *@
+                                   ================================= *@
 
                                 <td>
 
-                                    @if (item.DueDate.HasValue)
+                                    @(item.DueDate.HasValue
+                                                                ? item.DueDate.Value.ToString("dd-MM-yyyy")
+                                                                : "-")
+
+                        </td>
+
+
+                                @* =================================
+                                   SUPPLIER INVOICE PDF
+                                   ================================= *@
+
+                                <td class="text-center">
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                                        item.SupplierInvoicePdfPath))
                                     {
-                                        @(item.DueDate.Value.ToString("dd-MM-yyyy"))
+                                        <a asp-action="ViewSupplierInvoicePdf"
+                                           asp-route-id="@item.Id"
+                                           target="_blank"
+                                           class="btn
+                                                              btn-sm
+                                                              btn-outline-danger"
+                                           title="View Supplier Invoice PDF">
+
+                                            <i class="fa-solid fa-file-pdf"></i>
+
+                                        </a>
                                     }
                                     else
                                     {
-                                        <span class="text-muted">
-                                            -
+                                        <span class="text-muted"
+                                              title="No PDF attached">
+
+                                            —
+
                                         </span>
                                     }
 
                                 </td>
 
 
-                                @* =============================
+                                @* =================================
                                    GRAND TOTAL
-                                   ============================= *@
+                                   ================================= *@
 
                                 <td class="text-end fw-semibold">
 
-                                    ₹ @item.GrandTotal.ToString("N2")
+                                    ₹ @(item.GrandTotal.ToString("N2"))
 
                                 </td>
 
 
-                                @* =============================
+                                @* =================================
                                    STATUS
-                                   ============================= *@
+                                   ================================= *@
 
                                 <td class="text-center">
 
@@ -458,21 +532,21 @@
                                 </td>
 
 
-                                @* =============================
+                                @* =================================
                                    ACTIONS
-                                   ============================= *@
+                                   ================================= *@
 
                                 <td>
 
                                     <div class="d-flex
-                                                justify-content-end
-                                                gap-1">
+                                                        justify-content-end
+                                                        gap-1">
 
                                         <a asp-action="Details"
                                            asp-route-id="@item.Id"
                                            class="btn
-                                                  btn-sm
-                                                  btn-outline-secondary"
+                                                          btn-sm
+                                                          btn-outline-secondary"
                                            title="Details">
 
                                             <i class="fa-solid fa-eye"></i>
@@ -485,8 +559,8 @@
                                             <a asp-action="Edit"
                                                asp-route-id="@item.Id"
                                                class="btn
-                                                      btn-sm
-                                                      btn-outline-primary"
+                                                                  btn-sm
+                                                                  btn-outline-primary"
                                                title="Edit">
 
                                                 <i class="fa-solid fa-pen-to-square"></i>
@@ -512,7 +586,7 @@
 
 
     @* =====================================================
-       PAGINATION FOOTER
+       PAGINATION
        ===================================================== *@
 
     @if (Model.TotalRecords > 0)
@@ -520,10 +594,14 @@
         <div class="card-footer bg-white py-3">
 
             <div class="d-flex
-                        justify-content-between
-                        align-items-center
-                        flex-wrap
-                        gap-3">
+                            justify-content-between
+                            align-items-center
+                            flex-wrap
+                            gap-3">
+
+                @* =============================================
+                   PAGE INFORMATION
+                   ============================================= *@
 
                 <div class="text-muted small">
 
@@ -539,7 +617,9 @@
                         @Model.TotalPages
                     </strong>
 
-                    &nbsp;•&nbsp;
+                    <span class="mx-1">
+                        •
+                    </span>
 
                     Total Records:
 
@@ -550,26 +630,32 @@
                 </div>
 
 
+                @* =============================================
+                   PAGE LINKS
+                   ============================================= *@
+
                 @if (Model.TotalPages > 1)
                 {
-                    <nav>
+                    <nav aria-label="Purchase Invoice pages">
 
-                        <ul class="pagination pagination-sm mb-0">
+                        <ul class="pagination
+                                           pagination-sm
+                                           mb-0">
 
-                            @* =============================
+                            @* =================================
                                PREVIOUS
-                               ============================= *@
+                               ================================= *@
 
                             <li class="page-item
-                                @(Model.HasPrevious
-                                    ? ""
-                                    : "disabled")">
+                                        @(Model.HasPrevious
+                                                                    ? ""
+                                                                    : "disabled")">
 
-                                <a class="page-link"
-                                   asp-action="Index"
-                                   asp-route-searchText="@searchText"
-                                   asp-route-pageSize="@pageSize"
-                                   asp-route-pageNumber="@(Model.PageNumber - 1)">
+                        <a class="page-link"
+                           asp-action="Index"
+                           asp-route-searchText="@searchText"
+                           asp-route-pageSize="@pageSize"
+                           asp-route-pageNumber="@(Model.PageNumber - 1)">
 
                                     Previous
 
@@ -578,22 +664,30 @@
                             </li>
 
 
-                            @* =============================
-                               PAGE NUMBERS
-                               ============================= *@
+                            @* =================================
+                               PAGE NUMBER RANGE
 
-                            @{
+                               IMPORTANT:
+                               variable is pageNo, NOT page.
+                               @page is a reserved Razor directive.
+                               ================================= *@
+
+                    @{
                                 var startPage =
-                                    Math.Max(
-                                        1,
-                                        Model.PageNumber - 2);
+                                Math.Max(
+                                1,
+                                Model.PageNumber - 2);
 
                                 var endPage =
-                                    Math.Min(
-                                        Model.TotalPages,
-                                        Model.PageNumber + 2);
+                                Math.Min(
+                                Model.TotalPages,
+                                Model.PageNumber + 2);
                             }
 
+
+                            @* =================================
+                               FIRST PAGE / LEFT ELLIPSIS
+                               ================================= *@
 
                             @if (startPage > 1)
                             {
@@ -625,14 +719,18 @@
                             }
 
 
+                            @* =================================
+                               CURRENT PAGE RANGE
+                               ================================= *@
+
                             @for (var pageNo = startPage;
                                                 pageNo <= endPage;
                                                 pageNo++)
                             {
                                 <li class="page-item
-                    @(pageNo == Model.PageNumber
-                                                ? "active"
-                                                : "")">
+                                                @(pageNo == Model.PageNumber
+                                                                            ? "active"
+                                                                            : "")">
 
                         <a class="page-link"
                            asp-action="Index"
@@ -647,10 +745,15 @@
                                 </li>
                                         }
 
+
+                            @* =================================
+                               LAST PAGE / RIGHT ELLIPSIS
+                               ================================= *@
+
                             @if (endPage < Model.TotalPages)
                             {
                                 @if (endPage <
-                                     Model.TotalPages - 1)
+                                                    Model.TotalPages - 1)
                                 {
                                     <li class="page-item disabled">
 
@@ -678,20 +781,20 @@
                             }
 
 
-                            @* =============================
+                        @* =================================
                                NEXT
-                               ============================= *@
+                               ================================= *@
 
-                            <li class="page-item
-                                @(Model.HasNext
-                                    ? ""
-                                    : "disabled")">
+                        <li class="page-item
+                                    @(Model.HasNext
+                                                                ? ""
+                                                                : "disabled")">
 
-                                <a class="page-link"
-                                   asp-action="Index"
-                                   asp-route-searchText="@searchText"
-                                   asp-route-pageSize="@pageSize"
-                                   asp-route-pageNumber="@(Model.PageNumber + 1)">
+                        <a class="page-link"
+                           asp-action="Index"
+                           asp-route-searchText="@searchText"
+                           asp-route-pageSize="@pageSize"
+                           asp-route-pageNumber="@(Model.PageNumber + 1)">
 
                                     Next
 
@@ -702,7 +805,7 @@
                         </ul>
 
                     </nav>
-                }
+                        }
 
             </div>
 

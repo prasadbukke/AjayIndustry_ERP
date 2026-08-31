@@ -9,8 +9,9 @@ Purpose:
 ViewModel used by Purchase Invoice Details screen.
 
 Responsibilities:
-- Display internal Purchase Invoice information.
-- Display Supplier's original Invoice information.
+- Display ERP Purchase Invoice information.
+- Display Supplier's actual Invoice information.
+- Display attached Supplier Invoice PDF information.
 - Display Purchase Order reference.
 - Display Supplier / Company snapshot information.
 - Display Payment Terms and Due Date.
@@ -20,10 +21,11 @@ Responsibilities:
 
 Important:
 - This is display-only ViewModel.
-- Purchase Invoice Details must show exact relationship:
+- Purchase Invoice Details shows:
       Purchase Order
       → GRN
-      → Purchase Invoice.
+      → Purchase Invoice
+      → Supplier Invoice PDF
 ============================================================
 */
 
@@ -31,7 +33,9 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
 {
     public class PurchaseInvoiceDetailsViewModel
     {
-        #region Identification
+        // =====================================================
+        // IDENTIFICATION
+        // =====================================================
 
         public int Id
         {
@@ -60,10 +64,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         } = string.Empty;
 
-        #endregion
 
-
-        #region Supplier Invoice
+        // =====================================================
+        // SUPPLIER INVOICE
+        // =====================================================
 
         public string SupplierInvoiceNumber
         {
@@ -78,10 +82,49 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
+
+        // =====================================================
+        // SUPPLIER INVOICE PDF
+        // =====================================================
+
+        /*
+         * Relative web path.
+         *
+         * Example:
+         * /uploads/purchase-invoices/xxxx.pdf
+         */
+        public string? SupplierInvoicePdfPath
+        {
+            get;
+            set;
+        }
 
 
-        #region Purchase Order
+        /*
+         * Original filename uploaded by user.
+         */
+        public string? SupplierInvoicePdfOriginalName
+        {
+            get;
+            set;
+        }
+
+
+        public DateTime? SupplierInvoicePdfUploadedOn
+        {
+            get;
+            set;
+        }
+
+
+        public bool HasSupplierInvoicePdf =>
+            !string.IsNullOrWhiteSpace(
+                SupplierInvoicePdfPath);
+
+
+        // =====================================================
+        // PURCHASE ORDER
+        // =====================================================
 
         public int PurchaseOrderId
         {
@@ -96,10 +139,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         } = string.Empty;
 
-        #endregion
 
-
-        #region Supplier
+        // =====================================================
+        // SUPPLIER
+        // =====================================================
 
         public int SupplierId
         {
@@ -170,10 +213,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
 
-
-        #region Company
+        // =====================================================
+        // COMPANY
+        // =====================================================
 
         public int CompanyId
         {
@@ -230,10 +273,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
 
-
-        #region Payment Information
+        // =====================================================
+        // PAYMENT INFORMATION
+        // =====================================================
 
         public string? PaymentTerms
         {
@@ -255,10 +298,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
 
-
-        #region GST
+        // =====================================================
+        // GST
+        // =====================================================
 
         public string? PlaceOfSupply
         {
@@ -284,10 +327,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             }
         }
 
-        #endregion
 
-
-        #region Financial Totals
+        // =====================================================
+        // FINANCIAL TOTALS
+        // =====================================================
 
         public decimal GrossAmount
         {
@@ -358,10 +401,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
 
-
-        #region Remarks
+        // =====================================================
+        // REMARKS
+        // =====================================================
 
         public string? Remarks
         {
@@ -369,10 +412,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
 
-
-        #region Finalization
+        // =====================================================
+        // FINALIZATION
+        // =====================================================
 
         public DateTime? FinalizedOn
         {
@@ -387,10 +430,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
 
-
-        #region Audit
+        // =====================================================
+        // AUDIT
+        // =====================================================
 
         public DateTime CreatedOn
         {
@@ -419,10 +462,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
 
-
-        #region Items
+        // =====================================================
+        // ITEMS
+        // =====================================================
 
         public List<PurchaseInvoiceDetailsItemViewModel>
             Items
@@ -430,20 +473,18 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             get;
             set;
         } = new();
-
-        #endregion
     }
 
 
-    /*
-    ============================================================
-    Purchase Invoice Details Item
-    ============================================================
-    */
+    // =========================================================
+    // PURCHASE INVOICE DETAILS ITEM
+    // =========================================================
 
     public class PurchaseInvoiceDetailsItemViewModel
     {
-        #region Identification
+        // =====================================================
+        // IDENTIFICATION
+        // =====================================================
 
         public int Id
         {
@@ -458,10 +499,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
 
-
-        #region Purchase Order Source
+        // =====================================================
+        // PURCHASE ORDER SOURCE
+        // =====================================================
 
         public int PurchaseOrderItemId
         {
@@ -483,10 +524,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
 
-
-        #region GRN Source
+        // =====================================================
+        // GRN SOURCE
+        // =====================================================
 
         public int GoodsReceiptNoteId
         {
@@ -543,10 +584,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
 
-
-        #region Item
+        // =====================================================
+        // ITEM
+        // =====================================================
 
         public int ItemId
         {
@@ -596,10 +637,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
 
-
-        #region Drawing
+        // =====================================================
+        // DRAWING
+        // =====================================================
 
         public string? DrawingNumber
         {
@@ -614,10 +655,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
 
-
-        #region Quantity
+        // =====================================================
+        // QUANTITY
+        // =====================================================
 
         public decimal PurchaseInvoiceQuantity
         {
@@ -625,11 +666,14 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
 
+        // =====================================================
+        // COMMERCIAL
+        // =====================================================
 
-        #region Commercial
-
+        /*
+         * Actual Supplier Invoice Rate entered by user.
+         */
         public decimal Rate
         {
             get;
@@ -664,10 +708,10 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
 
-
-        #region GST
+        // =====================================================
+        // GST
+        // =====================================================
 
         public decimal GstRate
         {
@@ -724,17 +768,15 @@ namespace AjayIndustriesERP.Web.ViewModels.PurchaseInvoice
             set;
         }
 
-        #endregion
 
-
-        #region Total
+        // =====================================================
+        // TOTAL
+        // =====================================================
 
         public decimal LineTotal
         {
             get;
             set;
         }
-
-        #endregion
     }
 }

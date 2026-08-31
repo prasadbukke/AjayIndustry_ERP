@@ -8,29 +8,36 @@ Purchase Invoice / Supplier Bill
 Purpose:
 Handles Purchase Invoice Web operations.
 
-Source Flow:
+Business Flow:
 Purchase Order
     → GRN
     → Purchase Invoice
     → Supplier Payment
     → Supplier Outstanding
 
-Responsibilities:
-- Purchase Invoice Index / Search / Pagination.
-- Prepare Create form from Purchase Order.
-- Create trusted Purchase Invoice.
-- Edit Draft Purchase Invoice.
-- Show Purchase Invoice Details.
-- Finalize Purchase Invoice.
-- Soft Delete Draft Purchase Invoice.
-- Show Deleted Purchase Invoices.
-- Restore deleted Draft Purchase Invoice.
+Supplier Invoice PDF:
+- Optional.
+- PDF file is stored under:
+      wwwroot/uploads/purchase-invoices/
+- Database stores only:
+      SupplierInvoicePdfPath
+      SupplierInvoicePdfOriginalName
+      SupplierInvoicePdfUploadedOn
+- Maximum size: 10 MB.
+- Only valid PDF files are accepted.
+- Physical PDF is NOT deleted during soft delete.
+- Draft Edit can replace an existing PDF.
 
-Important:
-- Controller trusts only transaction inputs.
-- Source snapshots / Rate / GST / calculated amounts
-  are rebuilt by PurchaseInvoiceService.
-- Only selected GRN rows are submitted to Service.
+Security:
+- Browser-posted Item / GST / HSN / GRN snapshots are
+  not trusted.
+- PurchaseInvoiceService reloads trusted source data.
+- Controller accepts only:
+      GRN Item Id
+      Invoice Quantity
+      Supplier Invoice Rate
+      Header input
+      Optional Supplier Invoice PDF
 ============================================================
 */
 
@@ -45,13 +52,26 @@ using System.Text.Json;
 
 namespace AjayIndustriesERP.Web.Controllers
 {
-    public class PurchaseInvoiceController
-        : Controller
+    public class PurchaseInvoiceController : Controller
     {
+        #region Constants
+
+        private const long MaxSupplierInvoicePdfSize =
+            10 * 1024 * 1024;
+
+        private const string PurchaseInvoiceUploadFolder =
+            "uploads/purchase-invoices";
+
+        #endregion
+
+
         #region Fields
 
         private readonly IPurchaseInvoiceService
             _service;
+
+        private readonly IWebHostEnvironment
+            _webHostEnvironment;
 
         #endregion
 
@@ -59,10 +79,14 @@ namespace AjayIndustriesERP.Web.Controllers
         #region Constructor
 
         public PurchaseInvoiceController(
-            IPurchaseInvoiceService service)
+            IPurchaseInvoiceService service,
+            IWebHostEnvironment webHostEnvironment)
         {
             _service =
                 service;
+
+            _webHostEnvironment =
+                webHostEnvironment;
         }
 
         #endregion
@@ -112,7 +136,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // CREATE GET
+        // CREATE - GET
         // =====================================================
 
         #region Create GET
@@ -178,7 +202,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // CREATE POST
+        // CREATE - POST
         // =====================================================
 
         #region Create POST
@@ -188,6 +212,10 @@ namespace AjayIndustriesERP.Web.Controllers
         public async Task<IActionResult> Create(
             PurchaseInvoiceFormViewModel viewModel)
         {
+            string? newlyUploadedPdfPath =
+                null;
+
+
             try
             {
                 if (!ModelState.IsValid)
@@ -203,10 +231,44 @@ namespace AjayIndustriesERP.Web.Controllers
                 }
 
 
+                // ---------------------------------------------
+                // Build trusted transaction input.
+                // ---------------------------------------------
+
                 var purchaseInvoice =
                     BuildSubmittedPurchaseInvoice(
                         viewModel);
 
+
+                // ---------------------------------------------
+                // Optional Supplier Invoice PDF.
+                //
+                // File is saved first.
+                // If Purchase Invoice creation fails,
+                // newly uploaded file is removed.
+                // ---------------------------------------------
+
+                if (viewModel.SupplierInvoicePdf != null)
+                {
+                    var savedPdf =
+                        await SaveSupplierInvoicePdfAsync(
+                            viewModel.SupplierInvoicePdf);
+
+
+                    newlyUploadedPdfPath =
+                        savedPdf.RelativePath;
+
+
+                    ApplyPdfInformation(
+                        purchaseInvoice,
+                        savedPdf);
+                }
+
+
+                // ---------------------------------------------
+                // Service validates trusted PO / GRN source,
+                // quantity, Rate, GST and totals.
+                // ---------------------------------------------
 
                 var created =
                     await _service
@@ -228,9 +290,37 @@ namespace AjayIndustriesERP.Web.Controllers
             }
             catch (BusinessException ex)
             {
+                /*
+                 * Creation failed after a new PDF was saved.
+                 * Remove orphan physical file.
+                 */
+                DeleteFileIfExists(
+                    newlyUploadedPdfPath);
+
+
                 ModelState.AddModelError(
                     string.Empty,
                     ex.Message);
+
+
+                await RehydrateFormAsync(
+                    viewModel,
+                    excludePurchaseInvoiceId:
+                        null);
+
+
+                return View(
+                    viewModel);
+            }
+            catch (IOException)
+            {
+                DeleteFileIfExists(
+                    newlyUploadedPdfPath);
+
+
+                ModelState.AddModelError(
+                    string.Empty,
+                    "Supplier Invoice PDF could not be saved. Please try again.");
 
 
                 await RehydrateFormAsync(
@@ -248,7 +338,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // EDIT GET
+        // EDIT - GET
         // =====================================================
 
         #region Edit GET
@@ -302,7 +392,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // EDIT POST
+        // EDIT - POST
         // =====================================================
 
         #region Edit POST
@@ -319,8 +409,39 @@ namespace AjayIndustriesERP.Web.Controllers
             }
 
 
+            string? newlyUploadedPdfPath =
+                null;
+
+
+            string? oldPdfPath =
+                null;
+
+
             try
             {
+                // ---------------------------------------------
+                // Always reload existing Purchase Invoice.
+                //
+                // Existing PDF information from browser POST
+                // is intentionally NOT trusted.
+                // ---------------------------------------------
+
+                var existing =
+                    await _service
+                        .GetByIdAsync(
+                            id);
+
+
+                if (existing == null)
+                {
+                    return NotFound();
+                }
+
+
+                oldPdfPath =
+                    existing.SupplierInvoicePdfPath;
+
+
                 if (!ModelState.IsValid)
                 {
                     await RehydrateFormAsync(
@@ -343,10 +464,61 @@ namespace AjayIndustriesERP.Web.Controllers
                     id;
 
 
+                // ---------------------------------------------
+                // Preserve current PDF unless user selected
+                // a replacement PDF.
+                // ---------------------------------------------
+
+                CopyExistingPdfInformation(
+                    purchaseInvoice,
+                    existing);
+
+
+                // ---------------------------------------------
+                // Replace PDF if a new file is selected.
+                // ---------------------------------------------
+
+                if (viewModel.SupplierInvoicePdf != null)
+                {
+                    var savedPdf =
+                        await SaveSupplierInvoicePdfAsync(
+                            viewModel.SupplierInvoicePdf);
+
+
+                    newlyUploadedPdfPath =
+                        savedPdf.RelativePath;
+
+
+                    ApplyPdfInformation(
+                        purchaseInvoice,
+                        savedPdf);
+                }
+
+
                 var updated =
                     await _service
                         .UpdateAsync(
                             purchaseInvoice);
+
+
+                /*
+                 * New PDF has been successfully saved to DB.
+                 * Old physical PDF can now be removed.
+                 */
+                if (
+                    !string.IsNullOrWhiteSpace(
+                        newlyUploadedPdfPath) &&
+                    !string.IsNullOrWhiteSpace(
+                        oldPdfPath) &&
+                    !string.Equals(
+                        newlyUploadedPdfPath,
+                        oldPdfPath,
+                        StringComparison.OrdinalIgnoreCase)
+                )
+                {
+                    DeleteFileIfExists(
+                        oldPdfPath);
+                }
 
 
                 TempData["SuccessMessage"] =
@@ -363,9 +535,39 @@ namespace AjayIndustriesERP.Web.Controllers
             }
             catch (BusinessException ex)
             {
+                /*
+                 * Update failed.
+                 *
+                 * Keep old existing PDF.
+                 * Remove only newly uploaded replacement.
+                 */
+                DeleteFileIfExists(
+                    newlyUploadedPdfPath);
+
+
                 ModelState.AddModelError(
                     string.Empty,
                     ex.Message);
+
+
+                await RehydrateFormAsync(
+                    viewModel,
+                    excludePurchaseInvoiceId:
+                        id);
+
+
+                return View(
+                    viewModel);
+            }
+            catch (IOException)
+            {
+                DeleteFileIfExists(
+                    newlyUploadedPdfPath);
+
+
+                ModelState.AddModelError(
+                    string.Empty,
+                    "Supplier Invoice PDF could not be saved. Please try again.");
 
 
                 await RehydrateFormAsync(
@@ -411,6 +613,138 @@ namespace AjayIndustriesERP.Web.Controllers
 
             return View(
                 viewModel);
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // VIEW SUPPLIER INVOICE PDF
+        // =====================================================
+
+        #region View Supplier Invoice PDF
+
+        [HttpGet]
+        public async Task<IActionResult>
+            ViewSupplierInvoicePdf(
+                int id)
+        {
+            var purchaseInvoice =
+                await _service
+                    .GetByIdAsync(
+                        id);
+
+
+            if (purchaseInvoice == null)
+            {
+                return NotFound();
+            }
+
+
+            if (string.IsNullOrWhiteSpace(
+                purchaseInvoice.SupplierInvoicePdfPath))
+            {
+                return NotFound();
+            }
+
+
+            var physicalPath =
+                GetSafePdfPhysicalPath(
+                    purchaseInvoice
+                        .SupplierInvoicePdfPath);
+
+
+            if (
+                string.IsNullOrWhiteSpace(
+                    physicalPath) ||
+                !System.IO.File.Exists(
+                    physicalPath)
+            )
+            {
+                return NotFound();
+            }
+
+
+            return new PhysicalFileResult(
+                physicalPath,
+                "application/pdf")
+            {
+                EnableRangeProcessing =
+                    true
+            };
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // DOWNLOAD SUPPLIER INVOICE PDF
+        // =====================================================
+
+        #region Download Supplier Invoice PDF
+
+        [HttpGet]
+        public async Task<IActionResult>
+            DownloadSupplierInvoicePdf(
+                int id)
+        {
+            var purchaseInvoice =
+                await _service
+                    .GetByIdAsync(
+                        id);
+
+
+            if (purchaseInvoice == null)
+            {
+                return NotFound();
+            }
+
+
+            if (string.IsNullOrWhiteSpace(
+                purchaseInvoice.SupplierInvoicePdfPath))
+            {
+                return NotFound();
+            }
+
+
+            var physicalPath =
+                GetSafePdfPhysicalPath(
+                    purchaseInvoice
+                        .SupplierInvoicePdfPath);
+
+
+            if (
+                string.IsNullOrWhiteSpace(
+                    physicalPath) ||
+                !System.IO.File.Exists(
+                    physicalPath)
+            )
+            {
+                return NotFound();
+            }
+
+
+            var downloadName =
+                !string.IsNullOrWhiteSpace(
+                    purchaseInvoice
+                        .SupplierInvoicePdfOriginalName)
+
+                    ? purchaseInvoice
+                        .SupplierInvoicePdfOriginalName
+
+                    : $"{purchaseInvoice.Code.Replace("/", "-")}.pdf";
+
+
+            return new PhysicalFileResult(
+                physicalPath,
+                "application/pdf")
+            {
+                FileDownloadName =
+                    downloadName,
+
+                EnableRangeProcessing =
+                    true
+            };
         }
 
         #endregion
@@ -469,6 +803,13 @@ namespace AjayIndustriesERP.Web.Controllers
         {
             try
             {
+                /*
+                 * Soft delete only.
+                 *
+                 * Supplier Invoice PDF is intentionally kept
+                 * on disk because Purchase Invoice may later
+                 * be restored.
+                 */
                 await _service
                     .DeleteAsync(
                         id);
@@ -548,10 +889,10 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // CREATE FORM MAPPING
+        // PREPARED CREATE FORM MAPPING
         // =====================================================
 
-        #region Map Prepared Invoice
+        #region Map Prepared Invoice To Form
 
         private async Task<PurchaseInvoiceFormViewModel>
             MapPreparedInvoiceToFormAsync(
@@ -738,10 +1079,10 @@ namespace AjayIndustriesERP.Web.Controllers
                     availableQuantity;
 
 
-                if (alreadyBilled < 0)
+                if (alreadyBilled < 0m)
                 {
                     alreadyBilled =
-                        0;
+                        0m;
                 }
 
 
@@ -767,10 +1108,10 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
-        // EDIT FORM MAPPING
+        // EXISTING EDIT FORM MAPPING
         // =====================================================
 
-        #region Map Existing Invoice
+        #region Map Existing Invoice To Form
 
         private async Task<PurchaseInvoiceFormViewModel>
             MapExistingInvoiceToFormAsync(
@@ -818,6 +1159,23 @@ namespace AjayIndustriesERP.Web.Controllers
                     SupplierInvoiceDate =
                         purchaseInvoice
                             .SupplierInvoiceDate,
+
+
+                    // -----------------------------------------
+                    // Existing PDF
+                    // -----------------------------------------
+
+                    ExistingSupplierInvoicePdfPath =
+                        purchaseInvoice
+                            .SupplierInvoicePdfPath,
+
+                    ExistingSupplierInvoicePdfOriginalName =
+                        purchaseInvoice
+                            .SupplierInvoicePdfOriginalName,
+
+                    ExistingSupplierInvoicePdfUploadedOn =
+                        purchaseInvoice
+                            .SupplierInvoicePdfUploadedOn,
 
 
                     SupplierId =
@@ -928,8 +1286,8 @@ namespace AjayIndustriesERP.Web.Controllers
              * Current Purchase Invoice is excluded from
              * allocation calculation.
              *
-             * Therefore existing quantities remain available
-             * to the Draft being edited.
+             * Therefore quantities already present in this
+             * Draft remain available while editing.
              */
             var sourceItems =
                 await _service
@@ -967,10 +1325,10 @@ namespace AjayIndustriesERP.Web.Controllers
                     availableQuantity;
 
 
-                if (alreadyBilledQuantity < 0)
+                if (alreadyBilledQuantity < 0m)
                 {
                     alreadyBilledQuantity =
-                        0;
+                        0m;
                 }
 
 
@@ -1039,6 +1397,41 @@ namespace AjayIndustriesERP.Web.Controllers
                 viewModel);
 
 
+            // ---------------------------------------------
+            // Reload existing PDF metadata from database.
+            // Do not trust posted hidden PDF values.
+            // ---------------------------------------------
+
+            if (excludePurchaseInvoiceId.HasValue)
+            {
+                var existing =
+                    await _service
+                        .GetByIdAsync(
+                            excludePurchaseInvoiceId.Value);
+
+
+                if (existing != null)
+                {
+                    viewModel
+                        .ExistingSupplierInvoicePdfPath =
+                        existing
+                            .SupplierInvoicePdfPath;
+
+
+                    viewModel
+                        .ExistingSupplierInvoicePdfOriginalName =
+                        existing
+                            .SupplierInvoicePdfOriginalName;
+
+
+                    viewModel
+                        .ExistingSupplierInvoicePdfUploadedOn =
+                        existing
+                            .SupplierInvoicePdfUploadedOn;
+                }
+            }
+
+
             if (viewModel.PurchaseOrderId <= 0)
             {
                 return;
@@ -1057,7 +1450,9 @@ namespace AjayIndustriesERP.Web.Controllers
             }
 
 
-            #region Header Display
+            // ---------------------------------------------
+            // Header display information
+            // ---------------------------------------------
 
             viewModel.PurchaseOrderCode =
                 purchaseOrder.Code;
@@ -1101,10 +1496,10 @@ namespace AjayIndustriesERP.Web.Controllers
                     purchaseOrder.Company.State;
             }
 
-            #endregion
 
-
-            #region Preserve Posted Item Inputs
+            // ---------------------------------------------
+            // Preserve posted checkbox / Qty / Rate.
+            // ---------------------------------------------
 
             var postedItems =
                 viewModel.Items
@@ -1117,8 +1512,6 @@ namespace AjayIndustriesERP.Web.Controllers
                             x.Key,
                         x =>
                             x.First());
-
-            #endregion
 
 
             var sourceItems =
@@ -1152,10 +1545,10 @@ namespace AjayIndustriesERP.Web.Controllers
                     availableQuantity;
 
 
-                if (alreadyBilled < 0)
+                if (alreadyBilled < 0m)
                 {
                     alreadyBilled =
-                        0;
+                        0m;
                 }
 
 
@@ -1175,6 +1568,17 @@ namespace AjayIndustriesERP.Web.Controllers
                                 purchaseOrder.Code
                         },
                         sourceItem);
+
+
+                /*
+                 * Preserve manually entered Supplier Rate
+                 * when validation fails.
+                 */
+                if (postedItem != null)
+                {
+                    displayItem.Rate =
+                        postedItem.Rate;
+                }
 
 
                 displayItem.SequenceNumber =
@@ -1257,11 +1661,9 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             /*
-             * During Edit the selected PO may have no
-             * additional unbilled quantity except the current
-             * Purchase Invoice itself.
-             *
-             * Ensure selected PO still appears.
+             * During Edit the selected PO may not appear in
+             * normal available list because all available
+             * quantity belongs to the current Draft itself.
              */
             if (
                 viewModel.PurchaseOrderId > 0 &&
@@ -1354,17 +1756,26 @@ namespace AjayIndustriesERP.Web.Controllers
                 in selectedItems)
             {
                 purchaseInvoice.Items.Add(
-    new PurchaseInvoiceItem
-    {
-        GoodsReceiptNoteItemId =
-            item.GoodsReceiptNoteItemId,
+                    new PurchaseInvoiceItem
+                    {
+                        /*
+                         * Trusted transaction inputs only.
+                         *
+                         * Service reloads all source snapshot
+                         * information from database.
+                         */
+                        GoodsReceiptNoteItemId =
+                            item.GoodsReceiptNoteItemId,
 
-        PurchaseInvoiceQuantity =
-            item.PurchaseInvoiceQuantity,
+                        PurchaseInvoiceQuantity =
+                            item.PurchaseInvoiceQuantity,
 
-        Rate =
-            item.Rate
-    });
+                        /*
+                         * Actual Rate from Supplier Invoice.
+                         */
+                        Rate =
+                            item.Rate
+                    });
             }
 
 
@@ -1485,8 +1896,12 @@ namespace AjayIndustriesERP.Web.Controllers
                     item.DrawingRevision,
 
 
+                /*
+                 * Actual Supplier Invoice Rate.
+                 */
                 Rate =
                     item.Rate,
+
 
                 GrossAmount =
                     item.GrossAmount,
@@ -1550,7 +1965,7 @@ namespace AjayIndustriesERP.Web.Controllers
         // DISPLAY ITEM FROM GRN
         // =====================================================
 
-        #region Build Display Item
+        #region Build Display Item From Source
 
         private static PurchaseInvoiceItem
             BuildDisplayItemFromSource(
@@ -1633,9 +2048,16 @@ namespace AjayIndustriesERP.Web.Controllers
                     poItem?.DrawingRevision,
 
 
+                /*
+                 * IMPORTANT:
+                 *
+                 * Do NOT load PO UnitPrice here.
+                 * Supplier Invoice Rate must be entered
+                 * manually by user.
+                 */
                 Rate =
-                    poItem?.UnitPrice
-                    ?? 0m,
+                    0m,
+
 
                 GstRate =
                     poItem?.GSTPercent
@@ -1693,6 +2115,23 @@ namespace AjayIndustriesERP.Web.Controllers
                     SupplierInvoiceDate =
                         purchaseInvoice
                             .SupplierInvoiceDate,
+
+
+                    // -----------------------------------------
+                    // Supplier Invoice PDF
+                    // -----------------------------------------
+
+                    SupplierInvoicePdfPath =
+                        purchaseInvoice
+                            .SupplierInvoicePdfPath,
+
+                    SupplierInvoicePdfOriginalName =
+                        purchaseInvoice
+                            .SupplierInvoicePdfOriginalName,
+
+                    SupplierInvoicePdfUploadedOn =
+                        purchaseInvoice
+                            .SupplierInvoicePdfUploadedOn,
 
 
                     PurchaseOrderId =
@@ -2005,6 +2444,396 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
         // =====================================================
+        // PDF VALIDATION / SAVE
+        // =====================================================
+
+        #region Supplier Invoice PDF - Save
+
+        private async Task<SavedPdfFile>
+            SaveSupplierInvoicePdfAsync(
+                IFormFile file)
+        {
+            await ValidateSupplierInvoicePdfAsync(
+                file);
+
+
+            var uploadDirectory =
+                Path.Combine(
+                    _webHostEnvironment.WebRootPath,
+                    "uploads",
+                    "purchase-invoices");
+
+
+            Directory.CreateDirectory(
+                uploadDirectory);
+
+
+            /*
+             * Never use browser filename as physical filename.
+             *
+             * Random GUID avoids:
+             * - duplicate names
+             * - invalid path characters
+             * - path traversal
+             */
+            var storedFileName =
+                $"{Guid.NewGuid():N}.pdf";
+
+
+            var physicalPath =
+                Path.Combine(
+                    uploadDirectory,
+                    storedFileName);
+
+
+            await using (
+                var sourceStream =
+                    file.OpenReadStream())
+            await using (
+                var targetStream =
+                    new FileStream(
+                        physicalPath,
+                        FileMode.CreateNew,
+                        FileAccess.Write,
+                        FileShare.None,
+                        81920,
+                        useAsync: true))
+            {
+                await sourceStream
+                    .CopyToAsync(
+                        targetStream);
+            }
+
+
+            var originalFileName =
+                Path.GetFileName(
+                    file.FileName);
+
+
+            if (originalFileName.Length > 500)
+            {
+                originalFileName =
+                    originalFileName[..500];
+            }
+
+
+            var relativePath =
+                $"/uploads/purchase-invoices/{storedFileName}";
+
+
+            return new SavedPdfFile
+            {
+                RelativePath =
+                    relativePath,
+
+                OriginalFileName =
+                    originalFileName,
+
+                UploadedOn =
+                    DateTime.Now
+            };
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // PDF VALIDATION
+        // =====================================================
+
+        #region Supplier Invoice PDF - Validation
+
+        private static async Task
+            ValidateSupplierInvoicePdfAsync(
+                IFormFile file)
+        {
+            if (file.Length <= 0)
+            {
+                throw new BusinessException(
+                    "Selected Supplier Invoice PDF is empty.");
+            }
+
+
+            if (file.Length >
+                MaxSupplierInvoicePdfSize)
+            {
+                throw new BusinessException(
+                    "Supplier Invoice PDF cannot be larger than 10 MB.");
+            }
+
+
+            var extension =
+                Path.GetExtension(
+                    file.FileName);
+
+
+            if (!string.Equals(
+                extension,
+                ".pdf",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                throw new BusinessException(
+                    "Only PDF files are allowed for Supplier Invoice.");
+            }
+
+
+            /*
+             * Browsers normally send application/pdf.
+             * application/octet-stream is also accepted
+             * because some browsers / systems use generic
+             * binary MIME type for valid PDFs.
+             */
+            if (
+                !string.IsNullOrWhiteSpace(
+                    file.ContentType) &&
+                !string.Equals(
+                    file.ContentType,
+                    "application/pdf",
+                    StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(
+                    file.ContentType,
+                    "application/octet-stream",
+                    StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                throw new BusinessException(
+                    "Selected file is not a valid PDF.");
+            }
+
+
+            /*
+             * Validate real PDF file signature.
+             *
+             * Valid PDF starts with:
+             * %PDF-
+             *
+             * This prevents a renamed .exe/.jpg/etc.
+             * from being accepted merely because it has
+             * a .pdf extension.
+             */
+            var header =
+                new byte[5];
+
+
+            await using var stream =
+                file.OpenReadStream();
+
+
+            var bytesRead =
+                await stream.ReadAsync(
+                    header.AsMemory(
+                        0,
+                        header.Length));
+
+
+            if (
+                bytesRead < 5 ||
+                header[0] != (byte)'%' ||
+                header[1] != (byte)'P' ||
+                header[2] != (byte)'D' ||
+                header[3] != (byte)'F' ||
+                header[4] != (byte)'-'
+            )
+            {
+                throw new BusinessException(
+                    "Selected file is not a valid PDF document.");
+            }
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // PDF ENTITY MAPPING
+        // =====================================================
+
+        #region Supplier Invoice PDF - Entity Mapping
+
+        private static void ApplyPdfInformation(
+            PurchaseInvoice purchaseInvoice,
+            SavedPdfFile savedPdf)
+        {
+            purchaseInvoice.SupplierInvoicePdfPath =
+                savedPdf.RelativePath;
+
+
+            purchaseInvoice.SupplierInvoicePdfOriginalName =
+                savedPdf.OriginalFileName;
+
+
+            purchaseInvoice.SupplierInvoicePdfUploadedOn =
+                savedPdf.UploadedOn;
+        }
+
+
+        private static void CopyExistingPdfInformation(
+            PurchaseInvoice target,
+            PurchaseInvoice source)
+        {
+            target.SupplierInvoicePdfPath =
+                source.SupplierInvoicePdfPath;
+
+
+            target.SupplierInvoicePdfOriginalName =
+                source.SupplierInvoicePdfOriginalName;
+
+
+            target.SupplierInvoicePdfUploadedOn =
+                source.SupplierInvoicePdfUploadedOn;
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // SAFE PDF PHYSICAL PATH
+        // =====================================================
+
+        #region Supplier Invoice PDF - Safe Path
+
+        private string? GetSafePdfPhysicalPath(
+            string relativePath)
+        {
+            if (string.IsNullOrWhiteSpace(
+                relativePath))
+            {
+                return null;
+            }
+
+
+            var uploadRoot =
+                Path.GetFullPath(
+                    Path.Combine(
+                        _webHostEnvironment.WebRootPath,
+                        "uploads",
+                        "purchase-invoices"));
+
+
+            var normalizedRelativePath =
+                relativePath
+                    .TrimStart(
+                        '/',
+                        '\\')
+                    .Replace(
+                        '/',
+                        Path.DirectorySeparatorChar)
+                    .Replace(
+                        '\\',
+                        Path.DirectorySeparatorChar);
+
+
+            var physicalPath =
+                Path.GetFullPath(
+                    Path.Combine(
+                        _webHostEnvironment.WebRootPath,
+                        normalizedRelativePath));
+
+
+            var requiredPrefix =
+                uploadRoot +
+                Path.DirectorySeparatorChar;
+
+
+            /*
+             * Ensure DB path cannot escape configured
+             * Purchase Invoice upload directory.
+             */
+            if (!physicalPath.StartsWith(
+                requiredPrefix,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+
+            return physicalPath;
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // PDF FILE CLEANUP
+        // =====================================================
+
+        #region Supplier Invoice PDF - Delete Physical File
+
+        private void DeleteFileIfExists(
+            string? relativePath)
+        {
+            if (string.IsNullOrWhiteSpace(
+                relativePath))
+            {
+                return;
+            }
+
+
+            try
+            {
+                var physicalPath =
+                    GetSafePdfPhysicalPath(
+                        relativePath);
+
+
+                if (
+                    !string.IsNullOrWhiteSpace(
+                        physicalPath) &&
+                    System.IO.File.Exists(
+                        physicalPath)
+                )
+                {
+                    System.IO.File.Delete(
+                        physicalPath);
+                }
+            }
+            catch
+            {
+                /*
+                 * File cleanup must never hide the original
+                 * Purchase Invoice business error.
+                 *
+                 * Failed orphan cleanup can be handled by
+                 * maintenance later.
+                 */
+            }
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // PDF HELPER MODEL
+        // =====================================================
+
+        #region Supplier Invoice PDF - Helper Model
+
+        private sealed class SavedPdfFile
+        {
+            public string RelativePath
+            {
+                get;
+                set;
+            } = string.Empty;
+
+
+            public string OriginalFileName
+            {
+                get;
+                set;
+            } = string.Empty;
+
+
+            public DateTime UploadedOn
+            {
+                get;
+                set;
+            }
+        }
+
+        #endregion
+
+
+        // =====================================================
         // SNAPSHOT HELPERS
         // =====================================================
 
@@ -2192,9 +3021,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             return values.Count == 0
-
                 ? null
-
                 : string.Join(
                     ", ",
                     values);

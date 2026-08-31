@@ -11,12 +11,18 @@ namespace AjayIndustriesERP.Application.Services
     public class PurchaseInvoiceService
         : IPurchaseInvoiceService
     {
+        #region Fields / Constants
+
         private readonly IPurchaseInvoiceRepository
             _repository;
 
         private const string SystemUser =
             "System";
 
+        #endregion
+
+
+        #region Constructor
 
         public PurchaseInvoiceService(
             IPurchaseInvoiceRepository repository)
@@ -25,10 +31,14 @@ namespace AjayIndustriesERP.Application.Services
                 repository;
         }
 
+        #endregion
+
 
         // =====================================================
         // READ
         // =====================================================
+
+        #region Read
 
         public async Task<PurchaseInvoice?>
             GetByIdAsync(
@@ -88,10 +98,14 @@ namespace AjayIndustriesERP.Application.Services
                     pageSize);
         }
 
+        #endregion
+
 
         // =====================================================
-        // PURCHASE ORDERS AVAILABLE FOR INVOICE
+        // PURCHASE ORDER SOURCE
         // =====================================================
+
+        #region Purchase Order Source
 
         public async Task<List<PurchaseOrder>>
             GetPurchaseOrdersForInvoiceAsync()
@@ -141,10 +155,14 @@ namespace AjayIndustriesERP.Application.Services
                     purchaseOrderId);
         }
 
+        #endregion
+
 
         // =====================================================
         // GRN AVAILABILITY
         // =====================================================
+
+        #region GRN Availability
 
         public async Task<List<GoodsReceiptNoteItem>>
             GetAvailableGoodsReceiptItemsAsync(
@@ -170,7 +188,7 @@ namespace AjayIndustriesERP.Application.Services
                         excludePurchaseInvoiceId);
 
 
-                if (remaining > 0)
+                if (remaining > 0m)
                 {
                     result.Add(
                         sourceItem);
@@ -216,10 +234,14 @@ namespace AjayIndustriesERP.Application.Services
                 : 0m;
         }
 
+        #endregion
+
 
         // =====================================================
-        // PREPARE DRAFT
+        // PREPARE CREATE DRAFT
         // =====================================================
+
+        #region Prepare Draft
 
         public async Task<PurchaseInvoice>
             PrepareDraftAsync(
@@ -401,15 +423,10 @@ namespace AjayIndustriesERP.Application.Services
 
 
                 /*
-                 * IMPORTANT:
+                 * Rate is intentionally zero here.
                  *
-                 * Rate is NOT taken from Purchase Order.
-                 *
-                 * Supplier's actual Invoice Rate is not known
-                 * until Supplier Invoice is received.
-                 *
-                 * Therefore Create screen initially gets 0.00
-                 * and user enters actual Supplier Invoice Rate.
+                 * Actual Supplier Invoice Rate is entered
+                 * manually from Supplier's bill.
                  */
                 var preparedItem =
                     CreateTrustedSourceSnapshot(
@@ -424,6 +441,9 @@ namespace AjayIndustriesERP.Application.Services
                     sequenceNumber++;
 
 
+                /*
+                 * Required for Create preview totals.
+                 */
                 preparedItem.IsActive =
                     true;
 
@@ -443,10 +463,14 @@ namespace AjayIndustriesERP.Application.Services
             return purchaseInvoice;
         }
 
+        #endregion
+
 
         // =====================================================
         // CREATE
         // =====================================================
+
+        #region Create
 
         public async Task<PurchaseInvoice>
             CreateAsync(
@@ -532,10 +556,13 @@ namespace AjayIndustriesERP.Application.Services
             var purchaseInvoice =
                 new PurchaseInvoice
                 {
+                    // -----------------------------------------
+                    // Internal ERP Invoice
+                    // -----------------------------------------
+
                     Code =
                         await GenerateNextCodeAsync(
                             submitted.PurchaseInvoiceDate),
-
 
                     PurchaseInvoiceDate =
                         submitted.PurchaseInvoiceDate,
@@ -544,6 +571,10 @@ namespace AjayIndustriesERP.Application.Services
                         PurchaseInvoiceStatus.Draft,
 
 
+                    // -----------------------------------------
+                    // Supplier's Actual Invoice
+                    // -----------------------------------------
+
                     SupplierInvoiceNumber =
                         supplierInvoiceNumber,
 
@@ -551,12 +582,40 @@ namespace AjayIndustriesERP.Application.Services
                         submitted.SupplierInvoiceDate,
 
 
+                    // -----------------------------------------
+                    // Supplier Invoice PDF
+                    //
+                    // Controller already validated and saved
+                    // physical file.
+                    // Service stores only metadata.
+                    // -----------------------------------------
+
+                    SupplierInvoicePdfPath =
+                        NormalizeNullableText(
+                            submitted.SupplierInvoicePdfPath),
+
+                    SupplierInvoicePdfOriginalName =
+                        NormalizeNullableText(
+                            submitted.SupplierInvoicePdfOriginalName),
+
+                    SupplierInvoicePdfUploadedOn =
+                        submitted.SupplierInvoicePdfUploadedOn,
+
+
+                    // -----------------------------------------
+                    // Purchase Order
+                    // -----------------------------------------
+
                     PurchaseOrderId =
                         purchaseOrder.Id,
 
                     PurchaseOrderCode =
                         purchaseOrder.Code,
 
+
+                    // -----------------------------------------
+                    // Supplier Snapshot
+                    // -----------------------------------------
 
                     SupplierId =
                         supplier.SupplierId,
@@ -569,6 +628,10 @@ namespace AjayIndustriesERP.Application.Services
                             supplier),
 
 
+                    // -----------------------------------------
+                    // Company Snapshot
+                    // -----------------------------------------
+
                     CompanyId =
                         company.CompanyId,
 
@@ -579,6 +642,10 @@ namespace AjayIndustriesERP.Application.Services
                         SerializeScalarSnapshot(
                             company),
 
+
+                    // -----------------------------------------
+                    // Payment
+                    // -----------------------------------------
 
                     PaymentTerms =
                         paymentTerms,
@@ -592,6 +659,10 @@ namespace AjayIndustriesERP.Application.Services
                             creditDays),
 
 
+                    // -----------------------------------------
+                    // GST
+                    // -----------------------------------------
+
                     PlaceOfSupply =
                         company.State,
 
@@ -600,6 +671,10 @@ namespace AjayIndustriesERP.Application.Services
                             company.State,
                             supplier.State),
 
+
+                    // -----------------------------------------
+                    // Additional Charges
+                    // -----------------------------------------
 
                     TransportCharges =
                         submitted.TransportCharges,
@@ -611,9 +686,17 @@ namespace AjayIndustriesERP.Application.Services
                         submitted.RoundOffAmount,
 
 
+                    // -----------------------------------------
+                    // Remarks
+                    // -----------------------------------------
+
                     Remarks =
                         submitted.Remarks?.Trim(),
 
+
+                    // -----------------------------------------
+                    // Audit
+                    // -----------------------------------------
 
                     CreatedOn =
                         DateTime.Now,
@@ -650,16 +733,21 @@ namespace AjayIndustriesERP.Application.Services
 
 
             await _repository
-    .AddAsync(
-        purchaseInvoice);
+                .AddAsync(
+                    purchaseInvoice);
+
 
             return purchaseInvoice;
         }
+
+        #endregion
 
 
         // =====================================================
         // UPDATE
         // =====================================================
+
+        #region Update
 
         public async Task<PurchaseInvoice>
             UpdateAsync(
@@ -784,6 +872,10 @@ namespace AjayIndustriesERP.Application.Services
                     "State");
 
 
+            // ---------------------------------------------
+            // Header
+            // ---------------------------------------------
+
             existing.PurchaseInvoiceDate =
                 submitted.PurchaseInvoiceDate;
 
@@ -795,6 +887,32 @@ namespace AjayIndustriesERP.Application.Services
             existing.SupplierInvoiceDate =
                 submitted.SupplierInvoiceDate;
 
+
+            // ---------------------------------------------
+            // Supplier Invoice PDF
+            //
+            // Controller sends:
+            // - existing metadata when no replacement
+            // - new metadata when PDF is replaced
+            // ---------------------------------------------
+
+            existing.SupplierInvoicePdfPath =
+                NormalizeNullableText(
+                    submitted.SupplierInvoicePdfPath);
+
+
+            existing.SupplierInvoicePdfOriginalName =
+                NormalizeNullableText(
+                    submitted.SupplierInvoicePdfOriginalName);
+
+
+            existing.SupplierInvoicePdfUploadedOn =
+                submitted.SupplierInvoicePdfUploadedOn;
+
+
+            // ---------------------------------------------
+            // Due Date / GST
+            // ---------------------------------------------
 
             existing.DueDate =
                 CalculateDueDate(
@@ -812,6 +930,10 @@ namespace AjayIndustriesERP.Application.Services
                     supplierState);
 
 
+            // ---------------------------------------------
+            // Charges
+            // ---------------------------------------------
+
             existing.TransportCharges =
                 submitted.TransportCharges;
 
@@ -824,9 +946,17 @@ namespace AjayIndustriesERP.Application.Services
                 submitted.RoundOffAmount;
 
 
+            // ---------------------------------------------
+            // Remarks
+            // ---------------------------------------------
+
             existing.Remarks =
                 submitted.Remarks?.Trim();
 
+
+            // ---------------------------------------------
+            // Rebuild trusted item data
+            // ---------------------------------------------
 
             var preparedItems =
                 await PrepareTrustedItemsAsync(
@@ -844,6 +974,10 @@ namespace AjayIndustriesERP.Application.Services
                 existing);
 
 
+            // ---------------------------------------------
+            // Audit
+            // ---------------------------------------------
+
             existing.ModifiedOn =
                 DateTime.Now;
 
@@ -853,16 +987,21 @@ namespace AjayIndustriesERP.Application.Services
 
 
             await _repository
-    .UpdateAsync(
-        existing);
+                .UpdateAsync(
+                    existing);
+
 
             return existing;
         }
+
+        #endregion
 
 
         // =====================================================
         // FINALIZE
         // =====================================================
+
+        #region Finalize
 
         public async Task<PurchaseInvoice>
             FinalizeAsync(
@@ -966,10 +1105,10 @@ namespace AjayIndustriesERP.Application.Services
 
 
             /*
-             * IMPORTANT:
+             * Only transaction values are carried forward
+             * for final revalidation.
              *
-             * Saved manual Supplier Invoice Rate must be
-             * preserved during Finalize.
+             * PDF metadata stays untouched on existing entity.
              */
             var submittedItems =
                 activeItems
@@ -1047,16 +1186,21 @@ namespace AjayIndustriesERP.Application.Services
 
 
             await _repository
-    .UpdateAsync(
-        existing);
+                .UpdateAsync(
+                    existing);
+
 
             return existing;
         }
+
+        #endregion
 
 
         // =====================================================
         // DELETE
         // =====================================================
+
+        #region Delete
 
         public async Task DeleteAsync(
             int id)
@@ -1089,6 +1233,12 @@ namespace AjayIndustriesERP.Application.Services
             }
 
 
+            /*
+             * Soft delete only.
+             *
+             * Supplier Invoice PDF metadata remains saved.
+             * Physical PDF is also kept for Restore.
+             */
             existing.IsDeleted =
                 true;
 
@@ -1110,10 +1260,14 @@ namespace AjayIndustriesERP.Application.Services
                     existing);
         }
 
+        #endregion
+
 
         // =====================================================
-        // DELETED
+        // DELETED LIST
         // =====================================================
+
+        #region Deleted
 
         public async Task<List<PurchaseInvoice>>
             GetDeletedAsync()
@@ -1122,10 +1276,14 @@ namespace AjayIndustriesERP.Application.Services
                 .GetDeletedAsync();
         }
 
+        #endregion
+
 
         // =====================================================
         // RESTORE
         // =====================================================
+
+        #region Restore
 
         public async Task RestoreAsync(
             int id)
@@ -1195,6 +1353,9 @@ namespace AjayIndustriesERP.Application.Services
 
             /*
              * Preserve manually entered Supplier Invoice Rate.
+             *
+             * PDF metadata is already stored on parent entity
+             * and is intentionally preserved unchanged.
              */
             var submittedItems =
                 existingActiveItems
@@ -1236,8 +1397,8 @@ namespace AjayIndustriesERP.Application.Services
 
 
             /*
-             * While deleted, this invoice does not reserve
-             * GRN quantity. Revalidate before restore.
+             * Deleted invoice does not reserve quantity.
+             * Revalidate source quantity before Restore.
              */
             var preparedItems =
                 await PrepareTrustedItemsAsync(
@@ -1276,10 +1437,14 @@ namespace AjayIndustriesERP.Application.Services
                     existing);
         }
 
+        #endregion
+
 
         // =====================================================
-        // PREPARE TRUSTED ITEMS
+        // TRUSTED ITEM PREPARATION
         // =====================================================
+
+        #region Prepare Trusted Items
 
         private async Task<List<PurchaseInvoiceItem>>
             PrepareTrustedItemsAsync(
@@ -1327,6 +1492,10 @@ namespace AjayIndustriesERP.Application.Services
             foreach (var submittedItem
                 in submittedList)
             {
+                // -----------------------------------------
+                // Basic inputs
+                // -----------------------------------------
+
                 if (submittedItem.GoodsReceiptNoteItemId <= 0)
                 {
                     throw new BusinessException(
@@ -1343,7 +1512,7 @@ namespace AjayIndustriesERP.Application.Services
 
                 /*
                  * Actual Supplier Invoice Rate is manually
-                 * entered by the user.
+                 * entered by user.
                  */
                 if (submittedItem.Rate <= 0m)
                 {
@@ -1351,6 +1520,10 @@ namespace AjayIndustriesERP.Application.Services
                         "Rate must be greater than zero for all selected Purchase Invoice items.");
                 }
 
+
+                // -----------------------------------------
+                // Reload trusted GRN source
+                // -----------------------------------------
 
                 var sourceItem =
                     await _repository
@@ -1387,6 +1560,10 @@ namespace AjayIndustriesERP.Application.Services
                 }
 
 
+                // -----------------------------------------
+                // Quantity reservation
+                // -----------------------------------------
+
                 var allocatedQuantity =
                     await _repository
                         .GetAllocatedPurchaseInvoiceQuantityAsync(
@@ -1413,6 +1590,13 @@ namespace AjayIndustriesERP.Application.Services
                         $"Invoice quantity for '{sourceItem.ItemName}' cannot exceed available quantity {availableQuantity:N3}.");
                 }
 
+
+                // -----------------------------------------
+                // Build trusted snapshot.
+                //
+                // Rate remains submitted Supplier Invoice
+                // Rate. Other fields come from DB.
+                // -----------------------------------------
 
                 var preparedItem =
                     CreateTrustedSourceSnapshot(
@@ -1448,10 +1632,14 @@ namespace AjayIndustriesERP.Application.Services
             return result;
         }
 
+        #endregion
+
 
         // =====================================================
         // TRUSTED SOURCE SNAPSHOT
         // =====================================================
+
+        #region Trusted Source Snapshot
 
         private static PurchaseInvoiceItem
             CreateTrustedSourceSnapshot(
@@ -1479,18 +1667,13 @@ namespace AjayIndustriesERP.Application.Services
             }
 
 
-            /*
-             * NOTE:
-             *
-             * Item / HSN / GST / Drawing / GRN / PO details
-             * come from trusted database sources.
-             *
-             * Rate is intentionally NOT taken from PO.
-             * Rate is the actual rate printed on Supplier Invoice.
-             */
             var item =
                 new PurchaseInvoiceItem
                 {
+                    // -----------------------------------------
+                    // PO Source
+                    // -----------------------------------------
+
                     PurchaseOrderItemId =
                         sourceItem.PurchaseOrderItemId,
 
@@ -1500,6 +1683,10 @@ namespace AjayIndustriesERP.Application.Services
                     PurchaseOrderQuantity =
                         purchaseOrderItem.Quantity,
 
+
+                    // -----------------------------------------
+                    // GRN Source
+                    // -----------------------------------------
 
                     GoodsReceiptNoteId =
                         sourceItem.GoodsReceiptNoteId,
@@ -1521,6 +1708,10 @@ namespace AjayIndustriesERP.Application.Services
                         sourceItem.GoodsReceiptNote
                             .SupplierChallanDate,
 
+
+                    // -----------------------------------------
+                    // Item Snapshot
+                    // -----------------------------------------
 
                     ItemId =
                         sourceItem.ItemId,
@@ -1544,6 +1735,10 @@ namespace AjayIndustriesERP.Application.Services
                         purchaseOrderItem.HSNCode,
 
 
+                    // -----------------------------------------
+                    // Drawing Snapshot
+                    // -----------------------------------------
+
                     DrawingId =
                         purchaseOrderItem.DrawingId,
 
@@ -1554,27 +1749,39 @@ namespace AjayIndustriesERP.Application.Services
                         purchaseOrderItem.DrawingRevision,
 
 
+                    // -----------------------------------------
+                    // Purchase Invoice values
+                    // -----------------------------------------
+
                     PurchaseInvoiceQuantity =
                         purchaseInvoiceQuantity,
 
 
                     /*
-                     * MANUAL SUPPLIER INVOICE RATE
+                     * Actual Supplier Invoice Rate.
+                     *
+                     * Not copied from PO UnitPrice.
                      */
                     Rate =
                         rate,
 
 
-                    /*
-                     * Purchase discount is disabled
-                     * in current Purchase architecture.
-                     */
+                    // -----------------------------------------
+                    // Discount
+                    //
+                    // Disabled in current Purchase flow.
+                    // -----------------------------------------
+
                     DiscountPercent =
                         0m,
 
                     DiscountAmount =
                         0m,
 
+
+                    // -----------------------------------------
+                    // GST comes from trusted PO Item.
+                    // -----------------------------------------
 
                     GstRate =
                         purchaseOrderItem.GSTPercent,
@@ -1596,10 +1803,14 @@ namespace AjayIndustriesERP.Application.Services
             return item;
         }
 
+        #endregion
+
 
         // =====================================================
         // LINE CALCULATION
         // =====================================================
+
+        #region Line Calculation
 
         private static void CalculateLine(
             PurchaseInvoiceItem item,
@@ -1699,10 +1910,14 @@ namespace AjayIndustriesERP.Application.Services
                     item.TotalTaxAmount);
         }
 
+        #endregion
+
 
         // =====================================================
         // HEADER TOTALS
         // =====================================================
+
+        #region Header Totals
 
         private static void CalculateHeaderTotals(
             PurchaseInvoice purchaseInvoice)
@@ -1766,10 +1981,14 @@ namespace AjayIndustriesERP.Application.Services
                     purchaseInvoice.RoundOffAmount);
         }
 
+        #endregion
+
 
         // =====================================================
-        // SYNC ITEMS
+        // ITEM SYNC
         // =====================================================
+
+        #region Sync Items
 
         private static void SyncItems(
             PurchaseInvoice purchaseInvoice,
@@ -1785,6 +2004,10 @@ namespace AjayIndustriesERP.Application.Services
                         x.GoodsReceiptNoteItemId)
                     .ToHashSet();
 
+
+            // ---------------------------------------------
+            // Soft delete removed rows.
+            // ---------------------------------------------
 
             foreach (var existingItem
                 in purchaseInvoice.Items.ToList())
@@ -1812,6 +2035,10 @@ namespace AjayIndustriesERP.Application.Services
                 }
             }
 
+
+            // ---------------------------------------------
+            // Add / update submitted rows.
+            // ---------------------------------------------
 
             foreach (var preparedItem
                 in preparedItems)
@@ -1995,10 +2222,14 @@ namespace AjayIndustriesERP.Application.Services
                 source.LineTotal;
         }
 
+        #endregion
+
 
         // =====================================================
-        // HEADER VALIDATION
+        // VALIDATION
         // =====================================================
+
+        #region Validation
 
         private static void ValidateSubmittedHeader(
             PurchaseInvoice purchaseInvoice)
@@ -2052,10 +2283,14 @@ namespace AjayIndustriesERP.Application.Services
             }
         }
 
+        #endregion
+
 
         // =====================================================
-        // CODE GENERATION
+        // PURCHASE INVOICE CODE
         // =====================================================
+
+        #region Code Generation
 
         private async Task<string>
             GenerateNextCodeAsync(
@@ -2169,10 +2404,14 @@ namespace AjayIndustriesERP.Application.Services
             }
         }
 
+        #endregion
+
 
         // =====================================================
         // SNAPSHOTS
         // =====================================================
+
+        #region Snapshot Helpers
 
         private static string
             SerializeScalarSnapshot(
@@ -2288,10 +2527,42 @@ namespace AjayIndustriesERP.Application.Services
             }
         }
 
+        #endregion
+
 
         // =====================================================
-        // GST / PAYMENT
+        // PDF METADATA
         // =====================================================
+
+        #region Supplier Invoice PDF Metadata
+
+        /*
+         * Physical PDF handling belongs to Web layer.
+         *
+         * Application Service only stores metadata/path.
+         */
+        private static string?
+            NormalizeNullableText(
+                string? value)
+        {
+            if (string.IsNullOrWhiteSpace(
+                value))
+            {
+                return null;
+            }
+
+
+            return value.Trim();
+        }
+
+        #endregion
+
+
+        // =====================================================
+        // GST / PAYMENT TERMS
+        // =====================================================
+
+        #region GST / Payment Helpers
 
         private static bool
             IsInterStateTransaction(
@@ -2350,10 +2621,14 @@ namespace AjayIndustriesERP.Application.Services
                     creditDays.Value);
         }
 
+        #endregion
+
 
         // =====================================================
-        // COMMON
+        // COMMON HELPERS
         // =====================================================
+
+        #region Common Helpers
 
         private static decimal RoundMoney(
             decimal amount)
@@ -2389,5 +2664,7 @@ namespace AjayIndustriesERP.Application.Services
                     100;
             }
         }
+
+        #endregion
     }
 }

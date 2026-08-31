@@ -9,14 +9,13 @@ Purpose:
 Configures PurchaseInvoice Entity Framework mapping.
 
 Important:
-- Common BaseEntity fields are configured by the
-  existing project conventions / BaseEntity mapping.
 - Purchase Invoice Code is globally unique.
 - Supplier Invoice Number duplicate validation is handled
   by PurchaseInvoiceService per Supplier.
+- Supplier's original Invoice PDF is stored on disk.
+- Database stores only PDF path / original filename /
+  upload timestamp.
 - Purchase Order / Supplier / Company deletion is restricted.
-- Purchase Invoice Items are deleted through cascade when
-  the Purchase Invoice itself is physically removed.
 ============================================================
 */
 
@@ -32,7 +31,9 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
         public void Configure(
             EntityTypeBuilder<PurchaseInvoice> builder)
         {
-            #region Table / Key
+            // =================================================
+            // TABLE / KEY
+            // =================================================
 
             builder.ToTable(
                 "PurchaseInvoices");
@@ -41,10 +42,10 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
             builder.HasKey(x =>
                 x.Id);
 
-            #endregion
 
-
-            #region Identification
+            // =================================================
+            // IDENTIFICATION
+            // =================================================
 
             builder.Property(x =>
                     x.Code)
@@ -67,10 +68,10 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
                     x.Status)
                 .IsRequired();
 
-            #endregion
 
-
-            #region Supplier Invoice
+            // =================================================
+            // SUPPLIER INVOICE
+            // =================================================
 
             builder.Property(x =>
                     x.SupplierInvoiceNumber)
@@ -102,10 +103,39 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
                     x.SupplierInvoiceNumber
                 });
 
-            #endregion
+
+            // =================================================
+            // SUPPLIER INVOICE PDF
+            // =================================================
+
+            /*
+             * Relative path only.
+             *
+             * Example:
+             * /uploads/purchase-invoices/xxxx.pdf
+             */
+            builder.Property(x =>
+                    x.SupplierInvoicePdfPath)
+                .HasMaxLength(
+                    1000);
 
 
-            #region Purchase Order
+            /*
+             * Original file name uploaded by user.
+             */
+            builder.Property(x =>
+                    x.SupplierInvoicePdfOriginalName)
+                .HasMaxLength(
+                    500);
+
+
+            builder.Property(x =>
+                    x.SupplierInvoicePdfUploadedOn);
+
+
+            // =================================================
+            // PURCHASE ORDER
+            // =================================================
 
             builder.Property(x =>
                     x.PurchaseOrderCode)
@@ -126,10 +156,10 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
                 .OnDelete(
                     DeleteBehavior.Restrict);
 
-            #endregion
 
-
-            #region Supplier
+            // =================================================
+            // SUPPLIER
+            // =================================================
 
             builder.Property(x =>
                     x.SupplierName)
@@ -156,10 +186,10 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
                 .OnDelete(
                     DeleteBehavior.Restrict);
 
-            #endregion
 
-
-            #region Company
+            // =================================================
+            // COMPANY
+            // =================================================
 
             builder.Property(x =>
                     x.CompanyName)
@@ -186,10 +216,10 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
                 .OnDelete(
                     DeleteBehavior.Restrict);
 
-            #endregion
 
-
-            #region Payment
+            // =================================================
+            // PAYMENT
+            // =================================================
 
             builder.Property(x =>
                     x.PaymentTerms)
@@ -202,10 +232,10 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
                 .HasMaxLength(
                     150);
 
-            #endregion
 
-
-            #region Financial Totals
+            // =================================================
+            // FINANCIAL TOTALS
+            // =================================================
 
             builder.Property(x =>
                     x.GrossAmount)
@@ -266,10 +296,10 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
                 .HasColumnType(
                     "decimal(18,2)");
 
-            #endregion
 
-
-            #region Remarks / Finalization
+            // =================================================
+            // REMARKS / FINALIZATION
+            // =================================================
 
             builder.Property(x =>
                     x.Remarks)
@@ -282,10 +312,10 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
                 .HasMaxLength(
                     200);
 
-            #endregion
 
-
-            #region Items
+            // =================================================
+            // ITEMS
+            // =================================================
 
             builder.HasMany(x =>
                     x.Items)
@@ -296,10 +326,10 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
                 .OnDelete(
                     DeleteBehavior.Cascade);
 
-            #endregion
 
-
-            #region Indexes
+            // =================================================
+            // INDEXES
+            // =================================================
 
             builder.HasIndex(x =>
                 x.PurchaseInvoiceDate);
@@ -327,8 +357,6 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
                     x.PurchaseOrderId,
                     x.Status
                 });
-
-            #endregion
         }
     }
 }

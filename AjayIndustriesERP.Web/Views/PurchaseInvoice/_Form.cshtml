@@ -1,8 +1,16 @@
 ﻿@model AjayIndustriesERP.Web.ViewModels.PurchaseInvoice.PurchaseInvoiceFormViewModel
 
+@using System.Globalization
+
 @{
-    var isEdit = Model.Id > 0;
+    var isEdit =
+        Model.Id > 0;
 }
+
+
+@* =========================================================
+   HIDDEN VALUES
+   ========================================================= *@
 
 <input asp-for="Id"
        type="hidden" />
@@ -12,7 +20,7 @@
 
 
 @* =========================================================
-   VALIDATION
+   VALIDATION SUMMARY
    ========================================================= *@
 
 <div asp-validation-summary="ModelOnly"
@@ -21,7 +29,7 @@
 
 
 @* =========================================================
-   PURCHASE ORDER / SUPPLIER INVOICE
+   PURCHASE INVOICE INFORMATION
    ========================================================= *@
 
 <div class="card shadow-sm border-0 mb-4">
@@ -43,9 +51,9 @@
 
         <div class="row g-3">
 
-            @* =============================================
+            @* =================================================
                PURCHASE ORDER
-               ============================================= *@
+               ================================================= *@
 
             <div class="col-xl-4 col-lg-6">
 
@@ -62,6 +70,7 @@
                 {
                     <input asp-for="PurchaseOrderId"
                            type="hidden" />
+
 
                     <input type="text"
                            class="form-control"
@@ -86,9 +95,9 @@
             </div>
 
 
-            @* =============================================
-               INTERNAL PURCHASE INVOICE DATE
-               ============================================= *@
+            @* =================================================
+               ERP PURCHASE INVOICE DATE
+               ================================================= *@
 
             <div class="col-xl-2 col-lg-3 col-md-6">
 
@@ -111,9 +120,9 @@
             </div>
 
 
-            @* =============================================
+            @* =================================================
                SUPPLIER INVOICE NUMBER
-               ============================================= *@
+               ================================================= *@
 
             <div class="col-xl-3 col-lg-6">
 
@@ -136,9 +145,9 @@
             </div>
 
 
-            @* =============================================
+            @* =================================================
                SUPPLIER INVOICE DATE
-               ============================================= *@
+               ================================================= *@
 
             <div class="col-xl-3 col-lg-3 col-md-6">
 
@@ -153,7 +162,7 @@
                        type="date"
                        id="supplierInvoiceDate"
                        class="form-control"
-                       data-credit-days="@(Model.CreditDays?.ToString() ?? "")" />
+                       data-credit-days="@(Model.CreditDays?.ToString(CultureInfo.InvariantCulture) ?? "")" />
 
 
                 <span asp-validation-for="SupplierInvoiceDate"
@@ -194,18 +203,16 @@
 
             <div class="row g-4">
 
-                @* =========================================
-                   SUPPLIER
-                   ========================================= *@
+                @* =============================================
+                   SUPPLIER INFORMATION
+                   ============================================= *@
 
                 <div class="col-lg-6">
 
                     <div class="border rounded p-3 h-100">
 
                         <div class="fw-bold mb-3">
-
                             Supplier
-
                         </div>
 
 
@@ -231,9 +238,12 @@
                                 </div>
 
                                 <div class="fw-semibold">
-                                    @(string.IsNullOrWhiteSpace(Model.SupplierCode)
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        Model.SupplierCode)
                                         ? "-"
                                         : Model.SupplierCode)
+
                                 </div>
 
                             </div>
@@ -246,9 +256,12 @@
                                 </div>
 
                                 <div>
-                                    @(string.IsNullOrWhiteSpace(Model.SupplierGstin)
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        Model.SupplierGstin)
                                         ? "-"
                                         : Model.SupplierGstin)
+
                                 </div>
 
                             </div>
@@ -261,9 +274,12 @@
                                 </div>
 
                                 <div>
-                                    @(string.IsNullOrWhiteSpace(Model.SupplierState)
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        Model.SupplierState)
                                         ? "-"
                                         : Model.SupplierState)
+
                                 </div>
 
                             </div>
@@ -276,9 +292,12 @@
                                 </div>
 
                                 <div>
-                                    @(string.IsNullOrWhiteSpace(Model.SupplierAddress)
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        Model.SupplierAddress)
                                         ? "-"
                                         : Model.SupplierAddress)
+
                                 </div>
 
                             </div>
@@ -290,18 +309,16 @@
                 </div>
 
 
-                @* =========================================
-                   COMPANY
-                   ========================================= *@
+                @* =============================================
+                   COMPANY INFORMATION
+                   ============================================= *@
 
                 <div class="col-lg-6">
 
                     <div class="border rounded p-3 h-100">
 
                         <div class="fw-bold mb-3">
-
                             Company / Workshop
-
                         </div>
 
 
@@ -326,7 +343,7 @@
                                     GST Type
                                 </div>
 
-                                <div class="fw-semibold">
+                                <div>
 
                                     @if (Model.IsInterState)
                                     {
@@ -353,9 +370,12 @@
                                 </div>
 
                                 <div>
-                                    @(string.IsNullOrWhiteSpace(Model.CompanyGstin)
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        Model.CompanyGstin)
                                         ? "-"
                                         : Model.CompanyGstin)
+
                                 </div>
 
                             </div>
@@ -368,9 +388,12 @@
                                 </div>
 
                                 <div>
-                                    @(string.IsNullOrWhiteSpace(Model.CompanyState)
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        Model.CompanyState)
                                         ? "-"
                                         : Model.CompanyState)
+
                                 </div>
 
                             </div>
@@ -383,9 +406,12 @@
                                 </div>
 
                                 <div>
-                                    @(string.IsNullOrWhiteSpace(Model.PlaceOfSupply)
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        Model.PlaceOfSupply)
                                         ? "-"
                                         : Model.PlaceOfSupply)
+
                                 </div>
 
                             </div>
@@ -398,9 +424,12 @@
                                 </div>
 
                                 <div>
-                                    @(string.IsNullOrWhiteSpace(Model.PaymentTerms)
+
+                                    @(string.IsNullOrWhiteSpace(
+                                        Model.PaymentTerms)
                                         ? "-"
                                         : Model.PaymentTerms)
+
                                 </div>
 
                             </div>
@@ -415,7 +444,7 @@
 
 
             @* =============================================
-               PAYMENT TERMS
+               PAYMENT INFORMATION
                ============================================= *@
 
             <hr class="my-4" />
@@ -460,7 +489,7 @@
                     <input type="date"
                            id="dueDateDisplay"
                            class="form-control"
-                           value="@Model.DueDate?.ToString("yyyy-MM-dd")"
+                           value="@(Model.DueDate?.ToString("yyyy-MM-dd") ?? "")"
                            readonly />
 
                 </div>
@@ -473,7 +502,166 @@
 
 
     @* =====================================================
-       GRN RECEIVED ITEMS
+       SUPPLIER INVOICE PDF
+       ===================================================== *@
+
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-white py-3">
+
+            <div class="d-flex
+                        justify-content-between
+                        align-items-center
+                        flex-wrap
+                        gap-2">
+
+                <div>
+
+                    <h5 class="fw-semibold mb-1">
+
+                        <i class="fa-solid fa-file-pdf me-2 text-danger"></i>
+
+                        Supplier Invoice PDF
+
+                    </h5>
+
+                    <div class="text-muted small">
+
+                        Optional attachment of Supplier's original Tax Invoice / Bill.
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="row g-3 align-items-end">
+
+                @* =============================================
+                   FILE INPUT
+                   ============================================= *@
+
+                <div class="col-lg-7">
+
+                    <label asp-for="SupplierInvoicePdf"
+                           class="form-label fw-semibold">
+                    </label>
+
+
+                    <input asp-for="SupplierInvoicePdf"
+                           type="file"
+                           class="form-control"
+                           accept=".pdf,application/pdf" />
+
+
+                    <span asp-validation-for="SupplierInvoicePdf"
+                          class="text-danger small">
+                    </span>
+
+
+                    <div class="form-text">
+
+                        PDF only. Maximum file size 10 MB.
+
+                    </div>
+
+                </div>
+
+
+                @* =============================================
+                   EXISTING PDF DURING EDIT
+                   ============================================= *@
+
+                @if (Model.HasExistingSupplierInvoicePdf)
+                {
+                    <div class="col-lg-5">
+
+                        <div class="border rounded p-3 bg-light">
+
+                            <div class="text-muted small mb-1">
+                                Current Attached PDF
+                            </div>
+
+
+                            <div class="fw-semibold text-break mb-2">
+
+                                @(string.IsNullOrWhiteSpace(
+                                    Model.ExistingSupplierInvoicePdfOriginalName)
+                                    ? "Supplier Invoice.pdf"
+                                    : Model.ExistingSupplierInvoicePdfOriginalName)
+
+                            </div>
+
+
+                            @if (Model.ExistingSupplierInvoicePdfUploadedOn.HasValue)
+                            {
+                                <div class="text-muted small mb-3">
+
+                                    Uploaded:
+
+                                    @(Model.ExistingSupplierInvoicePdfUploadedOn.Value
+                                        .ToString("dd-MM-yyyy HH:mm"))
+
+                                </div>
+                            }
+
+
+                            <div class="d-flex
+                                        flex-wrap
+                                        gap-2">
+
+                                <a asp-controller="PurchaseInvoice"
+                                   asp-action="ViewSupplierInvoicePdf"
+                                   asp-route-id="@Model.Id"
+                                   target="_blank"
+                                   class="btn btn-sm btn-outline-primary">
+
+                                    <i class="fa-solid fa-eye me-1"></i>
+
+                                    View PDF
+
+                                </a>
+
+
+                                <a asp-controller="PurchaseInvoice"
+                                   asp-action="DownloadSupplierInvoicePdf"
+                                   asp-route-id="@Model.Id"
+                                   class="btn btn-sm btn-outline-secondary">
+
+                                    <i class="fa-solid fa-download me-1"></i>
+
+                                    Download
+
+                                </a>
+
+                            </div>
+
+
+                            <div class="form-text mt-2">
+
+                                Select a new PDF above only if you want to replace this file.
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       RECEIVED MATERIAL / GRN LINES
        ===================================================== *@
 
     <div class="card shadow-sm border-0 mb-4">
@@ -498,8 +686,7 @@
 
                     <div class="text-muted small">
 
-                        Select only the received lines included
-                        in this Supplier Invoice.
+                        Select only the received material included in this Supplier Invoice.
 
                     </div>
 
@@ -563,7 +750,7 @@
                                 Item
                             </th>
 
-                            <th style="min-width:110px;">
+                            <th style="min-width:100px;">
                                 HSN
                             </th>
 
@@ -573,7 +760,7 @@
                             </th>
 
                             <th class="text-end"
-                                style="min-width:105px;">
+                                style="min-width:110px;">
                                 Already Billed
                             </th>
 
@@ -586,8 +773,7 @@
                                 Invoice Qty
                             </th>
 
-                            <th class="text-end"
-                                style="min-width:105px;">
+                            <th style="min-width:135px;">
                                 Rate
                             </th>
 
@@ -618,12 +804,9 @@
                             <tr>
 
                                 <td colspan="13"
-                                    class="text-center
-                                           text-muted
-                                           py-5">
+                                    class="text-center text-muted py-5">
 
-                                    No received GRN quantity is
-                                    available for Purchase Invoice.
+                                    No received GRN quantity is available for Purchase Invoice.
 
                                 </td>
 
@@ -640,29 +823,29 @@
 
 
                                 <tr class="purchase-invoice-item-row"
-    data-index="@i"
-    data-gst-rate="@item.GstRate"
-    data-available-quantity="@item.AvailableQuantity">
+                                    data-index="@i"
+                                    data-gst-rate="@(item.GstRate.ToString(CultureInfo.InvariantCulture))"
+                                    data-available-quantity="@(item.AvailableQuantity.ToString(CultureInfo.InvariantCulture))">
 
-                                    @* =========================
+                                    @* =====================================
                                        HIDDEN POST VALUES
-                                       ========================= *@
 
-                                    <input asp-for="Items[i].Id"
-                                           type="hidden" />
-
-                                    <input asp-for="Items[i].SequenceNumber"
-                                           type="hidden" />
-
-                                    <input asp-for="Items[i].GoodsReceiptNoteItemId"
-                                           type="hidden" />
-
-
-                                    @* =========================
-                                       SELECT
-                                       ========================= *@
+                                       Only Id / sequence / GRN source are
+                                       posted here. Service rebuilds trusted
+                                       source information.
+                                       ===================================== *@
 
                                     <td class="text-center">
+
+                                        <input asp-for="Items[i].Id"
+                                               type="hidden" />
+
+                                        <input asp-for="Items[i].SequenceNumber"
+                                               type="hidden" />
+
+                                        <input asp-for="Items[i].GoodsReceiptNoteItemId"
+                                               type="hidden" />
+
 
                                         <div class="form-check
                                                     d-flex
@@ -678,9 +861,9 @@
                                     </td>
 
 
-                                    @* =========================
+                                    @* =====================================
                                        GRN
-                                       ========================= *@
+                                       ===================================== *@
 
                                     <td>
 
@@ -693,8 +876,8 @@
                                         {
                                             <div class="text-muted small">
 
-                                                @item.GoodsReceiptNoteDate.Value
-                                                    .ToString("dd-MM-yyyy")
+                                                @(item.GoodsReceiptNoteDate.Value
+                                                    .ToString("dd-MM-yyyy"))
 
                                             </div>
                                         }
@@ -735,7 +918,8 @@
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-light
+                                                    <span class="badge
+                                                                 bg-light
                                                                  text-dark
                                                                  border">
 
@@ -750,9 +934,9 @@
                                     </td>
 
 
-                                    @* =========================
+                                    @* =====================================
                                        SUPPLIER CHALLAN
-                                       ========================= *@
+                                       ===================================== *@
 
                                     <td>
 
@@ -768,8 +952,8 @@
                                             {
                                                 <div class="text-muted small">
 
-                                                    @item.SupplierChallanDate.Value
-                                                        .ToString("dd-MM-yyyy")
+                                                    @(item.SupplierChallanDate.Value
+                                                        .ToString("dd-MM-yyyy"))
 
                                                 </div>
                                             }
@@ -784,9 +968,9 @@
                                     </td>
 
 
-                                    @* =========================
+                                    @* =====================================
                                        ITEM
-                                       ========================= *@
+                                       ===================================== *@
 
                                     <td>
 
@@ -826,12 +1010,15 @@
 
                                                 @item.DrawingNumber
 
+
                                                 @if (!string.IsNullOrWhiteSpace(
                                                     item.DrawingRevision))
                                                 {
                                                     <span>
+
                                                         / Rev:
                                                         @item.DrawingRevision
+
                                                     </span>
                                                 }
 
@@ -841,9 +1028,9 @@
                                     </td>
 
 
-                                    @* =========================
+                                    @* =====================================
                                        HSN
-                                       ========================= *@
+                                       ===================================== *@
 
                                     <td>
 
@@ -855,14 +1042,14 @@
                                     </td>
 
 
-                                    @* =========================
-                                       RECEIVED
-                                       ========================= *@
+                                    @* =====================================
+                                       RECEIVED QUANTITY
+                                       ===================================== *@
 
                                     <td class="text-end">
 
-                                        @item.GoodsReceiptQuantity
-                                            .ToString("N3")
+                                        @(item.GoodsReceiptQuantity
+                                            .ToString("N3"))
 
                                         <div class="text-muted small">
                                             @item.UnitName
@@ -871,38 +1058,37 @@
                                     </td>
 
 
-                                    @* =========================
+                                    @* =====================================
                                        ALREADY BILLED
-                                       ========================= *@
+                                       ===================================== *@
 
                                     <td class="text-end">
 
-                                        @item.AlreadyBilledQuantity
-                                            .ToString("N3")
+                                        @(item.AlreadyBilledQuantity
+                                            .ToString("N3"))
 
                                     </td>
 
 
-                                    @* =========================
-                                       AVAILABLE
-                                       ========================= *@
+                                    @* =====================================
+                                       AVAILABLE QUANTITY
+                                       ===================================== *@
 
                                     <td class="text-end">
 
-                                        <span class="fw-semibold
-                                                     text-success">
+                                        <span class="fw-semibold text-success">
 
-                                            @item.AvailableQuantity
-                                                .ToString("N3")
+                                            @(item.AvailableQuantity
+                                                .ToString("N3"))
 
                                         </span>
 
                                     </td>
 
 
-                                    @* =========================
-                                       INVOICE QUANTITY
-                                       ========================= *@
+                                    @* =====================================
+                                       PURCHASE INVOICE QUANTITY
+                                       ===================================== *@
 
                                     <td>
 
@@ -910,7 +1096,7 @@
                                                type="number"
                                                step="0.001"
                                                min="0"
-                                               max="@item.AvailableQuantity"
+                                               max="@(item.AvailableQuantity.ToString(CultureInfo.InvariantCulture))"
                                                class="form-control
                                                       text-end
                                                       purchase-invoice-quantity" />
@@ -923,76 +1109,80 @@
                                     </td>
 
 
-                                    @* =========================
-   RATE
-   ========================= *@
+                                    @* =====================================
+                                       SUPPLIER INVOICE RATE
 
-<td>
+                                       Manual Rate.
+                                       PO Unit Price is NOT forced here.
+                                       ===================================== *@
 
-    <div class="input-group input-group-sm">
+                                    <td>
 
-        <span class="input-group-text">
-            ₹
-        </span>
+                                        <div class="input-group input-group-sm">
 
-        <input asp-for="Items[i].Rate"
-               type="number"
-               step="0.01"
-               min="0"
-               class="form-control
-                      text-end
-                      purchase-invoice-rate"
-               placeholder="0.00" />
-
-    </div>
-
-    <span asp-validation-for="Items[i].Rate"
-          class="text-danger small">
-    </span>
-
-</td>
+                                            <span class="input-group-text">
+                                                ₹
+                                            </span>
 
 
-                                    @* =========================
-                                       GST
-                                       ========================= *@
+                                            <input asp-for="Items[i].Rate"
+                                                   type="number"
+                                                   step="0.01"
+                                                   min="0"
+                                                   class="form-control
+                                                          text-end
+                                                          purchase-invoice-rate"
+                                                   placeholder="0.00" />
 
-                                    <td class="text-end">
+                                        </div>
 
-                                        @item.GstRate
-                                            .ToString("N2")
+
+                                        <span asp-validation-for="Items[i].Rate"
+                                              class="text-danger small">
+                                        </span>
 
                                     </td>
 
 
-                                    @* =========================
-                                       TAXABLE
-                                       ========================= *@
+                                    @* =====================================
+                                       GST
+                                       ===================================== *@
+
+                                    <td class="text-end">
+
+                                        @(item.GstRate.ToString("N2"))
+
+                                    </td>
+
+
+                                    @* =====================================
+                                       TAXABLE AMOUNT
+                                       ===================================== *@
 
                                     <td class="text-end">
 
                                         ₹
                                         <span class="purchase-row-taxable">
 
-                                            @item.TaxableAmount
-                                                .ToString("N2")
+                                            @(item.TaxableAmount
+                                                .ToString("N2"))
 
                                         </span>
 
                                     </td>
 
 
-                                    @* =========================
+                                    @* =====================================
                                        LINE TOTAL
-                                       ========================= *@
+                                       ===================================== *@
 
                                     <td class="text-end fw-semibold">
 
                                         ₹
                                         <span class="purchase-row-total">
 
-                                            @item.LineTotal
-                                                .ToString("N2")
+                                            @(item.LineTotal
+                                                .ToString("N2"))
 
                                         </span>
 
@@ -1014,13 +1204,13 @@
 
 
     @* =====================================================
-       CHARGES / TOTALS
+       ADDITIONAL INFORMATION + TOTALS
        ===================================================== *@
 
     <div class="row g-4 mb-4">
 
         @* =============================================
-           REMARKS / CHARGES
+           CHARGES / REMARKS
            ============================================= *@
 
         <div class="col-xl-7">
@@ -1030,9 +1220,7 @@
                 <div class="card-header bg-white py-3">
 
                     <h5 class="fw-semibold mb-0">
-
                         Additional Information
-
                     </h5>
 
                 </div>
@@ -1112,8 +1300,7 @@
                             <textarea asp-for="Remarks"
                                       rows="4"
                                       class="form-control"
-                                      placeholder="Optional remarks">
-                            </textarea>
+                                      placeholder="Optional remarks"></textarea>
 
 
                             <span asp-validation-for="Remarks"
@@ -1132,7 +1319,7 @@
 
 
         @* =============================================
-           TOTALS
+           INVOICE SUMMARY
            ============================================= *@
 
         <div class="col-xl-5">
@@ -1142,9 +1329,7 @@
                 <div class="card-header bg-white py-3">
 
                     <h5 class="fw-semibold mb-0">
-
                         Invoice Summary
-
                     </h5>
 
                 </div>
@@ -1152,10 +1337,7 @@
 
                 <div class="card-body">
 
-                    <table class="table
-                                  table-sm
-                                  align-middle
-                                  mb-0">
+                    <table class="table table-sm align-middle mb-0">
 
                         <tbody>
 
@@ -1169,7 +1351,10 @@
 
                                     ₹
                                     <span id="purchaseGrossAmount">
-                                        @Model.GrossAmount.ToString("N2")
+
+                                        @(Model.GrossAmount
+                                            .ToString("N2"))
+
                                     </span>
 
                                 </td>
@@ -1187,7 +1372,10 @@
 
                                     ₹
                                     <span id="purchaseTaxableAmount">
-                                        @Model.TaxableAmount.ToString("N2")
+
+                                        @(Model.TaxableAmount
+                                            .ToString("N2"))
+
                                     </span>
 
                                 </td>
@@ -1207,7 +1395,10 @@
 
                                         ₹
                                         <span id="purchaseIgstAmount">
-                                            @Model.IgstAmount.ToString("N2")
+
+                                            @(Model.IgstAmount
+                                                .ToString("N2"))
+
                                         </span>
 
                                     </td>
@@ -1226,7 +1417,10 @@
 
                                         ₹
                                         <span id="purchaseCgstAmount">
-                                            @Model.CgstAmount.ToString("N2")
+
+                                            @(Model.CgstAmount
+                                                .ToString("N2"))
+
                                         </span>
 
                                     </td>
@@ -1244,7 +1438,10 @@
 
                                         ₹
                                         <span id="purchaseSgstAmount">
-                                            @Model.SgstAmount.ToString("N2")
+
+                                            @(Model.SgstAmount
+                                                .ToString("N2"))
+
                                         </span>
 
                                     </td>
@@ -1263,7 +1460,10 @@
 
                                     ₹
                                     <span id="purchaseTransportSummary">
-                                        @Model.TransportCharges.ToString("N2")
+
+                                        @(Model.TransportCharges
+                                            .ToString("N2"))
+
                                     </span>
 
                                 </td>
@@ -1281,7 +1481,10 @@
 
                                     ₹
                                     <span id="purchaseOtherSummary">
-                                        @Model.OtherCharges.ToString("N2")
+
+                                        @(Model.OtherCharges
+                                            .ToString("N2"))
+
                                     </span>
 
                                 </td>
@@ -1299,7 +1502,10 @@
 
                                     ₹
                                     <span id="purchaseRoundOffSummary">
-                                        @Model.RoundOffAmount.ToString("N2")
+
+                                        @(Model.RoundOffAmount
+                                            .ToString("N2"))
+
                                     </span>
 
                                 </td>
@@ -1323,7 +1529,10 @@
 
                                     ₹
                                     <span id="purchaseGrandTotal">
-                                        @Model.GrandTotal.ToString("N2")
+
+                                        @(Model.GrandTotal
+                                            .ToString("N2"))
+
                                     </span>
 
                                 </td>
@@ -1344,7 +1553,7 @@
 
 
     @* =====================================================
-       ACTIONS
+       ACTION BUTTONS
        ===================================================== *@
 
     <div class="d-flex
@@ -1382,18 +1591,30 @@
             </a>
 
 
-            <button type="submit"
-                    class="btn btn-primary px-4"
-                    @(Model.PurchaseOrderId <= 0 ||
-                      Model.Items.Count == 0
-                        ? "disabled"
-                        : null)>
+            @if (Model.PurchaseOrderId <= 0 ||
+                 Model.Items.Count == 0)
+            {
+                <button type="submit"
+                        class="btn btn-primary px-4"
+                        disabled>
 
-                <i class="fa-solid fa-floppy-disk me-1"></i>
+                    <i class="fa-solid fa-floppy-disk me-1"></i>
 
-                Create Purchase Invoice
+                    Create Purchase Invoice
 
-            </button>
+                </button>
+            }
+            else
+            {
+                <button type="submit"
+                        class="btn btn-primary px-4">
+
+                    <i class="fa-solid fa-floppy-disk me-1"></i>
+
+                    Create Purchase Invoice
+
+                </button>
+            }
         }
 
     </div>
@@ -1401,7 +1622,7 @@
 else
 {
     @* =====================================================
-       NO PO SELECTED
+       NO PURCHASE ORDER SELECTED
        ===================================================== *@
 
     <div class="card shadow-sm border-0">
@@ -1419,9 +1640,7 @@ else
 
 
             <h5 class="fw-semibold">
-
                 Select a Purchase Order
-
             </h5>
 
 

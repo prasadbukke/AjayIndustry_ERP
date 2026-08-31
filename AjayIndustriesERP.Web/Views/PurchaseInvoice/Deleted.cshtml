@@ -1,12 +1,13 @@
 ﻿@model IEnumerable<AjayIndustriesERP.Domain.Entities.PurchaseInvoice>
 
 @{
-    ViewData["Title"] = "Deleted Purchase Invoices";
+    ViewData["Title"] =
+        "Deleted Purchase Invoices";
 }
 
 
 @* =========================================================
-   MESSAGES
+   SUCCESS / ERROR MESSAGES
    ========================================================= *@
 
 @if (TempData["SuccessMessage"] != null)
@@ -42,7 +43,7 @@
 
 
 @* =========================================================
-   HEADER
+   PAGE HEADER
    ========================================================= *@
 
 <div class="d-flex
@@ -59,7 +60,9 @@
         </h2>
 
         <div class="text-muted">
+
             Restore previously deleted Draft Purchase Invoices.
+
         </div>
 
     </div>
@@ -82,7 +85,7 @@
 
 
 @* =========================================================
-   TABLE
+   DELETED PURCHASE INVOICE LIST
    ========================================================= *@
 
 <div class="card shadow-sm border-0">
@@ -120,12 +123,17 @@
                             Purchase Order
                         </th>
 
+                        <th class="text-center"
+                            style="min-width:90px;">
+                            PDF
+                        </th>
+
                         <th class="text-end"
                             style="min-width:145px;">
                             Grand Total
                         </th>
 
-                        <th style="min-width:160px;">
+                        <th style="min-width:155px;">
                             Deleted On
                         </th>
 
@@ -135,7 +143,7 @@
                         </th>
 
                         <th class="text-end"
-                            style="min-width:120px;">
+                            style="min-width:125px;">
                             Action
                         </th>
 
@@ -146,11 +154,12 @@
 
                 <tbody>
 
-                    @if (Model == null || !Model.Any())
+                    @if (Model == null ||
+                         !Model.Any())
                     {
                         <tr>
 
-                            <td colspan="9"
+                            <td colspan="10"
                                 class="text-center
                                        text-muted
                                        py-5">
@@ -174,9 +183,9 @@
                         {
                             <tr>
 
-                                @* =============================
-                                   ERP INVOICE
-                                   ============================= *@
+                                @* =================================
+                                   ERP PURCHASE INVOICE
+                                   ================================= *@
 
                                 <td>
 
@@ -187,42 +196,44 @@
                                 </td>
 
 
-                                @* =============================
+                                @* =================================
                                    PURCHASE INVOICE DATE
-                                   ============================= *@
+                                   ================================= *@
 
                                 <td>
 
-                                    @item.PurchaseInvoiceDate
-                                        .ToString("dd-MM-yyyy")
+                                    @(item.PurchaseInvoiceDate
+                                        .ToString("dd-MM-yyyy"))
 
                                 </td>
 
 
-                                @* =============================
+                                @* =================================
                                    SUPPLIER INVOICE
-                                   ============================= *@
+                                   ================================= *@
 
                                 <td>
 
                                     <div class="fw-semibold">
+
                                         @item.SupplierInvoiceNumber
+
                                     </div>
 
 
                                     <div class="text-muted small">
 
-                                        @item.SupplierInvoiceDate
-                                            .ToString("dd-MM-yyyy")
+                                        @(item.SupplierInvoiceDate
+                                            .ToString("dd-MM-yyyy"))
 
                                     </div>
 
                                 </td>
 
 
-                                @* =============================
+                                @* =================================
                                    SUPPLIER
-                                   ============================= *@
+                                   ================================= *@
 
                                 <td>
 
@@ -233,9 +244,9 @@
                                 </td>
 
 
-                                @* =============================
+                                @* =================================
                                    PURCHASE ORDER
-                                   ============================= *@
+                                   ================================= *@
 
                                 <td>
 
@@ -251,33 +262,72 @@
                                 </td>
 
 
-                                @* =============================
-                                   TOTAL
-                                   ============================= *@
+                                @* =================================
+                                   SUPPLIER INVOICE PDF
 
-                                <td class="text-end fw-semibold">
+                                   PDF remains physically stored during
+                                   soft delete so it is available after
+                                   Restore.
+                                   ================================= *@
 
-                                    ₹ @item.GrandTotal.ToString("N2")
+                                <td class="text-center">
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        item.SupplierInvoicePdfPath))
+                                    {
+                                        <span class="text-success"
+                                              title="PDF attached">
+
+                                            <i class="fa-solid fa-file-pdf"></i>
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            —
+                                        </span>
+                                    }
 
                                 </td>
 
 
-                                @* =============================
-                                   DELETED / MODIFIED DATE
-                                   ============================= *@
+                                @* =================================
+                                   GRAND TOTAL
+                                   ================================= *@
+
+                                <td class="text-end fw-semibold">
+
+                                    ₹ @(item.GrandTotal.ToString("N2"))
+
+                                </td>
+
+
+                                @* =================================
+                                   DELETED DATE
+
+                                   Current BaseEntity has no separate
+                                   DeletedOn property, therefore latest
+                                   ModifiedOn is displayed.
+                                   ================================= *@
 
                                 <td>
 
                                     @if (item.ModifiedOn.HasValue)
                                     {
                                         <div>
-                                            @item.ModifiedOn.Value
-                                                .ToString("dd-MM-yyyy")
+
+                                            @(item.ModifiedOn.Value
+                                                .ToString("dd-MM-yyyy"))
+
                                         </div>
 
+
                                         <div class="text-muted small">
-                                            @item.ModifiedOn.Value
-                                                .ToString("HH:mm")
+
+                                            @(item.ModifiedOn.Value
+                                                .ToString("HH:mm"))
+
                                         </div>
                                     }
                                     else
@@ -290,22 +340,24 @@
                                 </td>
 
 
-                                @* =============================
+                                @* =================================
                                    STATUS
-                                   ============================= *@
+                                   ================================= *@
 
                                 <td class="text-center">
 
                                     <span class="badge bg-secondary">
+
                                         Deleted Draft
+
                                     </span>
 
                                 </td>
 
 
-                                @* =============================
+                                @* =================================
                                    RESTORE
-                                   ============================= *@
+                                   ================================= *@
 
                                 <td>
 
@@ -315,9 +367,10 @@
                                         <form asp-action="Restore"
                                               asp-route-id="@item.Id"
                                               method="post"
-                                              onsubmit="return confirm('Restore this Purchase Invoice? Source GRN quantities and Supplier Invoice Number will be validated again.');">
+                                              onsubmit="return confirm('Restore this Purchase Invoice? GRN available quantity and Supplier Invoice Number will be validated again.');">
 
                                             @Html.AntiForgeryToken()
+
 
                                             <button type="submit"
                                                     class="btn
