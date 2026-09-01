@@ -393,6 +393,13 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
 
             #endregion
 
+            #region supplier outstanding 
+
+            services.AddScoped<ISupplierOutstandingRepository, SupplierOutstandingRepository>();
+            services.AddScoped<ISupplierOutstandingService, SupplierOutstandingService>();
+
+            #endregion
+
 
             return services;
 

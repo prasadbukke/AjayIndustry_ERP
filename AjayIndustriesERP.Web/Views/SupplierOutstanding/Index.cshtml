@@ -1,0 +1,954 @@
+﻿@*
+=============================================================
+File: Index.cshtml
+Module: Supplier Outstanding / Payables
+Layer: Web - View
+
+Purpose:
+Displays live Supplier Outstanding against finalized
+Purchase Invoices.
+
+Important:
+- Read-only report.
+- No Create / Edit / Delete.
+- No new Entity / Table / Migration.
+- Paid Amount is calculated from active Supplier Payments
+  and active Supplier Payment Transactions.
+- Outstanding is calculated live.
+
+Filters:
+- Search
+- Supplier
+- Payment Status
+- Due Status
+- Due Date From
+- Due Date To
+- Page Size
+=============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.SupplierOutstanding.SupplierOutstandingIndexViewModel
+
+@{
+    ViewData["Title"] = "Supplier Outstanding";
+
+    var results = Model.Results;
+
+    var selectedPageSize =
+        results.PageSize > 0
+            ? results.PageSize
+            : 10;
+}
+
+
+@* =========================================================
+   PAGE HEADER
+   ========================================================= *@
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Supplier Outstanding
+        </h2>
+
+        <div class="text-muted">
+            Supplier payable and outstanding invoice report
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   FILTERS
+   ========================================================= *@
+
+<div class="card
+            shadow-sm
+            border-0
+            mb-4">
+
+    <div class="card-header
+                bg-white
+                py-3">
+
+        <h5 class="fw-semibold mb-0">
+
+            <i class="fa-solid
+                      fa-filter
+                      me-2">
+            </i>
+
+            Filters
+
+        </h5>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <form asp-action="Index"
+              method="get">
+
+            <input type="hidden"
+                   name="pageNumber"
+                   value="1" />
+
+            <input type="hidden"
+                   name="pageSize"
+                   value="@selectedPageSize" />
+
+
+            <div class="row g-3">
+
+                @* =================================================
+                   SEARCH
+                   ================================================= *@
+
+                <div class="col-xl-4 col-lg-6">
+
+                    <label asp-for="SearchText"
+                           class="form-label">
+
+                        Search
+
+                    </label>
+
+
+                    <div class="input-group">
+
+                        <span class="input-group-text bg-white">
+
+                            <i class="fa-solid
+                                      fa-magnifying-glass">
+                            </i>
+
+                        </span>
+
+
+                        <input asp-for="SearchText"
+                               class="form-control"
+                               placeholder="ERP Invoice / Supplier Invoice / Supplier" />
+
+                    </div>
+
+                </div>
+
+
+                @* =================================================
+                   SUPPLIER FILTER
+                   ================================================= *@
+
+                <div class="col-xl-2 col-lg-3 col-md-6">
+
+                    <label asp-for="SupplierId"
+                           class="form-label">
+
+                        Supplier
+
+                    </label>
+
+
+                    <select asp-for="SupplierId"
+                            asp-items="Model.Suppliers"
+                            class="form-select">
+                    </select>
+
+                </div>
+
+
+                @* =================================================
+                   PAYMENT STATUS
+                   ================================================= *@
+
+                <div class="col-xl-2 col-lg-3 col-md-6">
+
+                    <label asp-for="PaymentStatus"
+                           class="form-label">
+
+                        Payment Status
+
+                    </label>
+
+
+                    <select asp-for="PaymentStatus"
+                            asp-items="Model.PaymentStatuses"
+                            class="form-select">
+                    </select>
+
+                </div>
+
+
+                @* =================================================
+                   DUE STATUS
+                   ================================================= *@
+
+                <div class="col-xl-2 col-lg-3 col-md-6">
+
+                    <label asp-for="DueStatus"
+                           class="form-label">
+
+                        Due Status
+
+                    </label>
+
+
+                    <select asp-for="DueStatus"
+                            asp-items="Model.DueStatuses"
+                            class="form-select">
+                    </select>
+
+                </div>
+
+
+                @* =================================================
+                   FROM DUE DATE
+                   ================================================= *@
+
+                @* <div class="col-xl-2 col-lg-3 col-md-6">
+
+                    <label asp-for="DueDateFrom"
+                           class="form-label">
+
+                        Due From
+
+                    </label>
+
+
+                    <input type="date"
+                           name="DueDateFrom"
+                           value="@(Model.DueDateFrom?.ToString("yyyy-MM-dd"))"
+                           class="form-control" />
+
+                </div> *@
+
+
+                @* =================================================
+                   TO DUE DATE
+                   ================================================= *@
+
+               @*  <div class="col-xl-2 col-lg-3 col-md-6">
+
+                    <label asp-for="DueDateTo"
+                           class="form-label">
+
+                        Due To
+
+                    </label>
+
+
+                    <input type="date"
+                           name="DueDateTo"
+                           value="@(Model.DueDateTo?.ToString("yyyy-MM-dd"))"
+                           class="form-control" />
+
+                </div> *@
+
+            </div>
+
+
+            @* =====================================================
+               FILTER ACTIONS
+               ===================================================== *@
+
+            <div class="d-flex
+                        justify-content-end
+                        flex-wrap
+                        gap-2
+                        mt-4">
+
+                <a asp-action="Index"
+                   class="btn
+                          btn-outline-secondary">
+
+                    <i class="fa-solid
+                              fa-rotate-left
+                              me-1">
+                    </i>
+
+                    Reset
+
+                </a>
+
+
+                <button type="submit"
+                        class="btn
+                               btn-primary">
+
+                    <i class="fa-solid
+                              fa-filter
+                              me-1">
+                    </i>
+
+                    Apply Filter
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   REPORT TABLE
+   ========================================================= *@
+
+<div class="card
+            shadow-sm
+            border-0">
+
+    <div class="card-header
+                bg-white
+                py-3">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <div>
+
+                <h5 class="fw-semibold mb-1">
+                    Payables Report
+                </h5>
+
+                <div class="text-muted small">
+
+                    Total Records:
+
+                    <strong>
+                        @results.TotalRecords
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th style="min-width:160px;">
+                            ERP Invoice
+                        </th>
+
+                        <th style="min-width:140px;">
+                            Supplier Invoice
+                        </th>
+
+                        <th style="min-width:160px;">
+                            Supplier
+                        </th>
+
+                        <th style="min-width:115px;">
+                            Invoice Date
+                        </th>
+
+                        <th style="min-width:115px;">
+                            Due Date
+                        </th>
+
+                        <th class="text-end"
+                            style="min-width:125px;">
+                            Invoice Total
+                        </th>
+
+                        <th class="text-end"
+                            style="min-width:120px;">
+                            Paid Amount
+                        </th>
+
+                        <th class="text-end"
+                            style="min-width:125px;">
+                            Outstanding
+                        </th>
+
+                        <th class="text-center"
+                            style="min-width:130px;">
+                            Status
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (results.Items == null ||
+                                        results.Items.Count == 0)
+                    {
+                        <tr>
+
+                            <td colspan="9"
+                                class="text-center
+                                           text-muted
+                                           py-5">
+
+                                <i class="fa-solid
+                                              fa-file-invoice-dollar
+                                              fa-2x
+                                              d-block
+                                              mb-3">
+                                </i>
+
+                                No Supplier Outstanding records found.
+
+                            </td>
+
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in results.Items)
+                        {
+                            <tr>
+
+                                @* =================================
+                                   ERP INVOICE
+                                   ================================= *@
+
+                                <td>
+
+                                    <a asp-controller="PurchaseInvoice"
+                                       asp-action="Details"
+                                       asp-route-id="@item.PurchaseInvoiceId"
+                                       class="fw-semibold
+                                                      text-decoration-none">
+
+                                        @item.PurchaseInvoiceCode
+
+                                    </a>
+
+                                </td>
+
+
+                                @* =================================
+                                   SUPPLIER INVOICE
+                                   ================================= *@
+
+                                <td>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                                                item.SupplierInvoiceNumber))
+                                    {
+                                        @item.SupplierInvoiceNumber
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   SUPPLIER
+                                   ================================= *@
+
+                                <td>
+
+                                    <span class="fw-semibold">
+                                        @item.SupplierName
+                                    </span>
+
+                                </td>
+
+
+                                @* =================================
+                                   INVOICE DATE
+                                   ================================= *@
+
+                                <td>
+
+                                    @(item.PurchaseInvoiceDate.ToString("dd-MM-yyyy"))
+
+                                </td>
+
+
+                                @* =================================
+                                   DUE DATE
+                                   ================================= *@
+
+                                <td>
+
+                                    @if (item.DueDate.HasValue)
+                                    {
+                                        <div>
+
+                                            @(item.DueDate.Value.ToString("dd-MM-yyyy"))
+
+                                        </div>
+
+
+                                        @if (item.DueStatus == "Overdue")
+                                        {
+                                            <div class="small
+                                                                        text-danger">
+
+                                                @item.OverdueDays day(s) overdue
+
+                                            </div>
+                                        }
+                                        else if (item.DueStatus == "Due Soon")
+                                        {
+                                            <div class="small
+                                                                        text-warning">
+
+                                                Due Soon
+
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   INVOICE TOTAL
+                                   ================================= *@
+
+                                <td class="text-end
+                                                   text-nowrap">
+
+                                    ₹ @(item.InvoiceTotal.ToString("N2"))
+
+                                </td>
+
+
+                                @* =================================
+                                   PAID AMOUNT
+                                   ================================= *@
+
+                                <td class="text-end
+                                                   text-nowrap">
+
+                                    <span class="fw-semibold
+                                                         text-success">
+
+                                        ₹ @(item.PaidAmount.ToString("N2"))
+
+                                    </span>
+
+                                </td>
+
+
+                                @* =================================
+                                   OUTSTANDING
+                                   ================================= *@
+
+                                <td class="text-end
+                                                   text-nowrap">
+
+                                    @if (item.OutstandingAmount <= 0m)
+                                    {
+                                        <span class="fw-bold
+                                                                 text-success">
+
+                                            ₹ 0.00
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="fw-bold
+                                                                 text-danger">
+
+                                            ₹ @(item.OutstandingAmount.ToString("N2"))
+
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   PAYMENT STATUS
+                                   ================================= *@
+
+                                <td class="text-center">
+
+                                    @if (item.PaymentStatus == "Completed")
+                                    {
+                                        <span class="badge
+                                                                 bg-success">
+
+                                            <i class="fa-solid
+                                                                  fa-circle-check
+                                                                  me-1">
+                                            </i>
+
+                                            Completed
+
+                                        </span>
+                                    }
+                                    else if (item.PaymentStatus ==
+                                    "Partially Paid")
+                                    {
+                                        <span class="badge
+                                                                 bg-warning
+                                                                 text-dark">
+
+                                            <i class="fa-solid
+                                                                  fa-clock
+                                                                  me-1">
+                                            </i>
+
+                                            Partially Paid
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge
+                                                                 bg-secondary">
+
+                                            Pending
+
+                                        </span>
+                                    }
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   PAGINATION + PAGE SIZE
+   ========================================================= *@
+
+@if (results.TotalRecords > 0)
+{
+    <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-3
+                    mt-3">
+
+        @* =================================================
+           PAGINATION INFO
+           ================================================= *@
+
+        <div class="text-muted small">
+
+            Page
+
+            <strong>
+                @results.PageNumber
+            </strong>
+
+            of
+
+            <strong>
+                @results.TotalPages
+            </strong>
+
+            &nbsp;•&nbsp;
+
+            Total Records:
+
+            <strong>
+                @results.TotalRecords
+            </strong>
+
+        </div>
+
+
+        <div class="d-flex
+                        align-items-center
+                        flex-wrap
+                        gap-3">
+
+            @* =================================================
+               PAGINATION
+               ================================================= *@
+
+            @if (results.TotalPages > 1)
+            {
+                <nav aria-label="Supplier Outstanding pagination">
+
+                    <ul class="pagination
+                                       pagination-sm
+                                       mb-0">
+
+                        @* =====================================
+                           PREVIOUS
+                           ===================================== *@
+
+                        <li class="page-item
+                                           @(results.HasPrevious
+                                                                   ? ""
+                                                                   : "disabled")">
+
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-searchText="@Model.SearchText"
+                       asp-route-supplierId="@Model.SupplierId"
+                       asp-route-paymentStatus="@Model.PaymentStatus"
+                       asp-route-dueStatus="@Model.DueStatus"
+                       asp-route-dueDateFrom="@(Model.DueDateFrom?.ToString("yyyy-MM-dd"))"
+                       asp-route-dueDateTo="@(Model.DueDateTo?.ToString("yyyy-MM-dd"))"
+                       asp-route-pageNumber="@(results.PageNumber - 1)"
+                       asp-route-pageSize="@selectedPageSize">
+
+                                Previous
+
+                            </a>
+
+                        </li>
+
+
+                        @* =====================================
+                           PAGE NUMBERS
+                           ===================================== *@
+
+                @{
+                            var startPage =
+                            Math.Max(
+                            1,
+                            results.PageNumber - 2);
+
+                            var endPage =
+                            Math.Min(
+                            results.TotalPages,
+                            results.PageNumber + 2);
+                        }
+
+
+                        @for (var pageNo = startPage;
+                                        pageNo <= endPage;
+                                        pageNo++)
+                        {
+                            <li class="page-item
+                                                   @(pageNo == results.PageNumber
+                                                                           ? "active"
+                                                                           : "")">
+
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-searchText="@Model.SearchText"
+                       asp-route-supplierId="@Model.SupplierId"
+                       asp-route-paymentStatus="@Model.PaymentStatus"
+                       asp-route-dueStatus="@Model.DueStatus"
+                       asp-route-dueDateFrom="@(Model.DueDateFrom?.ToString("yyyy-MM-dd"))"
+                       asp-route-dueDateTo="@(Model.DueDateTo?.ToString("yyyy-MM-dd"))"
+                       asp-route-pageNumber="@pageNo"
+                       asp-route-pageSize="@selectedPageSize">
+
+                                    @pageNo
+
+                                </a>
+
+                            </li>
+                                }
+
+
+                    @* =====================================
+                           NEXT
+                           ===================================== *@
+
+                    <li class="page-item
+                                       @(results.HasNext
+                                                               ? ""
+                                                               : "disabled")">
+
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-searchText="@Model.SearchText"
+                       asp-route-supplierId="@Model.SupplierId"
+                       asp-route-paymentStatus="@Model.PaymentStatus"
+                       asp-route-dueStatus="@Model.DueStatus"
+                       asp-route-dueDateFrom="@(Model.DueDateFrom?.ToString("yyyy-MM-dd"))"
+                       asp-route-dueDateTo="@(Model.DueDateTo?.ToString("yyyy-MM-dd"))"
+                       asp-route-pageNumber="@(results.PageNumber + 1)"
+                       asp-route-pageSize="@selectedPageSize">
+
+                                Next
+
+                            </a>
+
+                        </li>
+
+                    </ul>
+
+                </nav>
+                }
+
+
+            @* =================================================
+               PAGE SIZE
+               ================================================= *@
+
+            <form asp-action="Index"
+                  method="get"
+                  class="d-flex
+                             align-items-center
+                             gap-2">
+
+                <input type="hidden"
+                       name="searchText"
+                       value="@Model.SearchText" />
+
+                <input type="hidden"
+                       name="supplierId"
+                       value="@Model.SupplierId" />
+
+                <input type="hidden"
+                       name="paymentStatus"
+                       value="@Model.PaymentStatus" />
+
+                <input type="hidden"
+                       name="dueStatus"
+                       value="@Model.DueStatus" />
+
+                <input type="hidden"
+                       name="dueDateFrom"
+                       value="@(Model.DueDateFrom?.ToString("yyyy-MM-dd"))" />
+
+                <input type="hidden"
+                       name="dueDateTo"
+                       value="@(Model.DueDateTo?.ToString("yyyy-MM-dd"))" />
+
+                <input type="hidden"
+                       name="pageNumber"
+                       value="1" />
+
+
+                <label for="supplierOutstandingPageSize"
+                       class="small
+                                  text-muted
+                                  text-nowrap">
+
+                    Page Size
+
+                </label>
+
+
+                <select id="supplierOutstandingPageSize"
+                        name="pageSize"
+                        class="form-select
+                                   form-select-sm"
+                        style="width:80px;">
+
+                    @if (selectedPageSize == 10)
+                    {
+                        <option value="10" selected>
+                            10
+                        </option>
+                    }
+                    else
+                    {
+                        <option value="10">
+                            10
+                        </option>
+                    }
+
+
+                    @if (selectedPageSize == 25)
+                    {
+                        <option value="25" selected>
+                            25
+                        </option>
+                    }
+                    else
+                    {
+                        <option value="25">
+                            25
+                        </option>
+                    }
+
+
+                    @if (selectedPageSize == 50)
+                    {
+                        <option value="50" selected>
+                            50
+                        </option>
+                    }
+                    else
+                    {
+                        <option value="50">
+                            50
+                        </option>
+                    }
+
+
+                    @if (selectedPageSize == 100)
+                    {
+                        <option value="100" selected>
+                            100
+                        </option>
+                    }
+                    else
+                    {
+                        <option value="100">
+                            100
+                        </option>
+                    }
+
+                </select>
+
+
+                <button type="submit"
+                        class="btn
+                                   btn-sm
+                                   btn-outline-secondary">
+
+                    Apply
+
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+}
