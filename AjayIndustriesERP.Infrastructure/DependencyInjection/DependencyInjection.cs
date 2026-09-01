@@ -363,7 +363,40 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
             services.AddScoped<
     IPurchaseInvoiceService,
     PurchaseInvoiceService>();
+
+
+            // =============================================================
+            // Module: Supplier Payment
+            // Layer: Infrastructure - Dependency Injection
+            //
+            // Purpose:
+            // Registers Supplier Payment repository and service
+            // implementations with the application DI container.
+            //
+            // Registrations:
+            // - ISupplierPaymentRepository -> SupplierPaymentRepository
+            // - ISupplierPaymentService    -> SupplierPaymentService
+            //
+            // Lifetime:
+            // Scoped - one instance per HTTP request.
+            // =============================================================
+
+            #region Supplier Payment
+
+            services.AddScoped<
+                ISupplierPaymentRepository,
+                SupplierPaymentRepository>();
+
+            services.AddScoped<
+                ISupplierPaymentService,
+                SupplierPaymentService>();
+
+            #endregion
+
+
             return services;
+
+
         }
     }
 }

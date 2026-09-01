@@ -1,0 +1,1015 @@
+﻿@*
+=============================================================
+File: Details.cshtml
+Module: Supplier Payment
+Layer: Web - View
+
+Purpose:
+Displays Supplier Payment header, Purchase Invoice summary,
+current payment position and complete transaction history.
+
+Final Structure:
+
+Purchase Invoice
+      ↓
+Supplier Payment No.
+      ↓
+Multiple Payment Transactions
+
+Supported Actions:
+- Add Payment under same Payment No.
+- Edit individual payment transaction
+- Delete Supplier Payment
+
+Important Business Rules:
+- One Purchase Invoice = One Supplier Payment No.
+- Multiple part payments remain under same Payment No.
+- Paid Amount is calculated from active transactions.
+- Outstanding is calculated live.
+- Completed payment cannot accept a NEW transaction.
+- Existing transaction can still be edited for correction.
+- Editing a transaction may change:
+    Completed → Partially Paid
+    Partially Paid → Completed
+- Reference / UTR belongs to transaction.
+- Delete is Soft Delete.
+=============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.SupplierPayment.SupplierPaymentDetailsViewModel
+
+@{
+    ViewData["Title"] = "Supplier Payment Details";
+
+    var isCompleted =
+        Model.OutstandingAmount <= 0m ||
+        Model.PaymentStatus == "Completed";
+}
+
+
+@* =========================================================
+   SUCCESS / ERROR MESSAGES
+   ========================================================= *@
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert
+                    alert-success
+                    alert-dismissible
+                    fade
+                    show"
+         role="alert">
+
+        @TempData["SuccessMessage"]
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+        </button>
+
+    </div>
+}
+
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert
+                    alert-danger
+                    alert-dismissible
+                    fade
+                    show"
+         role="alert">
+
+        @TempData["ErrorMessage"]
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+        </button>
+
+    </div>
+}
+
+
+@* =========================================================
+   PAGE HEADER
+   ========================================================= *@
+
+<div class="d-flex
+            justify-content-between
+            align-items-start
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <div class="d-flex
+                    align-items-center
+                    flex-wrap
+                    gap-2
+                    mb-1">
+
+            <h2 class="fw-bold mb-0">
+                Supplier Payment
+            </h2>
+
+
+            @if (Model.PaymentStatus == "Completed")
+            {
+                <span class="badge
+                                 bg-success">
+
+                    <i class="fa-solid
+                                  fa-circle-check
+                                  me-1">
+                    </i>
+
+                    Completed
+
+                </span>
+            }
+            else if (Model.PaymentStatus == "Partially Paid")
+            {
+                <span class="badge
+                                 bg-warning
+                                 text-dark">
+
+                    Partially Paid
+
+                </span>
+            }
+            else
+            {
+                <span class="badge
+                                 bg-secondary">
+
+                    Pending
+
+                </span>
+            }
+
+        </div>
+
+
+        <div class="text-muted">
+
+            Payment No:
+
+            <strong class="text-dark">
+                @Model.Code
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       PAGE ACTIONS
+       ===================================================== *@
+
+    <div class="d-flex
+                flex-wrap
+                gap-2">
+
+        <a asp-action="Index"
+           class="btn
+                  btn-outline-secondary">
+
+            <i class="fa-solid
+                      fa-arrow-left
+                      me-1">
+            </i>
+
+            Back
+
+        </a>
+
+
+        @* =================================================
+           ADD PAYMENT
+
+           Disabled only when fully paid.
+           ================================================= *@
+
+        @if (!isCompleted)
+        {
+            <a asp-action="AddTransaction"
+               asp-route-id="@Model.Id"
+               class="btn
+                          btn-success">
+
+                <i class="fa-solid
+                              fa-plus
+                              me-1">
+                </i>
+
+                Add Payment
+
+            </a>
+        }
+        else
+        {
+            <button type="button"
+                    class="btn
+                               btn-success"
+                    title="Purchase Invoice is fully paid"
+                    disabled>
+
+                <i class="fa-solid
+                              fa-plus
+                              me-1">
+                </i>
+
+                Add Payment
+
+            </button>
+        }
+
+
+        @* =================================================
+           DELETE PAYMENT
+           ================================================= *@
+
+        <form asp-action="Delete"
+              asp-route-id="@Model.Id"
+              method="post"
+              class="d-inline"
+              onsubmit="return confirm('Delete this Supplier Payment and its transaction history? It can be restored later.');">
+
+            @Html.AntiForgeryToken()
+
+
+            <button type="submit"
+                    class="btn
+                           btn-outline-danger">
+
+                <i class="fa-solid
+                          fa-trash
+                          me-1">
+                </i>
+
+                Delete
+
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   PAYMENT / INVOICE INFORMATION
+   ========================================================= *@
+
+<div class="card
+            shadow-sm
+            border-0
+            mb-4">
+
+    <div class="card-header
+                bg-white
+                py-3">
+
+        <h5 class="fw-semibold mb-0">
+
+            <i class="fa-solid
+                      fa-file-invoice-dollar
+                      me-2">
+            </i>
+
+            Payment & Invoice Information
+
+        </h5>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-4">
+
+            @* =================================================
+               PAYMENT NUMBER
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Payment No.
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.Code
+                </div>
+
+            </div>
+
+
+            @* =================================================
+               ERP PURCHASE INVOICE
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    ERP Invoice No.
+                </div>
+
+                <div>
+
+                    <a asp-controller="PurchaseInvoice"
+                       asp-action="Details"
+                       asp-route-id="@Model.PurchaseInvoiceId"
+                       class="fw-semibold
+                              text-decoration-none">
+
+                        @Model.PurchaseInvoiceCode
+
+                    </a>
+
+                </div>
+
+            </div>
+
+
+            @* =================================================
+               SUPPLIER INVOICE NUMBER
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Supplier Invoice No.
+                </div>
+
+                <div class="fw-semibold">
+
+                    @if (!string.IsNullOrWhiteSpace(
+                                        Model.SupplierInvoiceNumber))
+                    {
+                        @Model.SupplierInvoiceNumber
+                    }
+                    else
+                    {
+                        <span class="text-muted">
+                            -
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+
+
+            @* =================================================
+               SUPPLIER
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Supplier
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.SupplierName
+                </div>
+
+            </div>
+
+
+            @* =================================================
+               PURCHASE INVOICE DATE
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Purchase Invoice Date
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(Model.PurchaseInvoiceDate.ToString("dd-MM-yyyy"))
+
+                </div>
+
+            </div>
+
+
+            @* =================================================
+               SUPPLIER INVOICE DATE
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Supplier Invoice Date
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(Model.SupplierInvoiceDate.ToString("dd-MM-yyyy"))
+
+                </div>
+
+            </div>
+
+
+            @* =================================================
+               DUE DATE
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Due Date
+                </div>
+
+                <div class="fw-semibold">
+
+                    @if (Model.DueDate.HasValue)
+                    {
+                        @(Model.DueDate.Value.ToString("dd-MM-yyyy"))
+                    }
+                    else
+                    {
+                        <span class="text-muted">
+                            -
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+
+
+            @* =================================================
+               PAYMENT STATUS
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Payment Status
+                </div>
+
+                <div>
+
+                    @if (Model.PaymentStatus == "Completed")
+                    {
+                        <span class="badge
+                                         bg-success">
+
+                            <i class="fa-solid
+                                          fa-circle-check
+                                          me-1">
+                            </i>
+
+                            Completed
+
+                        </span>
+                    }
+                    else if (Model.PaymentStatus == "Partially Paid")
+                    {
+                        <span class="badge
+                                         bg-warning
+                                         text-dark">
+
+                            Partially Paid
+
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge
+                                         bg-secondary">
+
+                            Pending
+
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   PAYMENT POSITION
+   ========================================================= *@
+
+<div class="row g-3 mb-4">
+
+    @* =====================================================
+       INVOICE TOTAL
+       ===================================================== *@
+
+    <div class="col-lg-4">
+
+        <div class="card
+                    shadow-sm
+                    border-0
+                    h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small mb-1">
+                    Invoice Total
+                </div>
+
+                <div class="fs-4
+                            fw-bold">
+
+                    ₹ @(Model.InvoiceTotal.ToString("N2"))
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       TOTAL PAID
+       ===================================================== *@
+
+    <div class="col-lg-4">
+
+        <div class="card
+                    shadow-sm
+                    border-0
+                    h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small mb-1">
+                    Total Paid
+                </div>
+
+                <div class="fs-4
+                            fw-bold
+                            text-success">
+
+                    ₹ @(Model.PaidAmount.ToString("N2"))
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       OUTSTANDING
+       ===================================================== *@
+
+    <div class="col-lg-4">
+
+        <div class="card
+                    shadow-sm
+                    border-0
+                    h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small mb-1">
+                    Outstanding
+                </div>
+
+
+                @if (isCompleted)
+                {
+                    <div class="fs-4
+                                    fw-bold
+                                    text-success">
+
+                        ₹ 0.00
+
+                    </div>
+                }
+                else
+                {
+                    <div class="fs-4
+                                    fw-bold
+                                    text-danger">
+
+                        ₹ @(Model.OutstandingAmount.ToString("N2"))
+
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   COMPLETED MESSAGE
+   ========================================================= *@
+
+@if (isCompleted)
+{
+    <div class="alert
+                    alert-success
+                    mb-4">
+
+        <div class="d-flex
+                        align-items-center
+                        gap-2">
+
+            <i class="fa-solid
+                          fa-circle-check
+                          fs-5">
+            </i>
+
+
+            <div>
+
+                <strong>
+                    Payment Completed
+                </strong>
+
+                <div>
+                    This Purchase Invoice has been fully paid.
+                    Existing transactions can still be edited if a correction is required.
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+@* =========================================================
+   TRANSACTION HISTORY
+   ========================================================= *@
+
+<div class="card
+            shadow-sm
+            border-0">
+
+    <div class="card-header
+                bg-white
+                py-3">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <div>
+
+                <h5 class="fw-semibold mb-1">
+
+                    <i class="fa-solid
+                              fa-clock-rotate-left
+                              me-2">
+                    </i>
+
+                    Payment Transaction History
+
+                </h5>
+
+
+                <div class="text-muted small">
+
+                    All transactions recorded under
+
+                    <strong>
+                        @Model.Code
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="text-end">
+
+                <div class="text-muted small">
+                    Total Paid
+                </div>
+
+                <div class="fw-bold
+                            text-success">
+
+                    ₹ @(Model.PaidAmount.ToString("N2"))
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th style="min-width:115px;">
+                            Date
+                        </th>
+
+                        <th style="min-width:130px;">
+                            Payment Mode
+                        </th>
+
+                        <th style="min-width:160px;">
+                            Bank
+                        </th>
+
+                        <th style="min-width:180px;">
+                            UTR / Reference
+                        </th>
+
+                        <th style="min-width:220px;">
+                            Remarks
+                        </th>
+
+                        <th class="text-end"
+                            style="min-width:130px;">
+                            Amount
+                        </th>
+
+                        <th class="text-center"
+                            style="min-width:90px;">
+                            Action
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model.Transactions == null ||
+                                        Model.Transactions.Count == 0)
+                    {
+                        <tr>
+
+                            <td colspan="7"
+                                class="text-center
+                                           text-muted
+                                           py-5">
+
+                                <i class="fa-solid
+                                              fa-money-bill-transfer
+                                              fa-2x
+                                              d-block
+                                              mb-3">
+                                </i>
+
+                                No payment transactions found.
+
+                            </td>
+
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var transaction
+                        in Model.Transactions)
+                        {
+                            <tr>
+
+                                @* =============================
+                                   PAYMENT DATE
+                                   ============================= *@
+
+                                <td>
+
+                                    @(transaction.PaymentDate.ToString("dd-MM-yyyy"))
+
+                                </td>
+
+
+                                @* =============================
+                                   PAYMENT MODE
+                                   ============================= *@
+
+                                <td>
+
+                                    <span class="fw-semibold">
+                                        @transaction.PaymentMode
+                                    </span>
+
+                                </td>
+
+
+                                @* =============================
+                                   BANK
+                                   ============================= *@
+
+                                <td>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                                                transaction.BankName))
+                                    {
+                                        @transaction.BankName
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =============================
+                                   REFERENCE
+                                   ============================= *@
+
+                                <td>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                                                transaction.ReferenceNumber))
+                                    {
+                                        <span class="fw-semibold">
+                                            @transaction.ReferenceNumber
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =============================
+                                   REMARKS
+                                   ============================= *@
+
+                                <td>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                                                transaction.Remarks))
+                                    {
+                                        @transaction.Remarks
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =============================
+                                   AMOUNT
+                                   ============================= *@
+
+                                <td class="text-end
+                                                   fw-bold
+                                                   text-success">
+
+                                    ₹ @(transaction.Amount.ToString("N2"))
+
+                                </td>
+
+
+                                @* =============================
+                                   EDIT TRANSACTION
+
+                                   Available even when Payment
+                                   status is Completed because
+                                   correction may be required.
+                                   ============================= *@
+
+                                <td class="text-center">
+
+                                    <a asp-action="Edit"
+                                       asp-route-id="@Model.Id"
+                                       asp-route-transactionId="@transaction.Id"
+                                       class="btn
+                                                      btn-sm
+                                                      btn-outline-primary"
+                                       title="Edit Payment Transaction">
+
+                                        <i class="fa-solid
+                                                          fa-pen-to-square">
+                                        </i>
+
+                                    </a>
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+
+                </tbody>
+
+
+                @* =================================================
+                   TOTALS
+                   ================================================= *@
+
+                @if (Model.Transactions != null &&
+                                Model.Transactions.Count > 0)
+                {
+                    <tfoot class="table-light">
+
+                        <tr>
+
+                            <td colspan="5"
+                                class="text-end
+                                           fw-semibold">
+
+                                Total Paid
+
+                            </td>
+
+
+                            <td class="text-end
+                                           fw-bold
+                                           text-success">
+
+                                ₹ @(Model.PaidAmount.ToString("N2"))
+
+                            </td>
+
+
+                            <td>
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <td colspan="5"
+                                class="text-end
+                                           fw-semibold">
+
+                                Outstanding
+
+                            </td>
+
+
+                            <td class="text-end
+                                           fw-bold
+                                           @(isCompleted
+                                                                           ? "text-success"
+                                                                           : "text-danger")">
+
+                            ₹ @(Model.OutstandingAmount.ToString("N2"))
+
+                            </td>
+
+
+                            <td>
+                            </td>
+
+                        </tr>
+
+                    </tfoot>
+                                }
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>

@@ -1,0 +1,517 @@
+﻿@*
+=============================================================
+File: Edit.cshtml
+Module: Supplier Payment
+Layer: Web - View
+
+Purpose:
+Edits one existing Supplier Payment transaction.
+
+Structure:
+- Display fixed Supplier Payment information
+- Display Purchase Invoice information
+- Display current payment position
+- Use shared _Form.cshtml for editable transaction fields
+
+Editable Fields:
+- Payment Date
+- Payment Mode
+- Amount
+- Bank Name
+- UTR / Reference No.
+- Remarks
+
+Fixed Fields:
+- Supplier Payment No.
+- Purchase Invoice
+- Supplier
+- Company
+
+Important Business Rule:
+
+Maximum Editable Amount
+=
+Current Outstanding
++
+Current Transaction Amount
+
+This allows the current transaction to be corrected without
+causing total payments to exceed the Purchase Invoice Total.
+=============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.SupplierPayment.SupplierPaymentAddTransactionViewModel
+
+@using System.Globalization
+
+@{
+    ViewData["Title"] = "Edit Supplier Payment";
+
+
+    var transactionId =
+        ViewBag.TransactionId != null
+            ? Convert.ToInt32(
+                ViewBag.TransactionId)
+            : 0;
+
+
+    var maximumEditableAmount =
+        ViewBag.MaximumEditableAmount != null
+            ? Convert.ToDecimal(
+                ViewBag.MaximumEditableAmount)
+            : Model.OutstandingAmount +
+              Model.Transaction.Amount;
+}
+
+
+@* =========================================================
+   PAGE HEADER
+   ========================================================= *@
+
+<div class="d-flex
+            justify-content-between
+            align-items-start
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Edit Payment Transaction
+        </h2>
+
+
+        <div class="text-muted">
+
+            Payment No:
+
+            <strong class="text-dark">
+                @Model.PaymentCode
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <a asp-action="Details"
+       asp-route-id="@Model.SupplierPaymentId"
+       class="btn
+              btn-outline-secondary">
+
+        <i class="fa-solid
+                  fa-arrow-left
+                  me-1">
+        </i>
+
+        Back to Details
+
+    </a>
+
+</div>
+
+
+@* =========================================================
+   VALIDATION SUMMARY
+   ========================================================= *@
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div asp-validation-summary="ModelOnly"
+         class="alert
+                    alert-danger
+                    mb-4">
+    </div>
+}
+
+
+@* =========================================================
+   PAYMENT / INVOICE INFORMATION
+   ========================================================= *@
+
+<div class="card
+            shadow-sm
+            border-0
+            mb-4">
+
+    <div class="card-header
+                bg-white
+                py-3">
+
+        <h5 class="fw-semibold mb-0">
+
+            <i class="fa-solid
+                      fa-file-invoice-dollar
+                      me-2">
+            </i>
+
+            Payment & Invoice Information
+
+        </h5>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-4">
+
+            @* =================================================
+               PAYMENT NUMBER
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Payment No.
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.PaymentCode
+                </div>
+
+            </div>
+
+
+            @* =================================================
+               ERP PURCHASE INVOICE
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    ERP Invoice No.
+                </div>
+
+                <div>
+
+                    <a asp-controller="PurchaseInvoice"
+                       asp-action="Details"
+                       asp-route-id="@Model.PurchaseInvoiceId"
+                       class="fw-semibold
+                              text-decoration-none">
+
+                        @Model.PurchaseInvoiceCode
+
+                    </a>
+
+                </div>
+
+            </div>
+
+
+            @* =================================================
+               SUPPLIER INVOICE NUMBER
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Supplier Invoice No.
+                </div>
+
+                <div class="fw-semibold">
+
+                    @if (!string.IsNullOrWhiteSpace(
+                                        Model.SupplierInvoiceNumber))
+                    {
+                        @Model.SupplierInvoiceNumber
+                    }
+                    else
+                    {
+                        <span class="text-muted">
+                            -
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+
+
+            @* =================================================
+               SUPPLIER
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Supplier
+                </div>
+
+                <div class="fw-semibold">
+                    @Model.SupplierName
+                </div>
+
+            </div>
+
+
+            @* =================================================
+               PURCHASE INVOICE DATE
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Purchase Invoice Date
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(Model.PurchaseInvoiceDate.ToString("dd-MM-yyyy"))
+
+                </div>
+
+            </div>
+
+
+            @* =================================================
+               DUE DATE
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <div class="text-muted small mb-1">
+                    Due Date
+                </div>
+
+                <div class="fw-semibold">
+
+                    @if (Model.DueDate.HasValue)
+                    {
+                        @(Model.DueDate.Value.ToString("dd-MM-yyyy"))
+                    }
+                    else
+                    {
+                        <span class="text-muted">
+                            -
+                        </span>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   CURRENT PAYMENT POSITION
+   ========================================================= *@
+
+<div class="row g-3 mb-4">
+
+    @* =====================================================
+       INVOICE TOTAL
+       ===================================================== *@
+
+    <div class="col-lg-4">
+
+        <div class="card
+                    shadow-sm
+                    border-0
+                    h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small mb-1">
+                    Invoice Total
+                </div>
+
+
+                <div class="fs-4
+                            fw-bold">
+
+                    ₹ @(Model.InvoiceTotal.ToString("N2"))
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       TOTAL PAID
+       ===================================================== *@
+
+    <div class="col-lg-4">
+
+        <div class="card
+                    shadow-sm
+                    border-0
+                    h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small mb-1">
+                    Current Total Paid
+                </div>
+
+
+                <div class="fs-4
+                            fw-bold
+                            text-success">
+
+                    ₹ @(Model.PaidAmount.ToString("N2"))
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       OUTSTANDING
+       ===================================================== *@
+
+    <div class="col-lg-4">
+
+        <div class="card
+                    shadow-sm
+                    border-0
+                    h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small mb-1">
+                    Current Outstanding
+                </div>
+
+
+                <div class="fs-4
+                            fw-bold
+                            @(Model.OutstandingAmount > 0m
+                                                     ? "text-danger"
+                                                     : "text-success")">
+
+                    ₹ @(Model.OutstandingAmount.ToString("N2"))
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   EDIT FORM
+   ========================================================= *@
+
+<form asp-action="Edit"
+      asp-route-id="@Model.SupplierPaymentId"
+      method="post"
+      id="supplierPaymentAddTransactionForm"
+      data-outstanding="@maximumEditableAmount.ToString("0.00", CultureInfo.InvariantCulture)">
+
+    @Html.AntiForgeryToken()
+
+
+    @* =====================================================
+       REQUIRED IDS
+       ===================================================== *@
+
+    <input asp-for="SupplierPaymentId"
+           type="hidden" />
+
+
+    <input type="hidden"
+           name="transactionId"
+           value="@transactionId" />
+
+
+    @* =====================================================
+       SHARED TRANSACTION FORM
+       ===================================================== *@
+
+    @{
+        ViewData["PaymentModes"] =
+        Model.PaymentModes;
+
+        ViewData["MaximumAmount"] =
+        maximumEditableAmount;
+
+        ViewData["SectionTitle"] =
+        "Edit Payment Transaction";
+
+        ViewData["SectionHelp"] =
+        $"Transaction remains under {Model.PaymentCode}.";
+
+        ViewData["MaximumLabel"] =
+        "Maximum Editable Amount";
+
+        ViewData["FullButtonText"] =
+        "Max Amount";
+
+        ViewData["ShowFullAmountButton"] =
+        true;
+    }
+
+
+    <partial name="_Form"
+             for="Transaction" />
+
+
+    @* =====================================================
+       ACTION BUTTONS
+       ===================================================== *@
+
+    <div class="d-flex
+                justify-content-end
+                flex-wrap
+                gap-2">
+
+        <a asp-action="Details"
+           asp-route-id="@Model.SupplierPaymentId"
+           class="btn
+                  btn-outline-secondary">
+
+            Cancel
+
+        </a>
+
+
+        <button type="submit"
+                class="btn
+                       btn-primary">
+
+            <i class="fa-solid
+                      fa-floppy-disk
+                      me-1">
+            </i>
+
+            Save Changes
+
+        </button>
+
+    </div>
+
+</form>
+
+
+@* =========================================================
+   SCRIPTS
+   ========================================================= *@
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/supplier-payment.js"
+            asp-append-version="true">
+    </script>
+}

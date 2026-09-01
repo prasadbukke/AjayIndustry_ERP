@@ -1,0 +1,959 @@
+﻿@*
+=============================================================
+File: Index.cshtml
+Module: Supplier Payment
+Layer: Web - View
+
+Purpose:
+Displays one Supplier Payment row per Purchase Invoice.
+
+Final Business Flow:
+
+Purchase Invoice
+      ↓
+Supplier Payment No.
+      ↓
+Multiple Payment Transactions
+
+Index Columns:
+- Payment No.
+- ERP Purchase Invoice No.
+- Supplier Invoice No.
+- Supplier
+- Invoice Total
+- Paid Amount
+- Outstanding
+- Payment Status
+- Actions
+
+Important Business Rules:
+- Reference Number is NOT displayed on Index.
+- Company is NOT displayed/selected here.
+- Paid Amount is calculated from active transactions.
+- Outstanding is calculated live.
+- Add Payment remains under the SAME Payment No.
+- Add Payment is disabled when Outstanding = 0.
+- Completed means Invoice is fully paid.
+- Delete is Soft Delete.
+=============================================================
+*@
+
+@model AjayIndustriesERP.Application.Common.PagedResult<
+AjayIndustriesERP.Web.ViewModels.SupplierPayment.SupplierPaymentIndexViewModel >
+
+@{
+    ViewData["Title"] = "Supplier Payments";
+
+    var searchText =
+        ViewBag.SearchText as string
+        ?? string.Empty;
+
+    var selectedPageSize =
+        ViewBag.PageSize != null
+            ? Convert.ToInt32(ViewBag.PageSize)
+            : 10;
+}
+
+
+@* =========================================================
+   SUCCESS / ERROR MESSAGES
+   ========================================================= *@
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert
+                    alert-success
+                    alert-dismissible
+                    fade
+                    show"
+         role="alert">
+
+        @TempData["SuccessMessage"]
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+        </button>
+
+    </div>
+}
+
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert
+                    alert-danger
+                    alert-dismissible
+                    fade
+                    show"
+         role="alert">
+
+        @TempData["ErrorMessage"]
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+        </button>
+
+    </div>
+}
+
+
+@* =========================================================
+   PAGE HEADER
+   ========================================================= *@
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Supplier Payments
+        </h2>
+
+        <div class="text-muted">
+            Supplier invoice-wise payment tracking
+        </div>
+
+    </div>
+
+
+    <div class="d-flex
+                flex-wrap
+                gap-2">
+
+        <a asp-action="Deleted"
+           class="btn
+                  btn-outline-danger">
+
+            <i class="fa-solid
+                      fa-trash-can
+                      me-1">
+            </i>
+
+            Deleted
+
+        </a>
+
+
+        <a asp-action="Create"
+           class="btn
+                  btn-primary">
+
+            <i class="fa-solid
+                      fa-plus
+                      me-1">
+            </i>
+
+            New Payment
+
+        </a>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   SEARCH
+   ========================================================= *@
+
+<div class="card
+            shadow-sm
+            border-0
+            mb-4">
+
+    <div class="card-body">
+
+        <form asp-action="Index"
+              method="get">
+
+            <input type="hidden"
+                   name="pageNumber"
+                   value="1" />
+
+            <input type="hidden"
+                   name="pageSize"
+                   value="@selectedPageSize" />
+
+
+            <div class="d-flex
+                        flex-wrap
+                        align-items-center
+                        gap-2">
+
+                <div style="width:420px;
+                            max-width:100%;">
+
+                    <div class="input-group">
+
+                        <span class="input-group-text bg-white">
+
+                            <i class="fa-solid
+                                      fa-magnifying-glass">
+                            </i>
+
+                        </span>
+
+
+                        <input type="text"
+                               name="searchText"
+                               value="@searchText"
+                               class="form-control"
+                               placeholder="Payment / Invoice / Supplier / Date" />
+
+                    </div>
+
+                </div>
+
+
+                <button type="submit"
+                        class="btn btn-primary">
+
+                    Search
+
+                </button>
+
+
+                @if (!string.IsNullOrWhiteSpace(searchText))
+                {
+                    <a asp-action="Index"
+                       asp-route-pageSize="@selectedPageSize"
+                       class="btn
+                                  btn-outline-secondary"
+                       title="Clear Search">
+
+                        <i class="fa-solid fa-xmark">
+                        </i>
+
+                    </a>
+                }
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   SUPPLIER PAYMENT TABLE
+   ========================================================= *@
+
+<div class="card
+            shadow-sm
+            border-0">
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th style="min-width:160px;">
+                            Payment No.
+                        </th>
+
+                        <th style="min-width:155px;">
+                            ERP Invoice
+                        </th>
+
+                        <th style="min-width:125px;">
+                            Supplier Invoice
+                        </th>
+
+                        @* =====================================
+                           COMPACT SUPPLIER COLUMN
+                           ===================================== *@
+
+                        <th style="
+                            width:100px;
+                            min-width:100px;
+                            max-width:100px;">
+
+                            Supplier
+
+                        </th>
+
+                        @* =====================================
+                           COMPACT INVOICE TOTAL COLUMN
+                           ===================================== *@
+
+                        <th class="text-end"
+                            style="
+                            width:115px;
+                            min-width:115px;">
+
+                            Invoice Total
+
+                        </th>
+
+                        <th class="text-end"
+                            style="
+                            width:110px;
+                            min-width:110px;">
+
+                            Paid Amount
+
+                        </th>
+
+                        <th class="text-end"
+                            style="
+                            width:115px;
+                            min-width:115px;">
+
+                            Outstanding
+
+                        </th>
+
+                        <th class="text-center"
+                            style="
+                            width:120px;
+                            min-width:120px;">
+
+                            Status
+
+                        </th>
+
+                        <th class="text-center"
+                            style="
+                            width:120px;
+                            min-width:120px;">
+
+                            Actions
+
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model.Items == null ||
+                                        Model.Items.Count == 0)
+                    {
+                        <tr>
+
+                            <td colspan="9"
+                                class="text-center
+                                           text-muted
+                                           py-5">
+
+                                <i class="fa-solid
+                                              fa-money-bill-transfer
+                                              fa-2x
+                                              d-block
+                                              mb-3">
+                                </i>
+
+
+                                @if (!string.IsNullOrWhiteSpace(searchText))
+                                {
+                                    <span>
+
+                                        No Supplier Payments found for
+                                        "<strong>@searchText</strong>".
+
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span>
+                                        No Supplier Payments found.
+                                    </span>
+                                }
+
+                            </td>
+
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model.Items)
+                        {
+                            var isCompleted =
+                            item.OutstandingAmount <= 0m ||
+                            item.PaymentStatus == "Completed";
+
+
+                            <tr>
+
+                                @* =================================
+                                   PAYMENT NUMBER
+                                   ================================= *@
+
+                                <td>
+
+                                    <a asp-action="Details"
+                                       asp-route-id="@item.Id"
+                                       class="fw-semibold
+                                                      text-decoration-none">
+
+                                        @item.Code
+
+                                    </a>
+
+                                </td>
+
+
+                                @* =================================
+                                   ERP PURCHASE INVOICE
+                                   ================================= *@
+
+                                <td>
+
+                                    <a asp-controller="PurchaseInvoice"
+                                       asp-action="Details"
+                                       asp-route-id="@item.PurchaseInvoiceId"
+                                       class="fw-semibold
+                                                      text-decoration-none">
+
+                                        @item.PurchaseInvoiceCode
+
+                                    </a>
+
+                                </td>
+
+
+                                @* =================================
+                                   SUPPLIER INVOICE NUMBER
+                                   ================================= *@
+
+                                <td>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                                                item.SupplierInvoiceNumber))
+                                    {
+                                        <span>
+                                            @item.SupplierInvoiceNumber
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   SUPPLIER
+                                   ================================= *@
+
+                                <td style="
+                                            width:100px;
+                                            min-width:100px;
+                                            max-width:100px;">
+
+                                    <div class="fw-semibold
+                                                        text-truncate"
+                                         title="@item.SupplierName">
+
+                                        @item.SupplierName
+
+                                    </div>
+
+                                </td>
+
+
+                                @* =================================
+                                   INVOICE TOTAL
+                                   ================================= *@
+
+                                <td class="text-end"
+                                    style="
+                                            width:115px;
+                                            min-width:115px;
+                                            white-space:nowrap;">
+
+                                    ₹ @(item.InvoiceTotal.ToString("N2"))
+
+                                </td>
+
+
+                                @* =================================
+                                   PAID AMOUNT
+                                   ================================= *@
+
+                                <td class="text-end"
+                                    style="
+                                            width:110px;
+                                            min-width:110px;
+                                            white-space:nowrap;">
+
+                                    <span class="fw-semibold
+                                                         text-success">
+
+                                        ₹ @(item.PaidAmount.ToString("N2"))
+
+                                    </span>
+
+                                </td>
+
+
+                                @* =================================
+                                   OUTSTANDING
+                                   ================================= *@
+
+                                <td class="text-end"
+                                    style="
+                                            width:115px;
+                                            min-width:115px;
+                                            white-space:nowrap;">
+
+                                    @if (isCompleted)
+                                    {
+                                        <span class="fw-semibold
+                                                                 text-success">
+
+                                            ₹ 0.00
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="fw-semibold
+                                                                 text-danger">
+
+                                            ₹ @(item.OutstandingAmount.ToString("N2"))
+
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   PAYMENT STATUS
+                                   ================================= *@
+
+                                <td class="text-center"
+                                    style="
+                                            width:120px;
+                                            min-width:120px;
+                                            white-space:nowrap;">
+
+                                    @if (item.PaymentStatus == "Completed")
+                                    {
+                                        <span class="badge bg-success">
+
+                                            <i class="fa-solid
+                                                                  fa-circle-check
+                                                                  me-1">
+                                            </i>
+
+                                            Completed
+
+                                        </span>
+                                    }
+                                    else if (item.PaymentStatus ==
+                                    "Partially Paid")
+                                    {
+                                        <span class="badge
+                                                                 bg-warning
+                                                                 text-dark">
+
+                                            <i class="fa-solid
+                                                                  fa-clock
+                                                                  me-1">
+                                            </i>
+
+                                            Partially Paid
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+
+                                            Pending
+
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   ACTIONS
+                                   ================================= *@
+
+                                <td style="
+                                            width:120px;
+                                            min-width:120px;">
+
+                                    <div class="d-flex
+                                                        justify-content-center
+                                                        align-items-center
+                                                        gap-1">
+
+                                        @* =========================
+                                           DETAILS
+                                           ========================= *@
+
+                                        <a asp-action="Details"
+                                           asp-route-id="@item.Id"
+                                           class="btn
+                                                          btn-sm
+                                                          btn-outline-primary"
+                                           title="Details">
+
+                                            <i class="fa-solid fa-eye">
+                                            </i>
+
+                                        </a>
+
+
+                                        @* =========================
+                                           ADD PAYMENT
+                                           ========================= *@
+
+                                        @if (!isCompleted)
+                                        {
+                                            <a asp-action="AddTransaction"
+                                               asp-route-id="@item.Id"
+                                               class="btn
+                                                                  btn-sm
+                                                                  btn-outline-success"
+                                               title="Add Payment">
+
+                                                <i class="fa-solid fa-plus">
+                                                </i>
+
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <button type="button"
+                                                    class="btn
+                                                                       btn-sm
+                                                                       btn-outline-success"
+                                                    title="Invoice is fully paid"
+                                                    disabled>
+
+                                                <i class="fa-solid fa-plus">
+                                                </i>
+
+                                            </button>
+                                        }
+
+
+                                        @* =========================
+                                           DELETE
+                                           ========================= *@
+
+                                        <form asp-action="Delete"
+                                              asp-route-id="@item.Id"
+                                              method="post"
+                                              class="d-inline"
+                                              onsubmit="return confirm('Delete this Supplier Payment and its payment history? It can be restored later.');">
+
+                                            @Html.AntiForgeryToken()
+
+
+                                            <button type="submit"
+                                                    class="btn
+                                                                   btn-sm
+                                                                   btn-outline-danger"
+                                                    title="Delete">
+
+                                                <i class="fa-solid fa-trash">
+                                                </i>
+
+                                            </button>
+
+                                        </form>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   PAGINATION + PAGE SIZE
+   ========================================================= *@
+
+@if (Model.TotalRecords > 0)
+{
+    <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-3
+                    mt-3">
+
+        @* =================================================
+           PAGINATION INFO
+           ================================================= *@
+
+        <div class="text-muted small">
+
+            Page
+
+            <strong>
+                @Model.PageNumber
+            </strong>
+
+            of
+
+            <strong>
+                @Model.TotalPages
+            </strong>
+
+            &nbsp;•&nbsp;
+
+            Total Records:
+
+            <strong>
+                @Model.TotalRecords
+            </strong>
+
+        </div>
+
+
+        <div class="d-flex
+                        align-items-center
+                        flex-wrap
+                        gap-3">
+
+            @* =================================================
+               PAGINATION BUTTONS
+               ================================================= *@
+
+            @if (Model.TotalPages > 1)
+            {
+                <nav aria-label="Supplier Payment pagination">
+
+                    <ul class="pagination
+                                       pagination-sm
+                                       mb-0">
+
+                        @* =====================================
+                           PREVIOUS
+                           ===================================== *@
+
+                        <li class="page-item
+                                           @(Model.HasPrevious
+                                                                   ? ""
+                                                                   : "disabled")">
+
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-searchText="@searchText"
+                       asp-route-pageNumber="@(Model.PageNumber - 1)"
+                       asp-route-pageSize="@selectedPageSize">
+
+                                Previous
+
+                            </a>
+
+                        </li>
+
+
+                        @* =====================================
+                           PAGE NUMBERS
+                           ===================================== *@
+
+                @{
+                            var startPage =
+                            Math.Max(
+                            1,
+                            Model.PageNumber - 2);
+
+                            var endPage =
+                            Math.Min(
+                            Model.TotalPages,
+                            Model.PageNumber + 2);
+                        }
+
+
+                        @for (var pageNo = startPage;
+                                        pageNo <= endPage;
+                                        pageNo++)
+                        {
+                            <li class="page-item
+                                                   @(pageNo == Model.PageNumber
+                                                                           ? "active"
+                                                                           : "")">
+
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-searchText="@searchText"
+                       asp-route-pageNumber="@pageNo"
+                       asp-route-pageSize="@selectedPageSize">
+
+                                    @pageNo
+
+                                </a>
+
+                            </li>
+                                }
+
+
+                    @* =====================================
+                           NEXT
+                           ===================================== *@
+
+                    <li class="page-item
+                                       @(Model.HasNext
+                                                               ? ""
+                                                               : "disabled")">
+
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-searchText="@searchText"
+                       asp-route-pageNumber="@(Model.PageNumber + 1)"
+                       asp-route-pageSize="@selectedPageSize">
+
+                                Next
+
+                            </a>
+
+                        </li>
+
+                    </ul>
+
+                </nav>
+                }
+
+
+            @* =================================================
+               PAGE SIZE
+               ================================================= *@
+
+            <form asp-action="Index"
+                  method="get"
+                  class="d-flex
+                             align-items-center
+                             gap-2">
+
+                <input type="hidden"
+                       name="searchText"
+                       value="@searchText" />
+
+                <input type="hidden"
+                       name="pageNumber"
+                       value="1" />
+
+
+                <label for="supplierPaymentPageSize"
+                       class="small
+                                  text-muted
+                                  text-nowrap">
+
+                    Page Size
+
+                </label>
+
+
+                <select id="supplierPaymentPageSize"
+                        name="pageSize"
+                        class="form-select
+                                   form-select-sm"
+                        style="width:80px;">
+
+                    @if (selectedPageSize == 10)
+                    {
+                        <option value="10" selected>
+                            10
+                        </option>
+                    }
+                    else
+                    {
+                        <option value="10">
+                            10
+                        </option>
+                    }
+
+
+                    @if (selectedPageSize == 25)
+                    {
+                        <option value="25" selected>
+                            25
+                        </option>
+                    }
+                    else
+                    {
+                        <option value="25">
+                            25
+                        </option>
+                    }
+
+
+                    @if (selectedPageSize == 50)
+                    {
+                        <option value="50" selected>
+                            50
+                        </option>
+                    }
+                    else
+                    {
+                        <option value="50">
+                            50
+                        </option>
+                    }
+
+
+                    @if (selectedPageSize == 100)
+                    {
+                        <option value="100" selected>
+                            100
+                        </option>
+                    }
+                    else
+                    {
+                        <option value="100">
+                            100
+                        </option>
+                    }
+
+                </select>
+
+
+                <button type="submit"
+                        class="btn
+                                   btn-sm
+                                   btn-outline-secondary">
+
+                    Apply
+
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+}

@@ -1,0 +1,464 @@
+﻿@*
+=============================================================
+File: Create.cshtml
+Module: Supplier Payment
+Layer: Web - View
+
+Purpose:
+Creates a new Supplier Payment against one Finalized
+Purchase Invoice and records the first payment transaction.
+
+Structure:
+- Select Purchase Invoice
+- Display Invoice / Supplier information
+- Use shared _Form.cshtml for transaction fields
+- Create Payment No. with first transaction
+
+Important Business Rules:
+- One Purchase Invoice = One Supplier Payment No.
+- Company is derived from Purchase Invoice.
+- Supplier is derived from Purchase Invoice.
+- Company is NOT manually selected.
+- Supplier is NOT manually selected.
+- First transaction amount cannot exceed Invoice Total.
+- Additional payments use the SAME Supplier Payment No.
+=============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.SupplierPayment.SupplierPaymentCreateViewModel
+
+@{
+    ViewData["Title"] = "New Supplier Payment";
+
+    var hasSelectedInvoice =
+        Model.PurchaseInvoiceId > 0 &&
+        !string.IsNullOrWhiteSpace(
+            Model.PurchaseInvoiceCode);
+}
+
+
+@* =========================================================
+   PAGE HEADER
+   ========================================================= *@
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            New Supplier Payment
+        </h2>
+
+        <div class="text-muted">
+            Record the first payment against a finalized Purchase Invoice.
+        </div>
+
+    </div>
+
+
+    <a asp-action="Index"
+       class="btn
+              btn-outline-secondary">
+
+        <i class="fa-solid
+                  fa-arrow-left
+                  me-1">
+        </i>
+
+        Back
+
+    </a>
+
+</div>
+
+
+@* =========================================================
+   FORM
+   ========================================================= *@
+
+<form asp-action="Create"
+      method="post"
+      id="supplierPaymentCreateForm">
+
+    @Html.AntiForgeryToken()
+
+
+    @* =====================================================
+       VALIDATION SUMMARY
+       ===================================================== *@
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="ModelOnly"
+             class="alert
+                        alert-danger
+                        mb-4">
+        </div>
+    }
+
+
+    @* =====================================================
+       PURCHASE INVOICE SELECTION
+       ===================================================== *@
+
+    <div class="card
+                shadow-sm
+                border-0
+                mb-4">
+
+        <div class="card-header
+                    bg-white
+                    py-3">
+
+            <h5 class="fw-semibold mb-0">
+
+                <i class="fa-solid
+                          fa-file-invoice
+                          me-2">
+                </i>
+
+                Purchase Invoice
+
+            </h5>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-xl-8
+                            col-lg-9
+                            col-md-12">
+
+                    <label asp-for="PurchaseInvoiceId"
+                           class="form-label
+                                  fw-semibold">
+
+                        Purchase Invoice
+
+                        <span class="text-danger">
+                            *
+                        </span>
+
+                    </label>
+
+
+                    <select asp-for="PurchaseInvoiceId"
+                            asp-items="Model.PurchaseInvoices"
+                            id="supplierPaymentPurchaseInvoice"
+                            class="form-select"
+                            data-details-url="@Url.Action("GetPurchaseInvoiceDetails", "SupplierPayment")">
+                    </select>
+
+
+                    <span asp-validation-for="PurchaseInvoiceId"
+                          class="text-danger
+                                 small">
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            @* =================================================
+               SELECT INVOICE MESSAGE
+               ================================================= *@
+
+            <div id="supplierPaymentSelectInvoiceMessage"
+                 class="alert
+                        alert-light
+                        border
+                        mt-3
+                        mb-0
+                        @(hasSelectedInvoice ? "d-none" : "")">
+
+                <i class="fa-solid
+                          fa-circle-info
+                          text-primary
+                          me-2">
+                </i>
+
+                Select a Purchase Invoice to view invoice and supplier details.
+
+            </div>
+
+
+            @* =================================================
+               PURCHASE INVOICE PREVIEW
+               ================================================= *@
+
+            <div id="supplierPaymentInvoicePreview"
+                 class="mt-4
+                        @(hasSelectedInvoice ? "" : "d-none")">
+
+                <hr class="mb-4" />
+
+
+                <div class="row g-4">
+
+                    @* =========================================
+                       ERP INVOICE
+                       ========================================= *@
+
+                    <div class="col-xl-4 col-md-6">
+
+                        <div class="text-muted small mb-1">
+                            ERP Invoice No.
+                        </div>
+
+                        <div id="supplierPaymentPurchaseInvoiceCode"
+                             class="fw-semibold">
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                                        Model.PurchaseInvoiceCode))
+                            {
+                                @Model.PurchaseInvoiceCode
+                            }
+                            else
+                            {
+                                <span class="text-muted">
+                                    -
+                                </span>
+                            }
+
+                        </div>
+
+                    </div>
+
+
+                    @* =========================================
+                       SUPPLIER INVOICE
+                       ========================================= *@
+
+                    <div class="col-xl-4 col-md-6">
+
+                        <div class="text-muted small mb-1">
+                            Supplier Invoice No.
+                        </div>
+
+                        <div id="supplierPaymentSupplierInvoiceNumber"
+                             class="fw-semibold">
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                                        Model.SupplierInvoiceNumber))
+                            {
+                                @Model.SupplierInvoiceNumber
+                            }
+                            else
+                            {
+                                <span class="text-muted">
+                                    -
+                                </span>
+                            }
+
+                        </div>
+
+                    </div>
+
+
+                    @* =========================================
+                       SUPPLIER
+                       ========================================= *@
+
+                    <div class="col-xl-4 col-md-6">
+
+                        <div class="text-muted small mb-1">
+                            Supplier
+                        </div>
+
+                        <div id="supplierPaymentSupplierName"
+                             class="fw-semibold">
+
+                            @if (!string.IsNullOrWhiteSpace(
+                                                        Model.SupplierName))
+                            {
+                                @Model.SupplierName
+                            }
+                            else
+                            {
+                                <span class="text-muted">
+                                    -
+                                </span>
+                            }
+
+                        </div>
+
+                    </div>
+
+
+                    @* =========================================
+                       PURCHASE INVOICE DATE
+                       ========================================= *@
+
+                    <div class="col-xl-4 col-md-6">
+
+                        <div class="text-muted small mb-1">
+                            Purchase Invoice Date
+                        </div>
+
+                        <div id="supplierPaymentPurchaseInvoiceDate"
+                             class="fw-semibold">
+
+                            @if (Model.PurchaseInvoiceDate.HasValue)
+                            {
+                                @(Model.PurchaseInvoiceDate.Value.ToString("dd-MM-yyyy"))
+                            }
+                            else
+                            {
+                                <span class="text-muted">
+                                    -
+                                </span>
+                            }
+
+                        </div>
+
+                    </div>
+
+
+                    @* =========================================
+                       DUE DATE
+                       ========================================= *@
+
+                    <div class="col-xl-4 col-md-6">
+
+                        <div class="text-muted small mb-1">
+                            Due Date
+                        </div>
+
+                        <div id="supplierPaymentDueDate"
+                             class="fw-semibold">
+
+                            @if (Model.DueDate.HasValue)
+                            {
+                                @(Model.DueDate.Value.ToString("dd-MM-yyyy"))
+                            }
+                            else
+                            {
+                                <span class="text-muted">
+                                    -
+                                </span>
+                            }
+
+                        </div>
+
+                    </div>
+
+
+                    @* =========================================
+                       INVOICE TOTAL
+                       ========================================= *@
+
+                    <div class="col-xl-4 col-md-6">
+
+                        <div class="text-muted small mb-1">
+                            Invoice Total
+                        </div>
+
+                        <div id="supplierPaymentInvoiceTotalDisplay"
+                             class="fs-5
+                                    fw-bold
+                                    text-primary">
+
+                            ₹ @(Model.InvoiceTotal.ToString("N2"))
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       SHARED PAYMENT TRANSACTION FORM
+       ===================================================== *@
+
+    @{
+        ViewData["PaymentModes"] =
+        Model.PaymentModes;
+
+        ViewData["MaximumAmount"] =
+        Model.InvoiceTotal;
+
+        ViewData["SectionTitle"] =
+        "First Payment Transaction";
+
+        ViewData["SectionHelp"] =
+        "Additional part payments can be added later under the same Payment No.";
+
+        ViewData["MaximumLabel"] =
+        "Invoice Total";
+
+        ViewData["FullButtonText"] =
+        "Full Amount";
+
+        ViewData["ShowFullAmountButton"] =
+        true;
+    }
+
+
+    <partial name="_Form"
+             for="Transaction" />
+
+
+    @* =====================================================
+       ACTION BUTTONS
+       ===================================================== *@
+
+    <div class="d-flex
+                justify-content-end
+                flex-wrap
+                gap-2">
+
+        <a asp-action="Index"
+           class="btn
+                  btn-outline-secondary">
+
+            Cancel
+
+        </a>
+
+
+        <button type="submit"
+                class="btn
+                       btn-primary">
+
+            <i class="fa-solid
+                      fa-floppy-disk
+                      me-1">
+            </i>
+
+            Create Payment
+
+        </button>
+
+    </div>
+
+</form>
+
+
+@* =========================================================
+   SCRIPTS
+   ========================================================= *@
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/supplier-payment.js"
+            asp-append-version="true">
+    </script>
+}

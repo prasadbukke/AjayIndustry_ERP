@@ -1,0 +1,401 @@
+﻿@*
+=============================================================
+File: _Form.cshtml
+Module: Supplier Payment
+Layer: Web - Shared Partial View
+
+Purpose:
+Shared transaction form used by:
+
+- Create Supplier Payment
+- Edit Supplier Payment Transaction
+
+Common Fields:
+- Payment Date
+- Payment Mode
+- Payment Amount
+- Bank Name
+- UTR / Cheque / Reference No.
+- Remarks
+
+Important Business Rules:
+- Payment Amount must be greater than zero.
+- Payment Amount cannot exceed MaximumAmount supplied
+  by the parent view.
+- Create:
+    MaximumAmount = Purchase Invoice Total
+- Edit:
+    MaximumAmount =
+        Current Outstanding + Current Transaction Amount
+- Company / Supplier / Purchase Invoice are not edited here.
+=============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.SupplierPayment.SupplierPaymentTransactionInputViewModel
+
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using System.Globalization
+
+@{
+    // =========================================================
+    // FORM SETTINGS FROM PARENT VIEW
+    // =========================================================
+
+    var paymentModes =
+        ViewData["PaymentModes"]
+            as List<SelectListItem>
+        ?? new List<SelectListItem>();
+
+
+    var maximumAmount =
+        ViewData["MaximumAmount"] != null
+            ? Convert.ToDecimal(
+                ViewData["MaximumAmount"])
+            : 0m;
+
+
+    var sectionTitle =
+        ViewData["SectionTitle"]
+            as string
+        ?? "Payment Transaction";
+
+
+    var sectionHelp =
+        ViewData["SectionHelp"]
+            as string
+        ?? string.Empty;
+
+
+    var maximumLabel =
+        ViewData["MaximumLabel"]
+            as string
+        ?? "Maximum Payment";
+
+
+    var fullButtonText =
+        ViewData["FullButtonText"]
+            as string
+        ?? "Full Amount";
+
+
+    var showFullAmountButton =
+        ViewData["ShowFullAmountButton"] == null ||
+        Convert.ToBoolean(
+            ViewData["ShowFullAmountButton"]);
+
+
+    var maximumAmountInvariant =
+        maximumAmount > 0m
+            ? maximumAmount.ToString(
+                "0.00",
+                CultureInfo.InvariantCulture)
+            : string.Empty;
+}
+
+
+@* =========================================================
+   TRANSACTION CARD
+   ========================================================= *@
+
+<div class="card
+            shadow-sm
+            border-0
+            mb-4">
+
+    @* =====================================================
+       CARD HEADER
+       ===================================================== *@
+
+    <div class="card-header
+                bg-white
+                py-3">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <div>
+
+                <h5 class="fw-semibold mb-1">
+
+                    <i class="fa-solid
+                              fa-money-bill-transfer
+                              me-2">
+                    </i>
+
+                    @sectionTitle
+
+                </h5>
+
+
+                @if (!string.IsNullOrWhiteSpace(
+                                sectionHelp))
+                {
+                    <div class="text-muted small">
+                        @sectionHelp
+                    </div>
+                }
+
+            </div>
+
+
+            @if (maximumAmount > 0m)
+            {
+                <div class="text-end">
+
+                    <div class="text-muted small">
+                        @maximumLabel
+                    </div>
+
+
+                    <div id="supplierPaymentMaximumAmount"
+                         class="fw-bold
+                                    text-danger">
+
+                        ₹ @(maximumAmount.ToString("N2"))
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+
+    </div>
+
+
+    @* =====================================================
+       TRANSACTION FIELDS
+       ===================================================== *@
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+            @* =================================================
+               PAYMENT DATE
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <label asp-for="PaymentDate"
+                       class="form-label
+                              fw-semibold">
+
+                    Payment Date
+
+                    <span class="text-danger">
+                        *
+                    </span>
+
+                </label>
+
+
+                <input asp-for="PaymentDate"
+                       type="date"
+                       value="@(Model.PaymentDate.ToString("yyyy-MM-dd"))"
+                       class="form-control" />
+
+
+                <span asp-validation-for="PaymentDate"
+                      class="text-danger
+                             small">
+                </span>
+
+            </div>
+
+
+            @* =================================================
+               PAYMENT MODE
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <label asp-for="PaymentMode"
+                       class="form-label
+                              fw-semibold">
+
+                    Payment Mode
+
+                    <span class="text-danger">
+                        *
+                    </span>
+
+                </label>
+
+
+                <select asp-for="PaymentMode"
+                        asp-items="paymentModes"
+                        id="supplierPaymentPaymentMode"
+                        class="form-select">
+                </select>
+
+
+                <span asp-validation-for="PaymentMode"
+                      class="text-danger
+                             small">
+                </span>
+
+            </div>
+
+
+            @* =================================================
+               PAYMENT AMOUNT
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <label asp-for="Amount"
+                       class="form-label
+                              fw-semibold">
+
+                    Payment Amount
+
+                    <span class="text-danger">
+                        *
+                    </span>
+
+                </label>
+
+
+                <div class="input-group">
+
+                    <span class="input-group-text">
+                        ₹
+                    </span>
+
+
+                    <input asp-for="Amount"
+                           type="number"
+                           step="0.01"
+                           min="0.01"
+                           max="@maximumAmountInvariant"
+                           id="supplierPaymentAmount"
+                           class="form-control"
+                           autocomplete="off" />
+
+
+                    @if (showFullAmountButton)
+                    {
+                        <button type="button"
+                                id="supplierPaymentFullAmountButton"
+                                class="btn
+                                           btn-outline-secondary"
+                                data-full-amount="@maximumAmountInvariant"
+                                @(maximumAmount > 0m
+                                                            ? null
+                                                            : "disabled")>
+
+                        @fullButtonText
+
+                        </button>
+                                        }
+
+                </div>
+
+
+                <span asp-validation-for="Amount"
+                      class="text-danger
+                             small">
+                </span>
+
+
+                @if (maximumAmount > 0m)
+                {
+                    <div class="form-text">
+
+                        Maximum allowed:
+
+                        <strong>
+                            ₹ @(maximumAmount.ToString("N2"))
+                        </strong>
+
+                    </div>
+                }
+
+            </div>
+
+
+            @* =================================================
+               BANK NAME
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <label asp-for="BankName"
+                       class="form-label">
+                </label>
+
+
+                <input asp-for="BankName"
+                       id="supplierPaymentBankName"
+                       class="form-control"
+                       maxlength="150"
+                       placeholder="Bank name" />
+
+
+                <span asp-validation-for="BankName"
+                      class="text-danger
+                             small">
+                </span>
+
+            </div>
+
+
+            @* =================================================
+               REFERENCE NUMBER
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-6">
+
+                <label asp-for="ReferenceNumber"
+                       class="form-label">
+                </label>
+
+
+                <input asp-for="ReferenceNumber"
+                       class="form-control"
+                       maxlength="150"
+                       placeholder="UTR / Cheque / Transaction No." />
+
+
+                <span asp-validation-for="ReferenceNumber"
+                      class="text-danger
+                             small">
+                </span>
+
+            </div>
+
+
+            @* =================================================
+               REMARKS
+               ================================================= *@
+
+            <div class="col-xl-4 col-md-12">
+
+                <label asp-for="Remarks"
+                       class="form-label">
+                </label>
+
+
+                <textarea asp-for="Remarks"
+                          class="form-control"
+                          rows="1"
+                          maxlength="1000"
+                          placeholder="Optional remarks"></textarea>
+
+
+                <span asp-validation-for="Remarks"
+                      class="text-danger
+                             small">
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

@@ -1,0 +1,514 @@
+﻿@*
+=============================================================
+File: Deleted.cshtml
+Module: Supplier Payment
+Layer: Web - View
+
+Purpose:
+Displays soft-deleted Supplier Payment accounts and allows
+them to be restored.
+
+Final Structure:
+
+Purchase Invoice
+      ↓
+Supplier Payment No.
+      ↓
+Multiple Payment Transactions
+
+Important Business Rules:
+- Delete is Soft Delete.
+- Existing Payment No. is preserved.
+- Existing transaction history is preserved.
+- A new Supplier Payment cannot be created for the same
+  Purchase Invoice while a deleted payment exists.
+- Deleted payment must be restored.
+- Restore keeps the same Supplier Payment No.
+- Restore keeps all existing transactions.
+- Restore revalidates the Purchase Invoice and payment total.
+=============================================================
+*@
+
+@model List<AjayIndustriesERP.Web.ViewModels.SupplierPayment.SupplierPaymentDeletedViewModel>
+
+@{
+    ViewData["Title"] = "Deleted Supplier Payments";
+}
+
+
+@* =========================================================
+   SUCCESS / ERROR MESSAGES
+   ========================================================= *@
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert
+                alert-success
+                alert-dismissible
+                fade
+                show"
+         role="alert">
+
+        @TempData["SuccessMessage"]
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+        </button>
+
+    </div>
+}
+
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert
+                alert-danger
+                alert-dismissible
+                fade
+                show"
+         role="alert">
+
+        @TempData["ErrorMessage"]
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+        </button>
+
+    </div>
+}
+
+
+@* =========================================================
+   PAGE HEADER
+   ========================================================= *@
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Deleted Supplier Payments
+        </h2>
+
+        <div class="text-muted">
+            Restore soft-deleted Supplier Payment accounts and their transaction history.
+        </div>
+
+    </div>
+
+
+    <a asp-action="Index"
+       class="btn
+              btn-outline-secondary">
+
+        <i class="fa-solid
+                  fa-arrow-left
+                  me-1">
+        </i>
+
+        Back to Supplier Payments
+
+    </a>
+
+</div>
+
+
+@* =========================================================
+   RESTORE INFORMATION
+   ========================================================= *@
+
+<div class="alert
+            alert-light
+            border
+            mb-4">
+
+    <div class="d-flex
+                gap-2">
+
+        <i class="fa-solid
+                  fa-circle-info
+                  text-primary
+                  mt-1">
+        </i>
+
+
+        <div class="small">
+
+            Restoring a Supplier Payment keeps the
+
+            <strong>
+                same Payment No.
+            </strong>
+
+            and all existing payment transactions.
+
+            The Purchase Invoice and transaction total are
+            validated again before restore.
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   DELETED SUPPLIER PAYMENT TABLE
+   ========================================================= *@
+
+<div class="card
+            shadow-sm
+            border-0">
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th style="min-width:175px;">
+                            Payment No.
+                        </th>
+
+                        <th style="min-width:170px;">
+                            ERP Invoice
+                        </th>
+
+                        <th style="min-width:150px;">
+                            Supplier Invoice
+                        </th>
+
+                        <th style="min-width:200px;">
+                            Supplier
+                        </th>
+
+                        <th class="text-end"
+                            style="min-width:130px;">
+                            Invoice Total
+                        </th>
+
+                        <th class="text-end"
+                            style="min-width:120px;">
+                            Paid Amount
+                        </th>
+
+                        <th class="text-end"
+                            style="min-width:130px;">
+                            Outstanding
+                        </th>
+
+                        <th class="text-center"
+                            style="min-width:145px;">
+                            Status
+                        </th>
+
+                        <th style="min-width:145px;">
+                            Deleted On
+                        </th>
+
+                        <th class="text-center"
+                            style="min-width:120px;">
+                            Action
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model == null ||
+                         Model.Count == 0)
+                    {
+                        <tr>
+
+                            <td colspan="10"
+                                class="text-center
+                                       text-muted
+                                       py-5">
+
+                                <i class="fa-solid
+                                          fa-trash-can
+                                          fa-2x
+                                          d-block
+                                          mb-3">
+                                </i>
+
+                                No deleted Supplier Payments found.
+
+                            </td>
+
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            var isCompleted =
+                                item.OutstandingAmount <= 0m ||
+                                item.PaymentStatus == "Completed";
+
+
+                            <tr>
+
+                                @* =================================
+                                   PAYMENT NUMBER
+                                   ================================= *@
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        @item.Code
+                                    </div>
+
+                                </td>
+
+
+                                @* =================================
+                                   ERP PURCHASE INVOICE
+                                   ================================= *@
+
+                                <td>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        item.PurchaseInvoiceCode))
+                                    {
+                                        <a asp-controller="PurchaseInvoice"
+                                           asp-action="Details"
+                                           asp-route-id="@item.PurchaseInvoiceId"
+                                           class="fw-semibold
+                                                  text-decoration-none">
+
+                                            @item.PurchaseInvoiceCode
+
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   SUPPLIER INVOICE
+                                   ================================= *@
+
+                                <td>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        item.SupplierInvoiceNumber))
+                                    {
+                                        @item.SupplierInvoiceNumber
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   SUPPLIER
+                                   ================================= *@
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        @item.SupplierName
+                                    </div>
+
+                                </td>
+
+
+                                @* =================================
+                                   INVOICE TOTAL
+                                   ================================= *@
+
+                                <td class="text-end">
+
+                                    ₹ @(item.InvoiceTotal.ToString("N2"))
+
+                                </td>
+
+
+                                @* =================================
+                                   HISTORICAL PAID AMOUNT
+                                   ================================= *@
+
+                                <td class="text-end">
+
+                                    <span class="fw-semibold
+                                                 text-success">
+
+                                        ₹ @(item.PaidAmount.ToString("N2"))
+
+                                    </span>
+
+                                </td>
+
+
+                                @* =================================
+                                   HISTORICAL OUTSTANDING
+                                   ================================= *@
+
+                                <td class="text-end">
+
+                                    @if (isCompleted)
+                                    {
+                                        <span class="fw-semibold
+                                                     text-success">
+
+                                            ₹ 0.00
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="fw-semibold
+                                                     text-danger">
+
+                                            ₹ @(item.OutstandingAmount.ToString("N2"))
+
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   PAYMENT STATUS
+                                   ================================= *@
+
+                                <td class="text-center">
+
+                                    @if (item.PaymentStatus == "Completed")
+                                    {
+                                        <span class="badge
+                                                     bg-success">
+
+                                            <i class="fa-solid
+                                                      fa-circle-check
+                                                      me-1">
+                                            </i>
+
+                                            Completed
+
+                                        </span>
+                                    }
+                                    else if (item.PaymentStatus == "Partially Paid")
+                                    {
+                                        <span class="badge
+                                                     bg-warning
+                                                     text-dark">
+
+                                            Partially Paid
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge
+                                                     bg-secondary">
+
+                                            Pending
+
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   DELETED ON
+                                   ================================= *@
+
+                                <td>
+
+                                    @if (item.DeletedOn.HasValue)
+                                    {
+                                        <div>
+                                            @(item.DeletedOn.Value.ToString("dd-MM-yyyy"))
+                                        </div>
+
+                                        <div class="text-muted small">
+                                            @(item.DeletedOn.Value.ToString("HH:mm"))
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   RESTORE
+                                   ================================= *@
+
+                                <td class="text-center">
+
+                                    <form asp-action="Restore"
+                                          asp-route-id="@item.Id"
+                                          method="post"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Restore this Supplier Payment with the same Payment No. and transaction history?');">
+
+                                        @Html.AntiForgeryToken()
+
+
+                                        <button type="submit"
+                                                class="btn
+                                                       btn-sm
+                                                       btn-outline-success">
+
+                                            <i class="fa-solid
+                                                      fa-trash-can-arrow-up
+                                                      me-1">
+                                            </i>
+
+                                            Restore
+
+                                        </button>
+
+                                    </form>
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
