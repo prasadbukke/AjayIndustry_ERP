@@ -1,6 +1,40 @@
-﻿@{
+﻿@*
+=============================================================
+File: Index.cshtml
+Module: Home Dashboard
+Layer: Web - View
+
+Purpose:
+Displays ERP Dashboard and automatically shows
+Supplier Payment Due popup after successful login.
+
+Supplier Payment Due Popup:
+- Opens automatically on dashboard load.
+- No user click is required.
+- Displays only when due alerts exist.
+- Includes:
+    - Overdue supplier invoices
+    - Due today
+    - Due within next 5 days
+- Fully paid invoices do not appear.
+- Partial payments show remaining outstanding.
+
+JavaScript:
+- Auto popup behavior is handled by:
+  wwwroot/js/home-dashboard.js
+=============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.Home.SupplierPaymentDueAlertViewModel
+
+@{
     ViewData["Title"] = "Dashboard";
 }
+
+
+@* =========================================================
+   DASHBOARD HEADER
+   ========================================================= *@
 
 <div class="erp-container">
 
@@ -18,9 +52,10 @@
 
         </div>
 
+
         <div class="dashboard-date">
 
-            @DateTime.Now.ToString("dddd, dd MMMM yyyy")
+            @(DateTime.Now.ToString("dddd, dd MMMM yyyy"))
 
         </div>
 
@@ -28,29 +63,70 @@
 
 </div>
 
+
+@* =========================================================
+   DASHBOARD SUMMARY CARDS
+   ========================================================= *@
+
 <div class="dashboard-cards">
 
     <div class="dashboard-card">
-        <h6>Today's Sales</h6>
-        <h3>₹0</h3>
+
+        <h6>
+            Today's Sales
+        </h6>
+
+        <h3>
+            ₹0
+        </h3>
+
     </div>
 
-    <div class="dashboard-card">
-        <h6>Purchase Orders</h6>
-        <h3>0</h3>
-    </div>
 
     <div class="dashboard-card">
-        <h6>Low Stock Items</h6>
-        <h3>0</h3>
+
+        <h6>
+            Purchase Orders
+        </h6>
+
+        <h3>
+            0
+        </h3>
+
     </div>
 
+
     <div class="dashboard-card">
-        <h6>Production Orders</h6>
-        <h3>0</h3>
+
+        <h6>
+            Low Stock Items
+        </h6>
+
+        <h3>
+            0
+        </h3>
+
+    </div>
+
+
+    <div class="dashboard-card">
+
+        <h6>
+            Production Orders
+        </h6>
+
+        <h3>
+            0
+        </h3>
+
     </div>
 
 </div>
+
+
+@* =========================================================
+   QUICK ACTIONS + NOTIFICATIONS
+   ========================================================= *@
 
 <div class="row mt-4">
 
@@ -59,31 +135,49 @@
         <div class="dashboard-panel">
 
             <h4 class="panel-title">
-
                 Quick Actions
-
             </h4>
+
 
             <div class="quick-actions">
 
                 <button class="erp-btn-primary">
-                    <i class="bi bi-cart-plus"></i>
+
+                    <i class="bi bi-cart-plus">
+                    </i>
+
                     Purchase Order
+
                 </button>
 
+
                 <button class="erp-btn-primary">
-                    <i class="bi bi-receipt"></i>
+
+                    <i class="bi bi-receipt">
+                    </i>
+
                     Sales Order
+
                 </button>
 
+
                 <button class="erp-btn-primary">
-                    <i class="bi bi-people"></i>
+
+                    <i class="bi bi-people">
+                    </i>
+
                     Customer
+
                 </button>
 
+
                 <button class="erp-btn-primary">
-                    <i class="bi bi-box-seam"></i>
+
+                    <i class="bi bi-box-seam">
+                    </i>
+
                     Item
+
                 </button>
 
             </div>
@@ -92,36 +186,63 @@
 
     </div>
 
+
     <div class="col-lg-4">
 
         <div class="dashboard-panel">
 
             <h4 class="panel-title">
-
                 Notifications
-
             </h4>
+
 
             <ul class="notification-list">
 
                 <li>
-                    <i class="bi bi-exclamation-circle-fill text-danger"></i>
+
+                    <i class="bi
+                              bi-exclamation-circle-fill
+                              text-danger">
+                    </i>
+
                     Low Stock Alert
+
                 </li>
 
+
                 <li>
-                    <i class="bi bi-clock-fill text-warning"></i>
+
+                    <i class="bi
+                              bi-clock-fill
+                              text-warning">
+                    </i>
+
                     Pending Purchase Approval
+
                 </li>
 
+
                 <li>
-                    <i class="bi bi-gear-fill text-primary"></i>
+
+                    <i class="bi
+                              bi-gear-fill
+                              text-primary">
+                    </i>
+
                     Production Started
+
                 </li>
 
+
                 <li>
-                    <i class="bi bi-check-circle-fill text-success"></i>
+
+                    <i class="bi
+                              bi-check-circle-fill
+                              text-success">
+                    </i>
+
                     Payment Received
+
                 </li>
 
             </ul>
@@ -131,6 +252,11 @@
     </div>
 
 </div>
+
+
+@* =========================================================
+   RECENT PURCHASE ORDERS + TODAY'S PRODUCTION
+   ========================================================= *@
 
 <div class="row mt-4">
 
@@ -142,38 +268,96 @@
                 Recent Purchase Orders
             </h4>
 
+
             <table class="table table-hover">
 
                 <thead>
 
                     <tr>
 
-                        <th>PO No</th>
-                        <th>Supplier</th>
-                        <th>Status</th>
+                        <th>
+                            PO No
+                        </th>
+
+                        <th>
+                            Supplier
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
 
                     </tr>
 
                 </thead>
 
+
                 <tbody>
 
                     <tr>
-                        <td>PO-1001</td>
-                        <td>SKF Bearings</td>
-                        <td><span class="badge bg-success">Approved</span></td>
+
+                        <td>
+                            PO-1001
+                        </td>
+
+                        <td>
+                            SKF Bearings
+                        </td>
+
+                        <td>
+
+                            <span class="badge bg-success">
+                                Approved
+                            </span>
+
+                        </td>
+
                     </tr>
 
-                    <tr>
-                        <td>PO-1002</td>
-                        <td>Tata Steel</td>
-                        <td><span class="badge bg-warning text-dark">Pending</span></td>
-                    </tr>
 
                     <tr>
-                        <td>PO-1003</td>
-                        <td>Precision Tools</td>
-                        <td><span class="badge bg-success">Approved</span></td>
+
+                        <td>
+                            PO-1002
+                        </td>
+
+                        <td>
+                            Tata Steel
+                        </td>
+
+                        <td>
+
+                            <span class="badge
+                                         bg-warning
+                                         text-dark">
+
+                                Pending
+
+                            </span>
+
+                        </td>
+
+                    </tr>
+
+
+                    <tr>
+
+                        <td>
+                            PO-1003
+                        </td>
+
+                        <td>
+                            Precision Tools
+                        </td>
+
+                        <td>
+
+                            <span class="badge bg-success">
+                                Approved
+                            </span>
+
+                        </td>
+
                     </tr>
 
                 </tbody>
@@ -184,6 +368,7 @@
 
     </div>
 
+
     <div class="col-lg-5">
 
         <div class="dashboard-panel">
@@ -192,21 +377,42 @@
                 Today's Production
             </h4>
 
+
             <ul class="notification-list">
 
                 <li>
-                    <i class="bi bi-check-circle-fill text-success"></i>
+
+                    <i class="bi
+                              bi-check-circle-fill
+                              text-success">
+                    </i>
+
                     Machine A - Running
+
                 </li>
 
+
                 <li>
-                    <i class="bi bi-pause-circle-fill text-warning"></i>
+
+                    <i class="bi
+                              bi-pause-circle-fill
+                              text-warning">
+                    </i>
+
                     Machine B - Idle
+
                 </li>
 
+
                 <li>
-                    <i class="bi bi-check-circle-fill text-success"></i>
+
+                    <i class="bi
+                              bi-check-circle-fill
+                              text-success">
+                    </i>
+
                     Machine C - Running
+
                 </li>
 
             </ul>
@@ -215,138 +421,278 @@
 
     </div>
 
-    <div class="row mt-4">
+</div>
 
-        <div class="col-lg-6">
 
-            <div class="dashboard-panel">
+@* =========================================================
+   LOW STOCK + RECENT SALES
+   ========================================================= *@
 
-                <h4 class="panel-title">
-                    Low Stock Items
-                </h4>
+<div class="row mt-4">
 
-                <table class="table table-hover">
+    <div class="col-lg-6">
 
-                    <thead>
+        <div class="dashboard-panel">
 
-                        <tr>
-                            <th>Item</th>
-                            <th>Available</th>
-                        </tr>
+            <h4 class="panel-title">
+                Low Stock Items
+            </h4>
 
-                    </thead>
 
-                    <tbody>
+            <table class="table table-hover">
 
-                        <tr>
-                            <td>SKF Bearing 6202</td>
-                            <td><span class="badge bg-danger">5</span></td>
-                        </tr>
+                <thead>
 
-                        <tr>
-                            <td>M12 Bolt</td>
-                            <td><span class="badge bg-warning text-dark">12</span></td>
-                        </tr>
+                    <tr>
 
-                        <tr>
-                            <td>Steel Rod</td>
-                            <td><span class="badge bg-danger">3</span></td>
-                        </tr>
+                        <th>
+                            Item
+                        </th>
 
-                    </tbody>
+                        <th>
+                            Available
+                        </th>
 
-                </table>
+                    </tr>
 
-            </div>
+                </thead>
 
-        </div>
 
-        <div class="col-lg-6">
+                <tbody>
 
-            <div class="dashboard-panel">
+                    <tr>
 
-                <h4 class="panel-title">
-                    Recent Sales
-                </h4>
+                        <td>
+                            SKF Bearing 6202
+                        </td>
 
-                <table class="table table-hover">
+                        <td>
 
-                    <thead>
+                            <span class="badge bg-danger">
+                                5
+                            </span>
 
-                        <tr>
+                        </td>
 
-                            <th>Invoice</th>
-                            <th>Customer</th>
+                    </tr>
 
-                        </tr>
 
-                    </thead>
+                    <tr>
 
-                    <tbody>
+                        <td>
+                            M12 Bolt
+                        </td>
 
-                        <tr>
-                            <td>INV-1001</td>
-                            <td>L&T Engineering</td>
-                        </tr>
+                        <td>
 
-                        <tr>
-                            <td>INV-1002</td>
-                            <td>Kirloskar</td>
-                        </tr>
+                            <span class="badge
+                                         bg-warning
+                                         text-dark">
 
-                        <tr>
-                            <td>INV-1003</td>
-                            <td>Precision Industries</td>
-                        </tr>
+                                12
 
-                    </tbody>
+                            </span>
 
-                </table>
+                        </td>
 
-            </div>
+                    </tr>
+
+
+                    <tr>
+
+                        <td>
+                            Steel Rod
+                        </td>
+
+                        <td>
+
+                            <span class="badge bg-danger">
+                                3
+                            </span>
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
 
         </div>
 
     </div>
 
-    <div class="row mt-4">
 
-        <div class="col-lg-12">
+    <div class="col-lg-6">
 
-            <div class="dashboard-panel">
+        <div class="dashboard-panel">
 
-                <h4 class="panel-title">
-                    Recent Activities
-                </h4>
+            <h4 class="panel-title">
+                Recent Sales
+            </h4>
 
-                <ul class="notification-list">
 
-                    <li>
-                        <i class="bi bi-person-plus-fill text-primary"></i>
-                        New Customer Added
-                    </li>
+            <table class="table table-hover">
 
-                    <li>
-                        <i class="bi bi-cart-check-fill text-success"></i>
-                        Purchase Order Approved
-                    </li>
+                <thead>
 
-                    <li>
-                        <i class="bi bi-box-fill text-warning"></i>
-                        Stock Updated
-                    </li>
+                    <tr>
 
-                    <li>
-                        <i class="bi bi-receipt-cutoff text-info"></i>
-                        Sales Invoice Generated
-                    </li>
+                        <th>
+                            Invoice
+                        </th>
 
-                </ul>
+                        <th>
+                            Customer
+                        </th>
 
-            </div>
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    <tr>
+
+                        <td>
+                            INV-1001
+                        </td>
+
+                        <td>
+                            L&T Engineering
+                        </td>
+
+                    </tr>
+
+
+                    <tr>
+
+                        <td>
+                            INV-1002
+                        </td>
+
+                        <td>
+                            Kirloskar
+                        </td>
+
+                    </tr>
+
+
+                    <tr>
+
+                        <td>
+                            INV-1003
+                        </td>
+
+                        <td>
+                            Precision Industries
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
 
         </div>
 
     </div>
 
 </div>
+
+
+@* =========================================================
+   RECENT ACTIVITIES
+   ========================================================= *@
+
+<div class="row mt-4">
+
+    <div class="col-lg-12">
+
+        <div class="dashboard-panel">
+
+            <h4 class="panel-title">
+                Recent Activities
+            </h4>
+
+
+            <ul class="notification-list">
+
+                <li>
+
+                    <i class="bi
+                              bi-person-plus-fill
+                              text-primary">
+                    </i>
+
+                    New Customer Added
+
+                </li>
+
+
+                <li>
+
+                    <i class="bi
+                              bi-cart-check-fill
+                              text-success">
+                    </i>
+
+                    Purchase Order Approved
+
+                </li>
+
+
+                <li>
+
+                    <i class="bi
+                              bi-box-fill
+                              text-warning">
+                    </i>
+
+                    Stock Updated
+
+                </li>
+
+
+                <li>
+
+                    <i class="bi
+                              bi-receipt-cutoff
+                              text-info">
+                    </i>
+
+                    Sales Invoice Generated
+
+                </li>
+
+            </ul>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   SUPPLIER PAYMENT DUE POPUP
+
+   Partial renders only when alerts exist.
+   JavaScript opens modal automatically.
+   ========================================================= *@
+
+<partial name="_SupplierPaymentDueModal"
+         model="Model" />
+
+
+@* =========================================================
+   PAGE JAVASCRIPT
+   ========================================================= *@
+
+@section Scripts
+{
+    <script src="~/js/home-dashboard.js"
+            asp-append-version="true">
+    </script>
+}

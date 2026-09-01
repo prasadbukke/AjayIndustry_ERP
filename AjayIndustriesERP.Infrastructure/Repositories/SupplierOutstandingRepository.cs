@@ -5,8 +5,12 @@ Module: Supplier Outstanding / Payables
 Layer: Infrastructure - Repository
 
 Purpose:
-Provides read-only Supplier Outstanding data from existing:
+Provides read-only Supplier Outstanding data for:
 
+1. Supplier Outstanding / Payables Report
+2. Home Dashboard Supplier Payment Due Popup
+
+Data Sources:
 - PurchaseInvoices
 - SupplierPayments
 - SupplierPaymentTransactions
@@ -16,29 +20,23 @@ Important:
 - No new Table.
 - No Migration.
 - No Add / Update / Delete.
-- Only finalized Purchase Invoices are considered.
+- Only Finalized Purchase Invoices are considered.
 - Paid Amount is calculated LIVE.
 
-Payment transaction counts only when:
+A payment transaction counts only when:
 - SupplierPayment IsActive = true
 - SupplierPayment IsDeleted = false
-- Transaction IsActive = true
-- Transaction IsDeleted = false
+- SupplierPaymentTransaction IsActive = true
+- SupplierPaymentTransaction IsDeleted = false
 
-Default:
-- Shows only invoices with Outstanding > 0.
-
-Payment Filters:
-- Outstanding Only
-- All
-- Pending
-- Partially Paid
-- Completed
-
-Due Filters:
-- Overdue
-- Due Soon
-- Upcoming
+Dashboard Alert Rule:
+- Finalized Purchase Invoice
+- Active / Not Deleted
+- Due Date exists
+- Outstanding > 0
+- Due Date <= Today + 5 days
+- Includes Overdue + Due Soon
+- Fully paid invoices are excluded automatically
 =============================================================
 */
 
@@ -71,7 +69,7 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         #endregion
 
 
-        #region Get Paged
+        #region Get Paged Report
 
         public async Task<
             PagedResult<SupplierOutstandingRepositoryRow>>
@@ -107,64 +105,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
             #region Base Query
 
-            /*
-             * Finalized Purchase Invoice
-             *
-             * Paid Amount =
-             * Sum of active/non-deleted transactions
-             * under active/non-deleted Supplier Payment.
-             */
-
             var query =
-                _context.PurchaseInvoices
-                    .AsNoTracking()
-                    .Where(pi =>
-                        pi.IsActive &&
-                        !pi.IsDeleted &&
-                        pi.Status ==
-                            PurchaseInvoiceStatus.Finalized)
-                    .Select(pi => new
-                    {
-                        PurchaseInvoiceId =
-                            pi.Id,
-
-                        PurchaseInvoiceCode =
-                            pi.Code,
-
-                        SupplierInvoiceNumber =
-                            pi.SupplierInvoiceNumber,
-
-                        PurchaseInvoiceDate =
-                            pi.PurchaseInvoiceDate,
-
-                        DueDate =
-                            pi.DueDate,
-
-                        SupplierId =
-                            pi.SupplierId,
-
-                        SupplierName =
-                            pi.SupplierName,
-
-                        InvoiceTotal =
-                            pi.GrandTotal,
-
-                        PaidAmount =
-                            _context.SupplierPayments
-                                .Where(sp =>
-                                    sp.IsActive &&
-                                    !sp.IsDeleted &&
-                                    sp.PurchaseInvoiceId ==
-                                        pi.Id)
-                                .SelectMany(sp =>
-                                    sp.Transactions
-                                        .Where(transaction =>
-                                            transaction.IsActive &&
-                                            !transaction.IsDeleted))
-                                .Sum(transaction =>
-                                    (decimal?)transaction.Amount)
-                            ?? 0m
-                    });
+                BuildBaseQuery();
 
             #endregion
 
@@ -247,9 +189,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             /*
              * Blank / Unknown:
              * Outstanding Only
-             *
-             * Outstanding =
-             * InvoiceTotal - PaidAmount > 0
              */
 
             if (string.Equals(
@@ -363,7 +302,7 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
              * 3. Latest Purchase Invoice first
              */
 
-            var data =
+            var rows =
                 await query
                     .OrderBy(row =>
                         row.DueDate.HasValue
@@ -380,45 +319,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                         pageSize)
                     .Take(pageSize)
                     .ToListAsync();
-
-            #endregion
-
-
-            #region Map Repository Rows
-
-            var rows =
-                data
-                    .Select(row =>
-                        new SupplierOutstandingRepositoryRow
-                        {
-                            PurchaseInvoiceId =
-                                row.PurchaseInvoiceId,
-
-                            PurchaseInvoiceCode =
-                                row.PurchaseInvoiceCode,
-
-                            SupplierInvoiceNumber =
-                                row.SupplierInvoiceNumber,
-
-                            PurchaseInvoiceDate =
-                                row.PurchaseInvoiceDate,
-
-                            DueDate =
-                                row.DueDate,
-
-                            SupplierId =
-                                row.SupplierId,
-
-                            SupplierName =
-                                row.SupplierName,
-
-                            InvoiceTotal =
-                                row.InvoiceTotal,
-
-                            PaidAmount =
-                                row.PaidAmount
-                        })
-                    .ToList();
 
             #endregion
 
@@ -477,6 +377,158 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
 
             return suppliers;
+        }
+
+        #endregion
+
+
+        #region Get Dashboard Due Alerts
+
+        public async Task<
+            List<SupplierOutstandingRepositoryRow>>
+            GetDueAlertsAsync(
+                DateTime today,
+                int dueSoonDays)
+        {
+            #region Date Safety
+
+            today =
+                today.Date;
+
+            if (dueSoonDays < 0)
+            {
+                dueSoonDays = 0;
+            }
+
+            var dueSoonDate =
+                today.AddDays(
+                    dueSoonDays);
+
+            #endregion
+
+
+            #region Alert Query
+
+            /*
+             * Dashboard popup includes:
+             *
+             * - Overdue invoices
+             * - Due today
+             * - Due within next configured days
+             *
+             * But ONLY when:
+             *
+             * Outstanding =
+             * InvoiceTotal - PaidAmount > 0
+             */
+
+            var alerts =
+                await BuildBaseQuery()
+                    .Where(row =>
+                        row.DueDate.HasValue &&
+
+                        row.DueDate.Value <=
+                            dueSoonDate &&
+
+                        row.InvoiceTotal -
+                        row.PaidAmount > 0m)
+                    .OrderBy(row =>
+                        row.DueDate)
+                    .ThenBy(row =>
+                        row.SupplierName)
+                    .ThenBy(row =>
+                        row.PurchaseInvoiceCode)
+                    .ToListAsync();
+
+            #endregion
+
+
+            return alerts;
+        }
+
+        #endregion
+
+
+        #region Base Query
+
+        /// <summary>
+        /// Builds common live outstanding query used by:
+        ///
+        /// - Supplier Outstanding report
+        /// - Home Dashboard popup
+        ///
+        /// Important:
+        /// Soft-deleted Supplier Payments and Transactions
+        /// are never counted.
+        /// </summary>
+        private IQueryable<SupplierOutstandingRepositoryRow>
+            BuildBaseQuery()
+        {
+            return
+                _context.PurchaseInvoices
+                    .AsNoTracking()
+                    .Where(pi =>
+                        pi.IsActive &&
+                        !pi.IsDeleted &&
+                        pi.Status ==
+                            PurchaseInvoiceStatus.Finalized)
+                    .Select(pi =>
+                        new SupplierOutstandingRepositoryRow
+                        {
+                            #region Purchase Invoice
+
+                            PurchaseInvoiceId =
+                                pi.Id,
+
+                            PurchaseInvoiceCode =
+                                pi.Code,
+
+                            SupplierInvoiceNumber =
+                                pi.SupplierInvoiceNumber,
+
+                            PurchaseInvoiceDate =
+                                pi.PurchaseInvoiceDate,
+
+                            DueDate =
+                                pi.DueDate,
+
+                            #endregion
+
+
+                            #region Supplier
+
+                            SupplierId =
+                                pi.SupplierId,
+
+                            SupplierName =
+                                pi.SupplierName,
+
+                            #endregion
+
+
+                            #region Amounts
+
+                            InvoiceTotal =
+                                pi.GrandTotal,
+
+                            PaidAmount =
+                                _context.SupplierPayments
+                                    .Where(sp =>
+                                        sp.IsActive &&
+                                        !sp.IsDeleted &&
+                                        sp.PurchaseInvoiceId ==
+                                            pi.Id)
+                                    .SelectMany(sp =>
+                                        sp.Transactions
+                                            .Where(transaction =>
+                                                transaction.IsActive &&
+                                                !transaction.IsDeleted))
+                                    .Sum(transaction =>
+                                        (decimal?)transaction.Amount)
+                                ?? 0m
+
+                            #endregion
+                        });
         }
 
         #endregion

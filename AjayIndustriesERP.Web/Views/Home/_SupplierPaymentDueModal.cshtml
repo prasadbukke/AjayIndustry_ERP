@@ -1,0 +1,413 @@
+﻿@*
+=============================================================
+File: _SupplierPaymentDueModal.cshtml
+Module: Home Dashboard
+Layer: Web - Partial View
+
+Purpose:
+Displays Supplier Payment Due popup automatically
+after Home Dashboard loads.
+
+Popup Rule:
+- Finalized Purchase Invoice
+- Outstanding > 0
+- Due Date <= Today + 5 days
+- Includes Overdue + Due Today + Due Soon
+- Fully paid invoices are excluded.
+
+Important:
+- Popup is read-only.
+- No inline JavaScript.
+- Auto-open behavior is handled by home-dashboard.js.
+=============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.Home.SupplierPaymentDueAlertViewModel
+
+
+@if (Model != null && Model.HasAlerts)
+{
+    <div class="modal fade"
+         id="supplierPaymentDueModal"
+         tabindex="-1"
+         aria-labelledby="supplierPaymentDueModalLabel"
+         aria-hidden="true"
+         data-auto-open="true">
+
+        <div class="modal-dialog
+                        modal-xl
+                        modal-dialog-centered
+                        modal-dialog-scrollable">
+
+            <div class="modal-content
+                            border-0
+                            shadow">
+
+                @* =================================================
+                   MODAL HEADER
+                   ================================================= *@
+
+                <div class="modal-header">
+
+                    <div>
+
+                        <h5 class="modal-title fw-bold"
+                            id="supplierPaymentDueModalLabel">
+
+                            <i class="fa-solid
+                                          fa-triangle-exclamation
+                                          text-warning
+                                          me-2">
+                            </i>
+
+                            Supplier Payment Due Alert
+
+                        </h5>
+
+                        <div class="text-muted small mt-1">
+
+                            Overdue and upcoming supplier payments
+                            requiring attention.
+
+                        </div>
+
+                    </div>
+
+
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+
+                </div>
+
+
+                @* =================================================
+                   SUMMARY
+                   ================================================= *@
+
+                <div class="modal-body">
+
+                    <div class="row g-3 mb-4">
+
+                        <div class="col-md-6">
+
+                            <div class="border
+                                            rounded
+                                            p-3
+                                            h-100">
+
+                                <div class="text-muted small">
+                                    Invoices Requiring Attention
+                                </div>
+
+                                <div class="fs-4 fw-bold mt-1">
+                                    @Model.TotalAlerts
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <div class="border
+                                            rounded
+                                            p-3
+                                            h-100">
+
+                                <div class="text-muted small">
+                                    Total Outstanding
+                                </div>
+
+                                <div class="fs-4
+                                                fw-bold
+                                                text-danger
+                                                mt-1">
+
+                                    ₹ @(Model.TotalOutstanding.ToString("N2"))
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    @* =================================================
+                       ALERT TABLE
+                       ================================================= *@
+
+                    <div class="table-responsive">
+
+                        <table class="table
+                                          table-hover
+                                          align-middle
+                                          mb-0">
+
+                            <thead class="table-light">
+
+                                <tr>
+
+                                    <th style="min-width:160px;">
+                                        ERP Invoice
+                                    </th>
+
+                                    <th style="min-width:140px;">
+                                        Supplier Invoice
+                                    </th>
+
+                                    <th style="min-width:170px;">
+                                        Supplier
+                                    </th>
+
+                                    <th style="min-width:120px;">
+                                        Due Date
+                                    </th>
+
+                                    <th class="text-end"
+                                        style="min-width:125px;">
+                                        Invoice Total
+                                    </th>
+
+                                    <th class="text-end"
+                                        style="min-width:120px;">
+                                        Paid
+                                    </th>
+
+                                    <th class="text-end"
+                                        style="min-width:130px;">
+                                        Outstanding
+                                    </th>
+
+                                    <th class="text-center"
+                                        style="min-width:145px;">
+                                        Due Status
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                @foreach (var item in Model.Alerts)
+                                {
+                                    <tr>
+
+                                        @* =================================
+                                           ERP INVOICE
+                                           ================================= *@
+
+                                        <td>
+
+                                            <a asp-controller="PurchaseInvoice"
+                                               asp-action="Details"
+                                               asp-route-id="@item.PurchaseInvoiceId"
+                                               class="fw-semibold
+                                                              text-decoration-none">
+
+                                                @item.PurchaseInvoiceCode
+
+                                            </a>
+
+                                        </td>
+
+
+                                        @* =================================
+                                           SUPPLIER INVOICE
+                                           ================================= *@
+
+                                        <td>
+
+                                            @if (!string.IsNullOrWhiteSpace(
+                                                                                item.SupplierInvoiceNumber))
+                                            {
+                                                @item.SupplierInvoiceNumber
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">
+                                                    -
+                                                </span>
+                                            }
+
+                                        </td>
+
+
+                                        @* =================================
+                                           SUPPLIER
+                                           ================================= *@
+
+                                        <td>
+
+                                            <span class="fw-semibold">
+                                                @item.SupplierName
+                                            </span>
+
+                                        </td>
+
+
+                                        @* =================================
+                                           DUE DATE
+                                           ================================= *@
+
+                                        <td class="text-nowrap">
+
+                                            @(item.DueDate.ToString("dd-MM-yyyy"))
+
+                                        </td>
+
+
+                                        @* =================================
+                                           INVOICE TOTAL
+                                           ================================= *@
+
+                                        <td class="text-end
+                                                           text-nowrap">
+
+                                            ₹ @(item.InvoiceTotal.ToString("N2"))
+
+                                        </td>
+
+
+                                        @* =================================
+                                           PAID
+                                           ================================= *@
+
+                                        <td class="text-end
+                                                           text-nowrap">
+
+                                            <span class="text-success">
+
+                                                ₹ @(item.PaidAmount.ToString("N2"))
+
+                                            </span>
+
+                                        </td>
+
+
+                                        @* =================================
+                                           OUTSTANDING
+                                           ================================= *@
+
+                                        <td class="text-end
+                                                           text-nowrap">
+
+                                            <span class="fw-bold
+                                                                 text-danger">
+
+                                                ₹ @(item.OutstandingAmount.ToString("N2"))
+
+                                            </span>
+
+                                        </td>
+
+
+                                        @* =================================
+                                           DUE STATUS
+                                           ================================= *@
+
+                                        <td class="text-center">
+
+                                            @if (item.DueStatus == "Overdue")
+                                            {
+                                                <span class="badge
+                                                                         bg-danger">
+
+                                                    <i class="fa-solid
+                                                                          fa-circle-exclamation
+                                                                          me-1">
+                                                    </i>
+
+                                                    @item.OverdueDays day(s) overdue
+
+                                                </span>
+                                            }
+                                            else if (item.DaysUntilDue == 0)
+                                            {
+                                                <span class="badge
+                                                                         bg-danger">
+
+                                                    Due Today
+
+                                                </span>
+                                            }
+                                            else if (item.DaysUntilDue == 1)
+                                            {
+                                                <span class="badge
+                                                                         bg-warning
+                                                                         text-dark">
+
+                                                    Due Tomorrow
+
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge
+                                                                         bg-warning
+                                                                         text-dark">
+
+                                                    Due in @item.DaysUntilDue days
+
+                                                </span>
+                                            }
+
+                                        </td>
+
+                                    </tr>
+                                }
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+
+                @* =================================================
+                   FOOTER
+                   ================================================= *@
+
+                <div class="modal-footer">
+
+                    <a asp-controller="SupplierOutstanding"
+                       asp-action="Index"
+                       class="btn
+                                  btn-outline-primary">
+
+                        <i class="fa-solid
+                                      fa-file-invoice-dollar
+                                      me-1">
+                        </i>
+
+                        View Supplier Outstanding
+
+                    </a>
+
+
+                    <button type="button"
+                            class="btn
+                                       btn-secondary"
+                            data-bs-dismiss="modal">
+
+                        Close
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}

@@ -5,21 +5,35 @@ Module: Supplier Outstanding / Payables
 Layer: Application - Service
 
 Purpose:
-Implements business logic for Supplier Outstanding report.
+Implements business logic for:
+
+1. Supplier Outstanding / Payables Report
+2. Home Dashboard Supplier Payment Due Alerts
 
 Important:
 - Read-only service.
 - No Create / Edit / Delete.
 - No Entity / Table / Migration.
-- Repository handles database query/filtering.
-- Service handles:
-    - filter normalization
-    - pagination validation
-    - payment status calculation
-    - outstanding calculation
-    - due status calculation
-    - overdue days calculation
-    - final report result mapping
+
+Report Responsibilities:
+- Filter normalization
+- Pagination validation
+- Outstanding calculation
+- Payment status calculation
+- Due status calculation
+- Overdue days calculation
+
+Dashboard Alert Rule:
+- Finalized Purchase Invoice
+- Active / Not Deleted
+- Outstanding > 0
+- Due Date exists
+- Due Date <= Today + 5 days
+- Includes:
+      Overdue
+      Due Today
+      Due within next 5 days
+- Fully paid invoices are excluded.
 
 Payment Status:
 - Pending
@@ -31,9 +45,6 @@ Due Status:
 - Due Soon
 - Upcoming
 - No Due Date
-
-Due Soon Rule:
-- Today through next 5 days.
 =============================================================
 */
 
@@ -164,6 +175,10 @@ namespace AjayIndustriesERP.Application.Services
 
             #region Repository Filter
 
+            var today =
+                DateTime.Today;
+
+
             var repositoryFilter =
                 new SupplierOutstandingRepositoryFilter
                 {
@@ -186,7 +201,7 @@ namespace AjayIndustriesERP.Application.Services
                         dueDateTo,
 
                     Today =
-                        DateTime.Today,
+                        today,
 
                     DueSoonDays =
                         DueSoonDays,
@@ -210,33 +225,21 @@ namespace AjayIndustriesERP.Application.Services
             #endregion
 
 
-            #region Map Rows
-
-            var today =
-                DateTime.Today;
-
+            #region Map Report Rows
 
             var rows =
                 repositoryResult.Items
                     .Select(row =>
                     {
                         var paidAmount =
-                            row.PaidAmount;
-
-                        if (paidAmount < 0m)
-                        {
-                            paidAmount = 0m;
-                        }
+                            NormalizePaidAmount(
+                                row.PaidAmount);
 
 
                         var outstandingAmount =
-                            row.InvoiceTotal -
-                            paidAmount;
-
-                        if (outstandingAmount < 0m)
-                        {
-                            outstandingAmount = 0m;
-                        }
+                            CalculateOutstandingAmount(
+                                row.InvoiceTotal,
+                                paidAmount);
 
 
                         return new
@@ -318,7 +321,7 @@ namespace AjayIndustriesERP.Application.Services
              * TotalPages / HasPrevious / HasNext
              * are calculated automatically by PagedResult.
              *
-             * Do NOT assign them here.
+             * Do NOT assign them manually.
              */
 
             var pagedResult =
@@ -387,6 +390,185 @@ namespace AjayIndustriesERP.Application.Services
         #endregion
 
 
+        #region Get Dashboard Due Alerts
+
+        public async Task<
+            List<SupplierOutstandingDueAlertResult>>
+            GetDueAlertsAsync()
+        {
+            #region Date Context
+
+            var today =
+                DateTime.Today;
+
+            #endregion
+
+
+            #region Load Repository Alerts
+
+            var repositoryAlerts =
+                await _repository
+                    .GetDueAlertsAsync(
+                        today,
+                        DueSoonDays);
+
+            #endregion
+
+
+            #region Map Dashboard Alerts
+
+            var alerts =
+                repositoryAlerts
+                    .Where(row =>
+                        row.DueDate.HasValue)
+                    .Select(row =>
+                    {
+                        var dueDate =
+                            row.DueDate!.Value.Date;
+
+
+                        var paidAmount =
+                            NormalizePaidAmount(
+                                row.PaidAmount);
+
+
+                        var outstandingAmount =
+                            CalculateOutstandingAmount(
+                                row.InvoiceTotal,
+                                paidAmount);
+
+
+                        return new
+                            SupplierOutstandingDueAlertResult
+                        {
+                            #region Purchase Invoice
+
+                            PurchaseInvoiceId =
+                                row.PurchaseInvoiceId,
+
+                            PurchaseInvoiceCode =
+                                row.PurchaseInvoiceCode,
+
+                            SupplierInvoiceNumber =
+                                row.SupplierInvoiceNumber,
+
+                            PurchaseInvoiceDate =
+                                row.PurchaseInvoiceDate,
+
+                            DueDate =
+                                dueDate,
+
+                            #endregion
+
+
+                            #region Supplier
+
+                            SupplierId =
+                                row.SupplierId,
+
+                            SupplierName =
+                                row.SupplierName,
+
+                            #endregion
+
+
+                            #region Payment Position
+
+                            InvoiceTotal =
+                                row.InvoiceTotal,
+
+                            PaidAmount =
+                                paidAmount,
+
+                            OutstandingAmount =
+                                outstandingAmount,
+
+                            PaymentStatus =
+                                CalculatePaymentStatus(
+                                    row.InvoiceTotal,
+                                    paidAmount),
+
+                            #endregion
+
+
+                            #region Due Position
+
+                            DueStatus =
+                                CalculateDueStatus(
+                                    dueDate,
+                                    today),
+
+                            OverdueDays =
+                                CalculateOverdueDays(
+                                    dueDate,
+                                    today),
+
+                            DaysUntilDue =
+                                CalculateDaysUntilDue(
+                                    dueDate,
+                                    today)
+
+                            #endregion
+                        };
+                    })
+                    .Where(row =>
+                        row.OutstandingAmount > 0m)
+                    .OrderBy(row =>
+                        row.DueDate)
+                    .ThenBy(row =>
+                        row.SupplierName)
+                    .ThenBy(row =>
+                        row.PurchaseInvoiceCode)
+                    .ToList();
+
+            #endregion
+
+
+            return alerts;
+        }
+
+        #endregion
+
+
+        #region Normalize Paid Amount
+
+        private static decimal NormalizePaidAmount(
+            decimal paidAmount)
+        {
+            if (paidAmount < 0m)
+            {
+                return 0m;
+            }
+
+            return paidAmount;
+        }
+
+        #endregion
+
+
+        #region Calculate Outstanding Amount
+
+        private static decimal CalculateOutstandingAmount(
+            decimal invoiceTotal,
+            decimal paidAmount)
+        {
+            var outstandingAmount =
+                invoiceTotal -
+                paidAmount;
+
+
+            if (outstandingAmount < 0m)
+            {
+                return 0m;
+            }
+
+
+            return outstandingAmount;
+        }
+
+        #endregion
+
+
         #region Payment Status Calculation
 
         private static string CalculatePaymentStatus(
@@ -433,8 +615,9 @@ namespace AjayIndustriesERP.Application.Services
             }
 
 
-            if (date <= today.AddDays(
-                DueSoonDays))
+            if (date <=
+                today.AddDays(
+                    DueSoonDays))
             {
                 return "Due Soon";
             }
@@ -474,6 +657,28 @@ namespace AjayIndustriesERP.Application.Services
         #endregion
 
 
+        #region Days Until Due Calculation
+
+        private static int CalculateDaysUntilDue(
+            DateTime dueDate,
+            DateTime today)
+        {
+            var date =
+                dueDate.Date;
+
+
+            if (date <= today)
+            {
+                return 0;
+            }
+
+
+            return (date - today).Days;
+        }
+
+        #endregion
+
+
         #region Normalize Payment Status
 
         private static string?
@@ -487,6 +692,7 @@ namespace AjayIndustriesERP.Application.Services
                  * Null means:
                  * Outstanding Only.
                  */
+
                 return null;
             }
 
@@ -527,10 +733,6 @@ namespace AjayIndustriesERP.Application.Services
             }
 
 
-            /*
-             * Unknown value falls back to
-             * Outstanding Only.
-             */
             return null;
         }
 

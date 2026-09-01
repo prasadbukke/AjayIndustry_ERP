@@ -5,29 +5,29 @@ Module: Supplier Outstanding / Payables
 Layer: Application - Interface
 
 Purpose:
-Defines read-only repository contract for Supplier Outstanding.
+Defines read-only repository contract for:
+1. Supplier Outstanding report
+2. Home Dashboard supplier payment due alerts
 
 Important:
 - This is NOT a CRUD repository.
-- No Add / Update / Delete methods.
+- No Add / Update / Delete.
 - No new Entity / Table / Migration.
 - Data comes from existing:
       PurchaseInvoices
       SupplierPayments
       SupplierPaymentTransactions
 
-Repository Responsibilities:
-- Read finalized Purchase Invoices.
-- Calculate active paid amount.
-- Apply report filters.
-- Apply pagination.
-- Return supplier filter options.
-
-Service Responsibilities:
-- Normalize input.
-- Calculate display status.
-- Calculate due status / overdue days.
-- Prepare final report result.
+Dashboard Alert Rule:
+- Purchase Invoice must be Finalized.
+- Purchase Invoice must be Active / Not Deleted.
+- Outstanding must be greater than zero.
+- Due Date must exist.
+- Due Date <= Today + DueSoonDays.
+- Includes both:
+      Overdue
+      Due Soon
+- Fully paid invoices must NOT appear.
 =============================================================
 */
 
@@ -40,12 +40,13 @@ namespace AjayIndustriesERP.Application.Interfaces
     public interface ISupplierOutstandingRepository
     {
         /// <summary>
-        /// Returns paginated Supplier Outstanding source rows
+        /// Returns paginated Supplier Outstanding rows
         /// after applying report filters.
         /// </summary>
         Task<PagedResult<SupplierOutstandingRepositoryRow>>
             GetPagedAsync(
                 SupplierOutstandingRepositoryFilter filter);
+
 
         /// <summary>
         /// Returns suppliers having finalized
@@ -53,6 +54,20 @@ namespace AjayIndustriesERP.Application.Interfaces
         /// </summary>
         Task<List<SupplierOutstandingSupplierOption>>
             GetSupplierOptionsAsync();
+
+
+        /// <summary>
+        /// Returns unpaid supplier invoices that are:
+        /// - overdue
+        /// - due today
+        /// - due within configured upcoming days
+        ///
+        /// Used by Home Dashboard popup.
+        /// </summary>
+        Task<List<SupplierOutstandingRepositoryRow>>
+            GetDueAlertsAsync(
+                DateTime today,
+                int dueSoonDays);
     }
 
     #endregion
@@ -60,47 +75,33 @@ namespace AjayIndustriesERP.Application.Interfaces
 
     #region Repository Filter
 
-    /// <summary>
-    /// Query filters used by Supplier Outstanding repository.
-    /// </summary>
     public class SupplierOutstandingRepositoryFilter
     {
         #region Search Filters
 
-        /// <summary>
-        /// Searches:
-        /// - ERP Purchase Invoice No.
-        /// - Supplier Invoice No.
-        /// - Supplier Name
-        /// </summary>
         public string? SearchText { get; set; }
 
-        /// <summary>
-        /// Optional Supplier filter.
-        /// </summary>
         public int? SupplierId { get; set; }
 
         /// <summary>
-        /// Payment filter:
-        /// Outstanding Only / All / Pending /
-        /// Partially Paid / Completed.
+        /// Blank = Outstanding Only
+        /// All
+        /// Pending
+        /// Partially Paid
+        /// Completed
         /// </summary>
         public string? PaymentStatus { get; set; }
 
         /// <summary>
-        /// Due filter:
-        /// All / Overdue / Due Soon / Upcoming.
+        /// Blank = All Due Dates
+        /// Overdue
+        /// Due Soon
+        /// Upcoming
         /// </summary>
         public string? DueStatus { get; set; }
 
-        /// <summary>
-        /// Optional Due Date From.
-        /// </summary>
         public DateTime? DueDateFrom { get; set; }
 
-        /// <summary>
-        /// Optional Due Date To.
-        /// </summary>
         public DateTime? DueDateTo { get; set; }
 
         #endregion
@@ -108,16 +109,8 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         #region Date Context
 
-        /// <summary>
-        /// Current business date supplied by service.
-        /// Used for Overdue / Due Soon / Upcoming filters.
-        /// </summary>
         public DateTime Today { get; set; }
 
-        /// <summary>
-        /// Number of days considered as Due Soon.
-        /// Current business rule = 5 days.
-        /// </summary>
         public int DueSoonDays { get; set; } = 5;
 
         #endregion
@@ -137,16 +130,6 @@ namespace AjayIndustriesERP.Application.Interfaces
 
     #region Repository Row
 
-    /// <summary>
-    /// Read-only source row returned from Infrastructure.
-    ///
-    /// Display-specific values such as:
-    /// - Payment Status
-    /// - Due Status
-    /// - Overdue Days
-    ///
-    /// are calculated by Application Service.
-    /// </summary>
     public class SupplierOutstandingRepositoryRow
     {
         #region Purchase Invoice
@@ -177,9 +160,6 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         #region Amounts
 
-        /// <summary>
-        /// Purchase Invoice Grand Total.
-        /// </summary>
         public decimal InvoiceTotal { get; set; }
 
         /// <summary>
@@ -196,9 +176,6 @@ namespace AjayIndustriesERP.Application.Interfaces
 
     #region Supplier Option
 
-    /// <summary>
-    /// Lightweight Supplier option used for report filter.
-    /// </summary>
     public class SupplierOutstandingSupplierOption
     {
         public int SupplierId { get; set; }
