@@ -400,6 +400,18 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
 
             #endregion
 
+            #region PO Tracking 
+
+            services.AddScoped<
+    IItemCustomerPOTrackingRepository,
+    ItemCustomerPOTrackingRepository>();
+
+            services.AddScoped<
+                IItemCustomerPOTrackingService,
+                ItemCustomerPOTrackingService>();
+
+            #endregion
+
 
             return services;
 

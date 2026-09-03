@@ -1,0 +1,1495 @@
+﻿@*
+=============================================================
+File: Index.cshtml
+Module: Item Customer PO Tracking
+Layer: Web - View
+
+Purpose:
+Displays complete Item-wise Customer PO Tracking.
+
+Tracking Information:
+- Customer PO
+- Customer
+- PO Date
+- Item
+- Drawing
+- Ordered Quantity
+- Delivery Date
+- Priority
+- PO Status
+
+Production Tracking:
+
+1. Production Jobs
+   Example:
+   5 / 10 Completed
+
+2. Production PO Status
+   Pending
+   In Progress
+   Completed
+
+Important:
+- Production Job Progress and Production PO Status
+  are displayed separately.
+- Read-only module.
+- Excel receives same active filters.
+- JavaScript remains in separate JS file.
+=============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.ItemCustomerPOTracking.ItemCustomerPOTrackingIndexViewModel
+
+@{
+    ViewData["Title"] = "Item Customer PO Tracking";
+
+    var results = Model.Results;
+
+    var selectedPageSize =
+        results.PageSize > 0
+            ? results.PageSize
+            : 10;
+}
+
+
+@* =========================================================
+   PAGE HEADER
+   ========================================================= *@
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Item Customer PO Tracking
+        </h2>
+
+        <div class="text-muted">
+            Customer PO, Item, Drawing, Delivery and Production Tracking
+        </div>
+
+    </div>
+
+
+    <a asp-action="ExportExcel"
+       asp-route-itemId="@Model.ItemId"
+       asp-route-itemSearchText="@Model.ItemSearchText"
+       asp-route-customerPurchaseOrderId="@Model.CustomerPurchaseOrderId"
+       asp-route-purchaseOrderNumber="@Model.PurchaseOrderNumber"
+       asp-route-customerId="@Model.CustomerId"
+       asp-route-priority="@Model.Priority"
+       asp-route-purchaseOrderStatus="@Model.PurchaseOrderStatus"
+       asp-route-productionPOStatus="@Model.ProductionPOStatus"
+       asp-route-purchaseOrderDateFrom="@(Model.PurchaseOrderDateFrom?.ToString("yyyy-MM-dd"))"
+       asp-route-purchaseOrderDateTo="@(Model.PurchaseOrderDateTo?.ToString("yyyy-MM-dd"))"
+       class="btn btn-success">
+
+        <i class="fa-solid fa-file-excel me-1"></i>
+
+        Export Excel
+
+    </a>
+
+</div>
+
+
+@* =========================================================
+   FILTER CARD
+   ========================================================= *@
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-white py-3">
+
+        <h5 class="fw-semibold mb-0">
+
+            <i class="fa-solid fa-filter me-2"></i>
+
+            Search & Filters
+
+        </h5>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <form asp-action="Index"
+              method="get"
+              id="itemCustomerPOTrackingFilterForm">
+
+            <input type="hidden"
+                   name="pageNumber"
+                   value="1" />
+
+            <input type="hidden"
+                   name="pageSize"
+                   value="@selectedPageSize" />
+
+
+            @* =================================================
+               AUTOCOMPLETE SELECTED IDS
+               ================================================= *@
+
+            <input type="hidden"
+                   asp-for="ItemId"
+                   id="itemCustomerPOTrackingItemId" />
+
+            <input type="hidden"
+                   asp-for="CustomerPurchaseOrderId"
+                   id="itemCustomerPOTrackingPOId" />
+
+
+            <div class="row g-3">
+
+                @* =================================================
+                   ITEM SEARCH
+                   ================================================= *@
+
+                <div class="col-xl-4 col-lg-6">
+
+                    <label asp-for="ItemSearchText"
+                           class="form-label">
+
+                        Item Name / Item Code
+
+                    </label>
+
+
+                    <div class="position-relative">
+
+                        <div class="input-group">
+
+                            <span class="input-group-text bg-white">
+
+                                <i class="fa-solid fa-box"></i>
+
+                            </span>
+
+
+                            <input asp-for="ItemSearchText"
+                                   id="itemCustomerPOTrackingItemSearch"
+                                   class="form-control"
+                                   autocomplete="off"
+                                   placeholder="Type Item Name or Item Code" />
+
+                        </div>
+
+
+                        <div id="itemCustomerPOTrackingItemSuggestions"
+                             class="list-group
+                                    position-absolute
+                                    w-100
+                                    shadow
+                                    d-none"
+                             style="
+                                z-index:1050;
+                                max-height:280px;
+                                overflow-y:auto;">
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-text">
+                        Type at least 2 characters
+                    </div>
+
+                </div>
+
+
+                @* =================================================
+                   CUSTOMER PO NUMBER
+                   ================================================= *@
+
+                <div class="col-xl-4 col-lg-6">
+
+                    <label asp-for="PurchaseOrderNumber"
+                           class="form-label">
+
+                        Customer PO Number
+
+                    </label>
+
+
+                    <div class="position-relative">
+
+                        <div class="input-group">
+
+                            <span class="input-group-text bg-white">
+
+                                <i class="fa-solid fa-file-lines"></i>
+
+                            </span>
+
+
+                            <input asp-for="PurchaseOrderNumber"
+                                   id="itemCustomerPOTrackingPOSearch"
+                                   class="form-control"
+                                   autocomplete="off"
+                                   placeholder="Type Customer PO Number" />
+
+                        </div>
+
+
+                        <div id="itemCustomerPOTrackingPOSuggestions"
+                             class="list-group
+                                    position-absolute
+                                    w-100
+                                    shadow
+                                    d-none"
+                             style="
+                                z-index:1050;
+                                max-height:280px;
+                                overflow-y:auto;">
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-text">
+                        Type at least 2 characters
+                    </div>
+
+                </div>
+
+
+                @* =================================================
+                   CUSTOMER
+                   ================================================= *@
+
+                <div class="col-xl-4 col-lg-6">
+
+                    <label asp-for="CustomerId"
+                           class="form-label">
+
+                        Customer
+
+                    </label>
+
+
+                    <select asp-for="CustomerId"
+                            asp-items="Model.Customers"
+                            class="form-select">
+                    </select>
+
+                </div>
+
+
+                @* =================================================
+                   PRIORITY
+                   ================================================= *@
+
+                <div class="col-xl-3 col-lg-6 col-md-6">
+
+                    <label asp-for="Priority"
+                           class="form-label">
+
+                        Priority
+
+                    </label>
+
+
+                    <select asp-for="Priority"
+                            asp-items="Model.Priorities"
+                            class="form-select">
+                    </select>
+
+                </div>
+
+
+                @* =================================================
+                   CUSTOMER PO STATUS
+                   ================================================= *@
+
+                <div class="col-xl-3 col-lg-6 col-md-6">
+
+                    <label asp-for="PurchaseOrderStatus"
+                           class="form-label">
+
+                        PO Status
+
+                    </label>
+
+
+                    <select asp-for="PurchaseOrderStatus"
+                            asp-items="Model.PurchaseOrderStatuses"
+                            class="form-select">
+                    </select>
+
+                </div>
+
+
+                @* =================================================
+                   PRODUCTION PO STATUS
+                   ================================================= *@
+
+                <div class="col-xl-3 col-lg-6 col-md-6">
+
+                    <label asp-for="ProductionPOStatus"
+                           class="form-label">
+
+                        Production PO Status
+
+                    </label>
+
+
+                    <select asp-for="ProductionPOStatus"
+                            asp-items="Model.ProductionPOStatuses"
+                            class="form-select">
+                    </select>
+
+                </div>
+
+
+                @* =================================================
+                   PO DATE FROM
+                   ================================================= *@
+
+                <div class="col-xl-3 col-lg-6 col-md-6">
+
+                    <label asp-for="PurchaseOrderDateFrom"
+                           class="form-label">
+
+                        PO Date From
+
+                    </label>
+
+
+                    <input type="date"
+                           name="PurchaseOrderDateFrom"
+                           value="@(Model.PurchaseOrderDateFrom?.ToString("yyyy-MM-dd"))"
+                           class="form-control" />
+
+                </div>
+
+
+                @* =================================================
+                   PO DATE TO
+                   ================================================= *@
+
+                <div class="col-xl-3 col-lg-6 col-md-6">
+
+                    <label asp-for="PurchaseOrderDateTo"
+                           class="form-label">
+
+                        PO Date To
+
+                    </label>
+
+
+                    <input type="date"
+                           name="PurchaseOrderDateTo"
+                           value="@(Model.PurchaseOrderDateTo?.ToString("yyyy-MM-dd"))"
+                           class="form-control" />
+
+                </div>
+
+            </div>
+
+
+            @* =====================================================
+               FILTER ACTIONS
+               ===================================================== *@
+
+            <div class="d-flex
+                        justify-content-end
+                        flex-wrap
+                        gap-2
+                        mt-4">
+
+                <a asp-action="Index"
+                   class="btn btn-outline-secondary">
+
+                    <i class="fa-solid fa-rotate-left me-1"></i>
+
+                    Reset
+
+                </a>
+
+
+                <button type="submit"
+                        class="btn btn-primary">
+
+                    <i class="fa-solid fa-magnifying-glass me-1"></i>
+
+                    Search
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   MAIN + PRIORITY SUMMARY
+   ========================================================= *@
+
+<div class="row g-3 mb-3">
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small mb-1">
+                    Customer POs
+                </div>
+
+                <div class="fs-4 fw-bold">
+                    @Model.TotalPurchaseOrders
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small mb-1">
+                    Total Ordered Qty
+                </div>
+
+                <div class="fs-4 fw-bold">
+
+                    @(Model.TotalOrderedQuantity.ToString("N3"))
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small mb-1">
+                    Critical POs
+                </div>
+
+                <div class="fs-4 fw-bold text-danger">
+
+                    @Model.CriticalPriorityPurchaseOrders
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small mb-1">
+                    Urgent POs
+                </div>
+
+                <div class="fs-4 fw-bold text-warning">
+
+                    @Model.UrgentPurchaseOrders
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small mb-1">
+                    High POs
+                </div>
+
+                <div class="fs-4 fw-bold">
+
+                    @Model.HighPriorityPurchaseOrders
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body">
+
+                <div class="text-muted small mb-1">
+                    Normal POs
+                </div>
+
+                <div class="fs-4 fw-bold">
+
+                    @Model.NormalPriorityPurchaseOrders
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   PRODUCTION PO SUMMARY
+   ========================================================= *@
+
+<div class="row g-3 mb-4">
+
+    <div class="col-lg-4">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body
+                        d-flex
+                        justify-content-between
+                        align-items-center">
+
+                <div>
+
+                    <div class="text-muted small mb-1">
+                        Production Pending POs
+                    </div>
+
+                    <div class="fs-4 fw-bold text-warning">
+
+                        @Model.ProductionPendingPurchaseOrders
+
+                    </div>
+
+                </div>
+
+
+                <i class="fa-solid
+                          fa-clock
+                          fa-2x
+                          text-muted">
+                </i>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-4">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body
+                        d-flex
+                        justify-content-between
+                        align-items-center">
+
+                <div>
+
+                    <div class="text-muted small mb-1">
+                        Production In Progress POs
+                    </div>
+
+                    <div class="fs-4 fw-bold text-primary">
+
+                        @Model.ProductionInProgressPurchaseOrders
+
+                    </div>
+
+                </div>
+
+
+                <i class="fa-solid
+                          fa-gears
+                          fa-2x
+                          text-muted">
+                </i>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="col-lg-4">
+
+        <div class="card shadow-sm border-0 h-100">
+
+            <div class="card-body
+                        d-flex
+                        justify-content-between
+                        align-items-center">
+
+                <div>
+
+                    <div class="text-muted small mb-1">
+                        Production Completed POs
+                    </div>
+
+                    <div class="fs-4 fw-bold text-success">
+
+                        @Model.ProductionCompletedPurchaseOrders
+
+                    </div>
+
+                </div>
+
+
+                <i class="fa-solid
+                          fa-circle-check
+                          fa-2x
+                          text-muted">
+                </i>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   RESULT TABLE
+   ========================================================= *@
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-header bg-white py-3">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <div>
+
+                <h5 class="fw-semibold mb-1">
+                    Customer PO Item Tracking
+                </h5>
+
+                <div class="text-muted small">
+
+                    Total Matching Rows:
+
+                    <strong>
+                        @results.TotalRecords
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th style="min-width:170px;">
+                            Customer PO No.
+                        </th>
+
+                        <th style="min-width:170px;">
+                            Customer
+                        </th>
+
+                        <th style="min-width:110px;">
+                            PO Date
+                        </th>
+
+                        <th style="min-width:120px;">
+                            Item Code
+                        </th>
+
+                        <th style="min-width:180px;">
+                            Item
+                        </th>
+
+                        <th style="min-width:140px;">
+                            Drawing No.
+                        </th>
+
+                        <th class="text-center"
+                            style="min-width:110px;">
+                            Drawing
+                        </th>
+
+                        <th class="text-end"
+                            style="min-width:120px;">
+                            Ordered Qty
+                        </th>
+
+                        <th style="min-width:125px;">
+                            Delivery Date
+                        </th>
+
+                        <th class="text-center"
+                            style="min-width:105px;">
+                            Priority
+                        </th>
+
+                        <th class="text-center"
+                            style="min-width:110px;">
+                            PO Status
+                        </th>
+
+                        <th class="text-center"
+                            style="min-width:160px;">
+                            Production Jobs
+                        </th>
+
+                        <th class="text-center"
+                            style="min-width:150px;">
+                            Production PO
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (results.Items == null ||
+                                        results.Items.Count == 0)
+                    {
+                        <tr>
+
+                            <td colspan="13"
+                                class="text-center
+                                           text-muted
+                                           py-5">
+
+                                <i class="fa-solid
+                                              fa-box-open
+                                              fa-2x
+                                              d-block
+                                              mb-3">
+                                </i>
+
+                                No Customer PO item records found.
+
+                            </td>
+
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in results.Items)
+                        {
+                            <tr>
+
+                                @* =================================
+                                   CUSTOMER PO
+                                   ================================= *@
+
+                                <td>
+
+                                    <a asp-controller="CustomerPurchaseOrder"
+                                       asp-action="Details"
+                                       asp-route-id="@item.CustomerPurchaseOrderId"
+                                       class="fw-semibold
+                                                      text-decoration-none">
+
+                                        @item.PurchaseOrderNumber
+
+                                    </a>
+
+                                </td>
+
+
+                                @* =================================
+                                   CUSTOMER
+                                   ================================= *@
+
+                                <td>
+
+                                    <span class="fw-semibold">
+                                        @item.CustomerName
+                                    </span>
+
+                                </td>
+
+
+                                @* =================================
+                                   PO DATE
+                                   ================================= *@
+
+                                <td class="text-nowrap">
+
+                                    @(item.PurchaseOrderDate.ToString("dd-MM-yyyy"))
+
+                                </td>
+
+
+                                @* =================================
+                                   ITEM CODE
+                                   ================================= *@
+
+                                <td>
+
+                                    @if (!string.IsNullOrWhiteSpace(item.ItemCode))
+                                    {
+                                        @item.ItemCode
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   ITEM NAME
+                                   ================================= *@
+
+                                <td>
+
+                                    <span class="fw-semibold">
+                                        @item.ItemName
+                                    </span>
+
+                                </td>
+
+
+                                @* =================================
+                                   DRAWING NUMBER
+                                   ================================= *@
+
+                                <td>
+
+                                    @if (!string.IsNullOrWhiteSpace(item.DrawingNumber))
+                                    {
+                                        <span class="fw-semibold">
+                                            @item.DrawingNumber
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   VIEW DRAWING
+                                   ================================= *@
+
+                                <td class="text-center">
+
+                                    @if (!string.IsNullOrWhiteSpace(item.DrawingFilePath))
+                                    {
+                                        <a href="@item.DrawingFilePath"
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           class="btn
+                                                              btn-sm
+                                                              btn-outline-primary">
+
+                                            <i class="fa-solid fa-eye me-1"></i>
+
+                                            View
+
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   ORDERED QUANTITY
+                                   ================================= *@
+
+                                <td class="text-end
+                                                   text-nowrap
+                                                   fw-semibold">
+
+                                    @(item.OrderedQuantity.ToString("N3"))
+
+                                </td>
+
+
+                                @* =================================
+                                   DELIVERY DATE
+                                   ================================= *@
+
+                                <td class="text-nowrap">
+
+                                    @(item.DeliveryDate.ToString("dd-MM-yyyy"))
+
+                                </td>
+
+
+                                @* =================================
+                                   PRIORITY
+                                   ================================= *@
+
+                                <td class="text-center">
+
+                                    @if (string.Equals(
+                                                                item.Priority,
+                                                                "Critical",
+                                                                StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge bg-danger">
+                                            Critical
+                                        </span>
+                                    }
+                                    else if (string.Equals(
+                                    item.Priority,
+                                    "Urgent",
+                                    StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge
+                                                                 bg-warning
+                                                                 text-dark">
+                                            Urgent
+                                        </span>
+                                    }
+                                    else if (string.Equals(
+                                    item.Priority,
+                                    "High",
+                                    StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge bg-primary">
+                                            High
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+                                            Normal
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   CUSTOMER PO STATUS
+                                   ================================= *@
+
+                                <td class="text-center">
+
+                                    @if (string.Equals(
+                                                                item.PurchaseOrderStatus,
+                                                                "Confirmed",
+                                                                StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge bg-success">
+                                            Confirmed
+                                        </span>
+                                    }
+                                    else if (string.Equals(
+                                    item.PurchaseOrderStatus,
+                                    "Draft",
+                                    StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge
+                                                                 bg-warning
+                                                                 text-dark">
+                                            Draft
+                                        </span>
+                                    }
+                                    else if (string.Equals(
+                                    item.PurchaseOrderStatus,
+                                    "Closed",
+                                    StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge bg-secondary">
+                                            Closed
+                                        </span>
+                                    }
+                                    else if (string.Equals(
+                                    item.PurchaseOrderStatus,
+                                    "Cancelled",
+                                    StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge bg-danger">
+                                            Cancelled
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+                                            @item.PurchaseOrderStatus
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   PRODUCTION JOB PROGRESS
+                                   ================================= *@
+
+                                <td class="text-center">
+
+                                    @if (item.TotalProductionJobs <= 0)
+                                    {
+                                        <span class="text-muted">
+                                            No Jobs
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <div class="fw-semibold">
+
+                                            @item.CompletedProductionJobs
+                                            /
+                                            @item.TotalProductionJobs
+                                            Completed
+
+                                        </div>
+
+
+                                        @if (item.CompletedProductionJobs ==
+                                                                    item.TotalProductionJobs)
+                                        {
+                                            <div class="small text-success">
+                                                All Jobs Completed
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="small text-muted">
+
+                                                @(item.TotalProductionJobs - item.CompletedProductionJobs)
+                                                Remaining
+
+                                            </div>
+                                        }
+                                    }
+
+                                </td>
+
+
+                                @* =================================
+                                   PRODUCTION PO STATUS
+                                   ================================= *@
+
+                                <td class="text-center">
+
+                                    @if (string.Equals(
+                                                                item.ProductionPOStatus,
+                                                                "Completed",
+                                                                StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge bg-success">
+
+                                            <i class="fa-solid fa-check me-1"></i>
+
+                                            Completed
+
+                                        </span>
+                                    }
+                                    else if (string.Equals(
+                                    item.ProductionPOStatus,
+                                    "In Progress",
+                                    StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="badge bg-primary">
+
+                                            <i class="fa-solid fa-gears me-1"></i>
+
+                                            In Progress
+
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge
+                                                                 bg-warning
+                                                                 text-dark">
+
+                                            <i class="fa-solid fa-clock me-1"></i>
+
+                                            Pending
+
+                                        </span>
+                                    }
+
+                                </td>
+
+                            </tr>
+                        }
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@* =========================================================
+   PAGINATION
+   ========================================================= *@
+
+@if (results.TotalRecords > 0)
+{
+    <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-3
+                    mt-3">
+
+        <div class="text-muted small">
+
+            Page
+
+            <strong>
+                @results.PageNumber
+            </strong>
+
+            of
+
+            <strong>
+                @results.TotalPages
+            </strong>
+
+            &nbsp;•&nbsp;
+
+            Total Records:
+
+            <strong>
+                @results.TotalRecords
+            </strong>
+
+        </div>
+
+
+        <div class="d-flex
+                        align-items-center
+                        flex-wrap
+                        gap-3">
+
+            @if (results.TotalPages > 1)
+            {
+                <nav aria-label="Item Customer PO Tracking pagination">
+
+                    <ul class="pagination
+                                       pagination-sm
+                                       mb-0">
+
+                        @* =====================================
+                           PREVIOUS
+                           ===================================== *@
+
+                        <li class="page-item
+                                           @(results.HasPrevious ? "" : "disabled")">
+
+                            <a class="page-link"
+                               asp-action="Index"
+                               asp-route-itemId="@Model.ItemId"
+                               asp-route-itemSearchText="@Model.ItemSearchText"
+                               asp-route-customerPurchaseOrderId="@Model.CustomerPurchaseOrderId"
+                               asp-route-purchaseOrderNumber="@Model.PurchaseOrderNumber"
+                               asp-route-customerId="@Model.CustomerId"
+                               asp-route-priority="@Model.Priority"
+                               asp-route-purchaseOrderStatus="@Model.PurchaseOrderStatus"
+                               asp-route-productionPOStatus="@Model.ProductionPOStatus"
+                               asp-route-purchaseOrderDateFrom="@(Model.PurchaseOrderDateFrom?.ToString("yyyy-MM-dd"))"
+                               asp-route-purchaseOrderDateTo="@(Model.PurchaseOrderDateTo?.ToString("yyyy-MM-dd"))"
+                               asp-route-pageNumber="@(results.PageNumber - 1)"
+                               asp-route-pageSize="@selectedPageSize">
+
+                                Previous
+
+                            </a>
+
+                        </li>
+
+
+                        @{
+                            var startPage =
+                            Math.Max(
+                            1,
+                            results.PageNumber - 2);
+
+                            var endPage =
+                            Math.Min(
+                            results.TotalPages,
+                            results.PageNumber + 2);
+                        }
+
+
+                        @for (var pageNo = startPage;
+                                        pageNo <= endPage;
+                                        pageNo++)
+                        {
+                            <li class="page-item
+                                                   @(pageNo == results.PageNumber ? "active" : "")">
+
+                                <a class="page-link"
+                                   asp-action="Index"
+                                   asp-route-itemId="@Model.ItemId"
+                                   asp-route-itemSearchText="@Model.ItemSearchText"
+                                   asp-route-customerPurchaseOrderId="@Model.CustomerPurchaseOrderId"
+                                   asp-route-purchaseOrderNumber="@Model.PurchaseOrderNumber"
+                                   asp-route-customerId="@Model.CustomerId"
+                                   asp-route-priority="@Model.Priority"
+                                   asp-route-purchaseOrderStatus="@Model.PurchaseOrderStatus"
+                                   asp-route-productionPOStatus="@Model.ProductionPOStatus"
+                                   asp-route-purchaseOrderDateFrom="@(Model.PurchaseOrderDateFrom?.ToString("yyyy-MM-dd"))"
+                                   asp-route-purchaseOrderDateTo="@(Model.PurchaseOrderDateTo?.ToString("yyyy-MM-dd"))"
+                                   asp-route-pageNumber="@pageNo"
+                                   asp-route-pageSize="@selectedPageSize">
+
+                                    @pageNo
+
+                                </a>
+
+                            </li>
+                        }
+
+
+                        @* =====================================
+                           NEXT
+                           ===================================== *@
+
+                        <li class="page-item
+                                           @(results.HasNext ? "" : "disabled")">
+
+                            <a class="page-link"
+                               asp-action="Index"
+                               asp-route-itemId="@Model.ItemId"
+                               asp-route-itemSearchText="@Model.ItemSearchText"
+                               asp-route-customerPurchaseOrderId="@Model.CustomerPurchaseOrderId"
+                               asp-route-purchaseOrderNumber="@Model.PurchaseOrderNumber"
+                               asp-route-customerId="@Model.CustomerId"
+                               asp-route-priority="@Model.Priority"
+                               asp-route-purchaseOrderStatus="@Model.PurchaseOrderStatus"
+                               asp-route-productionPOStatus="@Model.ProductionPOStatus"
+                               asp-route-purchaseOrderDateFrom="@(Model.PurchaseOrderDateFrom?.ToString("yyyy-MM-dd"))"
+                               asp-route-purchaseOrderDateTo="@(Model.PurchaseOrderDateTo?.ToString("yyyy-MM-dd"))"
+                               asp-route-pageNumber="@(results.PageNumber + 1)"
+                               asp-route-pageSize="@selectedPageSize">
+
+                                Next
+
+                            </a>
+
+                        </li>
+
+                    </ul>
+
+                </nav>
+            }
+
+
+            @* =================================================
+               PAGE SIZE
+               ================================================= *@
+
+            <form asp-action="Index"
+                  method="get"
+                  class="d-flex
+                             align-items-center
+                             gap-2">
+
+                <input type="hidden"
+                       name="itemId"
+                       value="@Model.ItemId" />
+
+                <input type="hidden"
+                       name="itemSearchText"
+                       value="@Model.ItemSearchText" />
+
+                <input type="hidden"
+                       name="customerPurchaseOrderId"
+                       value="@Model.CustomerPurchaseOrderId" />
+
+                <input type="hidden"
+                       name="purchaseOrderNumber"
+                       value="@Model.PurchaseOrderNumber" />
+
+                <input type="hidden"
+                       name="customerId"
+                       value="@Model.CustomerId" />
+
+                <input type="hidden"
+                       name="priority"
+                       value="@Model.Priority" />
+
+                <input type="hidden"
+                       name="purchaseOrderStatus"
+                       value="@Model.PurchaseOrderStatus" />
+
+                <input type="hidden"
+                       name="productionPOStatus"
+                       value="@Model.ProductionPOStatus" />
+
+                <input type="hidden"
+                       name="purchaseOrderDateFrom"
+                       value="@(Model.PurchaseOrderDateFrom?.ToString("yyyy-MM-dd"))" />
+
+                <input type="hidden"
+                       name="purchaseOrderDateTo"
+                       value="@(Model.PurchaseOrderDateTo?.ToString("yyyy-MM-dd"))" />
+
+                <input type="hidden"
+                       name="pageNumber"
+                       value="1" />
+
+
+                <label for="itemCustomerPOTrackingPageSize"
+                       class="small
+                                  text-muted
+                                  text-nowrap">
+
+                    Page Size
+
+                </label>
+
+
+                <select id="itemCustomerPOTrackingPageSize"
+                        name="pageSize"
+                        class="form-select form-select-sm"
+                        style="width:80px;">
+
+                    @if (selectedPageSize == 10)
+                    {
+                        <option value="10" selected>10</option>
+                    }
+                    else
+                    {
+                        <option value="10">10</option>
+                    }
+
+
+                    @if (selectedPageSize == 25)
+                    {
+                        <option value="25" selected>25</option>
+                    }
+                    else
+                    {
+                        <option value="25">25</option>
+                    }
+
+
+                    @if (selectedPageSize == 50)
+                    {
+                        <option value="50" selected>50</option>
+                    }
+                    else
+                    {
+                        <option value="50">50</option>
+                    }
+
+
+                    @if (selectedPageSize == 100)
+                    {
+                        <option value="100" selected>100</option>
+                    }
+                    else
+                    {
+                        <option value="100">100</option>
+                    }
+
+                </select>
+
+
+                <button type="submit"
+                        class="btn
+                                   btn-sm
+                                   btn-outline-secondary">
+
+                    Apply
+
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+}
+
+
+@* =========================================================
+   PAGE JAVASCRIPT
+   ========================================================= *@
+
+@section Scripts
+{
+    <script src="~/js/item-customer-po-tracking.js"
+            asp-append-version="true">
+    </script>
+}
