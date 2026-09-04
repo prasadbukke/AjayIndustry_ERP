@@ -8,10 +8,26 @@ Invoice
 Purpose:
 Handles Web requests for Invoice module.
 
+Current Invoice Source:
+
+Customer Purchase Order
+        ↓
+Production Job
+        ↓
+Production Job Item
+        ↓
+Invoice Item
+
+Invoice Source Identity:
+
+ProductionJobId
+        +
+CustomerPurchaseOrderItemId
+
 Responsibilities:
 - List and search Invoices.
 - Create Invoice from Customer Purchase Order.
-- Load Completed Production Jobs for selected Customer PO.
+- Load completed Production Items for selected Customer PO.
 - Display Customer / Company historical snapshots.
 - Allow editable Billing Address.
 - Accept Invoice Qty / Rate / Discount / GST.
@@ -23,21 +39,21 @@ Responsibilities:
 - Soft-delete and restore Draft Invoice.
 
 Important:
-- Business logic remains in InvoiceService.
-- Controller does not access database directly.
-- New Invoice source:
-  Customer PO → Completed Production Job → Invoice.
+- One Production Job may contain multiple Production Items.
+- Invoice quantity availability is Item-wise.
+- ProductionJobId alone is NOT an Invoice line identity.
+- CompletedQuantity is the trusted invoiceable quantity.
+- Current Production plan must be complete.
 - Delivery Challan is NOT mandatory.
 - PDI is NOT mandatory.
 - Missing PDI / Delivery Challan is warning-only.
 - Browser-posted source snapshot data is NOT trusted.
 - Financial calculations posted by browser are NOT trusted.
-- InvoiceService recalculates all authoritative amounts.
+- InvoiceService recalculates authoritative values.
 
 Temporary Compatibility:
 - InvoiceFormViewModel.AvailableDeliveryChallans is currently
   reused to carry Customer PO SelectListItems.
-- This will be renamed when InvoiceFormViewModel is updated.
 ============================================================
 */
 
@@ -134,7 +150,8 @@ namespace AjayIndustriesERP.Web.Controllers
             #region Preselected Customer PO
 
             if (
-                customerPurchaseOrderId.HasValue &&
+                customerPurchaseOrderId.HasValue
+                &&
                 customerPurchaseOrderId.Value > 0
             )
             {
@@ -151,6 +168,7 @@ namespace AjayIndustriesERP.Web.Controllers
                         TempData["ErrorMessage"] =
                             "Selected Customer Purchase Order is not available for Invoice.";
 
+
                         return RedirectToAction(
                             nameof(Index));
                     }
@@ -164,6 +182,7 @@ namespace AjayIndustriesERP.Web.Controllers
                 {
                     TempData["ErrorMessage"] =
                         ex.Message;
+
 
                     return RedirectToAction(
                         nameof(Index));
@@ -185,12 +204,8 @@ namespace AjayIndustriesERP.Web.Controllers
             #endregion
 
 
-            #region Customer PO Dropdown
-
             await PopulateAvailableCustomerPurchaseOrdersAsync(
                 viewModel);
-
-            #endregion
 
 
             return View(
@@ -208,21 +223,19 @@ namespace AjayIndustriesERP.Web.Controllers
             InvoiceFormViewModel viewModel,
             bool confirmSourceWarning = false)
         {
-            #region Model Validation
-
             if (!ModelState.IsValid)
             {
                 await RefreshFormSnapshotsAsync(
                     viewModel);
 
+
                 await PopulateAvailableCustomerPurchaseOrdersAsync(
                     viewModel);
+
 
                 return View(
                     viewModel);
             }
-
-            #endregion
 
 
             try
@@ -274,7 +287,7 @@ namespace AjayIndustriesERP.Web.Controllers
         #endregion
 
 
-        #region Customer PO / Production Job AJAX
+        #region Customer PO AJAX
 
         [HttpGet]
         public async Task<IActionResult>
@@ -284,7 +297,7 @@ namespace AjayIndustriesERP.Web.Controllers
         {
             try
             {
-                #region Load Customer PO
+                #region Customer PO
 
                 var customerPurchaseOrder =
                     await _invoiceService
@@ -307,10 +320,11 @@ namespace AjayIndustriesERP.Web.Controllers
                 #endregion
 
 
-                #region Master Snapshot Source
+                #region Snapshot Source
 
                 var shouldRefreshMasterData =
-                    !invoiceId.HasValue ||
+                    !invoiceId.HasValue
+                    ||
                     invoiceId.Value <= 0;
 
 
@@ -357,7 +371,7 @@ namespace AjayIndustriesERP.Web.Controllers
                 #endregion
 
 
-                #region Completed Production Jobs
+                #region Production Jobs
 
                 var productionJobs =
                     await _invoiceService
@@ -366,15 +380,18 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 /*
-                 * During Edit, currently selected Production
-                 * Jobs may not appear in normal availability
-                 * list because current Draft reserves them.
+                 * During Edit, current Draft already reserves
+                 * quantity.
                  *
-                 * Add those trusted Jobs back so Edit AJAX
-                 * can calculate quantity using exclusion.
+                 * Therefore its Production Jobs may not appear
+                 * in normal availability result.
+                 *
+                 * Add them back and use excludeInvoiceId when
+                 * calculating Item-wise quantity.
                  */
                 if (
-                    invoiceId.HasValue &&
+                    invoiceId.HasValue
+                    &&
                     invoiceId.Value > 0
                 )
                 {
@@ -386,20 +403,26 @@ namespace AjayIndustriesERP.Web.Controllers
 
                     if (currentInvoice != null)
                     {
-                        foreach (var currentItem
-                            in currentInvoice.Items
+                        var existingJobIds =
+                            currentInvoice
+                                .Items
                                 .Where(x =>
-                                    !x.IsDeleted &&
-                                    x.IsActive &&
-                                    x.ProductionJobId.HasValue &&
-                                    x.ProductionJobId.Value > 0))
+                                    !x.IsDeleted
+                                    &&
+                                    x.IsActive
+                                    &&
+                                    x.ProductionJobId.HasValue
+                                    &&
+                                    x.ProductionJobId.Value > 0)
+                                .Select(x =>
+                                    x.ProductionJobId!.Value)
+                                .Distinct()
+                                .ToList();
+
+
+                        foreach (var productionJobId
+                            in existingJobIds)
                         {
-                            var productionJobId =
-                                currentItem
-                                    .ProductionJobId
-                                    .Value;
-
-
                             if (productionJobs.Any(x =>
                                 x.Id ==
                                     productionJobId))
@@ -420,12 +443,8 @@ namespace AjayIndustriesERP.Web.Controllers
                             }
 
 
-                            var purchaseOrderId =
-                                GetCustomerPurchaseOrderId(
-                                    productionJob);
-
-
-                            if (purchaseOrderId != id)
+                            if (productionJob.CustomerPurchaseOrderId !=
+                                id)
                             {
                                 continue;
                             }
@@ -463,7 +482,7 @@ namespace AjayIndustriesERP.Web.Controllers
                 #endregion
 
 
-                #region Production Job Items
+                #region Production Items
 
                 var itemResults =
                     new List<object>();
@@ -478,283 +497,288 @@ namespace AjayIndustriesERP.Web.Controllers
                         .OrderBy(x =>
                             x.Id))
                 {
-                    var availableQuantity =
-                        await _invoiceService
-                            .GetRemainingInvoiceQuantityAsync(
-                                productionJob.Id,
-                                invoiceId);
-
-
-                    if (availableQuantity <= 0)
-                    {
-                        continue;
-                    }
-
-
-                    var productionQuantity =
-                        GetProductionQuantity(
+                    var completedProductionItems =
+                        GetCompletedProductionItems(
                             productionJob);
 
 
-                    var alreadyInvoicedQuantity =
-                        productionQuantity -
-                        availableQuantity;
-
-
-                    if (alreadyInvoicedQuantity < 0)
+                    foreach (var productionJobItem
+                        in completedProductionItems
+                            .OrderBy(x =>
+                                x.Id))
                     {
-                        alreadyInvoicedQuantity =
-                            0;
-                    }
+                        var customerPurchaseOrderItemId =
+                            productionJobItem
+                                .CustomerPurchaseOrderItemId;
 
 
-                    var poItem =
-                        GetPropertyValue(
-                            productionJob,
-                            "CustomerPurchaseOrderItem");
+                        var availableQuantity =
+                            await _invoiceService
+                                .GetRemainingInvoiceQuantityAsync(
+                                    productionJob.Id,
+                                    customerPurchaseOrderItemId,
+                                    invoiceId);
 
 
-                    var productionMasterItem =
-                        GetPropertyValue(
-                            productionJob,
-                            "Item");
-
-
-                    var poMasterItem =
-                        GetPropertyValue(
-                            poItem,
-                            "Item");
-
-
-                    var customerPurchaseOrderItemId =
-                        GetIntProperty(
-                            productionJob,
-                            "CustomerPurchaseOrderItemId")
-
-                        ??
-
-                        GetIntProperty(
-                            poItem,
-                            "Id")
-
-                        ??
-
-                        0;
-
-
-                    var itemId =
-                        GetIntProperty(
-                            productionJob,
-                            "ItemId")
-
-                        ??
-
-                        GetIntProperty(
-                            poItem,
-                            "ItemId")
-
-                        ??
-
-                        GetIntProperty(
-                            productionMasterItem,
-                            "Id")
-
-                        ??
-
-                        GetIntProperty(
-                            poMasterItem,
-                            "Id")
-
-                        ??
-
-                        0;
-
-
-                    var itemCode =
-                        FirstNonEmpty(
-                            GetStringProperty(
-                                productionJob,
-                                "ItemCode"),
-
-                            GetStringProperty(
-                                poItem,
-                                "ItemCode"),
-
-                            GetStringProperty(
-                                productionMasterItem,
-                                "Code",
-                                "ItemCode"),
-
-                            GetStringProperty(
-                                poMasterItem,
-                                "Code",
-                                "ItemCode"));
-
-
-                    var itemName =
-                        FirstNonEmpty(
-                            GetStringProperty(
-                                productionJob,
-                                "ItemName"),
-
-                            GetStringProperty(
-                                poItem,
-                                "ItemName"),
-
-                            GetStringProperty(
-                                productionMasterItem,
-                                "ItemName",
-                                "Name"),
-
-                            GetStringProperty(
-                                poMasterItem,
-                                "ItemName",
-                                "Name"));
-
-
-                    var partNumber =
-                        FirstNonEmpty(
-                            GetStringProperty(
-                                productionJob,
-                                "PartNumber"),
-
-                            GetStringProperty(
-                                poItem,
-                                "PartNumber"),
-
-                            GetStringProperty(
-                                productionMasterItem,
-                                "PartNumber"),
-
-                            GetStringProperty(
-                                poMasterItem,
-                                "PartNumber"));
-
-
-                    var customerItemCode =
-                        FirstNonEmpty(
-                            GetStringProperty(
-                                productionJob,
-                                "CustomerItemCode"),
-
-                            GetStringProperty(
-                                poItem,
-                                "CustomerItemCode"));
-
-
-                    var unitName =
-                        FirstNonEmpty(
-                            GetStringProperty(
-                                productionJob,
-                                "UnitName",
-                                "UomName",
-                                "UOMName"),
-
-                            GetStringProperty(
-                                poItem,
-                                "UnitName",
-                                "UomName",
-                                "UOMName"),
-
-                            GetStringProperty(
-                                productionMasterItem,
-                                "UnitName",
-                                "UomName",
-                                "UOMName"),
-
-                            GetStringProperty(
-                                poMasterItem,
-                                "UnitName",
-                                "UomName",
-                                "UOMName"));
-
-
-                    var hsnNumber =
-                        FirstNonEmpty(
-                            GetStringProperty(
-                                productionJob,
-                                "HsnNumber",
-                                "HSNNumber",
-                                "HsnCode"),
-
-                            GetStringProperty(
-                                poItem,
-                                "HsnNumber",
-                                "HSNNumber",
-                                "HsnCode"),
-
-                            GetStringProperty(
-                                productionMasterItem,
-                                "HsnNumber",
-                                "HSNNumber",
-                                "HsnCode"),
-
-                            GetStringProperty(
-                                poMasterItem,
-                                "HsnNumber",
-                                "HSNNumber",
-                                "HsnCode"));
-
-
-                    itemResults.Add(
-                        new
+                        if (availableQuantity <= 0m)
                         {
-                            productionJobId =
-                                productionJob.Id,
-
-                            productionJobCode =
-                                GetProductionJobCode(
-                                    productionJob),
-
-                            productionQuantity,
-
-                            alreadyInvoicedQuantity,
-
-                            availableQuantity,
-
-                            requiresWarning =
-                                warningSet.Contains(
-                                    productionJob.Id),
+                            continue;
+                        }
 
 
-                            productReference =
-                                FirstNonEmpty(
-                                    GetStringProperty(
-                                        productionJob,
-                                        "ProductReference",
-                                        "ProductRef"),
-
-                                    GetStringProperty(
-                                        poItem,
-                                        "ProductReference",
-                                        "ProductRef")),
+                        /*
+                         * CompletedQuantity is the actual
+                         * invoiceable Production quantity.
+                         */
+                        var productionQuantity =
+                            productionJobItem
+                                .CompletedQuantity;
 
 
-                            itemId,
-
-                            itemCode,
-
-                            itemName,
-
-                            partNumber,
-
-                            customerItemCode,
-
-                            unitName,
-
-                            hsnNumber,
+                        var alreadyInvoicedQuantity =
+                            productionQuantity
+                            -
+                            availableQuantity;
 
 
-                            customerPurchaseOrderItemId,
+                        if (alreadyInvoicedQuantity < 0m)
+                        {
+                            alreadyInvoicedQuantity =
+                                0m;
+                        }
 
-                            customerPurchaseOrderCode =
-                                GetCustomerPurchaseOrderCode(
-                                    customerPurchaseOrder),
 
-                            customerPurchaseOrderNumber =
-                                GetCustomerPurchaseOrderNumber(
-                                    customerPurchaseOrder)
-                        });
+                        var poItem =
+                            GetPropertyValue(
+                                productionJobItem,
+                                "CustomerPurchaseOrderItem");
+
+
+                        var productionMasterItem =
+                            GetPropertyValue(
+                                productionJobItem,
+                                "Item");
+
+
+                        var poMasterItem =
+                            GetPropertyValue(
+                                poItem,
+                                "Item");
+
+
+                        var itemId =
+                            productionJobItem.ItemId;
+
+
+                        var itemCode =
+                            FirstNonEmpty(
+                                productionJobItem.ItemCode,
+
+                                GetStringProperty(
+                                    poItem,
+                                    "ItemCode"),
+
+                                GetStringProperty(
+                                    productionMasterItem,
+                                    "Code",
+                                    "ItemCode"),
+
+                                GetStringProperty(
+                                    poMasterItem,
+                                    "Code",
+                                    "ItemCode"));
+
+
+                        var itemName =
+                            FirstNonEmpty(
+                                productionJobItem.ItemName,
+
+                                GetStringProperty(
+                                    poItem,
+                                    "ItemName"),
+
+                                GetStringProperty(
+                                    productionMasterItem,
+                                    "ItemName",
+                                    "Name"),
+
+                                GetStringProperty(
+                                    poMasterItem,
+                                    "ItemName",
+                                    "Name"));
+
+
+                        var partNumber =
+                            FirstNonEmpty(
+                                GetStringProperty(
+                                    productionJobItem,
+                                    "PartNumber"),
+
+                                GetStringProperty(
+                                    poItem,
+                                    "PartNumber"),
+
+                                GetStringProperty(
+                                    productionMasterItem,
+                                    "PartNumber"),
+
+                                GetStringProperty(
+                                    poMasterItem,
+                                    "PartNumber"));
+
+
+                        var customerItemCode =
+                            FirstNonEmpty(
+                                GetStringProperty(
+                                    poItem,
+                                    "CustomerItemCode"),
+
+                                GetStringProperty(
+                                    productionJobItem,
+                                    "CustomerItemCode"));
+
+
+                        var unitName =
+                            FirstNonEmpty(
+                                productionJobItem.UnitName,
+
+                                GetStringProperty(
+                                    poItem,
+                                    "UnitName",
+                                    "UomName",
+                                    "UOMName"),
+
+                                GetStringProperty(
+                                    productionMasterItem,
+                                    "UnitName",
+                                    "UomName",
+                                    "UOMName"),
+
+                                GetStringProperty(
+                                    poMasterItem,
+                                    "UnitName",
+                                    "UomName",
+                                    "UOMName"));
+
+
+                        var hsnNumber =
+                            FirstNonEmpty(
+                                GetStringProperty(
+                                    productionJobItem,
+                                    "HsnNumber",
+                                    "HSNNumber",
+                                    "HsnCode",
+                                    "HSNCode"),
+
+                                GetStringProperty(
+                                    poItem,
+                                    "HsnNumber",
+                                    "HSNNumber",
+                                    "HsnCode",
+                                    "HSNCode"),
+
+                                GetStringProperty(
+                                    productionMasterItem,
+                                    "HsnNumber",
+                                    "HSNNumber",
+                                    "HsnCode",
+                                    "HSNCode"),
+
+                                GetStringProperty(
+                                    poMasterItem,
+                                    "HsnNumber",
+                                    "HSNNumber",
+                                    "HsnCode",
+                                    "HSNCode"));
+
+
+                        var productReference =
+                            FirstNonEmpty(
+                                GetStringProperty(
+                                    productionJobItem,
+                                    "ProductReference",
+                                    "ProductRef"),
+
+                                GetStringProperty(
+                                    poItem,
+                                    "ProductReference",
+                                    "ProductRef"),
+
+                                GetStringProperty(
+                                    productionMasterItem,
+                                    "ProductReference",
+                                    "ProductRef"),
+
+                                GetStringProperty(
+                                    poMasterItem,
+                                    "ProductReference",
+                                    "ProductRef"));
+
+
+                        itemResults.Add(
+                            new
+                            {
+                                // =============================
+                                // Production Source
+                                // =============================
+
+                                productionJobId =
+                                    productionJob.Id,
+
+                                productionJobCode =
+                                    GetProductionJobCode(
+                                        productionJob),
+
+                                productionJobItemId =
+                                    productionJobItem.Id,
+
+                                productionQuantity,
+
+                                alreadyInvoicedQuantity,
+
+                                availableQuantity,
+
+                                requiresWarning =
+                                    warningSet.Contains(
+                                        productionJob.Id),
+
+
+                                // =============================
+                                // Item
+                                // =============================
+
+                                productReference,
+
+                                itemId,
+
+                                itemCode,
+
+                                itemName,
+
+                                partNumber,
+
+                                customerItemCode,
+
+                                unitName,
+
+                                hsnNumber,
+
+
+                                // =============================
+                                // Customer PO Item
+                                // =============================
+
+                                customerPurchaseOrderItemId,
+
+                                customerPurchaseOrderCode =
+                                    GetCustomerPurchaseOrderCode(
+                                        customerPurchaseOrder),
+
+                                customerPurchaseOrderNumber =
+                                    GetCustomerPurchaseOrderNumber(
+                                        customerPurchaseOrder)
+                            });
+                    }
                 }
 
                 #endregion
@@ -773,7 +797,7 @@ namespace AjayIndustriesERP.Web.Controllers
                 }
 
 
-                #region Customer Source
+                #region Customer
 
                 var customer =
                     GetPropertyValue(
@@ -811,7 +835,7 @@ namespace AjayIndustriesERP.Web.Controllers
                 #endregion
 
 
-                #region Response
+                #region JSON Response
 
                 return Json(
                     new
@@ -820,7 +844,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                         // =====================================
-                        // Customer Purchase Order
+                        // Customer PO
                         // =====================================
 
                         customerPurchaseOrderId =
@@ -852,7 +876,6 @@ namespace AjayIndustriesERP.Web.Controllers
                         customerId,
 
                         customerName,
-
 
                         customerCode =
                             GetSnapshotString(
@@ -1005,7 +1028,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                         // =====================================
-                        // Bank Details
+                        // Bank
                         // =====================================
 
                         bankName =
@@ -1059,7 +1082,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                         // =====================================
-                        // Lines
+                        // Invoice Lines
                         // =====================================
 
                         items =
@@ -1150,8 +1173,6 @@ namespace AjayIndustriesERP.Web.Controllers
             }
 
 
-            #region Model Validation
-
             if (!ModelState.IsValid)
             {
                 await RefreshFormSnapshotsAsync(
@@ -1167,8 +1188,6 @@ namespace AjayIndustriesERP.Web.Controllers
                 return View(
                     viewModel);
             }
-
-            #endregion
 
 
             try
@@ -1240,12 +1259,6 @@ namespace AjayIndustriesERP.Web.Controllers
             }
 
 
-            #region Source Warning
-
-            /*
-             * Warning is relevant only while Invoice
-             * is still Draft and can be finalized.
-             */
             var requiresSourceWarning =
                 false;
 
@@ -1256,9 +1269,12 @@ namespace AjayIndustriesERP.Web.Controllers
                 var productionJobIds =
                     invoice.Items
                         .Where(x =>
-                            !x.IsDeleted &&
-                            x.IsActive &&
-                            x.ProductionJobId.HasValue &&
+                            !x.IsDeleted
+                            &&
+                            x.IsActive
+                            &&
+                            x.ProductionJobId.HasValue
+                            &&
                             x.ProductionJobId.Value > 0)
                         .Select(x =>
                             x.ProductionJobId!.Value)
@@ -1275,15 +1291,14 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                     requiresSourceWarning =
-                        warningProductionJobIds.Any();
+                        warningProductionJobIds
+                            .Any();
                 }
             }
 
 
             ViewBag.RequiresSourceWarning =
                 requiresSourceWarning;
-
-            #endregion
 
 
             var viewModel =
@@ -1481,17 +1496,15 @@ namespace AjayIndustriesERP.Web.Controllers
                 InvoiceFormViewModel viewModel,
                 int? excludeInvoiceId = null)
         {
-            #region Available Sources
-
             var customerPurchaseOrders =
                 await _invoiceService
                     .GetCustomerPurchaseOrdersForInvoiceAsync();
 
-            #endregion
 
-
-            #region Selected Customer PO Sources
-
+            /*
+             * Determine Customer PO currently selected
+             * through existing Invoice lines.
+             */
             var selectedCustomerPurchaseOrderIds =
                 new HashSet<int>();
 
@@ -1506,7 +1519,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 if (
-                    !productionJobId.HasValue ||
+                    !productionJobId.HasValue
+                    ||
                     productionJobId.Value <= 0
                 )
                 {
@@ -1526,28 +1540,26 @@ namespace AjayIndustriesERP.Web.Controllers
                 }
 
 
-                var customerPurchaseOrderId =
-                    GetCustomerPurchaseOrderId(
-                        productionJob);
-
-
-                if (customerPurchaseOrderId > 0)
+                if (productionJob.CustomerPurchaseOrderId > 0)
                 {
                     selectedCustomerPurchaseOrderIds.Add(
-                        customerPurchaseOrderId);
+                        productionJob
+                            .CustomerPurchaseOrderId);
                 }
             }
 
-            #endregion
 
-
-            #region Ensure Selected PO Exists In Dropdown
-
+            /*
+             * During Edit, selected PO might not be present
+             * in normal available list because this Draft
+             * itself reserves its quantity.
+             */
             foreach (var selectedId
                 in selectedCustomerPurchaseOrderIds)
             {
                 if (customerPurchaseOrders.Any(x =>
-                    x.Id == selectedId))
+                    x.Id ==
+                        selectedId))
                 {
                     continue;
                 }
@@ -1566,17 +1578,14 @@ namespace AjayIndustriesERP.Web.Controllers
                 }
             }
 
-            #endregion
-
-
-            #region Select List
 
             var options =
                 new List<SelectListItem>
                 {
                     new()
                     {
-                        Value = "",
+                        Value =
+                            "",
 
                         Text =
                             "-- Select Customer Purchase Order --"
@@ -1586,6 +1595,10 @@ namespace AjayIndustriesERP.Web.Controllers
 
             foreach (var customerPurchaseOrder
                 in customerPurchaseOrders
+                    .GroupBy(x =>
+                        x.Id)
+                    .Select(x =>
+                        x.First())
                     .OrderByDescending(x =>
                         GetDateProperty(
                             x,
@@ -1596,44 +1609,41 @@ namespace AjayIndustriesERP.Web.Controllers
                     .ThenByDescending(x =>
                         x.Id))
             {
-                var productionJobIds =
-                    new HashSet<int>();
-
-
-                var availableJobs =
+                var productionJobs =
                     await _invoiceService
                         .GetCompletedProductionJobsForInvoiceAsync(
                             customerPurchaseOrder.Id);
 
 
-                foreach (var job
-                    in availableJobs)
-                {
-                    productionJobIds.Add(
-                        job.Id);
-                }
-
-
                 /*
-                 * Add existing Edit lines so current Invoice
-                 * quantity becomes available after exclusion.
+                 * During Edit add current Invoice Production
+                 * Jobs back if required.
                  */
                 if (selectedCustomerPurchaseOrderIds.Contains(
                     customerPurchaseOrder.Id))
                 {
-                    foreach (var item
+                    foreach (var formItem
                         in viewModel.Items)
                     {
                         var productionJobId =
                             GetIntProperty(
-                                item,
+                                formItem,
                                 "ProductionJobId");
 
 
                         if (
-                            !productionJobId.HasValue ||
+                            !productionJobId.HasValue
+                            ||
                             productionJobId.Value <= 0
                         )
+                        {
+                            continue;
+                        }
+
+
+                        if (productionJobs.Any(x =>
+                            x.Id ==
+                                productionJobId.Value))
                         {
                             continue;
                         }
@@ -1651,40 +1661,63 @@ namespace AjayIndustriesERP.Web.Controllers
                         }
 
 
-                        if (GetCustomerPurchaseOrderId(
-                                productionJob) !=
+                        if (productionJob.CustomerPurchaseOrderId !=
                             customerPurchaseOrder.Id)
                         {
                             continue;
                         }
 
 
-                        productionJobIds.Add(
-                            productionJobId.Value);
+                        productionJobs.Add(
+                            productionJob);
                     }
                 }
 
 
                 decimal totalAvailable =
-                    0;
+                    0m;
 
 
-                foreach (var productionJobId
-                    in productionJobIds)
+                foreach (var productionJob
+                    in productionJobs
+                        .GroupBy(x =>
+                            x.Id)
+                        .Select(x =>
+                            x.First()))
                 {
-                    totalAvailable +=
-                        await _invoiceService
-                            .GetRemainingInvoiceQuantityAsync(
-                                productionJobId,
-                                excludeInvoiceId);
+                    var productionItems =
+                        GetCompletedProductionItems(
+                            productionJob);
+
+
+                    foreach (var productionJobItem
+                        in productionItems)
+                    {
+                        try
+                        {
+                            totalAvailable +=
+                                await _invoiceService
+                                    .GetRemainingInvoiceQuantityAsync(
+                                        productionJob.Id,
+                                        productionJobItem
+                                            .CustomerPurchaseOrderItemId,
+                                        excludeInvoiceId);
+                        }
+                        catch (BusinessException)
+                        {
+                            /*
+                             * Skip invalid/unavailable source.
+                             */
+                        }
+                    }
                 }
 
 
                 if (
-                    totalAvailable <= 0 &&
-                    !selectedCustomerPurchaseOrderIds
-                        .Contains(
-                            customerPurchaseOrder.Id)
+                    totalAvailable <= 0m
+                    &&
+                    !selectedCustomerPurchaseOrderIds.Contains(
+                        customerPurchaseOrder.Id)
                 )
                 {
                     continue;
@@ -1730,50 +1763,51 @@ namespace AjayIndustriesERP.Web.Controllers
                     new SelectListItem
                     {
                         Value =
-                            customerPurchaseOrder.Id
+                            customerPurchaseOrder
+                                .Id
                                 .ToString(),
 
                         Text =
-                            $"{poDisplay}" +
+                            $"{poDisplay}"
+                            +
                             (
                                 string.IsNullOrWhiteSpace(
                                     customerName)
                                     ? string.Empty
                                     : $" | {customerName}"
-                            ) +
+                            )
+                            +
                             $" | Available: {totalAvailable:0.###}",
 
                         Selected =
-                            selectedCustomerPurchaseOrderIds
-                                .Contains(
-                                    customerPurchaseOrder.Id)
+                            selectedCustomerPurchaseOrderIds.Contains(
+                                customerPurchaseOrder.Id)
                     });
             }
 
 
             /*
-             * Temporary property name from old DC flow.
-             * It now contains Customer PO options.
+             * Temporary old property name.
+             * Currently stores Customer PO options.
              */
             viewModel.AvailableDeliveryChallans =
                 options;
-
-            #endregion
         }
 
         #endregion
 
 
-        #region Form Snapshot Refresh
+        #region Refresh Form Snapshots
 
         private async Task RefreshFormSnapshotsAsync(
             InvoiceFormViewModel viewModel,
             int? excludeInvoiceId = null)
         {
-            #region Restore Header Snapshots
+            #region Header Snapshots
 
             if (
-                viewModel.Id > 0 &&
+                viewModel.Id > 0
+                &&
                 excludeInvoiceId.HasValue
             )
             {
@@ -1827,7 +1861,8 @@ namespace AjayIndustriesERP.Web.Controllers
                                 x,
                                 "ProductionJobId"))
                         .FirstOrDefault(x =>
-                            x.HasValue &&
+                            x.HasValue
+                            &&
                             x.Value > 0);
 
 
@@ -1844,8 +1879,8 @@ namespace AjayIndustriesERP.Web.Controllers
                         if (productionJob != null)
                         {
                             var customerPurchaseOrderId =
-                                GetCustomerPurchaseOrderId(
-                                    productionJob);
+                                productionJob
+                                    .CustomerPurchaseOrderId;
 
 
                             var preparedDraft =
@@ -1892,7 +1927,9 @@ namespace AjayIndustriesERP.Web.Controllers
                     }
                     catch (BusinessException)
                     {
-                        // Keep submitted form data.
+                        /*
+                         * Keep submitted form values.
+                         */
                     }
                 }
             }
@@ -1900,7 +1937,7 @@ namespace AjayIndustriesERP.Web.Controllers
             #endregion
 
 
-            #region Refresh Production Quantities
+            #region Refresh Item Quantities
 
             var sequenceNumber =
                 1;
@@ -1919,9 +1956,20 @@ namespace AjayIndustriesERP.Web.Controllers
                         "ProductionJobId");
 
 
+                var customerPurchaseOrderItemId =
+                    GetIntProperty(
+                        item,
+                        "CustomerPurchaseOrderItemId");
+
+
                 if (
-                    !productionJobId.HasValue ||
+                    !productionJobId.HasValue
+                    ||
                     productionJobId.Value <= 0
+                    ||
+                    !customerPurchaseOrderItemId.HasValue
+                    ||
+                    customerPurchaseOrderItemId.Value <= 0
                 )
                 {
                     continue;
@@ -1942,48 +1990,58 @@ namespace AjayIndustriesERP.Web.Controllers
                     }
 
 
+                    var productionJobItem =
+                        FindProductionJobItem(
+                            productionJob,
+                            customerPurchaseOrderItemId.Value);
+
+
+                    if (productionJobItem == null)
+                    {
+                        continue;
+                    }
+
+
                     var availableQuantity =
                         await _invoiceService
                             .GetRemainingInvoiceQuantityAsync(
                                 productionJobId.Value,
+                                customerPurchaseOrderItemId.Value,
                                 excludeInvoiceId);
 
 
                     var productionQuantity =
-                        GetProductionQuantity(
-                            productionJob);
+                        productionJobItem
+                            .CompletedQuantity;
 
 
                     var alreadyInvoicedQuantity =
-                        productionQuantity -
+                        productionQuantity
+                        -
                         availableQuantity;
 
 
-                    if (alreadyInvoicedQuantity < 0)
+                    if (alreadyInvoicedQuantity < 0m)
                     {
                         alreadyInvoicedQuantity =
-                            0;
+                            0m;
                     }
 
+
+                    item.ProductionQuantity =
+                        productionQuantity;
 
                     item.AvailableQuantity =
                         availableQuantity;
 
                     item.AlreadyInvoicedQuantity =
                         alreadyInvoicedQuantity;
-
-
-                    /*
-                     * Browser-posted line snapshot display
-                     * values are left intact here.
-                     *
-                     * InvoiceService rebuilds authoritative
-                     * source snapshots before persistence.
-                     */
                 }
                 catch (BusinessException)
                 {
-                    // Keep submitted form line.
+                    /*
+                     * Keep submitted line visible.
+                     */
                 }
             }
 
@@ -2034,7 +2092,8 @@ namespace AjayIndustriesERP.Web.Controllers
                         viewModel.OtherCharges,
 
                     InvoiceTermsAndConditions =
-                        viewModel.InvoiceTermsAndConditions,
+                        viewModel
+                            .InvoiceTermsAndConditions,
 
                     Remarks =
                         viewModel.Remarks
@@ -2055,13 +2114,16 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                         /*
-                         * Production Job is now the
-                         * authoritative Invoice source.
+                         * CRITICAL:
+                         *
+                         * Both values form the trusted
+                         * Production Item source identity.
                          */
                         ProductionJobId =
-                            GetIntProperty(
-                                item,
-                                "ProductionJobId"),
+                            item.ProductionJobId,
+
+                        CustomerPurchaseOrderItemId =
+                            item.CustomerPurchaseOrderItemId,
 
 
                         InvoiceQuantity =
@@ -2210,44 +2272,34 @@ namespace AjayIndustriesERP.Web.Controllers
             #endregion
 
 
-            #region Customer Snapshot
-
             ApplyCustomerSnapshotToForm(
                 viewModel,
                 invoice.CustomerSnapshotJson);
 
-            #endregion
-
-
-            #region Company Snapshot
 
             ApplyCompanySnapshotToForm(
                 viewModel,
                 invoice.CompanySnapshotJson);
 
-            #endregion
-
-
-            #region Active Items
 
             var activeItems =
                 invoice.Items
                     .Where(x =>
-                        !x.IsDeleted &&
+                        !x.IsDeleted
+                        &&
                         x.IsActive)
                     .OrderBy(x =>
                         x.SequenceNumber)
                     .ToList();
 
-            #endregion
 
-
-            #region Source Warning Status
+            #region Warning Status
 
             var productionJobIds =
                 activeItems
                     .Where(x =>
-                        x.ProductionJobId.HasValue &&
+                        x.ProductionJobId.HasValue
+                        &&
                         x.ProductionJobId.Value > 0)
                     .Select(x =>
                         x.ProductionJobId!.Value)
@@ -2278,18 +2330,24 @@ namespace AjayIndustriesERP.Web.Controllers
                         .GetValueOrDefault();
 
 
-                decimal productionQuantity =
+                var customerPurchaseOrderItemId =
+                    item.CustomerPurchaseOrderItemId
+                        .GetValueOrDefault();
+
+
+                var productionQuantity =
                     item.InvoiceQuantity;
 
 
-                decimal availableQuantity =
+                var availableQuantity =
                     item.InvoiceQuantity;
 
 
-                /*
-                 * Production Job is now authoritative source.
-                 */
-                if (productionJobId > 0)
+                if (
+                    productionJobId > 0
+                    &&
+                    customerPurchaseOrderItemId > 0
+                )
                 {
                     try
                     {
@@ -2297,6 +2355,7 @@ namespace AjayIndustriesERP.Web.Controllers
                             await _invoiceService
                                 .GetRemainingInvoiceQuantityAsync(
                                     productionJobId,
+                                    customerPurchaseOrderItemId,
                                     excludeInvoiceId);
 
 
@@ -2308,31 +2367,40 @@ namespace AjayIndustriesERP.Web.Controllers
 
                         if (productionJob != null)
                         {
-                            productionQuantity =
-                                GetProductionQuantity(
-                                    productionJob);
+                            var productionJobItem =
+                                FindProductionJobItem(
+                                    productionJob,
+                                    customerPurchaseOrderItemId);
 
 
-                            /*
-                             * Important:
-                             *
-                             * Set selected Customer PO so Create/Edit
-                             * dropdown displays correct PO.
-                             */
+                            if (productionJobItem != null)
+                            {
+                                productionQuantity =
+                                    productionJobItem
+                                        .CompletedQuantity;
+                            }
+
+
                             if (
-                                !viewModel.CustomerPurchaseOrderId.HasValue ||
-                                viewModel.CustomerPurchaseOrderId.Value <= 0
+                                !viewModel
+                                    .CustomerPurchaseOrderId
+                                    .HasValue
+                                ||
+                                viewModel
+                                    .CustomerPurchaseOrderId
+                                    .Value <= 0
                             )
                             {
-                                var customerPurchaseOrderId =
-                                    GetCustomerPurchaseOrderId(
-                                        productionJob);
-
-
-                                if (customerPurchaseOrderId > 0)
+                                if (
+                                    productionJob
+                                        .CustomerPurchaseOrderId
+                                    > 0
+                                )
                                 {
-                                    viewModel.CustomerPurchaseOrderId =
-                                        customerPurchaseOrderId;
+                                    viewModel
+                                        .CustomerPurchaseOrderId =
+                                            productionJob
+                                                .CustomerPurchaseOrderId;
                                 }
                             }
                         }
@@ -2340,23 +2408,24 @@ namespace AjayIndustriesERP.Web.Controllers
                     catch (BusinessException)
                     {
                         /*
-                         * Keep historical Invoice line visible
-                         * even if Production source later becomes
-                         * unavailable.
+                         * Historical Invoice line must remain
+                         * visible even when Production source
+                         * later becomes unavailable.
                          */
                     }
                 }
 
 
                 var alreadyInvoicedQuantity =
-                    productionQuantity -
+                    productionQuantity
+                    -
                     availableQuantity;
 
 
-                if (alreadyInvoicedQuantity < 0)
+                if (alreadyInvoicedQuantity < 0m)
                 {
                     alreadyInvoicedQuantity =
-                        0;
+                        0m;
                 }
 
 
@@ -2390,7 +2459,8 @@ namespace AjayIndustriesERP.Web.Controllers
                             availableQuantity,
 
                         RequiresSourceWarning =
-                            productionJobId > 0 &&
+                            productionJobId > 0
+                            &&
                             warningSet.Contains(
                                 productionJobId),
 
@@ -2425,7 +2495,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                         // =====================================
-                        // Customer PO Snapshot
+                        // Customer PO Item
                         // =====================================
 
                         CustomerPurchaseOrderItemId =
@@ -2456,7 +2526,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                         // =====================================
-                        // Commercial Values
+                        // Commercial
                         // =====================================
 
                         InvoiceQuantity =
@@ -2868,7 +2938,7 @@ namespace AjayIndustriesERP.Web.Controllers
                     #endregion
 
 
-                    #region Payment / GST
+                    #region Payment GST
 
                     PaymentTerms =
                         invoice.PaymentTerms,
@@ -2936,12 +3006,11 @@ namespace AjayIndustriesERP.Web.Controllers
                 };
 
 
-            #region Items
-
             foreach (var item
                 in invoice.Items
                     .Where(x =>
-                        !x.IsDeleted &&
+                        !x.IsDeleted
+                        &&
                         x.IsActive)
                     .OrderBy(x =>
                         x.SequenceNumber))
@@ -2956,9 +3025,6 @@ namespace AjayIndustriesERP.Web.Controllers
                             item.SequenceNumber,
 
 
-                        /*
-                         * Optional historical DC values.
-                         */
                         DeliveryChallanId =
                             item.DeliveryChallanId
                                 .GetValueOrDefault(),
@@ -3069,8 +3135,6 @@ namespace AjayIndustriesERP.Web.Controllers
                     });
             }
 
-            #endregion
-
 
             return viewModel;
         }
@@ -3078,102 +3142,76 @@ namespace AjayIndustriesERP.Web.Controllers
         #endregion
 
 
-        #region Production Source Helpers
+        #region Production Item Helpers
 
-        private static int GetCustomerPurchaseOrderId(
-            ProductionJob productionJob)
+        private static List<ProductionJobItem>
+            GetCompletedProductionItems(
+                ProductionJob productionJob)
         {
-            var directId =
-                GetIntProperty(
-                    productionJob,
-                    "CustomerPurchaseOrderId",
-                    "CustomerPOId",
-                    "PurchaseOrderId");
-
-
-            if (
-                directId.HasValue &&
-                directId.Value > 0
-            )
+            if (productionJob.Items == null)
             {
-                return directId.Value;
+                return new List<ProductionJobItem>();
             }
 
 
-            var poItem =
-                GetPropertyValue(
-                    productionJob,
-                    "CustomerPurchaseOrderItem");
-
-
-            var poId =
-                GetIntProperty(
-                    poItem,
-                    "CustomerPurchaseOrderId",
-                    "CustomerPOId",
-                    "PurchaseOrderId");
-
-
-            if (
-                poId.HasValue &&
-                poId.Value > 0
-            )
-            {
-                return poId.Value;
-            }
-
-
-            var customerPurchaseOrder =
-                GetPropertyValue(
-                    poItem,
-                    "CustomerPurchaseOrder",
-                    "PurchaseOrder");
-
-
-            return GetIntProperty(
-                customerPurchaseOrder,
-                "Id")
-
-                ?? 0;
+            return productionJob
+                .Items
+                .Where(x =>
+                    !x.IsDeleted
+                    &&
+                    x.IsActive
+                    &&
+                    x.ProductionQuantity > 0m
+                    &&
+                    x.CompletedQuantity > 0m
+                    &&
+                    x.CompletedQuantity >=
+                        x.ProductionQuantity)
+                .ToList();
         }
 
 
-        private static decimal GetProductionQuantity(
-            ProductionJob productionJob)
+        private static ProductionJobItem?
+            FindProductionJobItem(
+                ProductionJob productionJob,
+                int customerPurchaseOrderItemId)
         {
-            return GetDecimalProperty(
-                productionJob,
-                "JobQuantity",
-                "CompletedQuantity",
-                "ProducedQuantity",
-                "ProductionQuantity",
-                "Quantity")
+            if (productionJob.Items == null)
+            {
+                return null;
+            }
 
-                ?? 0m;
+
+            return productionJob
+                .Items
+                .FirstOrDefault(x =>
+                    !x.IsDeleted
+                    &&
+                    x.IsActive
+                    &&
+                    x.CustomerPurchaseOrderItemId ==
+                        customerPurchaseOrderItemId);
         }
 
 
         private static string GetProductionJobCode(
             ProductionJob productionJob)
         {
-            return FirstNonEmpty(
-                GetStringProperty(
-                    productionJob,
-                    "Code",
-                    "ProductionJobCode",
-                    "JobCode"),
-
-                productionJob.Id
-                    .ToString())
-
-                ?? productionJob.Id
-                    .ToString();
+            return string.IsNullOrWhiteSpace(
+                productionJob.Code)
+                ? productionJob.Id.ToString()
+                : productionJob.Code;
         }
 
+        #endregion
+
+
+        #region Customer PO Helpers
 
         private static string?
             GetCustomerPurchaseOrderCode(
-                CustomerPurchaseOrder customerPurchaseOrder)
+                CustomerPurchaseOrder
+                    customerPurchaseOrder)
         {
             return GetStringProperty(
                 customerPurchaseOrder,
@@ -3186,12 +3224,13 @@ namespace AjayIndustriesERP.Web.Controllers
 
         private static string?
             GetCustomerPurchaseOrderNumber(
-                CustomerPurchaseOrder customerPurchaseOrder)
+                CustomerPurchaseOrder
+                    customerPurchaseOrder)
         {
             return GetStringProperty(
                 customerPurchaseOrder,
-                "PurchaseOrderNumber",
                 "CustomerPurchaseOrderNumber",
+                "PurchaseOrderNumber",
                 "PONumber",
                 "PoNumber",
                 "OrderNumber");
@@ -3229,7 +3268,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 if (
-                    property == null ||
+                    property == null
+                    ||
                     !property.CanRead
                 )
                 {
@@ -3294,35 +3334,6 @@ namespace AjayIndustriesERP.Web.Controllers
             try
             {
                 return Convert.ToInt32(
-                    value);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-
-        private static decimal?
-            GetDecimalProperty(
-                object? source,
-                params string[] propertyNames)
-        {
-            var value =
-                GetPropertyValue(
-                    source,
-                    propertyNames);
-
-
-            if (value == null)
-            {
-                return null;
-            }
-
-
-            try
-            {
-                return Convert.ToDecimal(
                     value);
             }
             catch

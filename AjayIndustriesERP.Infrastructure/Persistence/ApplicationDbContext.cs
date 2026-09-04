@@ -82,6 +82,12 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
             ProductionJobStepHistories
         { get; set; }
 
+        public DbSet<ProductionJobItem>  ProductionJobItems
+        {
+            get;
+            set;
+        }
+
         #endregion
 
         #region Pre-Dispatch Inspection
@@ -155,6 +161,8 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
         public DbSet<SupplierPaymentTransaction> SupplierPaymentTransactions { get; set; }
 
         #endregion
+
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

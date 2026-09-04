@@ -8,24 +8,26 @@ Invoice
 Purpose:
 Defines database operations required by Invoice module.
 
-Responsibilities:
-- Read Invoice records.
-- Search and paginate Invoices.
-- Load eligible Customer Purchase Orders.
-- Load Completed Production Jobs for Invoice.
-- Calculate already invoiced Production quantity.
-- Check PDI / Delivery Challan status.
-- Generate next Invoice code.
-- Handle Draft delete / restore support.
-- Load Customer and Company snapshot sources.
+Current Production Structure:
+
+Customer Purchase Order
+        ↓
+Production Job
+        ↓
+Production Job Items
+
+Invoice Item Source Identity:
+
+ProductionJobId
+        +
+CustomerPurchaseOrderItemId
 
 Important:
-- New Invoice source flow:
-  Customer PO → Completed Production Job → Invoice.
-- Delivery Challan is NOT mandatory for Invoice.
-- PDI is NOT mandatory for Invoice.
-- PDI / Challan status is checked only for warning workflow.
-- Draft + Finalized active Invoices reserve Production quantity.
+- One Production Job may contain multiple Production Items.
+- Invoice quantity allocation must therefore be Item-wise.
+- ProductionJobId alone is NOT sufficient for allocation.
+- No new Invoice database column is required.
+- PDI and Delivery Challan remain warning-only.
 ============================================================
 */
 
@@ -38,46 +40,41 @@ namespace AjayIndustriesERP.Application.Interfaces
     {
         #region Invoice Read
 
-        Task<Invoice?> GetByIdAsync(
-            int id);
+        Task<Invoice?>
+            GetByIdAsync(
+                int id);
 
 
-        Task<Invoice?> GetForUpdateAsync(
-            int id);
+        Task<Invoice?>
+            GetForUpdateAsync(
+                int id);
 
         #endregion
 
 
         #region Pagination And Search
 
-        Task<PagedResult<Invoice>> GetPagedAsync(
-            int pageNumber,
-            int pageSize);
+        Task<PagedResult<Invoice>>
+            GetPagedAsync(
+                int pageNumber,
+                int pageSize);
 
 
-        Task<PagedResult<Invoice>> SearchPagedAsync(
-            string searchText,
-            int pageNumber,
-            int pageSize);
+        Task<PagedResult<Invoice>>
+            SearchPagedAsync(
+                string searchText,
+                int pageNumber,
+                int pageSize);
 
         #endregion
 
 
         #region Customer Purchase Order Source
 
-        /*
-         * Returns Customer POs having at least one
-         * Completed Production Job that still has
-         * invoiceable quantity.
-         */
         Task<List<CustomerPurchaseOrder>>
             GetCustomerPurchaseOrdersForInvoiceAsync();
 
 
-        /*
-         * Loads one Customer PO with its Items
-         * for Invoice source validation.
-         */
         Task<CustomerPurchaseOrder?>
             GetCustomerPurchaseOrderForInvoiceAsync(
                 int customerPurchaseOrderId);
@@ -85,23 +82,24 @@ namespace AjayIndustriesERP.Application.Interfaces
         #endregion
 
 
-        #region Completed Production Job Source
+        #region Production Source
 
         /*
-         * Returns Completed Production Jobs belonging
-         * to the selected Customer PO.
-         *
-         * InvoiceService will calculate remaining
-         * invoiceable quantity for every Job.
+         * Returns Production Jobs belonging to the selected
+         * Customer PO and containing at least one completed
+         * ProductionJobItem.
          */
+
         Task<List<ProductionJob>>
             GetCompletedProductionJobsForInvoiceAsync(
                 int customerPurchaseOrderId);
 
 
         /*
-         * Loads one trusted Completed Production Job.
+         * Returns one Production Job together with
+         * its ProductionJobItems and trusted source data.
          */
+
         Task<ProductionJob?>
             GetCompletedProductionJobForInvoiceAsync(
                 int productionJobId);
@@ -109,91 +107,113 @@ namespace AjayIndustriesERP.Application.Interfaces
         #endregion
 
 
-        #region Production Quantity Allocation
+        #region Invoice Quantity Allocation
 
         /*
-         * Returns quantity already reserved / invoiced
-         * against one Production Job.
+         * Allocation is Item-wise.
          *
-         * Active Draft + Finalized Invoices reserve quantity.
-         * Deleted Invoices do not reserve quantity.
+         * Example:
          *
-         * excludeInvoiceId is used during Edit / Finalize
-         * so the current Invoice does not reserve against itself.
+         * Production Job = PJ-001
+         *
+         * Item A = Customer PO Item 10
+         * Item B = Customer PO Item 11
+         *
+         * Invoicing Item A must NOT reduce
+         * available quantity of Item B.
          */
+
         Task<decimal>
             GetAllocatedInvoiceQuantityAsync(
                 int productionJobId,
+                int customerPurchaseOrderItemId,
                 int? excludeInvoiceId = null);
 
         #endregion
 
 
-        #region PDI / Delivery Challan Status
+        #region PDI Warning Status
 
         /*
-         * Used only for Invoice warning workflow.
+         * PDI is warning-only for Invoice.
          *
-         * Missing PDI does NOT block Invoice automatically.
+         * Check PDI for the specific Production Item,
+         * identified using:
+         *
+         * ProductionJobId +
+         * CustomerPurchaseOrderItemId.
          */
-        Task<bool> HasFinalizedPdiAsync(
-            int productionJobId);
 
+        Task<bool>
+            HasFinalizedPdiAsync(
+                int productionJobId,
+                int customerPurchaseOrderItemId);
+
+        #endregion
+
+
+        #region Delivery Challan Warning Status
 
         /*
-         * Used only for Invoice warning workflow.
+         * Delivery Challan is also warning-only.
          *
-         * Missing Delivery Challan does NOT block
-         * Invoice automatically.
+         * Check Challan for the specific Production Item,
+         * not merely the Production Job header.
          */
-        Task<bool> HasDeliveryChallanAsync(
-            int productionJobId);
+
+        Task<bool>
+            HasDeliveryChallanAsync(
+                int productionJobId,
+                int customerPurchaseOrderItemId);
 
         #endregion
 
 
         #region Invoice Code
 
-        /*
-         * Includes deleted Invoices so Invoice numbers
-         * are never reused.
-         */
-        Task<string?> GetLastCodeAsync(
-            string prefix);
+        Task<string?>
+            GetLastCodeAsync(
+                string prefix);
 
         #endregion
 
 
         #region Persistence
 
-        Task<Invoice> AddAsync(
-            Invoice invoice);
+        Task<Invoice>
+            AddAsync(
+                Invoice invoice);
 
 
-        Task<Invoice> UpdateAsync(
-            Invoice invoice);
+        Task<Invoice>
+            UpdateAsync(
+                Invoice invoice);
 
         #endregion
 
 
         #region Deleted Invoice
 
-        Task<List<Invoice>> GetDeletedAsync();
+        Task<List<Invoice>>
+            GetDeletedAsync();
 
 
-        Task<Invoice?> GetDeletedForUpdateAsync(
-            int id);
+        Task<Invoice?>
+            GetDeletedForUpdateAsync(
+                int id);
 
         #endregion
 
 
         #region Snapshot Sources
 
-        Task<Customer?> GetCustomerForInvoiceAsync(
-            int customerId);
+        Task<Customer?>
+            GetCustomerForInvoiceAsync(
+                int customerId);
 
 
-        Task<Company?> GetCompanyForInvoiceAsync();
+        Task<Company?>
+            GetCompanyForInvoiceAsync();
 
         #endregion
     }

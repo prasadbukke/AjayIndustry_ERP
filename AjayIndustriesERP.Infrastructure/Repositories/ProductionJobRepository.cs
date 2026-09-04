@@ -5,19 +5,33 @@ File: ProductionJobRepository.cs
 Purpose:
 Provides Entity Framework Core data access for Production Jobs.
 
+Production Structure:
+
+Customer Purchase Order
+        ↓
+Production Job
+        ↓
+Production Job Item
+        ↓
+Production Job Step
+
 Responsibilities:
-- Retrieve Production Job Header and Steps.
+- Retrieve Production Job Header with Item-wise Production data.
 - Search and paginate Production Jobs.
-- Retrieve confirmed Customer PO Items.
+- Retrieve confirmed Customer Purchase Orders.
+- Retrieve one Customer PO with all active Items.
+- Check whether a Customer PO already has a Production Job.
 - Retrieve current Released Routing with Routing Steps.
-- Calculate allocated Production Quantity.
+- Retrieve active Production Operations.
+- Retrieve Machines used for Production execution.
 - Retrieve last Production Job Code.
 - Persist Production Job changes.
 
 Important:
+- One Customer PO has one Production Job.
 - Main Production Job queries exclude soft-deleted Jobs.
-- Cancelled Jobs do not consume Customer PO Quantity.
-- Routing retrieval only returns the current Released Routing.
+- Deleted Production Jobs keep their original Job Code.
+- Old multiple Job Quantity allocation logic is removed.
 ============================================================
 */
 
@@ -27,7 +41,6 @@ using AjayIndustriesERP.Domain.Entities;
 using AjayIndustriesERP.Domain.Enums;
 using AjayIndustriesERP.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace AjayIndustriesERP.Infrastructure.Repositories
 {
@@ -36,7 +49,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
     {
         #region Fields
 
-        private readonly ApplicationDbContext _context;
+        private readonly ApplicationDbContext
+            _context;
 
         #endregion
 
@@ -46,7 +60,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         public ProductionJobRepository(
             ApplicationDbContext context)
         {
-            _context = context;
+            _context =
+                context;
         }
 
         #endregion
@@ -64,43 +79,113 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 .Where(x =>
                     x.Id == id &&
                     !x.IsDeleted)
+
+                // =========================================
+                // CUSTOMER PO
+                // =========================================
+
                 .Include(x =>
-    x.Item)
-    .ThenInclude(x =>
-        x.Drawings
-            .Where(drawing =>
-                !drawing.IsDeleted &&
-                drawing.IsActive))
+                    x.CustomerPurchaseOrder)
+
+                // =========================================
+                // PRODUCTION ITEMS -> ITEM / DRAWINGS
+                // =========================================
+
                 .Include(x =>
-                    x.ItemProcessRouting)
+                    x.Items
+                        .Where(item =>
+                            !item.IsDeleted))
+                    .ThenInclude(item =>
+                        item.Item)
+                    .ThenInclude(item =>
+                        item.Drawings
+                            .Where(drawing =>
+                                !drawing.IsDeleted &&
+                                drawing.IsActive))
+
+                // =========================================
+                // PRODUCTION ITEMS -> CUSTOMER PO ITEM
+                // =========================================
+
                 .Include(x =>
-                    x.CustomerPurchaseOrderItem)
-                    .ThenInclude(x =>
-                        x.CustomerPurchaseOrder)
+                    x.Items
+                        .Where(item =>
+                            !item.IsDeleted))
+                    .ThenInclude(item =>
+                        item.CustomerPurchaseOrderItem)
+
+                // =========================================
+                // PRODUCTION ITEMS -> ROUTING
+                // =========================================
+
                 .Include(x =>
-                    x.Steps
-                        .Where(step =>
-                            !step.IsDeleted))
-                    .ThenInclude(x =>
-                        x.ProductionOperation)
+                    x.Items
+                        .Where(item =>
+                            !item.IsDeleted))
+                    .ThenInclude(item =>
+                        item.ItemProcessRouting)
+
+                // =========================================
+                // PRODUCTION ITEMS -> STEPS -> OPERATION
+                // =========================================
+
                 .Include(x =>
-                    x.Steps
-                        .Where(step =>
-                            !step.IsDeleted))
-                    .ThenInclude(x =>
-                        x.DefaultMachine)
+                    x.Items
+                        .Where(item =>
+                            !item.IsDeleted))
+                    .ThenInclude(item =>
+                        item.Steps
+                            .Where(step =>
+                                !step.IsDeleted))
+                    .ThenInclude(step =>
+                        step.ProductionOperation)
+
+                // =========================================
+                // PRODUCTION ITEMS -> STEPS -> DEFAULT MACHINE
+                // =========================================
+
                 .Include(x =>
-                    x.Steps
-                        .Where(step =>
-                            !step.IsDeleted))
-                    .ThenInclude(x =>
-                        x.AssignedMachine)
+                    x.Items
+                        .Where(item =>
+                            !item.IsDeleted))
+                    .ThenInclude(item =>
+                        item.Steps
+                            .Where(step =>
+                                !step.IsDeleted))
+                    .ThenInclude(step =>
+                        step.DefaultMachine)
+
+                // =========================================
+                // PRODUCTION ITEMS -> STEPS -> ASSIGNED MACHINE
+                // =========================================
+
                 .Include(x =>
-                    x.Steps
-                        .Where(step =>
-                            !step.IsDeleted))
-                    .ThenInclude(x =>
-                        x.History)
+                    x.Items
+                        .Where(item =>
+                            !item.IsDeleted))
+                    .ThenInclude(item =>
+                        item.Steps
+                            .Where(step =>
+                                !step.IsDeleted))
+                    .ThenInclude(step =>
+                        step.AssignedMachine)
+
+                // =========================================
+                // PRODUCTION ITEMS -> STEPS -> HISTORY
+                // =========================================
+
+                .Include(x =>
+                    x.Items
+                        .Where(item =>
+                            !item.IsDeleted))
+                    .ThenInclude(item =>
+                        item.Steps
+                            .Where(step =>
+                                !step.IsDeleted))
+                    .ThenInclude(step =>
+                        step.History)
+
+                .AsSplitQuery()
                 .FirstOrDefaultAsync();
         }
 
@@ -114,10 +199,54 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 .Where(x =>
                     x.Id == id &&
                     !x.IsDeleted)
+
                 .Include(x =>
-                    x.Steps)
-                    .ThenInclude(x =>
-                        x.History)
+                    x.CustomerPurchaseOrder)
+
+                .Include(x =>
+                    x.Items)
+                    .ThenInclude(item =>
+                        item.CustomerPurchaseOrderItem)
+
+                .Include(x =>
+                    x.Items)
+                    .ThenInclude(item =>
+                        item.Steps)
+                    .ThenInclude(step =>
+                        step.History)
+
+                .AsSplitQuery()
+                .FirstOrDefaultAsync();
+        }
+
+
+        public async Task<ProductionJob?>
+            GetByCustomerPurchaseOrderIdAsync(
+                int customerPurchaseOrderId)
+        {
+            if (customerPurchaseOrderId <= 0)
+            {
+                return null;
+            }
+
+
+            return await _context
+                .ProductionJobs
+                .AsNoTracking()
+                .Where(x =>
+                    x.CustomerPurchaseOrderId ==
+                        customerPurchaseOrderId &&
+                    !x.IsDeleted)
+
+                .Include(x =>
+                    x.CustomerPurchaseOrder)
+
+                .Include(x =>
+                    x.Items
+                        .Where(item =>
+                            !item.IsDeleted))
+
+                .AsSplitQuery()
                 .FirstOrDefaultAsync();
         }
 
@@ -140,48 +269,60 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
 
             var totalRecords =
-                await query.CountAsync();
+                await query
+                    .CountAsync();
 
 
             var jobs =
                 await query
                     .Include(x =>
-    x.Item)
-    .ThenInclude(x =>
-        x.Drawings
-            .Where(drawing =>
-                !drawing.IsDeleted &&
-                drawing.IsActive))
+                        x.CustomerPurchaseOrder)
+
                     .Include(x =>
-                        x.CustomerPurchaseOrderItem)
-                        .ThenInclude(x =>
-                            x.CustomerPurchaseOrder)
+                        x.Items
+                            .Where(item =>
+                                !item.IsDeleted))
+
                     .OrderByDescending(x =>
                         x.CreatedOn)
+
                     .ThenByDescending(x =>
                         x.Id)
+
                     .Skip(
                         (pageNumber - 1) *
                         pageSize)
-                    .Take(pageSize)
+
+                    .Take(
+                        pageSize)
+
+                    .AsSplitQuery()
+
                     .ToListAsync();
 
 
             return new PagedResult<ProductionJob>
             {
-                Items = jobs,
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                TotalRecords = totalRecords
+                Items =
+                    jobs,
+
+                PageNumber =
+                    pageNumber,
+
+                PageSize =
+                    pageSize,
+
+                TotalRecords =
+                    totalRecords
             };
         }
 
 
         public async Task<PagedResult<ProductionJob>>
-    SearchPagedAsync(
-        string searchText,
-        int pageNumber,
-        int pageSize)
+            SearchPagedAsync(
+                string searchText,
+                int pageNumber,
+                int pageSize)
         {
             #region Normalize Search
 
@@ -203,58 +344,73 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                         !x.IsDeleted
                         &&
                         (
-                            // Production Job Code
+                            // =================================
+                            // PRODUCTION JOB CODE
+                            // =================================
+
                             x.Code
                                 .ToLower()
                                 .Contains(search)
 
                             ||
 
-                            // Item Code
-                            x.ItemCode
-                                .ToLower()
-                                .Contains(search)
+                            // =================================
+                            // CUSTOMER PO CODE
+                            // =================================
 
-                            ||
-
-                            // Item Name
-                            x.ItemName
-                                .ToLower()
-                                .Contains(search)
-
-                            ||
-
-                            // Routing Code
-                            x.RoutingCode
-                                .ToLower()
-                                .Contains(search)
-
-                            ||
-
-                            // Customer PO Number
-                            x.CustomerPurchaseOrderItem
-                                .CustomerPurchaseOrder
-                                .CustomerPurchaseOrderNumber
-                                .ToLower()
-                                .Contains(search)
-
-                            ||
-
-                            // ERP Customer PO Code
-                            x.CustomerPurchaseOrderItem
-                                .CustomerPurchaseOrder
+                            x.CustomerPurchaseOrder
                                 .Code
                                 .ToLower()
                                 .Contains(search)
 
                             ||
 
-                            // Customer Name
-                            x.CustomerPurchaseOrderItem
-                                .CustomerPurchaseOrder
+                            // =================================
+                            // CUSTOMER PO NUMBER
+                            // =================================
+
+                            x.CustomerPurchaseOrder
+                                .CustomerPurchaseOrderNumber
+                                .ToLower()
+                                .Contains(search)
+
+                            ||
+
+                            // =================================
+                            // CUSTOMER NAME
+                            // =================================
+
+                            x.CustomerPurchaseOrder
                                 .CustomerName
                                 .ToLower()
                                 .Contains(search)
+
+                            ||
+
+                            // =================================
+                            // PRODUCTION ITEM
+                            // =================================
+
+                            x.Items.Any(item =>
+                                !item.IsDeleted
+                                &&
+                                (
+                                    item.ItemCode
+                                        .ToLower()
+                                        .Contains(search)
+
+                                    ||
+
+                                    item.ItemName
+                                        .ToLower()
+                                        .Contains(search)
+
+                                    ||
+
+                                    item.RoutingCode
+                                        .ToLower()
+                                        .Contains(search)
+                                ))
                         ));
 
             #endregion
@@ -263,7 +419,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             #region Record Count
 
             var totalRecords =
-                await query.CountAsync();
+                await query
+                    .CountAsync();
 
             #endregion
 
@@ -272,25 +429,30 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
             var jobs =
                 await query
+
                     .Include(x =>
-    x.Item)
-    .ThenInclude(x =>
-        x.Drawings
-            .Where(drawing =>
-                !drawing.IsDeleted &&
-                drawing.IsActive))
+                        x.CustomerPurchaseOrder)
+
                     .Include(x =>
-                        x.CustomerPurchaseOrderItem)
-                        .ThenInclude(x =>
-                            x.CustomerPurchaseOrder)
+                        x.Items
+                            .Where(item =>
+                                !item.IsDeleted))
+
                     .OrderByDescending(x =>
                         x.CreatedOn)
+
                     .ThenByDescending(x =>
                         x.Id)
+
                     .Skip(
                         (pageNumber - 1) *
                         pageSize)
-                    .Take(pageSize)
+
+                    .Take(
+                        pageSize)
+
+                    .AsSplitQuery()
+
                     .ToListAsync();
 
             #endregion
@@ -321,70 +483,86 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
         #region Customer PO Source
 
-        public async Task<List<CustomerPurchaseOrderItem>>
-            GetCustomerPurchaseOrderItemsForProductionAsync()
+        public async Task<List<CustomerPurchaseOrder>>
+            GetCustomerPurchaseOrdersForProductionAsync()
         {
             return await _context
-                .CustomerPurchaseOrderItems
+                .CustomerPurchaseOrders
                 .AsNoTracking()
+
                 .Include(x =>
-                    x.CustomerPurchaseOrder)
-                .Include(x =>
-                    x.Item)
+                    x.Items
+                        .Where(item =>
+                            !item.IsDeleted &&
+                            item.IsActive))
+                    .ThenInclude(item =>
+                        item.Item)
+
                 .Where(x =>
-                    !x.CustomerPurchaseOrder.IsDeleted &&
-                    x.CustomerPurchaseOrder.Status ==
-                        CustomerPurchaseOrderStatus.Confirmed)
+                    !x.IsDeleted
+                    &&
+                    x.Status ==
+                        CustomerPurchaseOrderStatus.Confirmed
+
+                    /*
+                     * One Customer PO = One Production Job.
+                     *
+                     * Even a Cancelled or soft-deleted
+                     * Production Job keeps the original PO
+                     * relationship and Job identity.
+                     *
+                     * Deleted Jobs must be restored instead of
+                     * creating another Production Job ID.
+                     */
+                    &&
+                    !_context
+                        .ProductionJobs
+                        .Any(job =>
+                            job.CustomerPurchaseOrderId ==
+                                x.Id))
+
                 .OrderByDescending(x =>
-                    x.CustomerPurchaseOrder.ReceivedDate)
-                .ThenBy(x =>
-                    x.ItemName)
+                    x.ReceivedDate)
+
+                .ThenByDescending(x =>
+                    x.Id)
+
+                .AsSplitQuery()
+
                 .ToListAsync();
         }
 
 
-        public async Task<CustomerPurchaseOrderItem?>
-            GetCustomerPurchaseOrderItemForProductionAsync(
-                int customerPurchaseOrderItemId)
+        public async Task<CustomerPurchaseOrder?>
+            GetCustomerPurchaseOrderForProductionAsync(
+                int customerPurchaseOrderId)
         {
+            if (customerPurchaseOrderId <= 0)
+            {
+                return null;
+            }
+
+
             return await _context
-                .CustomerPurchaseOrderItems
+                .CustomerPurchaseOrders
                 .AsNoTracking()
+
                 .Include(x =>
-                    x.CustomerPurchaseOrder)
-                .Include(x =>
-                    x.Item)
+                    x.Items
+                        .Where(item =>
+                            !item.IsDeleted &&
+                            item.IsActive))
+                    .ThenInclude(item =>
+                        item.Item)
+
                 .FirstOrDefaultAsync(x =>
                     x.Id ==
-                        customerPurchaseOrderItemId &&
-                    !x.CustomerPurchaseOrder.IsDeleted &&
-                    x.CustomerPurchaseOrder.Status ==
+                        customerPurchaseOrderId
+                    &&
+                    !x.IsDeleted
+                    &&
+                    x.Status ==
                         CustomerPurchaseOrderStatus.Confirmed);
-        }
-
-
-        public async Task<decimal>
-    GetAllocatedJobQuantityAsync(
-        int customerPurchaseOrderItemId,
-        int? excludeProductionJobId = null)
-        {
-            return await _context
-                .ProductionJobs
-                .AsNoTracking()
-                .Where(x =>
-                    x.CustomerPurchaseOrderItemId ==
-                        customerPurchaseOrderItemId &&
-                    !x.IsDeleted &&
-                    x.Status !=
-                        ProductionJobStatus.Cancelled &&
-                    (
-                        !excludeProductionJobId.HasValue ||
-                        x.Id != excludeProductionJobId.Value
-                    ))
-                .Select(x =>
-                    (decimal?)x.JobQuantity)
-                .SumAsync()
-                ?? 0m;
         }
 
         #endregion
@@ -399,32 +577,40 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             return await _context
                 .ItemProcessRoutings
                 .AsNoTracking()
+
                 .Where(x =>
                     x.ItemId == itemId &&
                     !x.IsDeleted &&
                     x.IsActive &&
                     x.Status ==
                         ItemProcessRoutingStatus.Released)
+
                 .Include(x =>
                     x.Steps
                         .Where(step =>
                             !step.IsDeleted &&
                             step.IsActive))
-                    .ThenInclude(x =>
-                        x.ProductionOperation)
+                    .ThenInclude(step =>
+                        step.ProductionOperation)
+
                 .Include(x =>
                     x.Steps
                         .Where(step =>
                             !step.IsDeleted &&
                             step.IsActive))
-                    .ThenInclude(x =>
-                        x.DefaultMachine)
+                    .ThenInclude(step =>
+                        step.DefaultMachine)
+
                 .OrderByDescending(x =>
                     x.RevisionNumber)
+
+                .AsSplitQuery()
+
                 .FirstOrDefaultAsync();
         }
 
         #endregion
+
 
         #region Draft Pipeline Lookups
 
@@ -434,17 +620,22 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             return await _context
                 .ProductionOperations
                 .AsNoTracking()
+
                 .Where(x =>
                     !x.IsDeleted &&
                     x.IsActive)
+
                 .OrderBy(x =>
                     x.OperationName)
+
                 .ThenBy(x =>
                     x.Code)
+
                 .ToListAsync();
         }
 
         #endregion
+
 
         #region Production Execution Lookups
 
@@ -454,13 +645,17 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             return await _context
                 .Machines
                 .AsNoTracking()
+
                 .Where(x =>
                     !x.IsDeleted &&
                     x.IsActive)
+
                 .OrderBy(x =>
                     x.MachineName)
+
                 .ThenBy(x =>
                     x.Code)
+
                 .ToListAsync();
         }
 
@@ -472,6 +667,7 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             return await _context
                 .Machines
                 .AsNoTracking()
+
                 .FirstOrDefaultAsync(x =>
                     x.Id == machineId &&
                     !x.IsDeleted &&
@@ -479,6 +675,7 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         }
 
         #endregion
+
 
         #region Job Code
 
@@ -489,19 +686,28 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             return await _context
                 .ProductionJobs
 
-                // Deleted Production Job Codes are intentionally
-                // included. Codes must never be reused.
+                /*
+                 * Deleted Production Job Codes are
+                 * intentionally included.
+                 *
+                 * Production Job Codes must never be reused.
+                 */
 
                 .Where(x =>
-                    x.Code.StartsWith(prefix))
+                    x.Code.StartsWith(
+                        prefix))
+
                 .OrderByDescending(x =>
                     x.Id)
+
                 .Select(x =>
                     x.Code)
+
                 .FirstOrDefaultAsync();
         }
 
         #endregion
+
 
         #region Deleted Jobs
 
@@ -511,16 +717,26 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             return await _context
                 .ProductionJobs
                 .AsNoTracking()
+
                 .Where(x =>
                     x.IsDeleted)
+
                 .Include(x =>
-                    x.CustomerPurchaseOrderItem)
-                    .ThenInclude(x =>
-                        x.CustomerPurchaseOrder)
+                    x.CustomerPurchaseOrder)
+
+                .Include(x =>
+                    x.Items)
+
                 .OrderByDescending(x =>
-                    x.ModifiedOn ?? x.CreatedOn)
+                    x.ModifiedOn
+                    ??
+                    x.CreatedOn)
+
                 .ThenByDescending(x =>
                     x.Id)
+
+                .AsSplitQuery()
+
                 .ToListAsync();
         }
 
@@ -531,11 +747,25 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         {
             return await _context
                 .ProductionJobs
+
                 .Where(x =>
                     x.Id == id &&
                     x.IsDeleted)
+
                 .Include(x =>
-                    x.Steps)
+                    x.CustomerPurchaseOrder)
+
+                .Include(x =>
+                    x.Items)
+
+                    .ThenInclude(item =>
+                        item.Steps)
+
+                    .ThenInclude(step =>
+                        step.History)
+
+                .AsSplitQuery()
+
                 .FirstOrDefaultAsync();
         }
 

@@ -5,23 +5,31 @@ File: ProductionJobConfiguration.cs
 Purpose:
 Configures ProductionJob for Entity Framework Core.
 
+Production Structure:
+
+Customer Purchase Order
+        ↓
+Production Job
+        ↓
+Production Job Item
+        ↓
+Production Job Step
+
 Responsibilities:
-- Map Production Job Header to database.
-- Configure Customer PO Item relationship.
-- Configure Item relationship.
-- Configure Item Process Routing relationship.
-- Configure Job Quantity precision.
-- Configure Routing and Item snapshot fields.
-- Configure Production Job Status and planning dates.
-- Configure indexes used by Production queries.
+- Map Production Job Header.
+- Configure Customer Purchase Order relationship.
+- Enforce one Production Job per Customer PO.
+- Configure Production Job lifecycle fields.
+- Configure planning / actual dates.
+- Configure Production Job Items relationship.
+- Configure Production Job query indexes.
 
 Important:
-- One Customer PO Item may have multiple Production Jobs.
-- Routing reference identifies the Routing Revision used when
-  the Job was created.
+- One Customer Purchase Order has one Production Job.
+- Item / Quantity / Routing belong to ProductionJobItem.
+- Production Steps belong to ProductionJobItem.
 - Production Job Code is globally unique.
-- Customer PO, Item and Routing records cannot be physically
-  deleted while referenced by a Production Job.
+- Customer PO cannot be physically deleted while referenced.
 ============================================================
 */
 
@@ -68,96 +76,31 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
             #endregion
 
 
-            #region Customer PO Item Relationship
+            #region Customer Purchase Order Relationship
 
             builder.Property(x =>
-                    x.CustomerPurchaseOrderItemId)
+                    x.CustomerPurchaseOrderId)
                 .IsRequired();
 
 
             builder.HasOne(x =>
-                    x.CustomerPurchaseOrderItem)
+                    x.CustomerPurchaseOrder)
                 .WithMany()
                 .HasForeignKey(x =>
-                    x.CustomerPurchaseOrderItemId)
-                .OnDelete(
-                    DeleteBehavior.Restrict);
-
-            #endregion
-
-
-            #region Item Relationship
-
-            builder.Property(x =>
-                    x.ItemId)
-                .IsRequired();
-
-
-            builder.HasOne(x =>
-                    x.Item)
-                .WithMany()
-                .HasForeignKey(x =>
-                    x.ItemId)
+                    x.CustomerPurchaseOrderId)
                 .OnDelete(
                     DeleteBehavior.Restrict);
 
 
-            builder.Property(x =>
-                    x.ItemCode)
-                .IsRequired()
-                .HasMaxLength(50);
-
-
-            builder.Property(x =>
-                    x.ItemName)
-                .IsRequired()
-                .HasMaxLength(200);
-
-
-            builder.Property(x =>
-                    x.UnitName)
-                .HasMaxLength(100);
-
-            #endregion
-
-
-            #region Job Quantity
-
-            builder.Property(x =>
-                    x.JobQuantity)
-                .IsRequired()
-                .HasPrecision(
-                    18,
-                    3);
-
-            #endregion
-
-
-            #region Routing Relationship
-
-            builder.Property(x =>
-                    x.ItemProcessRoutingId)
-                .IsRequired();
-
-
-            builder.HasOne(x =>
-                    x.ItemProcessRouting)
-                .WithMany()
-                .HasForeignKey(x =>
-                    x.ItemProcessRoutingId)
-                .OnDelete(
-                    DeleteBehavior.Restrict);
-
-
-            builder.Property(x =>
-                    x.RoutingCode)
-                .IsRequired()
-                .HasMaxLength(50);
-
-
-            builder.Property(x =>
-                    x.RoutingRevisionNumber)
-                .IsRequired();
+            /*
+             * One Customer PO = One Production Job.
+             *
+             * This is enforced at database level also,
+             * not only through Application Service.
+             */
+            builder.HasIndex(x =>
+                    x.CustomerPurchaseOrderId)
+                .IsUnique();
 
             #endregion
 
@@ -168,6 +111,18 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
                     x.Status)
                 .IsRequired();
 
+
+            builder.HasIndex(x =>
+                x.Status);
+
+            #endregion
+
+
+            #region Planning
+
+            builder.HasIndex(x =>
+                x.PlannedStartOn);
+
             #endregion
 
 
@@ -175,11 +130,6 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
 
             builder.Property(x =>
                     x.Remarks)
-                .HasMaxLength(1000);
-
-
-            builder.Property(x =>
-                    x.PipelineModificationReason)
                 .HasMaxLength(1000);
 
 
@@ -194,10 +144,10 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
             #endregion
 
 
-            #region Production Steps
+            #region Production Job Items
 
             builder.HasMany(x =>
-                    x.Steps)
+                    x.Items)
                 .WithOne(x =>
                     x.ProductionJob)
                 .HasForeignKey(x =>
@@ -208,27 +158,7 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
             #endregion
 
 
-            #region Query Indexes
-
-            builder.HasIndex(x =>
-                x.CustomerPurchaseOrderItemId);
-
-
-            builder.HasIndex(x =>
-                x.ItemId);
-
-
-            builder.HasIndex(x =>
-                x.ItemProcessRoutingId);
-
-
-            builder.HasIndex(x =>
-                x.Status);
-
-
-            builder.HasIndex(x =>
-                x.PlannedStartOn);
-
+            #region Soft Delete
 
             builder.HasIndex(x =>
                 x.IsDeleted);

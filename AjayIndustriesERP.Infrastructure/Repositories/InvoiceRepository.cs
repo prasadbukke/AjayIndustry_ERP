@@ -8,25 +8,41 @@ Invoice
 Purpose:
 Implements database operations required by Invoice module.
 
+Current Production Structure:
+
+Customer Purchase Order
+        ↓
+Production Job
+        ↓
+Production Job Items
+
+Invoice Item Source Identity:
+
+ProductionJobId
+        +
+CustomerPurchaseOrderItemId
+
 Responsibilities:
 - Read Invoice records.
 - Search and paginate Invoices.
 - Load eligible Customer Purchase Orders.
-- Load Completed Production Jobs for Invoice.
-- Calculate already invoiced Production quantity.
-- Check PDI / Delivery Challan status.
+- Load Production Jobs containing completed Production Items.
+- Calculate already invoiced quantity Item-wise.
+- Check PDI status Item-wise.
+- Check Delivery Challan status Item-wise.
 - Generate next Invoice code source.
 - Handle Draft delete / restore support.
 - Load Customer and Company snapshot sources.
 
 Important:
-- New Invoice source flow:
-  Customer PO → Completed Production Job → Invoice.
-- Delivery Challan is NOT mandatory for Invoice.
+- One Production Job may contain multiple Production Items.
+- Quantity allocation MUST NOT be calculated only by
+  ProductionJobId.
 - PDI is NOT mandatory for Invoice.
-- PDI / Challan status is checked only for warning workflow.
-- Draft + Finalized active Invoices reserve Production quantity.
-- Deleted Invoices do not reserve Production quantity.
+- Delivery Challan is NOT mandatory for Invoice.
+- PDI / Challan status is warning-only.
+- Draft + Finalized active Invoices reserve quantity.
+- Deleted Invoices do not reserve quantity.
 ============================================================
 */
 
@@ -124,7 +140,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     .ThenByDescending(x =>
                         x.Id)
                     .Skip(
-                        (pageNumber - 1) *
+                        (pageNumber - 1)
+                        *
                         pageSize)
                     .Take(
                         pageSize)
@@ -165,7 +182,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     .Invoices
                     .AsNoTracking()
                     .Where(x =>
-                        !x.IsDeleted &&
+                        !x.IsDeleted
+                        &&
                         (
                             x.Code
                                 .ToLower()
@@ -193,7 +211,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     .ThenByDescending(x =>
                         x.Id)
                     .Skip(
-                        (pageNumber - 1) *
+                        (pageNumber - 1)
+                        *
                         pageSize)
                     .Take(
                         pageSize)
@@ -225,29 +244,43 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             GetCustomerPurchaseOrdersForInvoiceAsync()
         {
             /*
-             * ProductionJob does not directly store
-             * CustomerPurchaseOrderId.
+             * A Customer PO is eligible when:
              *
-             * Actual relationship is:
+             * - It has an active Production Job.
+             * - At least one ProductionJobItem has completed
+             *   its current Production plan.
+             * - Some completed quantity remains uninvoiced.
              *
-             * ProductionJob
-             *   → CustomerPurchaseOrderItem
-             *   → CustomerPurchaseOrder
+             * PDI / Delivery Challan are NOT used here.
              */
 
-            var completedJobs =
+            var productionJobs =
                 await _context
                     .ProductionJobs
                     .AsNoTracking()
-                    .Where(x =>
-                        !x.IsDeleted &&
-                        x.IsActive &&
-                        x.Status ==
-                            ProductionJobStatus.Completed)
-                    .Include(x =>
-                        x.CustomerPurchaseOrderItem)
-                        .ThenInclude(x =>
-                            x.CustomerPurchaseOrder)
+                    .Where(job =>
+                        !job.IsDeleted
+                        &&
+                        job.IsActive
+                        &&
+                        job.Status !=
+                            ProductionJobStatus.Cancelled
+                        &&
+                        job.Items.Any(item =>
+                            !item.IsDeleted
+                            &&
+                            item.IsActive
+                            &&
+                            item.ProductionQuantity > 0m
+                            &&
+                            item.CompletedQuantity >=
+                                item.ProductionQuantity
+                            &&
+                            item.CompletedQuantity > 0m))
+                    .Include(job =>
+                        job.CustomerPurchaseOrder)
+                    .Include(job =>
+                        job.Items)
                     .ToListAsync();
 
 
@@ -256,76 +289,106 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
 
             foreach (var productionJob
-                in completedJobs)
+                     in productionJobs)
             {
-                var customerPo =
+                var customerPurchaseOrder =
                     productionJob
-                        .CustomerPurchaseOrderItem
-                        ?.CustomerPurchaseOrder;
+                        .CustomerPurchaseOrder;
 
 
-                if (customerPo == null)
+                if (customerPurchaseOrder == null)
                 {
                     continue;
                 }
 
 
-                if (customerPo.IsDeleted ||
-                    !customerPo.IsActive)
+                if (
+                    customerPurchaseOrder.IsDeleted
+                    ||
+                    !customerPurchaseOrder.IsActive
+                )
                 {
                     continue;
                 }
 
 
-                if (productionJob.JobQuantity <= 0)
+                var completedItems =
+                    productionJob
+                        .Items
+                        .Where(item =>
+                            !item.IsDeleted
+                            &&
+                            item.IsActive
+                            &&
+                            item.ProductionQuantity > 0m
+                            &&
+                            item.CompletedQuantity >=
+                                item.ProductionQuantity
+                            &&
+                            item.CompletedQuantity > 0m)
+                        .ToList();
+
+
+                foreach (var productionJobItem
+                         in completedItems)
                 {
-                    continue;
+                    var allocatedQuantity =
+                        await GetAllocatedInvoiceQuantityAsync(
+                            productionJob.Id,
+                            productionJobItem
+                                .CustomerPurchaseOrderItemId);
+
+
+                    var availableQuantity =
+                        productionJobItem
+                            .CompletedQuantity
+                        -
+                        allocatedQuantity;
+
+
+                    if (availableQuantity <= 0m)
+                    {
+                        continue;
+                    }
+
+
+                    eligibleCustomerPoIds.Add(
+                        productionJob
+                            .CustomerPurchaseOrderId);
+
+
+                    break;
                 }
-
-
-                var allocatedQuantity =
-                    await GetAllocatedInvoiceQuantityAsync(
-                        productionJob.Id);
-
-
-                var remainingQuantity =
-                    productionJob.JobQuantity -
-                    allocatedQuantity;
-
-
-                if (remainingQuantity <= 0)
-                {
-                    continue;
-                }
-
-
-                eligibleCustomerPoIds.Add(
-                    customerPo.Id);
             }
 
 
             if (eligibleCustomerPoIds.Count == 0)
             {
-                return new List<CustomerPurchaseOrder>();
+                return
+                    new List<CustomerPurchaseOrder>();
             }
 
 
             return await _context
                 .CustomerPurchaseOrders
                 .AsNoTracking()
-                .Where(x =>
+                .Where(po =>
                     eligibleCustomerPoIds.Contains(
-                        x.Id) &&
-                    !x.IsDeleted &&
-                    x.IsActive)
-                .Include(x =>
-                    x.Customer)
-                .Include(x =>
-                    x.Items)
-                .OrderByDescending(x =>
-                    x.ReceivedDate)
-                .ThenByDescending(x =>
-                    x.Id)
+                        po.Id)
+                    &&
+                    !po.IsDeleted
+                    &&
+                    po.IsActive)
+                .Include(po =>
+                    po.Customer)
+                .Include(po =>
+                    po.Items)
+                    .ThenInclude(item =>
+                        item.Item)
+                .OrderByDescending(po =>
+                    po.ReceivedDate)
+                .ThenByDescending(po =>
+                    po.Id)
                 .ToListAsync();
         }
 
@@ -337,57 +400,94 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             return await _context
                 .CustomerPurchaseOrders
                 .AsNoTracking()
-                .Where(x =>
-                    x.Id ==
-                        customerPurchaseOrderId &&
-                    !x.IsDeleted &&
-                    x.IsActive)
-                .Include(x =>
-                    x.Customer)
-                .Include(x =>
-                    x.Items)
-                    .ThenInclude(x =>
-                        x.Item)
+                .Where(po =>
+                    po.Id ==
+                        customerPurchaseOrderId
+                    &&
+                    !po.IsDeleted
+                    &&
+                    po.IsActive)
+                .Include(po =>
+                    po.Customer)
+                .Include(po =>
+                    po.Items)
+                    .ThenInclude(item =>
+                        item.Item)
                 .FirstOrDefaultAsync();
         }
 
         #endregion
 
 
-        #region Completed Production Job Source
+        #region Production Source
 
         public async Task<List<ProductionJob>>
             GetCompletedProductionJobsForInvoiceAsync(
                 int customerPurchaseOrderId)
         {
             /*
-             * PDI / Delivery Challan are intentionally
-             * NOT part of this eligibility query.
+             * Method name is retained for compatibility.
              *
-             * Completed Production Job is the trusted
-             * Invoice quantity source.
+             * Parent Production Job itself does NOT have
+             * to be fully Completed.
+             *
+             * A ProductionJobItem is eligible when its
+             * current ProductionQuantity has been completed.
              */
 
             return await _context
                 .ProductionJobs
                 .AsNoTracking()
-                .Where(x =>
-                    !x.IsDeleted &&
-                    x.IsActive &&
-                    x.Status ==
-                        ProductionJobStatus.Completed &&
-                    x.CustomerPurchaseOrderItem
-                        .CustomerPurchaseOrder
-                        .Id ==
-                        customerPurchaseOrderId)
-                .Include(x =>
-                    x.Item)
-                .Include(x =>
-                    x.CustomerPurchaseOrderItem)
-                    .ThenInclude(x =>
-                        x.CustomerPurchaseOrder)
-                .OrderBy(x =>
-                    x.Id)
+                .Where(job =>
+                    job.CustomerPurchaseOrderId ==
+                        customerPurchaseOrderId
+                    &&
+                    !job.IsDeleted
+                    &&
+                    job.IsActive
+                    &&
+                    job.Status !=
+                        ProductionJobStatus.Cancelled
+                    &&
+                    job.Items.Any(item =>
+                        !item.IsDeleted
+                        &&
+                        item.IsActive
+                        &&
+                        item.ProductionQuantity > 0m
+                        &&
+                        item.CompletedQuantity >=
+                            item.ProductionQuantity
+                        &&
+                        item.CompletedQuantity > 0m))
+
+                // =========================================
+                // CUSTOMER PO
+                // =========================================
+
+                .Include(job =>
+                    job.CustomerPurchaseOrder)
+
+                // =========================================
+                // PRODUCTION ITEMS + CUSTOMER PO ITEM
+                // =========================================
+
+                .Include(job =>
+                    job.Items)
+                    .ThenInclude(item =>
+                        item.CustomerPurchaseOrderItem)
+
+                // =========================================
+                // PRODUCTION ITEMS + ITEM MASTER
+                // =========================================
+
+                .Include(job =>
+                    job.Items)
+                    .ThenInclude(item =>
+                        item.Item)
+
+                .OrderBy(job =>
+                    job.Id)
                 .ToListAsync();
         }
 
@@ -399,38 +499,79 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             return await _context
                 .ProductionJobs
                 .AsNoTracking()
-                .Where(x =>
-                    x.Id ==
-                        productionJobId &&
-                    !x.IsDeleted &&
-                    x.IsActive &&
-                    x.Status ==
-                        ProductionJobStatus.Completed)
-                .Include(x =>
-                    x.Item)
-                .Include(x =>
-                    x.CustomerPurchaseOrderItem)
-                    .ThenInclude(x =>
-                        x.CustomerPurchaseOrder)
+                .Where(job =>
+                    job.Id ==
+                        productionJobId
+                    &&
+                    !job.IsDeleted
+                    &&
+                    job.IsActive
+                    &&
+                    job.Status !=
+                        ProductionJobStatus.Cancelled
+                    &&
+                    job.Items.Any(item =>
+                        !item.IsDeleted
+                        &&
+                        item.IsActive
+                        &&
+                        item.ProductionQuantity > 0m
+                        &&
+                        item.CompletedQuantity >=
+                            item.ProductionQuantity
+                        &&
+                        item.CompletedQuantity > 0m))
+
+                // =========================================
+                // CUSTOMER PO
+                // =========================================
+
+                .Include(job =>
+                    job.CustomerPurchaseOrder)
+
+                // =========================================
+                // PRODUCTION ITEMS + CUSTOMER PO ITEM
+                // =========================================
+
+                .Include(job =>
+                    job.Items)
+                    .ThenInclude(item =>
+                        item.CustomerPurchaseOrderItem)
+
+                // =========================================
+                // PRODUCTION ITEMS + ITEM MASTER
+                // =========================================
+
+                .Include(job =>
+                    job.Items)
+                    .ThenInclude(item =>
+                        item.Item)
+
                 .FirstOrDefaultAsync();
         }
 
         #endregion
 
 
-        #region Production Quantity Allocation
+        #region Invoice Quantity Allocation
 
         public async Task<decimal>
             GetAllocatedInvoiceQuantityAsync(
                 int productionJobId,
+                int customerPurchaseOrderItemId,
                 int? excludeInvoiceId = null)
         {
             /*
-             * Active Draft + Finalized Invoices reserve
-             * Production Job quantity.
+             * CRITICAL:
              *
-             * Deleted Invoice headers do not reserve.
-             * Deleted / inactive Invoice Items do not reserve.
+             * Allocation is calculated using BOTH:
+             *
+             * ProductionJobId
+             * +
+             * CustomerPurchaseOrderItemId
+             *
+             * This prevents quantities of multiple Items
+             * under the same Production Job from mixing.
              */
 
             var query =
@@ -459,6 +600,12 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                         .ProductionJobId
                         .Value ==
                         productionJobId
+
+                    &&
+
+                    invoiceItem
+                        .CustomerPurchaseOrderItemId ==
+                        customerPurchaseOrderItemId
 
                     &&
 
@@ -519,70 +666,79 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         #endregion
 
 
-        #region PDI Status
+        #region PDI Warning Status
 
-        public Task<bool>
+        public async Task<bool>
             HasFinalizedPdiAsync(
-                int productionJobId)
+                int productionJobId,
+                int customerPurchaseOrderItemId)
         {
             /*
-             * IMPORTANT:
+             * PDI is warning-only.
              *
-             * PDI is warning-only for Invoice.
+             * Check the exact Production Item source.
              *
-             * The actual PDI Entity / DbSet names are not
-             * available in the current Invoice source files.
+             * PreDispatchInspection stores:
              *
-             * Previous guessed names:
+             * ProductionJobId
+             * CustomerPurchaseOrderItemId
+             * ProductionJobItemId
              *
-             *     _context.Pdis
-             *     _context.PdiItems
-             *
-             * do NOT exist in ApplicationDbContext.
-             *
-             * Therefore we intentionally do NOT invent
-             * another Entity / DbSet name here.
-             *
-             * Until the actual PDI repository/entity is wired,
-             * return false conservatively.
-             *
-             * Effect:
-             * - Invoice remains allowed.
-             * - User receives the PDI/DC warning.
-             * - confirmSourceWarning = true allows submission.
-             *
-             * Once the real PDI model is available,
-             * only this method needs to be replaced.
+             * The first two already uniquely identify
+             * the Invoice Item source.
              */
 
-            return Task.FromResult(
-                false);
+            return await _context
+                .PreDispatchInspections
+                .AsNoTracking()
+                .AnyAsync(pdi =>
+                    pdi.ProductionJobId ==
+                        productionJobId
+                    &&
+                    pdi.CustomerPurchaseOrderItemId ==
+                        customerPurchaseOrderItemId
+                    &&
+                    !pdi.IsDeleted
+                    &&
+                    pdi.IsActive
+                    &&
+                    pdi.Status ==
+                        PreDispatchInspectionStatus.Finalized);
         }
 
         #endregion
 
 
-        #region Delivery Challan Status
+        #region Delivery Challan Warning Status
 
         public async Task<bool>
             HasDeliveryChallanAsync(
-                int productionJobId)
+                int productionJobId,
+                int customerPurchaseOrderItemId)
         {
             /*
              * Delivery Challan is warning-only.
              *
-             * Any active DC Item linked with this
-             * Production Job means Challan exists.
+             * Check the exact Production Item using:
+             *
+             * ProductionJobId
+             * +
+             * CustomerPurchaseOrderItemId
              */
 
             return await _context
                 .DeliveryChallanItems
                 .AsNoTracking()
-                .AnyAsync(x =>
-                    x.ProductionJobId ==
-                        productionJobId &&
-                    !x.IsDeleted &&
-                    x.IsActive);
+                .AnyAsync(item =>
+                    item.ProductionJobId ==
+                        productionJobId
+                    &&
+                    item.CustomerPurchaseOrderItemId ==
+                        customerPurchaseOrderItemId
+                    &&
+                    !item.IsDeleted
+                    &&
+                    item.IsActive);
         }
 
         #endregion
@@ -595,10 +751,11 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 string prefix)
         {
             /*
-             * IsDeleted intentionally NOT filtered.
+             * Deleted Invoice Codes are intentionally
+             * included.
              *
-             * Deleted Invoice Codes must also be
-             * considered so numbers are never reused.
+             * Invoice document numbers must never
+             * be reused.
              */
 
             return await _context
@@ -642,10 +799,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 Invoice invoice)
         {
             /*
-             * Invoice was loaded using tracked
+             * Invoice is already tracked when loaded using
              * GetForUpdateAsync / GetDeletedForUpdateAsync.
-             *
-             * Do not call DbSet.Update() unnecessarily.
              */
 
             await _context
@@ -671,7 +826,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 .Include(x =>
                     x.Items)
                 .OrderByDescending(x =>
-                    x.ModifiedOn ??
+                    x.ModifiedOn
+                    ??
                     x.CreatedOn)
                 .ThenByDescending(x =>
                     x.Id)
@@ -686,7 +842,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             return await _context
                 .Invoices
                 .Where(x =>
-                    x.Id == id &&
+                    x.Id == id
+                    &&
                     x.IsDeleted)
                 .Include(x =>
                     x.Items)
@@ -705,10 +862,11 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             return await _context
                 .Customers
                 .AsNoTracking()
-                .FirstOrDefaultAsync(x =>
-                    x.Id ==
-                        customerId &&
-                    !x.IsDeleted);
+                .FirstOrDefaultAsync(customer =>
+                    customer.Id ==
+                        customerId
+                    &&
+                    !customer.IsDeleted);
         }
 
 
@@ -718,10 +876,10 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             return await _context
                 .Companies
                 .AsNoTracking()
-                .Where(x =>
-                    !x.IsDeleted)
-                .OrderBy(x =>
-                    x.CompanyId)
+                .Where(company =>
+                    !company.IsDeleted)
+                .OrderBy(company =>
+                    company.CompanyId)
                 .FirstOrDefaultAsync();
         }
 

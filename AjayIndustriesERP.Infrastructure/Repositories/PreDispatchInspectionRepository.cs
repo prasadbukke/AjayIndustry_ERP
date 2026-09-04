@@ -6,24 +6,35 @@ Purpose:
 Provides Entity Framework Core data access for
 Pre-Dispatch / Final Inspection Reports.
 
+Production Structure:
+
+Customer Purchase Order
+        ↓
+Production Job
+        ↓
+Production Job Item
+        ↓
+PDI Report
+
 Responsibilities:
 - Retrieve PDI Header, Lines and Observations.
 - Search and paginate PDI Reports.
-- Load Completed Production Jobs for Inspection.
-- Load complete Production Job source information.
-- Calculate allocated Inspection Quantity.
+- Load Production Jobs containing completed Production Items.
+- Load selected Production Job Item source information.
+- Calculate allocated Inspection Quantity Item-wise.
 - Retrieve last generated PDI Code.
 - Persist PDI Report changes.
 - Retrieve deleted PDI Reports for restore.
 
 Important:
-- Business rules belong in PreDispatchInspectionService.
-- Normal queries exclude soft-deleted PDI Reports.
-- PDI Code lookup includes deleted Reports because
-  document numbers must never be reused.
-- Customer Drawing is NOT queried here.
-  It belongs to the Customer Drawing module and will be
-  resolved through ICustomerDrawingService.
+- ProductionJob is the parent transaction.
+- ProductionJobItem is the actual PDI source.
+- One Production Job can contain multiple Items.
+- One ProductionJobItem may have multiple PDI Reports.
+- Inspection allocation is calculated using
+  ProductionJobItemId.
+- A Production Job Item becomes eligible for PDI when
+  its current ProductionQuantity has been completed.
 ============================================================
 */
 
@@ -71,16 +82,22 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 .Where(x =>
                     x.Id == id &&
                     !x.IsDeleted)
+
                 .Include(x =>
                     x.ProductionJob)
+
+                .Include(x =>
+                    x.ProductionJobItem)
+
                 .Include(x =>
                     x.Lines
                         .Where(line =>
                             !line.IsDeleted))
-                    .ThenInclude(x =>
-                        x.Observations
+                    .ThenInclude(line =>
+                        line.Observations
                             .Where(observation =>
                                 !observation.IsDeleted))
+
                 .FirstOrDefaultAsync();
         }
 
@@ -94,10 +111,18 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 .Where(x =>
                     x.Id == id &&
                     !x.IsDeleted)
+
+                .Include(x =>
+                    x.ProductionJob)
+
+                .Include(x =>
+                    x.ProductionJobItem)
+
                 .Include(x =>
                     x.Lines)
-                    .ThenInclude(x =>
-                        x.Observations)
+                    .ThenInclude(line =>
+                        line.Observations)
+
                 .FirstOrDefaultAsync();
         }
 
@@ -234,7 +259,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
                             // Customer Item Code
                             (
-                                x.CustomerItemCode != null &&
+                                x.CustomerItemCode != null
+                                &&
                                 x.CustomerItemCode
                                     .ToLower()
                                     .Contains(search)
@@ -258,7 +284,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
                             // Part Number
                             (
-                                x.PartNumber != null &&
+                                x.PartNumber != null
+                                &&
                                 x.PartNumber
                                     .ToLower()
                                     .Contains(search)
@@ -268,7 +295,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
                             // Workshop Drawing
                             (
-                                x.WorkshopDrawingNumber != null &&
+                                x.WorkshopDrawingNumber != null
+                                &&
                                 x.WorkshopDrawingNumber
                                     .ToLower()
                                     .Contains(search)
@@ -278,7 +306,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
                             // Customer Drawing
                             (
-                                x.CustomerDrawingNumber != null &&
+                                x.CustomerDrawingNumber != null
+                                &&
                                 x.CustomerDrawingNumber
                                     .ToLower()
                                     .Contains(search)
@@ -288,7 +317,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
                             // Invoice Number
                             (
-                                x.InvoiceNumber != null &&
+                                x.InvoiceNumber != null
+                                &&
                                 x.InvoiceNumber
                                     .ToLower()
                                     .Contains(search)
@@ -350,129 +380,244 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
         #region Production Job Source
 
+        /*
+         * Returns Production Jobs which contain at least
+         * one active ProductionJobItem whose CURRENT
+         * Production Quantity has been completed.
+         *
+         * Important:
+         *
+         * Parent Production Job does not have to be
+         * ProductionJobStatus.Completed.
+         *
+         * Example:
+         *
+         * PO has:
+         *
+         * Item A - current production completed
+         * Item B - still in production
+         *
+         * Item A must still be available for PDI.
+         */
+
         public async Task<List<ProductionJob>>
             GetProductionJobsForInspectionAsync()
         {
             return await _context
                 .ProductionJobs
                 .AsNoTracking()
-                .Where(x =>
-                    !x.IsDeleted &&
-                    x.IsActive &&
-                    x.Status ==
-                        ProductionJobStatus.Completed)
-                .Include(x =>
-                    x.CustomerPurchaseOrderItem)
-                    .ThenInclude(x =>
-                        x.CustomerPurchaseOrder)
-                .Include(x =>
-                    x.Item)
-                    .ThenInclude(x =>
-                        x.Uom)
-                .OrderByDescending(x =>
-                    x.CompletedOn)
-                .ThenByDescending(x =>
-                    x.Id)
+                .Where(job =>
+                    !job.IsDeleted
+                    &&
+                    job.IsActive
+                    &&
+                    job.Status !=
+                        ProductionJobStatus.Cancelled
+                    &&
+                    job.Items.Any(item =>
+                        !item.IsDeleted
+                        &&
+                        item.IsActive
+                        &&
+                        item.ProductionQuantity > 0m
+                        &&
+                        item.CompletedQuantity >=
+                            item.ProductionQuantity))
+
+                // =========================================
+                // CUSTOMER PO HEADER
+                // =========================================
+
+                .Include(job =>
+                    job.CustomerPurchaseOrder)
+
+                // =========================================
+                // PRODUCTION JOB ITEMS
+                // =========================================
+
+                .Include(job =>
+                    job.Items)
+                    .ThenInclude(item =>
+                        item.CustomerPurchaseOrderItem)
+
+                // =========================================
+                // ITEM MASTER
+                // =========================================
+
+                .Include(job =>
+                    job.Items)
+                    .ThenInclude(item =>
+                        item.Item)
+
+                // =========================================
+                // ORDER
+                // =========================================
+
+                .OrderByDescending(job =>
+                    job.ModifiedOn ??
+                    job.CreatedOn)
+
+                .ThenByDescending(job =>
+                    job.Id)
+
                 .ToListAsync();
         }
 
 
+        /*
+         * IMPORTANT:
+         *
+         * Existing interface method name is retained.
+         *
+         * The supplied ID represents ProductionJobItemId,
+         * not ProductionJobId.
+         *
+         * Return type remains ProductionJob so existing
+         * interface structure does not have to change.
+         *
+         * The selected ProductionJobItem can be obtained
+         * from:
+         *
+         * productionJob.Items
+         *     .First(x => x.Id == productionJobItemId)
+         */
+
         public async Task<ProductionJob?>
             GetProductionJobForInspectionAsync(
-                int productionJobId)
+                int productionJobItemId)
         {
             return await _context
                 .ProductionJobs
                 .AsNoTracking()
-                .Where(x =>
-                    x.Id ==
-                        productionJobId &&
-                    !x.IsDeleted &&
-                    x.IsActive &&
-                    x.Status ==
-                        ProductionJobStatus.Completed)
+                .Where(job =>
+                    !job.IsDeleted
+                    &&
+                    job.IsActive
+                    &&
+                    job.Status !=
+                        ProductionJobStatus.Cancelled
+                    &&
+                    job.Items.Any(item =>
+                        item.Id ==
+                            productionJobItemId
+                        &&
+                        !item.IsDeleted
+                        &&
+                        item.IsActive
+                        &&
+                        item.ProductionQuantity > 0m
+                        &&
+                        item.CompletedQuantity >=
+                            item.ProductionQuantity))
 
                 // =========================================
-                // CUSTOMER PO SOURCE
+                // CUSTOMER PO HEADER
                 // =========================================
 
-                .Include(x =>
-                    x.CustomerPurchaseOrderItem)
-                    .ThenInclude(x =>
-                        x.CustomerPurchaseOrder)
+                .Include(job =>
+                    job.CustomerPurchaseOrder)
+
+                // =========================================
+                // CUSTOMER PO ITEM
+                // =========================================
+
+                .Include(job =>
+                    job.Items)
+                    .ThenInclude(item =>
+                        item.CustomerPurchaseOrderItem)
 
                 // =========================================
                 // ITEM + MAIN UOM
                 // =========================================
 
-                .Include(x =>
-                    x.Item)
-                    .ThenInclude(x =>
-                        x.Uom)
+                .Include(job =>
+                    job.Items)
+                    .ThenInclude(item =>
+                        item.Item)
+                    .ThenInclude(item =>
+                        item.Uom)
 
                 // =========================================
                 // ITEM SPECIFICATIONS
+                // + SPECIFICATION MASTER
                 // =========================================
 
-                .Include(x =>
-                    x.Item)
-                    .ThenInclude(x =>
-                        x.ItemSpecifications
-                            .Where(specification =>
-                                !specification.IsDeleted &&
-                                specification.IsActive))
-                    .ThenInclude(x =>
-                        x.Specification)
-
-                .Include(x =>
-                    x.Item)
-                    .ThenInclude(x =>
-                        x.ItemSpecifications
-                            .Where(specification =>
-                                !specification.IsDeleted &&
-                                specification.IsActive))
-                    .ThenInclude(x =>
-                        x.Uom)
+                .Include(job =>
+                    job.Items)
+                    .ThenInclude(item =>
+                        item.Item)
+                    .ThenInclude(item =>
+                        item.ItemSpecifications)
+                    .ThenInclude(specification =>
+                        specification.Specification)
 
                 // =========================================
-                // CURRENT WORKSHOP DRAWING
+                // ITEM SPECIFICATIONS
+                // + SPECIFICATION UOM
                 // =========================================
 
-                .Include(x =>
-                    x.Item)
-                    .ThenInclude(x =>
-                        x.Drawings
-                            .Where(drawing =>
-                                !drawing.IsDeleted &&
-                                drawing.IsActive))
+                .Include(job =>
+                    job.Items)
+                    .ThenInclude(item =>
+                        item.Item)
+                    .ThenInclude(item =>
+                        item.ItemSpecifications)
+                    .ThenInclude(specification =>
+                        specification.Uom)
+
+                // =========================================
+                // WORKSHOP DRAWINGS
+                // =========================================
+
+                .Include(job =>
+                    job.Items)
+                    .ThenInclude(item =>
+                        item.Item)
+                    .ThenInclude(item =>
+                        item.Drawings)
 
                 .FirstOrDefaultAsync();
         }
 
 
+        /*
+         * Allocation is ProductionJobItem-wise.
+         *
+         * Example:
+         *
+         * Completed Quantity = 100
+         *
+         * PDI 1 = 60
+         * PDI 2 = 25
+         *
+         * Remaining PDI Quantity = 15
+         */
+
         public async Task<decimal>
             GetAllocatedInspectionQuantityAsync(
-                int productionJobId,
+                int productionJobItemId,
                 int? excludePreDispatchInspectionId = null)
         {
             return await _context
                 .PreDispatchInspections
                 .AsNoTracking()
-                .Where(x =>
-                    x.ProductionJobId ==
-                        productionJobId
+                .Where(pdi =>
+                    pdi.ProductionJobItemId ==
+                        productionJobItemId
                     &&
-                    !x.IsDeleted
+                    !pdi.IsDeleted
                     &&
                     (
-                        !excludePreDispatchInspectionId.HasValue
+                        !excludePreDispatchInspectionId
+                            .HasValue
                         ||
-                        x.Id !=
-                            excludePreDispatchInspectionId.Value
+                        pdi.Id !=
+                            excludePreDispatchInspectionId
+                                .Value
                     ))
-                .Select(x =>
+                .Select(pdi =>
                     (decimal?)
-                        x.InspectionQuantity)
+                        pdi.InspectionQuantity)
                 .SumAsync()
                 ?? 0m;
         }
@@ -488,13 +633,14 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         {
             return await _context
                 .PreDispatchInspections
+                .AsNoTracking()
 
                 /*
-                 * IsDeleted intentionally NOT filtered.
+                 * Deleted PDI Reports are intentionally
+                 * included.
                  *
-                 * PDI / Inspection Report numbers are
-                 * permanent document numbers and must
-                 * never be reused after deletion.
+                 * Generated Inspection document numbers
+                 * must never be reused.
                  */
 
                 .Where(x =>
@@ -532,8 +678,10 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 preDispatchInspection)
         {
             /*
-             * Entity is already tracked by the scoped
-             * ApplicationDbContext.
+             * Entity is already tracked because
+             * Update / Finalize / Delete operations load
+             * it using GetForUpdateAsync or
+             * GetDeletedForUpdateAsync.
              */
 
             await _context
@@ -571,10 +719,18 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 .Where(x =>
                     x.Id == id &&
                     x.IsDeleted)
+
+                .Include(x =>
+                    x.ProductionJob)
+
+                .Include(x =>
+                    x.ProductionJobItem)
+
                 .Include(x =>
                     x.Lines)
-                    .ThenInclude(x =>
-                        x.Observations)
+                    .ThenInclude(line =>
+                        line.Observations)
+
                 .FirstOrDefaultAsync();
         }
 

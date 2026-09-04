@@ -3,24 +3,43 @@
     File: Edit.cshtml
 
     Purpose:
-    Edits a Draft Production Job.
+    Edits Production planning for an existing Production Job.
+
+    Production Structure:
+
+    Customer Purchase Order
+            ↓
+    Production Job
+            ↓
+    Production Job Items
+            ↓
+    Production Job Steps
 
     Responsibilities:
     - Own the Edit form.
-    - Display Production source as read-only.
-    - Update Job Quantity.
-    - Update planning dates.
-    - Update Job remarks.
+    - Display Customer PO source as read-only.
+    - Display all Production Job Items.
+    - Update Item-wise Production Quantity.
+    - Update Production planning dates.
+    - Update Production Job remarks.
+    - Enable client-side validation.
 
     Important:
-    - Only Draft Production Job can be edited.
-    - Customer PO Item cannot be changed.
-    - Item and Routing cannot be changed.
-    - Production Steps remain unchanged.
+    - Customer PO cannot be changed after Job creation.
+    - Production Job Items cannot be replaced.
+    - Ordered Quantity comes from Customer PO and is read-only.
+    - Production Quantity is maintained by Admin.
+    - Existing Item Routing identity cannot be changed here.
+    - Production Pipeline editing is handled separately.
+    - Completed and Cancelled Jobs cannot be edited.
+    - Ready / InProgress Jobs may still require Production
+      Quantity planning for remaining Ordered Quantity.
     ============================================================
 *@
 
 @model AjayIndustriesERP.Web.ViewModels.ProductionJob.ProductionJobFormViewModel
+
+@using AjayIndustriesERP.Domain.Enums
 
 @{
     ViewData["Title"] =
@@ -45,9 +64,68 @@
             Edit Production Job
         </h2>
 
-        <p class="text-muted mb-0">
-            @Model.Code
-        </p>
+        <div class="d-flex
+                    align-items-center
+                    gap-2
+                    flex-wrap">
+
+            <span class="text-muted">
+                @Model.Code
+            </span>
+
+
+            @switch (Model.Status)
+            {
+                case ProductionJobStatus.Draft:
+
+                    <span class="badge bg-secondary">
+                        Draft
+                    </span>
+
+                    break;
+
+
+                case ProductionJobStatus.Ready:
+
+                    <span class="badge bg-primary">
+                        Ready
+                    </span>
+
+                    break;
+
+
+                case ProductionJobStatus.InProgress:
+
+                    <span class="badge
+                                 bg-warning
+                                 text-dark">
+
+                        In Progress
+
+                    </span>
+
+                    break;
+
+
+                case ProductionJobStatus.Completed:
+
+                    <span class="badge bg-success">
+                        Completed
+                    </span>
+
+                    break;
+
+
+                case ProductionJobStatus.Cancelled:
+
+                    <span class="badge bg-danger">
+                        Cancelled
+                    </span>
+
+                    break;
+            }
+
+        </div>
 
     </div>
 
@@ -56,7 +134,10 @@
        asp-route-id="@Model.Id"
        class="btn btn-outline-secondary">
 
-        <i class="fa-solid fa-arrow-left me-1"></i>
+        <i class="fa-solid
+                  fa-arrow-left
+                  me-1">
+        </i>
 
         Back to Details
 
@@ -66,7 +147,43 @@
 
 
 <!-- =========================================================
-     REGION 2 — EDIT FORM
+     REGION 2 — PLANNING INFORMATION
+========================================================== -->
+
+@if (Model.Status == ProductionJobStatus.InProgress)
+{
+    <div class="alert
+                alert-light
+                border
+                mb-4">
+
+        <div class="fw-semibold">
+
+            <i class="fa-solid
+                      fa-circle-info
+                      me-1">
+            </i>
+
+            Production Planning
+
+        </div>
+
+
+        <div class="small text-muted mt-1">
+
+            This Production Job is already In Progress.
+            Production Quantity can be increased for remaining
+            Customer PO quantity according to the current
+            production state.
+
+        </div>
+
+    </div>
+}
+
+
+<!-- =========================================================
+     REGION 3 — EDIT FORM
 ========================================================== -->
 
 <form asp-controller="ProductionJob"
@@ -78,21 +195,33 @@
     @Html.AntiForgeryToken()
 
 
+    <!-- =====================================================
+         REQUIRED IDENTIFIER
+    ====================================================== -->
+
     <input asp-for="Id"
            type="hidden" />
 
+
+    <!-- =====================================================
+         VALIDATION SUMMARY
+    ====================================================== -->
 
     <div asp-validation-summary="ModelOnly"
          class="text-danger mb-3">
     </div>
 
 
+    <!-- =====================================================
+         SHARED PRODUCTION JOB FORM
+    ====================================================== -->
+
     <partial name="_Form"
              model="@Model" />
 
 
     <!-- =====================================================
-         REGION 3 — ACTIONS
+         REGION 4 — ACTIONS
     ====================================================== -->
 
     <div class="d-flex
@@ -117,7 +246,7 @@
                       me-1">
             </i>
 
-            Update Production Job
+            Update Production Planning
 
         </button>
 
@@ -127,11 +256,13 @@
 
 
 <!-- =========================================================
-     REGION 4 — VALIDATION
+     REGION 5 — VALIDATION / PRODUCTION JOB SCRIPT
 ========================================================== -->
+
 @section Scripts
 {
     <partial name="_ValidationScriptsPartial" />
+
 
     <script src="~/js/production-job.js"
             asp-append-version="true">

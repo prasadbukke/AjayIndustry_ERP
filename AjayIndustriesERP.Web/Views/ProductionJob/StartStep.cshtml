@@ -3,10 +3,12 @@
     File: StartStep.cshtml
 
     Purpose:
-    Starts a Pending Production Job Step.
+    Starts a Pending Production Job Item Step.
 
     Responsibilities:
     - Display Production Job information.
+    - Display selected Item information.
+    - Display current Item Production Quantity.
     - Display selected Operation.
     - Display Default Machine from Routing.
     - Allow Actual Machine selection.
@@ -14,17 +16,26 @@
     - Start shop-floor execution.
 
     Important:
-    - Only Pending Step can be started.
-    - Previous Steps must be completed first.
-    - Only one Step may be In Progress at a time.
+    - Only a Pending Step can be started.
+    - ProductionJobStepId identifies the exact Item Pipeline.
+    - Previous Steps of the same Item must be completed first.
+    - Only one Step may be In Progress at a time for the
+      selected ProductionJobItem.
+    - Different Items under the same Production Job can execute
+      independently.
     - Actual Machine may differ from Default Machine.
+    - Machine is optional for Manual / Inspection Operations.
+    - JobQuantity is retained as a compatibility property and
+      represents ProductionJobItem.ProductionQuantity.
+    - Worker cannot modify ProductionQuantity from this screen.
     ============================================================
 *@
 
 @model AjayIndustriesERP.Web.ViewModels.ProductionJob.ProductionJobStartStepViewModel
 
 @{
-    ViewData["Title"] = "Start Production Step";
+    ViewData["Title"] =
+        "Start Production Step";
 }
 
 
@@ -56,7 +67,10 @@
        asp-route-id="@Model.ProductionJobId"
        class="btn btn-outline-secondary">
 
-        <i class="fa-solid fa-arrow-left me-1"></i>
+        <i class="fa-solid
+                  fa-arrow-left
+                  me-1">
+        </i>
 
         Back to Production Job
 
@@ -66,7 +80,7 @@
 
 
 <!-- =========================================================
-     REGION 2 — JOB INFORMATION
+     REGION 2 — PRODUCTION INFORMATION
 ========================================================== -->
 
 <div class="card shadow-sm border-0 mb-4">
@@ -75,9 +89,12 @@
 
         <span class="fw-semibold">
 
-            <i class="fa-solid fa-industry me-1"></i>
+            <i class="fa-solid
+                      fa-industry
+                      me-1">
+            </i>
 
-            Production Job
+            Production Information
 
         </span>
 
@@ -88,10 +105,15 @@
 
         <div class="row g-4">
 
+
+            <!-- =============================================
+                 JOB CODE
+            ============================================== -->
+
             <div class="col-lg-3 col-md-6">
 
                 <div class="small text-muted mb-1">
-                    Job Code
+                    Production Job
                 </div>
 
                 <div class="fw-semibold">
@@ -100,6 +122,10 @@
 
             </div>
 
+
+            <!-- =============================================
+                 ITEM
+            ============================================== -->
 
             <div class="col-lg-4 col-md-6">
 
@@ -118,22 +144,34 @@
             </div>
 
 
+            <!-- =============================================
+                 PRODUCTION QUANTITY
+            ============================================== -->
+
             <div class="col-lg-2 col-md-6">
 
                 <div class="small text-muted mb-1">
-                    Job Quantity
+                    Production Quantity
                 </div>
 
-                <div class="fw-bold">
+                <div class="fw-bold text-primary">
 
-                    @(Model.JobQuantity.ToString("0.###"))
+                    @Model.JobQuantity.ToString("0.###")
 
                     @Model.UnitName
 
                 </div>
 
+                <div class="small text-muted">
+                    Admin planned
+                </div>
+
             </div>
 
+
+            <!-- =============================================
+                 SEQUENCE
+            ============================================== -->
 
             <div class="col-lg-3 col-md-6">
 
@@ -169,7 +207,10 @@
 
         <span class="fw-semibold">
 
-            <i class="fa-solid fa-gears me-1"></i>
+            <i class="fa-solid
+                      fa-gears
+                      me-1">
+            </i>
 
             Operation
 
@@ -181,6 +222,11 @@
     <div class="card-body">
 
         <div class="row g-4">
+
+
+            <!-- =============================================
+                 OPERATION
+            ============================================== -->
 
             <div class="col-lg-6 col-md-12">
 
@@ -199,17 +245,25 @@
             </div>
 
 
+            <!-- =============================================
+                 DEFAULT MACHINE
+            ============================================== -->
+
             <div class="col-lg-6 col-md-12">
 
                 <div class="small text-muted mb-1">
                     Routing Default Machine
                 </div>
 
+
                 @if (Model.DefaultMachineId.HasValue)
                 {
                     <div class="fw-semibold">
-                        @Model.DefaultMachineCode -
+
+                        @Model.DefaultMachineCode
+                        -
                         @Model.DefaultMachineName
+
                     </div>
                 }
                 else
@@ -240,7 +294,7 @@
 
 
     <!-- =====================================================
-         POST IDENTIFICATION
+         POST IDENTIFICATION / DISPLAY VALUES
     ====================================================== -->
 
     <input asp-for="ProductionJobId"
@@ -283,10 +337,18 @@
            type="hidden" />
 
 
+    <!-- =====================================================
+         VALIDATION SUMMARY
+    ====================================================== -->
+
     <div asp-validation-summary="ModelOnly"
          class="text-danger mb-3">
     </div>
 
+
+    <!-- =====================================================
+         START EXECUTION
+    ====================================================== -->
 
     <div class="card shadow-sm border-0 mb-4">
 
@@ -327,7 +389,10 @@
                             class="form-select">
 
                         <option value="">
-                            -- No Machine / Manual Operation --
+
+                            -- No Machine /
+                            Manual Operation --
+
                         </option>
 
                     </select>
@@ -340,9 +405,11 @@
 
                     <div class="form-text">
 
-                        Routing Default Machine is pre-selected
-                        when available. You may select another
-                        active Machine if required.
+                        Routing Default Machine is selected
+                        automatically when available.
+
+                        You may select another active Machine
+                        if required.
 
                     </div>
 
@@ -381,7 +448,56 @@
 
 
     <!-- =====================================================
-         REGION 5 — ACTIONS
+         REGION 5 — INFORMATION
+    ====================================================== -->
+
+    <div class="alert
+                alert-light
+                border
+                mb-4">
+
+        <div class="d-flex
+                    align-items-start
+                    gap-2">
+
+            <i class="fa-solid
+                      fa-circle-info
+                      text-primary
+                      mt-1">
+            </i>
+
+
+            <div>
+
+                <div class="fw-semibold">
+                    Starting this Step
+                </div>
+
+
+                <div class="small text-muted">
+
+                    This starts execution only for this
+                    Item Pipeline Step.
+
+                </div>
+
+
+                <div class="small text-muted mt-1">
+
+                    Production Quantity is planned by Admin
+                    and cannot be changed from this screen.
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         REGION 6 — ACTIONS
     ====================================================== -->
 
     <div class="d-flex
@@ -416,7 +532,7 @@
 
 
 <!-- =========================================================
-     REGION 6 — VALIDATION
+     REGION 7 — VALIDATION
 ========================================================== -->
 @section Scripts
 {

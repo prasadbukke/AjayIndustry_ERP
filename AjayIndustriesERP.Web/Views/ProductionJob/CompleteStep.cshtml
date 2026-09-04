@@ -3,28 +3,39 @@
     File: CompleteStep.cshtml
 
     Purpose:
-    Completes an In Progress Production Job Step.
+    Completes an In Progress Production Job Item Step.
 
     Responsibilities:
-    - Display Job and Operation information.
+    - Display Production Job and Item information.
+    - Display current Item Production Quantity.
+    - Display Operation information.
     - Display Actual Assigned Machine.
-    - Accept Good Quantity.
-    - Accept Rejected Quantity.
+    - Accept Good Quantity for this completion entry.
+    - Accept Rejected Quantity for this completion entry.
     - Accept execution remarks.
-    - Complete Production Step.
+    - Complete the Production Step.
 
     Important:
-    - Only In Progress Step can be completed.
-    - Good + Rejected Quantity cannot exceed Job Quantity.
+    - Only an In Progress Step can be completed.
+    - ProductionJobStepId identifies the exact Item Pipeline.
+    - JobQuantity is retained as a compatibility property and
+      represents ProductionJobItem.ProductionQuantity.
+    - Good / Rejected Quantity validation is performed by the
+      ProductionJobService against the actual Pipeline state.
+    - Worker cannot modify ProductionQuantity here.
+    - Completing the final Step does NOT automatically mean the
+      complete Production Job is finished.
+    - Parent Production Job becomes Completed only when every
+      ProductionJobItem completes its full Ordered Quantity.
     - Completion timestamp is generated automatically.
-    - Completing the final Step completes the Production Job.
     ============================================================
 *@
 
 @model AjayIndustriesERP.Web.ViewModels.ProductionJob.ProductionJobCompleteStepViewModel
 
 @{
-    ViewData["Title"] = "Complete Production Step";
+    ViewData["Title"] =
+        "Complete Production Step";
 }
 
 
@@ -56,7 +67,10 @@
        asp-route-id="@Model.ProductionJobId"
        class="btn btn-outline-secondary">
 
-        <i class="fa-solid fa-arrow-left me-1"></i>
+        <i class="fa-solid
+                  fa-arrow-left
+                  me-1">
+        </i>
 
         Back to Production Job
 
@@ -75,7 +89,10 @@
 
         <span class="fw-semibold">
 
-            <i class="fa-solid fa-gears me-1"></i>
+            <i class="fa-solid
+                      fa-gears
+                      me-1">
+            </i>
 
             Production Step
 
@@ -89,7 +106,9 @@
         <div class="row g-4">
 
 
-            <!-- JOB -->
+            <!-- =============================================
+                 PRODUCTION JOB
+            ============================================== -->
 
             <div class="col-lg-3 col-md-6">
 
@@ -104,7 +123,9 @@
             </div>
 
 
-            <!-- ITEM -->
+            <!-- =============================================
+                 ITEM
+            ============================================== -->
 
             <div class="col-lg-3 col-md-6">
 
@@ -123,25 +144,34 @@
             </div>
 
 
-            <!-- QUANTITY -->
+            <!-- =============================================
+                 PRODUCTION QUANTITY
+            ============================================== -->
 
             <div class="col-lg-3 col-md-6">
 
                 <div class="small text-muted mb-1">
-                    Job Quantity
+                    Production Quantity
                 </div>
 
-                <div class="fw-bold">
+                <div class="fw-bold text-primary">
 
-                    @(Model.JobQuantity.ToString("0.###"))
+                    @Model.JobQuantity.ToString("0.###")
+
                     @Model.UnitName
 
+                </div>
+
+                <div class="small text-muted">
+                    Admin planned target
                 </div>
 
             </div>
 
 
-            <!-- SEQUENCE -->
+            <!-- =============================================
+                 SEQUENCE
+            ============================================== -->
 
             <div class="col-lg-3 col-md-6">
 
@@ -161,7 +191,9 @@
             </div>
 
 
-            <!-- OPERATION -->
+            <!-- =============================================
+                 OPERATION
+            ============================================== -->
 
             <div class="col-lg-6 col-md-12">
 
@@ -180,7 +212,9 @@
             </div>
 
 
-            <!-- MACHINE -->
+            <!-- =============================================
+                 MACHINE
+            ============================================== -->
 
             <div class="col-lg-6 col-md-12">
 
@@ -194,7 +228,8 @@
                 {
                     <div class="fw-semibold">
 
-                        @Model.AssignedMachineCode -
+                        @Model.AssignedMachineCode
+                        -
                         @Model.AssignedMachineName
 
                     </div>
@@ -227,7 +262,7 @@
 
 
     <!-- =====================================================
-         POST IDENTIFICATION
+         POST IDENTIFICATION / DISPLAY VALUES
     ====================================================== -->
 
     <input asp-for="ProductionJobId"
@@ -267,10 +302,18 @@
            type="hidden" />
 
 
+    <!-- =====================================================
+         VALIDATION SUMMARY
+    ====================================================== -->
+
     <div asp-validation-summary="ModelOnly"
          class="text-danger mb-3">
     </div>
 
+
+    <!-- =====================================================
+         PRODUCTION RESULT
+    ====================================================== -->
 
     <div class="card shadow-sm border-0 mb-4">
 
@@ -305,7 +348,9 @@
                            class="form-label fw-semibold">
                     </label>
 
-                    <span class="text-danger">*</span>
+                    <span class="text-danger">
+                        *
+                    </span>
 
 
                     <div class="input-group">
@@ -331,6 +376,14 @@
                     <span asp-validation-for="GoodQuantity"
                           class="text-danger small">
                     </span>
+
+
+                    <div class="form-text">
+
+                        Enter Good Quantity produced in
+                        this completion entry.
+
+                    </div>
 
                 </div>
 
@@ -370,17 +423,25 @@
                           class="text-danger small">
                     </span>
 
+
+                    <div class="form-text">
+
+                        Enter rejected quantity for
+                        this completion entry.
+
+                    </div>
+
                 </div>
 
 
                 <!-- =========================================
-                     JOB QUANTITY REFERENCE
+                     PRODUCTION QUANTITY REFERENCE
                 ========================================== -->
 
                 <div class="col-lg-4 col-md-6">
 
                     <label class="form-label fw-semibold">
-                        Job Quantity
+                        Production Quantity
                     </label>
 
 
@@ -391,7 +452,10 @@
 
 
                     <div class="form-text">
-                        Good + Rejected cannot exceed Job Quantity.
+
+                        Current Production target planned
+                        by Admin.
+
                     </div>
 
                 </div>
@@ -429,10 +493,13 @@
 
 
     <!-- =====================================================
-         REGION 4 — WARNING
+         REGION 4 — INFORMATION
     ====================================================== -->
 
-    <div class="alert alert-light border mb-4">
+    <div class="alert
+                alert-light
+                border
+                mb-4">
 
         <div class="d-flex
                     align-items-start
@@ -451,11 +518,21 @@
                     Completing this Step
                 </div>
 
+
                 <div class="small text-muted">
 
-                    After completion, this Step becomes green in
-                    the Production Pipeline and the next Routing
-                    Step becomes available to start.
+                    Good and Rejected quantities are validated
+                    against the current Item Pipeline and
+                    Production plan when the Step is completed.
+
+                </div>
+
+
+                <div class="small text-muted mt-1">
+
+                    Depending on the remaining Production
+                    Quantity, the next Operation or the next
+                    Production cycle may become available.
 
                 </div>
 

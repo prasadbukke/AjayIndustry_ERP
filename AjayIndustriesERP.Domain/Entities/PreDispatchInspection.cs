@@ -7,6 +7,7 @@ Represents a Pre-Dispatch / Final Inspection Report.
 
 Responsibilities:
 - Link inspection with Production Job.
+- Link inspection with specific Production Job Item.
 - Preserve Customer PO and Item snapshot.
 - Preserve Drawing revisions used during inspection.
 - Store inspection quantities and final result.
@@ -15,12 +16,13 @@ Responsibilities:
 - Maintain Inspection Parameter Lines.
 
 Important:
-- Production Job is the primary source transaction.
+- Production Job is the parent transaction.
+- Production Job Item is the actual Item-level PDI source.
 - Customer / PO / Item / Drawing information is snapshotted
   for audit purposes.
 - Draft reports can be edited.
 - Finalized reports must remain locked.
-- One Production Job may have multiple PDI Reports.
+- One Production Job Item may have multiple PDI Reports.
 ============================================================
 */
 
@@ -56,7 +58,15 @@ namespace AjayIndustriesERP.Domain.Entities
         #endregion
 
 
-        #region Production Job
+        #region Production Source
+
+        /*
+         * Parent Production Job.
+         *
+         * Retained because PDI belongs to a Production Job
+         * transaction and existing reporting/navigation
+         * uses this reference.
+         */
 
         public int ProductionJobId { get; set; }
 
@@ -65,6 +75,26 @@ namespace AjayIndustriesERP.Domain.Entities
             get;
             set;
         } = null!;
+
+
+        /*
+         * Actual Item-level Production source.
+         *
+         * One Production Job can contain multiple
+         * ProductionJobItems.
+         *
+         * PDI Quantity allocation is calculated against
+         * this ProductionJobItemId.
+         */
+
+        public int ProductionJobItemId { get; set; }
+
+        public ProductionJobItem ProductionJobItem
+        {
+            get;
+            set;
+        } = null!;
+
 
         public string ProductionJobCode { get; set; } =
             string.Empty;
@@ -120,8 +150,11 @@ namespace AjayIndustriesERP.Domain.Entities
         /*
          * Printed as Part No. on the Final Inspection Report.
          *
-         * Normally Customer Item Code is preferred.
-         * Item Code may be used as fallback.
+         * Priority:
+         *
+         * 1. Customer Item Code
+         * 2. Item Master Part Number
+         * 3. ERP Item Code
          */
 
         public string? PartNumber { get; set; }
@@ -172,10 +205,10 @@ namespace AjayIndustriesERP.Domain.Entities
         #region Invoice Information
 
         /*
-         * Invoice module will be integrated later.
+         * Invoice module may reference this information.
          *
-         * These fields remain optional so PDI development
-         * does not depend on the Invoice module.
+         * These fields remain optional because PDI itself
+         * must not depend on Invoice creation.
          */
 
         public string? InvoiceNumber { get; set; }

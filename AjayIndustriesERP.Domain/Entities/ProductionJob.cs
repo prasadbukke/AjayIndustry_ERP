@@ -3,25 +3,37 @@
 File: ProductionJob.cs
 
 Purpose:
-Represents an actual manufacturing Job created for a
-Customer Purchase Order Item.
+Represents one Production Job created for one
+Customer Purchase Order.
 
 Responsibilities:
-- Link Production execution to Customer PO Item.
-- Identify the Item and Job Quantity.
-- Record which Released Routing Revision created the Job.
+- Link Production execution to one Customer PO.
+- Maintain one Production Job Code for the complete PO.
 - Maintain Production Job lifecycle.
 - Maintain planned and actual production timestamps.
-- Contain executable Production Job Steps.
+- Own all Item-wise Production Jobs.
+- Act as the parent for Item-wise Production Pipelines.
+
+Production Structure:
+
+Customer Purchase Order
+        ↓
+Production Job
+        ↓
+Production Job Item
+        ↓
+Production Job Step
 
 Important:
-- One Customer PO Item may create multiple Production Jobs.
-- Routing Steps are copied into ProductionJobSteps when the
-  Job is created.
-- Existing Job Steps must never change if Item Routing is
-  revised later.
-- Actual shop-floor execution belongs to this module,
-  not Item Process Routing.
+- One Customer PO has only one active Production Job.
+- All Customer PO Items are created under the same
+  Production Job.
+- Item Quantity, Routing and Pipeline belong to
+  ProductionJobItem.
+- Production Job becomes Completed only when all
+  ProductionJobItems complete their full Ordered Quantity.
+- Routing changes after Job creation must never modify
+  existing Production Job Item Steps.
 ============================================================
 */
 
@@ -49,103 +61,47 @@ namespace AjayIndustriesERP.Domain.Entities
         #endregion
 
 
-        #region Customer PO Item Relationship
+        #region Customer Purchase Order Relationship
 
         /// <summary>
-        /// Source Customer Purchase Order line.
+        /// Source Customer Purchase Order.
         ///
-        /// One Customer PO Item may create multiple
-        /// Production Jobs for batch-wise production.
+        /// One Customer Purchase Order has one
+        /// Production Job.
         /// </summary>
-        public int CustomerPurchaseOrderItemId { get; set; }
+        public int CustomerPurchaseOrderId { get; set; }
 
 
-        public CustomerPurchaseOrderItem CustomerPurchaseOrderItem
+        public CustomerPurchaseOrder CustomerPurchaseOrder
         {
             get;
             set;
         } = null!;
-
-        #endregion
-
-
-        #region Item Relationship
-
-        public int ItemId { get; set; }
-
-
-        public Item Item { get; set; } =
-            null!;
-
-
-        /// <summary>
-        /// Item Master snapshot at Job creation time.
-        /// </summary>
-        public string ItemCode { get; set; } =
-            string.Empty;
-
-
-        public string ItemName { get; set; } =
-            string.Empty;
-
-
-        public string? UnitName { get; set; }
-
-        #endregion
-
-
-        #region Job Quantity
-
-        /// <summary>
-        /// Quantity assigned to this Production Job.
-        ///
-        /// Example:
-        /// Customer PO Qty = 1000
-        ///
-        /// JOB-001 = 400
-        /// JOB-002 = 300
-        /// JOB-003 = 300
-        /// </summary>
-        public decimal JobQuantity { get; set; }
-
-        #endregion
-
-
-        #region Routing Reference
-
-        /// <summary>
-        /// Released Routing Revision used when the Job
-        /// was generated.
-        /// </summary>
-        public int ItemProcessRoutingId { get; set; }
-
-
-        public ItemProcessRouting ItemProcessRouting
-        {
-            get;
-            set;
-        } = null!;
-
-
-        /*
-         * Routing snapshot fields are intentionally stored.
-         *
-         * Even if Routing Master data changes later,
-         * the Job continues showing exactly which Routing
-         * Code / Revision created it.
-         */
-
-        public string RoutingCode { get; set; } =
-            string.Empty;
-
-
-        public int RoutingRevisionNumber { get; set; }
 
         #endregion
 
 
         #region Job Status
 
+        /// <summary>
+        /// Production Job lifecycle.
+        ///
+        /// Draft
+        ///     Admin is preparing Production planning.
+        ///
+        /// Ready
+        ///     Production is released to shop-floor.
+        ///
+        /// InProgress
+        ///     Production execution has started.
+        ///
+        /// Completed
+        ///     Every ProductionJobItem has completed
+        ///     its full Customer PO Ordered Quantity.
+        ///
+        /// Cancelled
+        ///     Production Job has been cancelled.
+        /// </summary>
         public ProductionJobStatus Status { get; set; } =
             ProductionJobStatus.Draft;
 
@@ -166,7 +122,9 @@ namespace AjayIndustriesERP.Domain.Entities
 
         public DateTime? StartedOn { get; set; }
 
+
         public DateTime? CompletedOn { get; set; }
+
 
         public DateTime? CancelledOn { get; set; }
 
@@ -179,15 +137,6 @@ namespace AjayIndustriesERP.Domain.Entities
 
 
         /// <summary>
-        /// Optional reason describing why the copied Production
-        /// Pipeline was modified for this specific Job.
-        ///
-        /// This does not modify the Item Process Routing Master.
-        /// </summary>
-        public string? PipelineModificationReason { get; set; }
-
-
-        /// <summary>
         /// Mandatory reason when a Ready or In Progress
         /// Production Job is cancelled.
         /// </summary>
@@ -196,13 +145,24 @@ namespace AjayIndustriesERP.Domain.Entities
         #endregion
 
 
-        #region Production Steps
+        #region Production Job Items
 
-        public ICollection<ProductionJobStep> Steps
+        /// <summary>
+        /// All Customer PO Items manufactured under this
+        /// Production Job.
+        ///
+        /// Each ProductionJobItem owns:
+        /// - Ordered Quantity
+        /// - Production Quantity
+        /// - Completed Quantity
+        /// - Routing snapshot
+        /// - Production Pipeline
+        /// </summary>
+        public ICollection<ProductionJobItem> Items
         {
             get;
             set;
-        } = new List<ProductionJobStep>();
+        } = new List<ProductionJobItem>();
 
         #endregion
     }

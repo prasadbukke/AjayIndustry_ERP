@@ -1629,6 +1629,93 @@ Important:
             "";
     }
 
+    function ensureHiddenSourceInput(
+        row,
+        fieldName,
+        cssClass,
+        value) {
+
+        let input =
+            row.querySelector(
+                cssClass);
+
+
+        if (!input) {
+
+            input =
+                row.querySelector(
+                    `input[name$=".${fieldName}"]`);
+        }
+
+
+        if (!input) {
+
+            const rowIndex =
+                getRows()
+                    .indexOf(
+                        row);
+
+
+            input =
+                document.createElement(
+                    "input");
+
+
+            input.type =
+                "hidden";
+
+
+            input.name =
+                `Items[${rowIndex}].${fieldName}`;
+
+
+            input.className =
+                cssClass.replace(
+                    ".",
+                    "");
+
+
+            const firstCell =
+                row.querySelector(
+                    "td");
+
+
+            if (firstCell) {
+
+                firstCell.appendChild(
+                    input);
+            }
+            else {
+
+                row.appendChild(
+                    input);
+            }
+        }
+
+
+        input.value =
+            value ??
+            "";
+
+
+        return input;
+    }
+
+
+    function getProductionSourceKey(
+        productionJobId,
+        customerPurchaseOrderItemId) {
+
+        return (
+            getNumber(
+                productionJobId)
+            +
+            ":"
+            +
+            getNumber(
+                customerPurchaseOrderItemId)
+        );
+    }
 
     function setOptionalRowText(
         row,
@@ -1714,8 +1801,7 @@ Important:
 
         const row =
             rows[
-            rows.length -
-            1
+            rows.length - 1
             ];
 
 
@@ -1725,17 +1811,31 @@ Important:
         }
 
 
-        // -----------------------------------------------------
-        // Source Identity
-        // -----------------------------------------------------
+        // =====================================================
+        // SOURCE IDENTITY
+        // =====================================================
+
+        const productionJobId =
+            getNumber(
+                itemData.productionJobId);
+
+
+        const customerPurchaseOrderItemId =
+            getNumber(
+                itemData.customerPurchaseOrderItemId);
+
 
         row.dataset.productionJobId =
-            itemData.productionJobId ??
-            "";
+            productionJobId;
+
+
+        row.dataset.customerPurchaseOrderItemId =
+            customerPurchaseOrderItemId;
 
 
         row.dataset.customerPoNumber =
-            itemData.customerPurchaseOrderNumber ??
+            itemData.customerPurchaseOrderNumber
+            ??
             "";
 
 
@@ -1745,24 +1845,57 @@ Important:
                 : "false";
 
 
-        setRowInputValue(
+        /*
+         * IMPORTANT:
+         *
+         * Invoice line source is:
+         *
+         * ProductionJobId
+         * +
+         * CustomerPurchaseOrderItemId
+         *
+         * If template does not contain these hidden inputs,
+         * JavaScript creates them automatically.
+         */
+
+        ensureHiddenSourceInput(
             row,
+            "ProductionJobId",
             ".production-job-id",
-            itemData.productionJobId);
+            productionJobId);
+
+
+        ensureHiddenSourceInput(
+            row,
+            "CustomerPurchaseOrderItemId",
+            ".customer-po-item-id",
+            customerPurchaseOrderItemId);
+
+
+        // =====================================================
+        // PRODUCTION JOB DISPLAY
+        // =====================================================
+
+        const productionJobCode =
+            normalizeText(
+                itemData.productionJobCode);
 
 
         setRowText(
             row,
             ".production-job-code",
-            normalizeText(
-                itemData.productionJobCode)
+            productionJobCode
             ||
-            "-");
+            (
+                productionJobId > 0
+                    ? productionJobId.toString()
+                    : "-"
+            ));
 
 
-        // -----------------------------------------------------
-        // Warning Label
-        // -----------------------------------------------------
+        // =====================================================
+        // WARNING
+        // =====================================================
 
         const warningLabel =
             row.querySelector(
@@ -1777,24 +1910,45 @@ Important:
                 true);
 
 
-        // -----------------------------------------------------
-        // Item
-        // -----------------------------------------------------
+        // =====================================================
+        // ITEM / PRODUCT
+        // =====================================================
+
+        const itemCode =
+            normalizeText(
+                itemData.itemCode);
+
+
+        const itemName =
+            normalizeText(
+                itemData.itemName);
+
+
+        /*
+         * Prefer Item Name.
+         *
+         * If Item Name is unavailable,
+         * Item Code is still shown instead of blank.
+         */
+        const itemDisplay =
+            itemName
+            ||
+            itemCode
+            ||
+            "-";
+
 
         setRowText(
             row,
             ".item-name",
-            normalizeText(
-                itemData.itemName)
-            ||
-            "-");
+            itemDisplay);
 
 
         setOptionalRowText(
             row,
             ".item-code-row",
             ".item-code",
-            itemData.itemCode);
+            itemCode);
 
 
         setOptionalRowText(
@@ -1804,9 +1958,9 @@ Important:
             itemData.productReference);
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // HSN
-        // -----------------------------------------------------
+        // =====================================================
 
         setRowText(
             row,
@@ -1817,9 +1971,9 @@ Important:
             "-");
 
 
-        // -----------------------------------------------------
-        // Production Quantity
-        // -----------------------------------------------------
+        // =====================================================
+        // PRODUCTION QUANTITY
+        // =====================================================
 
         const productionQuantity =
             getNumber(
@@ -1837,9 +1991,9 @@ Important:
             productionQuantity;
 
 
-        // -----------------------------------------------------
-        // Already Invoiced Quantity
-        // -----------------------------------------------------
+        // =====================================================
+        // ALREADY INVOICED
+        // =====================================================
 
         const alreadyInvoicedQuantity =
             getNumber(
@@ -1857,9 +2011,9 @@ Important:
             alreadyInvoicedQuantity;
 
 
-        // -----------------------------------------------------
-        // Available Quantity
-        // -----------------------------------------------------
+        // =====================================================
+        // AVAILABLE QUANTITY
+        // =====================================================
 
         const availableQuantity =
             getNumber(
@@ -1895,9 +2049,9 @@ Important:
         }
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // UOM
-        // -----------------------------------------------------
+        // =====================================================
 
         setRowText(
             row,
@@ -1908,9 +2062,9 @@ Important:
             "-");
 
 
-        // -----------------------------------------------------
-        // Commercial Defaults
-        // -----------------------------------------------------
+        // =====================================================
+        // COMMERCIAL DEFAULTS
+        // =====================================================
 
         const rateInput =
             row.querySelector(
@@ -1936,9 +2090,6 @@ Important:
         }
 
 
-        /*
-         * New Invoice line default GST = 18%.
-         */
         const gstInput =
             row.querySelector(
                 ".gst-input");
@@ -2026,10 +2177,25 @@ Important:
                         item.productionJobId);
 
 
-                if (productionJobId > 0) {
+                const customerPurchaseOrderItemId =
+                    getNumber(
+                        item.customerPurchaseOrderItemId);
+
+
+                if (
+                    productionJobId > 0
+                    &&
+                    customerPurchaseOrderItemId > 0
+                ) {
+
+                    const sourceKey =
+                        getProductionSourceKey(
+                            productionJobId,
+                            customerPurchaseOrderItemId);
+
 
                     sourceMap.set(
-                        productionJobId,
+                        sourceKey,
                         item);
                 }
             });
@@ -2041,23 +2207,48 @@ Important:
 
                     const productionJobId =
                         getNumber(
-                            row.dataset
-                                .productionJobId ||
+                            row.dataset.productionJobId
+                            ||
                             row
                                 .querySelector(
                                     ".production-job-id")
                                 ?.value);
 
 
-                    if (productionJobId <= 0) {
+                    const customerPurchaseOrderItemId =
+                        getNumber(
+                            row.dataset.customerPurchaseOrderItemId
+                            ||
+                            row
+                                .querySelector(
+                                    ".customer-po-item-id")
+                                ?.value
+                            ||
+                            row
+                                .querySelector(
+                                    'input[name$=".CustomerPurchaseOrderItemId"]')
+                                ?.value);
+
+
+                    if (
+                        productionJobId <= 0
+                        ||
+                        customerPurchaseOrderItemId <= 0
+                    ) {
 
                         return;
                     }
 
 
+                    const sourceKey =
+                        getProductionSourceKey(
+                            productionJobId,
+                            customerPurchaseOrderItemId);
+
+
                     const sourceItem =
                         sourceMap.get(
-                            productionJobId);
+                            sourceKey);
 
 
                     if (!sourceItem) {
@@ -2066,9 +2257,104 @@ Important:
                     }
 
 
-                    // -----------------------------------------
+                    row.dataset.productionJobId =
+                        productionJobId;
+
+
+                    row.dataset.customerPurchaseOrderItemId =
+                        customerPurchaseOrderItemId;
+
+
+                    // =========================================
+                    // Source IDs
+                    // =========================================
+
+                    ensureHiddenSourceInput(
+                        row,
+                        "ProductionJobId",
+                        ".production-job-id",
+                        productionJobId);
+
+
+                    ensureHiddenSourceInput(
+                        row,
+                        "CustomerPurchaseOrderItemId",
+                        ".customer-po-item-id",
+                        customerPurchaseOrderItemId);
+
+
+                    // =========================================
+                    // Job
+                    // =========================================
+
+                    setRowText(
+                        row,
+                        ".production-job-code",
+                        normalizeText(
+                            sourceItem.productionJobCode)
+                        ||
+                        productionJobId.toString());
+
+
+                    // =========================================
+                    // Item
+                    // =========================================
+
+                    const itemCode =
+                        normalizeText(
+                            sourceItem.itemCode);
+
+
+                    const itemName =
+                        normalizeText(
+                            sourceItem.itemName);
+
+
+                    setRowText(
+                        row,
+                        ".item-name",
+                        itemName
+                        ||
+                        itemCode
+                        ||
+                        "-");
+
+
+                    setOptionalRowText(
+                        row,
+                        ".item-code-row",
+                        ".item-code",
+                        itemCode);
+
+
+                    setOptionalRowText(
+                        row,
+                        ".product-reference-row",
+                        ".product-reference",
+                        sourceItem.productReference);
+
+
+                    setRowText(
+                        row,
+                        ".hsn-number",
+                        normalizeText(
+                            sourceItem.hsnNumber)
+                        ||
+                        "-");
+
+
+                    setRowText(
+                        row,
+                        ".item-uom",
+                        normalizeText(
+                            sourceItem.unitName)
+                        ||
+                        "-");
+
+
+                    // =========================================
                     // Warning
-                    // -----------------------------------------
+                    // =========================================
 
                     row.dataset.requiresWarning =
                         sourceItem.requiresWarning
@@ -2089,9 +2375,9 @@ Important:
                             true);
 
 
-                    // -----------------------------------------
-                    // Production Quantity
-                    // -----------------------------------------
+                    // =========================================
+                    // Production Qty
+                    // =========================================
 
                     const productionQuantity =
                         getNumber(
@@ -2109,9 +2395,9 @@ Important:
                             productionQuantity));
 
 
-                    // -----------------------------------------
+                    // =========================================
                     // Already Invoiced
-                    // -----------------------------------------
+                    // =========================================
 
                     const alreadyInvoicedQuantity =
                         getNumber(
@@ -2129,9 +2415,9 @@ Important:
                             alreadyInvoicedQuantity));
 
 
-                    // -----------------------------------------
-                    // Available
-                    // -----------------------------------------
+                    // =========================================
+                    // Available Qty
+                    // =========================================
 
                     const availableQuantity =
                         getNumber(

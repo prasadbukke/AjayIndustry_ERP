@@ -3,8 +3,16 @@
 File: ProductionJobStep.cs
 
 Purpose:
-Represents one executable manufacturing Step inside an
-actual Production Job.
+Represents one executable manufacturing Step inside one
+Production Job Item.
+
+Production Structure:
+
+Production Job
+        ↓
+Production Job Item
+        ↓
+Production Job Step
 
 Responsibilities:
 - Preserve Routing Step sequence and Operation snapshot.
@@ -23,6 +31,7 @@ Important:
 - Default Machine and Assigned Machine are intentionally
   separate.
 - Job Step Status and Machine Status are separate concepts.
+- Each Production Job Item has its own independent Pipeline.
 ============================================================
 */
 
@@ -40,12 +49,12 @@ namespace AjayIndustriesERP.Domain.Entities
         #endregion
 
 
-        #region Production Job Relationship
+        #region Production Job Item Relationship
 
-        public int ProductionJobId { get; set; }
+        public int ProductionJobItemId { get; set; }
 
 
-        public ProductionJob ProductionJob
+        public ProductionJobItem ProductionJobItem
         {
             get;
             set;
@@ -169,13 +178,14 @@ namespace AjayIndustriesERP.Domain.Entities
         #region Production Quantity
 
         /// <summary>
-        /// Successfully processed quantity for this Step.
+        /// Cumulative successfully processed quantity
+        /// for this Step.
         /// </summary>
         public decimal? GoodQuantity { get; set; }
 
 
         /// <summary>
-        /// Quantity rejected during this Step.
+        /// Cumulative rejected quantity for this Step.
         /// </summary>
         public decimal? RejectedQuantity { get; set; }
 

@@ -3,17 +3,35 @@
     File: Create.cshtml
 
     Purpose:
-    Creates a Production Job from a confirmed Customer PO Item.
+    Creates one Production Job from a confirmed Customer PO.
+
+    Production Structure:
+
+    Customer Purchase Order
+            ↓
+    Production Job
+            ↓
+    Production Job Items
+            ↓
+    Production Job Steps
 
     Responsibilities:
-    - Own the Create form.
-    - Render Production Job _Form.
-    - Submit Job Quantity and planning information.
+    - Own the Create Production Job form.
+    - Render shared Production Job _Form.
+    - Allow Admin to select one confirmed Customer PO.
+    - Load all Customer PO Items automatically.
+    - Allow Item-wise Production Quantity planning.
+    - Submit Production planning information.
     - Enable client-side validation.
 
     Important:
-    - Released Routing is selected automatically.
-    - Routing Steps are automatically copied into Job Steps.
+    - One Customer PO = One Production Job.
+    - All active Customer PO Items are loaded automatically.
+    - Ordered Quantity comes from Customer PO Item.
+    - Production Quantity is planned by Admin.
+    - Released Routing is resolved Item-wise.
+    - Routing Steps are copied into each ProductionJobItem
+      Pipeline when the Job is created.
     ============================================================
 *@
 
@@ -43,7 +61,10 @@
         </h2>
 
         <p class="text-muted mb-0">
-            Convert a Customer PO Item into an executable Production Job.
+
+            Create one Production Job for a confirmed
+            Customer PO and plan Item-wise Production Quantity.
+
         </p>
 
     </div>
@@ -52,7 +73,10 @@
     <a asp-action="Index"
        class="btn btn-outline-secondary">
 
-        <i class="fa-solid fa-arrow-left me-1"></i>
+        <i class="fa-solid
+                  fa-arrow-left
+                  me-1">
+        </i>
 
         Back
 
@@ -117,11 +141,12 @@
 
 
 <!-- =========================================================
-     REGION 4 — VALIDATION
+     REGION 4 — VALIDATION / PRODUCTION JOB SCRIPT
 ========================================================== -->
 @section Scripts
 {
     <partial name="_ValidationScriptsPartial" />
+
 
     <script src="~/js/production-job.js"
             asp-append-version="true">

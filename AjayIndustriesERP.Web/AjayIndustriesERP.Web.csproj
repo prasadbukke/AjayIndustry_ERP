@@ -7,15 +7,30 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Constants\**" />
+    <Compile Remove="Filters\**" />
+    <Compile Remove="Helpers\**" />
+    <Compile Remove="Middlewares\**" />
+    <Content Remove="Constants\**" />
+    <Content Remove="Filters\**" />
+    <Content Remove="Helpers\**" />
+    <Content Remove="Middlewares\**" />
+    <EmbeddedResource Remove="Constants\**" />
+    <EmbeddedResource Remove="Filters\**" />
+    <EmbeddedResource Remove="Helpers\**" />
+    <EmbeddedResource Remove="Middlewares\**" />
+    <None Remove="Constants\**" />
+    <None Remove="Filters\**" />
+    <None Remove="Helpers\**" />
+    <None Remove="Middlewares\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AjayIndustriesERP.Application\AjayIndustriesERP.Application.csproj" />
     <ProjectReference Include="..\AjayIndustriesERP.Infrastructure\AjayIndustriesERP.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Helpers\" />
-    <Folder Include="Filters\" />
-    <Folder Include="Constants\" />
-    <Folder Include="Middlewares\" />
     <Folder Include="wwwroot\fonts\" />
     <Folder Include="wwwroot\icons\" />
     <Folder Include="wwwroot\images\icons\" />

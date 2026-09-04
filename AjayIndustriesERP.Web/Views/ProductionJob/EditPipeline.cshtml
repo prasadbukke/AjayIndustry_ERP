@@ -3,24 +3,38 @@
     File: EditPipeline.cshtml
 
     Purpose:
-    Allows editing of the executable Production Pipeline for a
-    Draft Production Job.
+    Allows editing of the executable Production Pipeline for
+    one Production Job Item.
+
+    Production Structure:
+
+    Customer Purchase Order
+            ↓
+    Production Job
+            ↓
+    Production Job Item
+            ↓
+    Production Job Step
 
     Responsibilities:
     - Display Production Job reference information.
-    - Display current Job Operations.
+    - Display selected Production Job Item.
+    - Display current Item Pipeline Operations.
     - Add Production Operations.
     - Remove Production Operations.
     - Reorder Operations.
     - Capture optional Pipeline Modification Reason.
-    - Save the final Draft Job Pipeline.
+    - Save the final Item-wise Production Pipeline.
 
     Important:
-    - Only Draft Production Jobs can use this page.
-    - Changes apply only to ProductionJobSteps.
+    - Pipeline belongs to ProductionJobItem.
+    - Pipeline can be edited only before Production starts
+      for the selected Item.
+    - Parent Production Job may already be InProgress because
+      another Item may have started Production.
+    - Changes apply only to selected ProductionJobItem Steps.
     - Item Process Routing Master is never modified.
     - Sequence is saved as 1, 2, 3, 4...
-    - After Mark Ready, Pipeline structure becomes locked.
     ============================================================
 *@
 
@@ -49,7 +63,12 @@
         </h2>
 
         <p class="text-muted mb-0">
-            Modify operations for this Draft Production Job.
+
+            Modify operations for
+            <span class="fw-semibold">
+                @Model.ItemCode - @Model.ItemName
+            </span>
+
         </p>
 
     </div>
@@ -57,6 +76,7 @@
 
     <a asp-action="Pipeline"
        asp-route-id="@Model.ProductionJobId"
+       asp-route-itemId="@Model.ProductionJobItemId"
        class="btn btn-outline-secondary">
 
         <i class="fa-solid fa-arrow-left me-1"></i>
@@ -75,12 +95,19 @@
     @Html.AntiForgeryToken()
 
 
+    <!-- =====================================================
+         REQUIRED IDENTIFIERS
+    ====================================================== -->
+
     <input asp-for="ProductionJobId"
+           type="hidden" />
+
+    <input asp-for="ProductionJobItemId"
            type="hidden" />
 
 
     <!-- =====================================================
-         REGION 2 — JOB INFORMATION
+         REGION 2 — JOB / ITEM INFORMATION
     ====================================================== -->
 
     <div class="card shadow-sm border-0 mb-4">
@@ -91,7 +118,7 @@
 
                 <i class="fa-solid fa-industry me-1"></i>
 
-                Production Job Information
+                Production Information
 
             </span>
 
@@ -103,12 +130,14 @@
             <div class="row g-4">
 
 
-                <!-- JOB CODE -->
+                <!-- =========================================
+                     JOB CODE
+                ========================================== -->
 
-                <div class="col-lg-3 col-md-6">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="small text-muted mb-1">
-                        Job Code
+                        Production Job
                     </div>
 
                     <div class="fw-semibold">
@@ -118,42 +147,31 @@
                 </div>
 
 
-                <!-- CUSTOMER PO -->
+                <!-- =========================================
+                     STATUS
+                ========================================== -->
 
-                <div class="col-lg-3 col-md-6">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="small text-muted mb-1">
-                        Customer PO
+                        Job Status
                     </div>
 
-                    <div class="fw-semibold">
-                        @Model.CustomerPurchaseOrderNumber
-                    </div>
+                    <span class="badge bg-secondary">
+                        @Model.Status
+                    </span>
 
                 </div>
 
 
-                <!-- CUSTOMER -->
+                <!-- =========================================
+                     ITEM
+                ========================================== -->
 
-                <div class="col-lg-3 col-md-6">
-
-                    <div class="small text-muted mb-1">
-                        Customer
-                    </div>
-
-                    <div class="fw-semibold">
-                        @Model.CustomerName
-                    </div>
-
-                </div>
-
-
-                <!-- ITEM -->
-
-                <div class="col-lg-3 col-md-6">
+                <div class="col-lg-4 col-md-6">
 
                     <div class="small text-muted mb-1">
-                        Item
+                        Production Item
                     </div>
 
                     <div class="fw-semibold">
@@ -165,6 +183,64 @@
                     </div>
 
                 </div>
+
+
+                <!-- =========================================
+                     CUSTOMER PO
+                ========================================== -->
+
+                <div class="col-lg-6 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Customer PO
+                    </div>
+
+                    <div class="fw-semibold">
+
+                        @(string.IsNullOrWhiteSpace(
+                            Model.CustomerPurchaseOrderNumber)
+                            ? "-"
+                            : Model.CustomerPurchaseOrderNumber)
+
+                    </div>
+
+                </div>
+
+
+                <!-- =========================================
+                     CUSTOMER
+                ========================================== -->
+
+                <div class="col-lg-6 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Customer
+                    </div>
+
+                    <div class="fw-semibold">
+
+                        @(string.IsNullOrWhiteSpace(
+                            Model.CustomerName)
+                            ? "-"
+                            : Model.CustomerName)
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <hr />
+
+
+            <div class="small text-muted">
+
+                <i class="fa-solid fa-circle-info me-1"></i>
+
+                This Pipeline belongs only to the selected Item.
+                Changes will not affect other Items under
+                @Model.JobCode.
 
             </div>
 
@@ -459,11 +535,13 @@
                    class="form-label fw-semibold">
             </label>
 
+
             <textarea asp-for="PipelineModificationReason"
                       class="form-control"
                       rows="3"
                       maxlength="1000"
                       placeholder="Optional reason for modifying the standard routing"></textarea>
+
 
             <span asp-validation-for="PipelineModificationReason"
                   class="text-danger small">
@@ -472,8 +550,13 @@
 
             <div class="form-text">
 
-                Optional. This change affects only this Production Job.
-                Item Process Routing Master will remain unchanged.
+                Optional. This change affects only
+                <strong>
+                    @Model.ItemCode - @Model.ItemName
+                </strong>
+                under this Production Job.
+
+                Item Process Routing Master remains unchanged.
 
             </div>
 
@@ -483,7 +566,54 @@
 
 
     <!-- =====================================================
-         REGION 5 — FORM ACTIONS
+         REGION 5 — RULE NOTE
+    ====================================================== -->
+
+    <div class="alert
+                alert-light
+                border
+                d-flex
+                align-items-start
+                gap-2
+                mb-4">
+
+        <i class="fa-solid
+                  fa-lock
+                  text-secondary
+                  mt-1">
+        </i>
+
+
+        <div>
+
+            <div class="fw-semibold">
+                Pipeline locks after Production starts
+            </div>
+
+
+            <div class="small text-muted">
+
+                This Item Pipeline can be modified only before
+                Production starts for this Item.
+
+            </div>
+
+
+            <div class="small text-muted mt-1">
+
+                Another Item under the same Production Job may
+                already be In Progress without locking this
+                Item's Pipeline.
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         REGION 6 — FORM ACTIONS
     ====================================================== -->
 
     <div class="d-flex
@@ -493,6 +623,7 @@
 
         <a asp-action="Pipeline"
            asp-route-id="@Model.ProductionJobId"
+           asp-route-itemId="@Model.ProductionJobItemId"
            class="btn btn-outline-secondary">
 
             Cancel
@@ -515,7 +646,7 @@
 
 
 <!-- =========================================================
-     REGION 6 — NEW OPERATION TEMPLATE
+     REGION 7 — NEW OPERATION TEMPLATE
 ========================================================== -->
 
 <template id="pipelineStepTemplate">
@@ -533,7 +664,9 @@
                class="step-sequence-input" />
 
 
-        <!-- SEQUENCE -->
+        <!-- =================================================
+             SEQUENCE
+        ================================================== -->
 
         <td class="text-center">
 
@@ -548,7 +681,9 @@
         </td>
 
 
-        <!-- OPERATION -->
+        <!-- =================================================
+             OPERATION
+        ================================================== -->
 
         <td>
 
@@ -563,11 +698,14 @@
                     -- Select Operation --
                 </option>
 
+
                 @foreach (var operation
                     in Model.AvailableOperations)
                 {
                     <option value="@operation.Value">
+
                         @operation.Text
+
                     </option>
                 }
 
@@ -584,7 +722,9 @@
         </td>
 
 
-        <!-- REORDER -->
+        <!-- =================================================
+             REORDER
+        ================================================== -->
 
         <td class="text-center">
 
@@ -620,7 +760,9 @@
         </td>
 
 
-        <!-- REMOVE -->
+        <!-- =================================================
+             REMOVE
+        ================================================== -->
 
         <td class="text-center">
 
@@ -662,15 +804,18 @@
                         "pipelineStepsContainer"
                     );
 
+
                 const template =
                     document.getElementById(
                         "pipelineStepTemplate"
                     );
 
+
                 const addButton =
                     document.getElementById(
                         "btnAddOperation"
                     );
+
 
                 const emptyMessage =
                     document.getElementById(
@@ -678,10 +823,12 @@
                     );
 
 
-                if (!container ||
+                if (
+                    !container ||
                     !template ||
                     !addButton ||
-                    !emptyMessage) {
+                    !emptyMessage
+                ) {
 
                     return;
                 }
@@ -704,12 +851,14 @@
                         emptyMessage.classList.remove(
                             "d-none"
                         );
+
                     }
                     else {
 
                         emptyMessage.classList.add(
                             "d-none"
                         );
+
                     }
                 }
 
@@ -776,7 +925,8 @@
                             row.querySelectorAll(
                                 "[name]"
                             ).forEach(
-                                function (element) {
+                                function (
+                                    element) {
 
                                     element.name =
                                         element.name.replace(
@@ -796,7 +946,8 @@
                             row.querySelectorAll(
                                 "[data-valmsg-for]"
                             ).forEach(
-                                function (element) {
+                                function (
+                                    element) {
 
                                     const current =
                                         element.getAttribute(
@@ -866,7 +1017,9 @@
 
                     $.validator
                         .unobtrusive
-                        .parse(form);
+                        .parse(
+                            form
+                        );
                 }
 
 
@@ -913,6 +1066,7 @@
                         reindexPipeline();
 
                         reparseValidation();
+
                     }
                 );
 
@@ -923,7 +1077,8 @@
 
                 container.addEventListener(
                     "click",
-                    function (event) {
+                    function (
+                        event) {
 
                         const row =
                             event.target.closest(
@@ -1016,6 +1171,7 @@
 
                                 reindexPipeline();
                             }
+
                         }
                     }
                 );

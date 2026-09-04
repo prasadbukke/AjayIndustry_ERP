@@ -1,27 +1,38 @@
 ﻿@*
-    ============================================================
-    File: Index.cshtml
+=============================================================
+File: Index.cshtml
+Module: Production
+Layer: Web - View
 
-    Purpose:
-    Displays Production Jobs.
+Purpose:
+Displays Production Jobs in compact Job-level format.
 
-    Responsibilities:
-    - Display Production Jobs with Search and Pagination.
-    - Display Customer PO, Item, Quantity and Routing.
-    - Display Production Job Status.
-    - Open Production Pipeline.
-    - Edit Draft Production Job.
-    - Mark Draft Production Job Ready.
-    - Soft delete eligible Production Jobs.
-    - Navigate to Deleted Production Jobs.
+UI Structure:
 
-    Important:
-    - Production Job is an actual manufacturing transaction.
-    - Draft Job can be edited and marked Ready.
-    - Draft, Completed and Cancelled Jobs can be soft deleted.
-    - Ready and In Progress Jobs cannot be deleted directly.
-    - Ready / In Progress Job must be cancelled before deletion.
-    ============================================================
+Production Job
+    ↓
+Show / Hide Items
+    ↓
+Item-wise Production Progress
+
+Main Job Status:
+- Pending
+- In Progress
+- Completed
+- Cancelled
+
+Item Status:
+- Pending
+- In Progress
+- Completed
+
+Important:
+- Main table remains compact even when one Job has many Items.
+- Item list is collapsed by default.
+- Item-wise quantity and status are visible on demand.
+- Production Quantity is cumulative current Production plan.
+- Completed Quantity is cumulative finished GOOD quantity.
+=============================================================
 *@
 
 @model List<AjayIndustriesERP.Domain.Entities.ProductionJob>
@@ -29,7 +40,8 @@
 @using AjayIndustriesERP.Domain.Enums
 
 @{
-    ViewData["Title"] = "Production Jobs";
+    ViewData["Title"] =
+        "Production Jobs";
 
     var pageNumber =
         (int)ViewBag.PageNumber;
@@ -45,9 +57,53 @@
 }
 
 
-<!-- =========================================================
-     REGION 1 — PAGE HEADER
-========================================================== -->
+@* =========================================================
+   SUCCESS / ERROR MESSAGE
+   ========================================================= *@
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert
+                alert-success
+                alert-dismissible
+                fade
+                show"
+         role="alert">
+
+        @TempData["SuccessMessage"]
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+        </button>
+
+    </div>
+}
+
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert
+                alert-danger
+                alert-dismissible
+                fade
+                show"
+         role="alert">
+
+        @TempData["ErrorMessage"]
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert">
+        </button>
+
+    </div>
+}
+
+
+@* =========================================================
+   PAGE HEADER
+   ========================================================= *@
 
 <div class="d-flex
             justify-content-between
@@ -63,7 +119,7 @@
         </h2>
 
         <p class="text-muted mb-0">
-            Plan and track actual manufacturing jobs.
+            Plan and track Customer PO production.
         </p>
 
     </div>
@@ -77,7 +133,10 @@
         <a asp-action="Deleted"
            class="btn btn-outline-secondary">
 
-            <i class="fa-solid fa-trash-can me-1"></i>
+            <i class="fa-solid
+                      fa-trash-can
+                      me-1">
+            </i>
 
             Deleted Jobs
 
@@ -87,7 +146,10 @@
         <a asp-action="Create"
            class="btn btn-primary">
 
-            <i class="fa-solid fa-plus me-1"></i>
+            <i class="fa-solid
+                      fa-plus
+                      me-1">
+            </i>
 
             Create Production Job
 
@@ -98,17 +160,17 @@
 </div>
 
 
-<!-- =========================================================
-     REGION 2 — SEARCH
-========================================================== -->
+@* =========================================================
+   SEARCH
+   ========================================================= *@
 
 <partial name="Components/_SearchBar"
          model='@(ViewBag.SearchText as string ?? "")' />
 
 
-<!-- =========================================================
-     REGION 3 — JOB TABLE
-========================================================== -->
+@* =========================================================
+   PRODUCTION JOB TABLE
+   ========================================================= *@
 
 <div class="card shadow-sm border-0">
 
@@ -125,49 +187,33 @@
 
                     <tr>
 
-                        <th class="text-nowrap">
+                        <th style="width:50px;">
                             #
                         </th>
 
-
-                        <th class="text-nowrap">
+                        <th style="min-width:220px;">
                             Job Code
                         </th>
 
-
-                        <th class="text-nowrap">
+                        <th style="min-width:210px;">
                             Customer PO
                         </th>
 
-
-                        <th>
-                            Item
+                        <th style="min-width:150px;">
+                            Items
                         </th>
 
-
-                        <th>
-                            Job Qty
+                        <th style="min-width:180px;">
+                            Planning
                         </th>
 
-
-                        <th class="text-nowrap">
-                            Routing
-                        </th>
-
-
-                        <th class="text-center text-nowrap">
+                        <th class="text-center"
+                            style="min-width:120px;">
                             Status
                         </th>
 
-<th class="text-nowrap">
-    Drawing No
-</th>
-
-<th class="text-center text-nowrap">
-    View
-</th>
-
-                        <th class="text-center text-nowrap">
+                        <th class="text-center"
+                            style="width:170px;">
                             Actions
                         </th>
 
@@ -178,80 +224,181 @@
 
                 <tbody>
 
-                    @if (Model != null &&
-                         Model.Any())
+                    @if (
+                        Model != null
+                        &&
+                        Model.Any()
+                    )
                     {
-                        @foreach (var job in Model)
+                        foreach (var job in Model)
                         {
-
-var currentDrawing =
-    job.Item
-        ?.Drawings
-        .Where(x =>
-            !x.IsDeleted &&
-            x.IsActive)
-        .OrderByDescending(x =>
-            x.DrawingId)
-        .FirstOrDefault();
-
-                            var isDraft =
-                                job.Status ==
-                                ProductionJobStatus.Draft;
+                            var activeItems =
+                                job.Items
+                                    .Where(item =>
+                                        !item.IsDeleted
+                                        &&
+                                        item.IsActive)
+                                    .OrderBy(item =>
+                                        item.Id)
+                                    .ToList();
 
 
-                            var canDelete =
-                                job.Status ==
-                                    ProductionJobStatus.Draft ||
-                                job.Status ==
-                                    ProductionJobStatus.Completed ||
-                                job.Status ==
+                            var totalItems =
+                                activeItems.Count;
+
+
+                            var completedItems =
+                                activeItems.Count(item =>
+                                    item.OrderedQuantity > 0m
+                                    &&
+                                    item.CompletedQuantity >=
+                                        item.OrderedQuantity);
+
+
+                            /*
+                             * Main Job Status
+                             *
+                             * Ready / Draft are intentionally
+                             * presented as Pending on Index.
+                             */
+                            var jobStatusText =
+                                job.Status switch
+                                {
+                                    ProductionJobStatus.Completed =>
+                                        "Completed",
+
+                                    ProductionJobStatus.InProgress =>
+                                        "In Progress",
+
+                                    ProductionJobStatus.Cancelled =>
+                                        "Cancelled",
+
+                                    _ =>
+                                        "Pending"
+                                };
+
+
+                            var jobStatusClass =
+                                job.Status switch
+                                {
+                                    ProductionJobStatus.Completed =>
+                                        "bg-success",
+
+                                    ProductionJobStatus.InProgress =>
+                                        "bg-warning text-dark",
+
+                                    ProductionJobStatus.Cancelled =>
+                                        "bg-danger",
+
+                                    _ =>
+                                        "bg-secondary"
+                                };
+
+
+                            var canEdit =
+                                job.Status !=
+                                    ProductionJobStatus.Completed
+                                &&
+                                job.Status !=
                                     ProductionJobStatus.Cancelled;
 
 
-                            <tr>
+                            /*
+                             * In Progress Job has Production activity.
+                             * Service requires Cancel before Delete.
+                             */
+                            var canDelete =
+                                job.Status !=
+                                    ProductionJobStatus.InProgress;
 
-                                <!-- =================================
-                                     SERIAL NUMBER
-                                ================================== -->
+
+                            var collapseId =
+                                $"production-job-items-{job.Id}";
+
+
+                            var toggleId =
+                                $"production-job-toggle-{job.Id}";
+
+
+                            @* =====================================
+                               MAIN JOB ROW
+                               ===================================== *@
+
+                            <tr>
 
                                 <td class="text-nowrap">
                                     @serialNumber
                                 </td>
 
 
-                                <!-- =================================
-                                     JOB CODE
-                                ================================== -->
+                                @* =================================
+                                   JOB CODE + SHOW ITEMS
+                                   ================================= *@
 
-                                <td class="text-nowrap">
+                                <td>
 
                                     <a asp-action="Pipeline"
                                        asp-route-id="@job.Id"
                                        class="fw-semibold
-                                              text-decoration-none">
+                                              text-decoration-none
+                                              text-nowrap">
 
                                         @job.Code
 
                                     </a>
 
+
+                                    <div class="mt-1">
+
+                                        <button type="button"
+                                                id="@toggleId"
+                                                class="btn
+                                                       btn-sm
+                                                       btn-link
+                                                       text-decoration-none
+                                                       p-0
+                                                       job-items-toggle"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#@collapseId"
+                                                aria-expanded="false"
+                                                aria-controls="@collapseId">
+
+                                            <i class="fa-solid
+                                                      fa-chevron-down
+                                                      me-1
+                                                      toggle-icon">
+                                            </i>
+
+                                            <span class="toggle-text">
+                                                Show Items
+                                            </span>
+
+                                            <span class="text-muted">
+                                                (@totalItems)
+                                            </span>
+
+                                        </button>
+
+                                    </div>
+
                                 </td>
 
 
-                                <!-- =================================
-                                     CUSTOMER PO
-                                ================================== -->
+                                @* =================================
+   CUSTOMER PO
+   ================================= *@
 
-                              
-
-                                <td>
+<td>
 
     <div class="fw-semibold">
 
         @(
-            job.CustomerPurchaseOrderItem
-                ?.CustomerPurchaseOrder
-                ?.CustomerPurchaseOrderNumber
-            ?? "-"
+            string.IsNullOrWhiteSpace(
+                job.CustomerPurchaseOrder?
+                    .CustomerPurchaseOrderNumber)
+                ? "-"
+                : job.CustomerPurchaseOrder
+                    .CustomerPurchaseOrderNumber
         )
 
     </div>
@@ -260,10 +407,12 @@ var currentDrawing =
     <div class="small text-muted">
 
         @(
-            job.CustomerPurchaseOrderItem
-                ?.CustomerPurchaseOrder
-                ?.CustomerName
-            ?? "-"
+            string.IsNullOrWhiteSpace(
+                job.CustomerPurchaseOrder?
+                    .CustomerName)
+                ? "-"
+                : job.CustomerPurchaseOrder
+                    .CustomerName
         )
 
     </div>
@@ -272,191 +421,128 @@ var currentDrawing =
     <div class="small text-muted">
 
         @(
-            job.CustomerPurchaseOrderItem
-                ?.CustomerPurchaseOrder
-                ?.Code
-            ?? "-"
+            string.IsNullOrWhiteSpace(
+                job.CustomerPurchaseOrder?
+                    .Code)
+                ? "-"
+                : job.CustomerPurchaseOrder
+                    .Code
         )
 
     </div>
 
 </td>
 
-
-                                <!-- =================================
-                                     ITEM
-                                ================================== -->
-
-                                <td>
-
-                                    <div class="fw-semibold text-nowrap">
-                                        @job.ItemCode
-                                    </div>
-
-                                    <div class="small text-muted">
-                                        @job.ItemName
-                                    </div>
-
-                                </td>
-
-
-                                <!-- =================================
-                                     JOB QUANTITY
-                                ================================== -->
+                                @* =================================
+                                   ITEM SUMMARY
+                                   ================================= *@
 
                                 <td>
 
-                                    <span class="fw-semibold">
+                                    <div class="fw-semibold">
 
-                                        @(job.JobQuantity.ToString("0.###"))
+                                        @totalItems
 
-                                    </span>
+                                        @(totalItems == 1
+                                            ? "Item"
+                                            : "Items")
+
+                                    </div>
 
 
-                                    @if (!string.IsNullOrWhiteSpace(
-                                        job.UnitName))
+                                    @if (totalItems > 0)
                                     {
-                                        <span class="text-muted ms-1">
-                                            @job.UnitName
-                                        </span>
-                                    }
+                                        <div class="small mt-1">
 
-                                </td>
+                                            <span class="text-success
+                                                         fw-semibold">
 
-
-                                <!-- =================================
-                                     ROUTING
-                                ================================== -->
-
-                                <td>
-
-                                    <div class="fw-semibold text-nowrap">
-                                        @job.RoutingCode
-                                    </div>
-
-                                    <div class="small text-muted text-nowrap">
-
-                                        Rev @job.RoutingRevisionNumber
-
-                                    </div>
-
-                                </td>
-
-
-                                <!-- =================================
-                                     STATUS
-                                ================================== -->
-
-                                <td class="text-center">
-
-                                    @switch (job.Status)
-                                    {
-                                        case ProductionJobStatus.Draft:
-
-                                            <span class="badge bg-secondary">
-                                                Draft
-                                            </span>
-
-                                            break;
-
-
-                                        case ProductionJobStatus.Ready:
-
-                                            <span class="badge bg-primary">
-                                                Ready
-                                            </span>
-
-                                            break;
-
-
-                                        case ProductionJobStatus.InProgress:
-
-                                            <span class="badge
-                                                         bg-warning
-                                                         text-dark">
-
-                                                In Progress
+                                                @completedItems
 
                                             </span>
 
-                                            break;
-
-
-                                        case ProductionJobStatus.Completed:
-
-                                            <span class="badge bg-success">
+                                            <span class="text-muted">
+                                                /
+                                                @totalItems
                                                 Completed
                                             </span>
 
-                                            break;
-
-
-                                        case ProductionJobStatus.Cancelled:
-
-                                            <span class="badge bg-danger">
-                                                Cancelled
-                                            </span>
-
-                                            break;
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="small text-muted">
+                                            No Items
+                                        </div>
                                     }
 
                                 </td>
 
-<!-- =================================
-     CURRENT ITEM DRAWING NUMBER
-================================== -->
 
-<td>
+                                @* =================================
+                                   PLANNING
+                                   ================================= *@
 
-    @if (currentDrawing != null)
-    {
-        <span class="fw-semibold text-nowrap">
-            @currentDrawing.DrawingNumber
-        </span>
-    }
-    else
-    {
-        <span class="text-muted">
-            -
-        </span>
-    }
+                                <td>
 
-</td>
+                                    <div class="small">
+
+                                        <span class="text-muted">
+                                            Start
+                                        </span>
+
+                                        <span class="ms-1 fw-semibold">
+
+                                            @(
+                                                job.PlannedStartOn.HasValue
+                                                    ? job.PlannedStartOn.Value
+                                                        .ToString("dd-MM-yyyy")
+                                                    : "-"
+                                            )
+
+                                        </span>
+
+                                    </div>
 
 
-<!-- =================================
-     VIEW CURRENT ITEM DRAWING
-================================== -->
+                                    <div class="small mt-1">
 
-<td class="text-center">
+                                        <span class="text-muted">
+                                            Completion
+                                        </span>
 
-    @if (
-        currentDrawing != null &&
-        !string.IsNullOrWhiteSpace(
-            currentDrawing.FilePath))
-    {
-        <a href="@currentDrawing.FilePath"
-           target="_blank"
-           rel="noopener noreferrer"
-           class="btn btn-sm btn-outline-primary"
-           title="View Drawing">
+                                        <span class="ms-1 fw-semibold">
 
-             <i class="fa-solid fa-file-pdf fa-lg"></i>
+                                            @(
+                                                job.PlannedCompletionOn.HasValue
+                                                    ? job.PlannedCompletionOn.Value
+                                                        .ToString("dd-MM-yyyy")
+                                                    : "-"
+                                            )
 
-        </a>
-    }
-    else
-    {
-        <span class="text-muted">
-            -
-        </span>
-    }
+                                        </span>
 
-</td>
+                                    </div>
 
-                                <!-- =================================
-                                     ACTIONS
-                                ================================== -->
+                                </td>
+
+
+                                @* =================================
+                                   MAIN STATUS
+                                   ================================= *@
+
+                                <td class="text-center">
+
+                                    <span class="badge @jobStatusClass">
+                                        @jobStatusText
+                                    </span>
+
+                                </td>
+
+
+                                @* =================================
+                                   ACTIONS
+                                   ================================= *@
 
                                 <td class="text-center">
 
@@ -466,36 +552,52 @@ var currentDrawing =
                                                 gap-1">
 
 
-                                        <!-- =========================
-                                             OPEN PIPELINE
-                                        ========================== -->
+                                        @* PIPELINE *@
 
                                         <a asp-action="Pipeline"
                                            asp-route-id="@job.Id"
                                            class="btn
                                                   btn-sm
-                                                  btn-outline-info"
-                                           title="Open Production Pipeline">
+                                                  btn-outline-primary"
+                                           title="Production Pipeline">
 
-                                            <i class="fa-solid fa-eye"></i>
+                                            <i class="fa-solid
+                                                      fa-diagram-project">
+                                            </i>
 
                                         </a>
 
 
-                                        <!-- =========================
-                                             EDIT
-                                        ========================== -->
+                                        @* DETAILS *@
 
-                                        @if (isDraft)
+                                        <a asp-action="Details"
+                                           asp-route-id="@job.Id"
+                                           class="btn
+                                                  btn-sm
+                                                  btn-outline-info"
+                                           title="Production Job Details">
+
+                                            <i class="fa-solid
+                                                      fa-circle-info">
+                                            </i>
+
+                                        </a>
+
+
+                                        @* EDIT PLANNING *@
+
+                                        @if (canEdit)
                                         {
                                             <a asp-action="Edit"
                                                asp-route-id="@job.Id"
                                                class="btn
                                                       btn-sm
                                                       btn-outline-warning"
-                                               title="Edit Draft Production Job">
+                                               title="Edit Production Planning">
 
-                                                <i class="fa-solid fa-pen"></i>
+                                                <i class="fa-solid
+                                                          fa-pen">
+                                                </i>
 
                                             </a>
                                         }
@@ -506,23 +608,24 @@ var currentDrawing =
                                                            btn-sm
                                                            btn-outline-warning"
                                                     disabled
-                                                    title="Only Draft Production Job can be edited.">
+                                                    title="Completed or Cancelled Job cannot be edited.">
 
-                                                <i class="fa-solid fa-pen"></i>
+                                                <i class="fa-solid
+                                                          fa-pen">
+                                                </i>
 
                                             </button>
                                         }
 
 
-                                        <!-- =========================
-                                             MARK READY
-                                        ========================== -->
+                                        @* DELETE *@
 
-                                        @if (isDraft)
+                                        @if (canDelete)
                                         {
-                                            <form asp-action="MarkReady"
+                                            <form asp-action="Delete"
                                                   method="post"
-                                                  class="d-inline">
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Delete this Production Job?');">
 
                                                 @Html.AntiForgeryToken()
 
@@ -535,42 +638,16 @@ var currentDrawing =
                                                 <button type="submit"
                                                         class="btn
                                                                btn-sm
-                                                               btn-outline-success"
-                                                        title="Mark Production Job Ready">
+                                                               btn-outline-danger"
+                                                        title="Delete Production Job">
 
                                                     <i class="fa-solid
-                                                              fa-circle-check">
+                                                              fa-trash">
                                                     </i>
 
                                                 </button>
 
                                             </form>
-                                        }
-
-
-                                        <!-- =========================
-                                             DELETE
-                                        ========================== -->
-
-                                        @if (canDelete)
-                                        {
-                                            <button type="button"
-                                                    class="btn
-                                                           btn-sm
-                                                           btn-outline-danger"
-                                                    title="Delete Production Job"
-                                                    onclick="confirmDelete(
-                                                        '@Url.Action(
-                                                            "Delete",
-                                                            "ProductionJob",
-                                                            new
-                                                            {
-                                                                id = job.Id
-                                                            })')">
-
-                                                <i class="fa-solid fa-trash"></i>
-
-                                            </button>
                                         }
                                         else
                                         {
@@ -581,9 +658,491 @@ var currentDrawing =
                                                     disabled
                                                     title="Cancel this Production Job before deleting.">
 
-                                                <i class="fa-solid fa-trash"></i>
+                                                <i class="fa-solid
+                                                          fa-trash">
+                                                </i>
 
                                             </button>
+                                        }
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+
+                            @* =====================================
+                               COLLAPSIBLE ITEM LIST ROW
+                               ===================================== *@
+
+                            <tr class="collapse
+                                       bg-light
+                                       job-items-collapse"
+                                id="@collapseId"
+                                data-toggle-button-id="@toggleId">
+
+                                <td colspan="7"
+                                    class="p-0">
+
+                                    <div class="p-3
+                                                border-top
+                                                border-bottom">
+
+                                        <div class="d-flex
+                                                    justify-content-between
+                                                    align-items-center
+                                                    flex-wrap
+                                                    gap-2
+                                                    mb-3">
+
+                                            <div>
+
+                                                <div class="fw-semibold">
+
+                                                    <i class="fa-solid
+                                                              fa-boxes-stacked
+                                                              me-1">
+                                                    </i>
+
+                                                    Production Items
+
+                                                </div>
+
+                                                <div class="small text-muted">
+                                                    @job.Code
+                                                </div>
+
+                                            </div>
+
+
+                                            <div class="small text-muted">
+
+                                                @completedItems of
+                                                @totalItems Items Completed
+
+                                            </div>
+
+                                        </div>
+
+
+                                        @if (activeItems.Any())
+                                        {
+                                            <div class="table-responsive">
+
+                                                <table class="table
+                                                              table-sm
+                                                              table-bordered
+                                                              align-middle
+                                                              bg-white
+                                                              mb-0">
+
+                                                    <thead class="table-light">
+
+                                                        <tr>
+
+                                                            <th style="width:45px;">
+                                                                #
+                                                            </th>
+
+                                                            <th style="min-width:210px;">
+                                                                Item
+                                                            </th>
+
+                                                            <th class="text-end"
+                                                                style="min-width:160px;">
+                                                                Completed / Ordered
+                                                            </th>
+
+                                                            <th class="text-end"
+                                                                style="min-width:150px;">
+                                                                Current Plan
+                                                            </th>
+
+                                                            <th class="text-end"
+                                                                style="min-width:130px;">
+                                                                Pending
+                                                            </th>
+
+                                                            <th style="min-width:150px;">
+                                                                Routing
+                                                            </th>
+
+                                                            <th class="text-center"
+                                                                style="min-width:120px;">
+                                                                Status
+                                                            </th>
+
+                                                            <th class="text-center"
+                                                                style="width:80px;">
+                                                                Open
+                                                            </th>
+
+                                                        </tr>
+
+                                                    </thead>
+
+
+                                                    <tbody>
+
+                                                        @{
+                                                            var itemSerial =
+                                                                1;
+                                                        }
+
+
+                                                        @foreach (
+                                                            var item
+                                                            in activeItems)
+                                                        {
+                                                            var pendingQuantity =
+                                                                item.OrderedQuantity
+                                                                -
+                                                                item.CompletedQuantity;
+
+
+                                                            if (pendingQuantity < 0m)
+                                                            {
+                                                                pendingQuantity =
+                                                                    0m;
+                                                            }
+
+
+                                                            var productionPendingQuantity =
+                                                                item.ProductionQuantity
+                                                                -
+                                                                item.CompletedQuantity;
+
+
+                                                            if (
+                                                                productionPendingQuantity
+                                                                <
+                                                                0m
+                                                            )
+                                                            {
+                                                                productionPendingQuantity =
+                                                                    0m;
+                                                            }
+
+
+                                                            var isItemCompleted =
+                                                                item.OrderedQuantity > 0m
+                                                                &&
+                                                                item.CompletedQuantity >=
+                                                                    item.OrderedQuantity;
+
+
+                                                            /*
+                                                             * Item Status shown on Index
+                                                             * is based on finished output.
+                                                             *
+                                                             * Full Ordered Qty = Completed
+                                                             * Some finished output = In Progress
+                                                             * No finished output = Pending
+                                                             */
+                                                            var itemStatusText =
+                                                                isItemCompleted
+                                                                    ? "Completed"
+                                                                    : item.CompletedQuantity > 0m
+                                                                        ? "In Progress"
+                                                                        : "Pending";
+
+
+                                                            var itemStatusClass =
+                                                                isItemCompleted
+                                                                    ? "bg-success"
+                                                                    : item.CompletedQuantity > 0m
+                                                                        ? "bg-warning text-dark"
+                                                                        : "bg-secondary";
+
+
+                                                            var currentPlanCompleted =
+                                                                item.ProductionQuantity > 0m
+                                                                &&
+                                                                item.CompletedQuantity >=
+                                                                    item.ProductionQuantity;
+
+
+                                                            <tr>
+
+                                                                <td>
+                                                                    @itemSerial
+                                                                </td>
+
+
+                                                                @* =========================
+                                                                   ITEM
+                                                                   ========================= *@
+
+                                                                <td>
+
+                                                                    <div class="fw-semibold">
+                                                                        @item.ItemCode
+                                                                    </div>
+
+
+                                                                    @if (
+                                                                        !string.IsNullOrWhiteSpace(
+                                                                            item.ItemName)
+                                                                    )
+                                                                    {
+                                                                        <div class="small
+                                                                                    text-muted">
+                                                                            @item.ItemName
+                                                                        </div>
+                                                                    }
+
+                                                                </td>
+
+
+                                                                @* =========================
+                                                                   COMPLETED / ORDERED
+                                                                   ========================= *@
+
+                                                                <td class="text-end
+                                                                           text-nowrap">
+
+                                                                    <span class="fw-semibold">
+
+                                                                        @(
+                                                                            item.CompletedQuantity
+                                                                                .ToString("0.###")
+                                                                        )
+
+                                                                    </span>
+
+                                                                    <span class="text-muted">
+                                                                        /
+                                                                    </span>
+
+                                                                    <span>
+
+                                                                        @(
+                                                                            item.OrderedQuantity
+                                                                                .ToString("0.###")
+                                                                        )
+
+                                                                    </span>
+
+
+                                                                    @if (
+                                                                        !string.IsNullOrWhiteSpace(
+                                                                            item.UnitName)
+                                                                    )
+                                                                    {
+                                                                        <span class="text-muted ms-1">
+                                                                            @item.UnitName
+                                                                        </span>
+                                                                    }
+
+                                                                </td>
+
+
+                                                                @* =========================
+                                                                   CURRENT PLAN
+                                                                   ========================= *@
+
+                                                                <td class="text-end">
+
+                                                                    @if (
+                                                                        item.ProductionQuantity >
+                                                                        0m
+                                                                    )
+                                                                    {
+                                                                        <div class="text-nowrap">
+
+                                                                            <span class="fw-semibold">
+
+                                                                                @(
+                                                                                    item.ProductionQuantity
+                                                                                        .ToString("0.###")
+                                                                                )
+
+                                                                            </span>
+
+                                                                            @if (
+                                                                                !string.IsNullOrWhiteSpace(
+                                                                                    item.UnitName)
+                                                                            )
+                                                                            {
+                                                                                <span class="text-muted ms-1">
+                                                                                    @item.UnitName
+                                                                                </span>
+                                                                            }
+
+                                                                        </div>
+
+
+                                                                        @if (
+                                                                            currentPlanCompleted
+                                                                            &&
+                                                                            !isItemCompleted
+                                                                        )
+                                                                        {
+                                                                            <div class="mt-1">
+
+                                                                                <span class="badge
+                                                                                             bg-warning
+                                                                                             text-dark">
+
+                                                                                    Plan Complete
+
+                                                                                </span>
+
+                                                                            </div>
+                                                                        }
+                                                                        else if (
+                                                                            productionPendingQuantity >
+                                                                            0m
+                                                                        )
+                                                                        {
+                                                                            <div class="small text-muted mt-1">
+
+                                                                                Plan Pending:
+
+                                                                                @(
+                                                                                    productionPendingQuantity
+                                                                                        .ToString("0.###")
+                                                                                )
+
+                                                                            </div>
+                                                                        }
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="text-muted">
+                                                                            Not Planned
+                                                                        </span>
+                                                                    }
+
+                                                                </td>
+
+
+                                                                @* =========================
+                                                                   ORDER PENDING
+                                                                   ========================= *@
+
+                                                                <td class="text-end
+                                                                           text-nowrap">
+
+                                                                    <span class="fw-semibold">
+
+                                                                        @(
+                                                                            pendingQuantity
+                                                                                .ToString("0.###")
+                                                                        )
+
+                                                                    </span>
+
+
+                                                                    @if (
+                                                                        !string.IsNullOrWhiteSpace(
+                                                                            item.UnitName)
+                                                                    )
+                                                                    {
+                                                                        <span class="text-muted ms-1">
+                                                                            @item.UnitName
+                                                                        </span>
+                                                                    }
+
+                                                                </td>
+
+
+                                                                @* =========================
+                                                                   ROUTING
+                                                                   ========================= *@
+
+                                                                <td>
+
+                                                                    <div class="fw-semibold
+                                                                                text-nowrap">
+
+                                                                        @(
+                                                                            string.IsNullOrWhiteSpace(
+                                                                                item.RoutingCode)
+                                                                                ? "-"
+                                                                                : item.RoutingCode
+                                                                        )
+
+                                                                    </div>
+
+
+                                                                    @if (
+                                                                        !string.IsNullOrWhiteSpace(
+                                                                            item.RoutingCode)
+                                                                    )
+                                                                    {
+                                                                        <div class="small
+                                                                                    text-muted">
+
+                                                                            Rev
+                                                                            @item.RoutingRevisionNumber
+
+                                                                        </div>
+                                                                    }
+
+                                                                </td>
+
+
+                                                                @* =========================
+                                                                   ITEM STATUS
+                                                                   ========================= *@
+
+                                                                <td class="text-center">
+
+                                                                    <span class="badge
+                                                                                 @itemStatusClass">
+
+                                                                        @itemStatusText
+
+                                                                    </span>
+
+                                                                </td>
+
+
+                                                                @* =========================
+                                                                   OPEN ITEM PIPELINE
+                                                                   ========================= *@
+
+                                                                <td class="text-center">
+
+                                                                    <a asp-action="Pipeline"
+                                                                       asp-route-id="@job.Id"
+                                                                       asp-route-itemId="@item.Id"
+                                                                       class="btn
+                                                                              btn-sm
+                                                                              btn-outline-primary"
+                                                                       title="Open Item Pipeline">
+
+                                                                        <i class="fa-solid
+                                                                                  fa-arrow-right">
+                                                                        </i>
+
+                                                                    </a>
+
+                                                                </td>
+
+                                                            </tr>
+
+
+                                                            itemSerial++;
+                                                        }
+
+                                                    </tbody>
+
+                                                </table>
+
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="text-center
+                                                        text-muted
+                                                        py-3">
+
+                                                No active Production Items.
+
+                                            </div>
                                         }
 
                                     </div>
@@ -600,7 +1159,7 @@ var currentDrawing =
                     {
                         <tr>
 
-                            <td colspan="10"
+                            <td colspan="7"
                                 class="text-center
                                        py-5
                                        text-muted">
@@ -618,10 +1177,7 @@ var currentDrawing =
 
 
                                 <div class="small">
-
-                                    Create a Production Job from a
-                                    confirmed Customer PO Item.
-
+                                    No matching Production Jobs are available.
                                 </div>
 
                             </td>
@@ -640,9 +1196,9 @@ var currentDrawing =
 </div>
 
 
-<!-- =========================================================
-     REGION 4 — PAGINATION
-========================================================== -->
+@* =========================================================
+   PAGINATION
+   ========================================================= *@
 
 @if (totalRecords > 0)
 {
@@ -656,3 +1212,110 @@ var currentDrawing =
 
     </div>
 }
+
+
+@* =========================================================
+   SHOW / HIDE ITEM TEXT
+   ========================================================= *@
+
+<script>
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            const collapses =
+                document.querySelectorAll(
+                    ".job-items-collapse"
+                );
+
+
+            collapses.forEach(
+                function (collapseElement) {
+
+                    const toggleButtonId =
+                        collapseElement.dataset
+                            .toggleButtonId;
+
+
+                    const toggleButton =
+                        document.getElementById(
+                            toggleButtonId
+                        );
+
+
+                    if (!toggleButton) {
+                        return;
+                    }
+
+
+                    const textElement =
+                        toggleButton.querySelector(
+                            ".toggle-text"
+                        );
+
+
+                    const iconElement =
+                        toggleButton.querySelector(
+                            ".toggle-icon"
+                        );
+
+
+                    collapseElement.addEventListener(
+                        "show.bs.collapse",
+                        function () {
+
+                            if (textElement) {
+                                textElement.textContent =
+                                    "Hide Items";
+                            }
+
+
+                            if (iconElement) {
+
+                                iconElement.classList.remove(
+                                    "fa-chevron-down"
+                                );
+
+                                iconElement.classList.add(
+                                    "fa-chevron-up"
+                                );
+
+                            }
+
+                        }
+                    );
+
+
+                    collapseElement.addEventListener(
+                        "hide.bs.collapse",
+                        function () {
+
+                            if (textElement) {
+                                textElement.textContent =
+                                    "Show Items";
+                            }
+
+
+                            if (iconElement) {
+
+                                iconElement.classList.remove(
+                                    "fa-chevron-up"
+                                );
+
+                                iconElement.classList.add(
+                                    "fa-chevron-down"
+                                );
+
+                            }
+
+                        }
+                    );
+
+                }
+            );
+
+        }
+    );
+
+</script>

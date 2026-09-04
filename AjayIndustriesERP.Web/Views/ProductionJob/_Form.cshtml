@@ -5,35 +5,96 @@
     Purpose:
     Reusable Production Job form used by Create and Edit.
 
+    Production Structure:
+
+    Customer Purchase Order
+            ↓
+    Production Job
+            ↓
+    Production Job Items
+            ↓
+    Production Job Steps
+
     Responsibilities:
-    - Select a confirmed Customer PO Item during Create.
-    - Display Customer PO / Item / Routing information.
-    - Display Ordered / Allocated / Remaining Quantity.
-    - Accept Production Job Quantity.
+    - Select one confirmed Customer PO during Create.
+    - Auto-load all Customer PO Items.
+    - Display Customer PO information.
+    - Display Item-wise Ordered Quantity.
+    - Display Item-wise Completed / Pending Quantity.
+    - Accept Item-wise Production Quantity from Admin.
+    - Display Released Routing used by each Item.
     - Accept optional planning dates.
     - Accept optional Production Job remarks.
-    - Display immutable Production source during Edit.
 
     Important:
-    - This partial DOES NOT contain a <form> element.
-    - Create.cshtml and Edit.cshtml own the actual <form>.
-    - Routing is selected automatically from the Item.
-    - Customer PO Item cannot be changed after Job creation.
-    - Item and Routing cannot be changed after Job creation.
-    - Only Draft Production Job can be edited.
+    - This partial DOES NOT contain a <form>.
+    - Create.cshtml / Edit.cshtml own the <form>.
+    - One Customer PO = One Production Job.
+    - Customer PO cannot be changed after Job creation.
+    - Ordered Quantity comes from Customer PO.
+    - Production Quantity is entered by Admin.
+    - Fully completed Item Production Quantity is readonly.
+    - Worker does not enter Production Quantity.
+    - Routing is loaded automatically Item-wise.
     ============================================================
 *@
 
 @model AjayIndustriesERP.Web.ViewModels.ProductionJob.ProductionJobFormViewModel
 
 @{
-    var isEditMode = Model.Id > 0;
+    var isEditMode =
+        Model.Id > 0;
+
+
+    /*
+     * Display formatting helpers.
+     *
+     * Keep formatting outside Razor markup so method calls
+     * are never rendered as literal text in the browser.
+     */
+
+    string FormatQuantity(decimal value)
+    {
+        return string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "{0:0.###}",
+            value);
+    }
+
+
+    string FormatDate(DateTime? value)
+    {
+        if (!value.HasValue)
+        {
+            return "-";
+        }
+
+        return string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "{0:dd-MMM-yyyy}",
+            value.Value);
+    }
+
+
+    string FormatRevision(int? value)
+    {
+        if (!value.HasValue)
+        {
+            return "-";
+        }
+
+        return string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "{0}",
+            value.Value);
+    }
 }
 
 
 <!-- =========================================================
      REGION 1 — CUSTOMER PO SOURCE
 ========================================================== -->
+
 @if (!isEditMode)
 {
     <div class="card shadow-sm border-0 mb-4">
@@ -57,83 +118,64 @@
 
                 <div class="col-12">
 
-                   
+                    <label asp-for="CustomerPurchaseOrderId"
+                           class="form-label fw-semibold">
 
-                    <!-- =========================================================
-                         CUSTOMER PO ITEM
-                    ========================================================== -->
+                        Customer Purchase Order
 
-                    <div class="mb-3">
+                        <span class="text-danger">*</span>
 
-                        <label asp-for="CustomerPurchaseOrderItemId"
-                               class="form-label">
-
-                            Customer PO Item
-
-                            <span class="text-danger">*</span>
-
-                        </label>
+                    </label>
 
 
-                        <select asp-for="CustomerPurchaseOrderItemId"
-                                id="CustomerPurchaseOrderItemId"
-                                class="form-select js-production-source-select"
-                                data-placeholder="-- Select Customer PO Item --">
+                    <select asp-for="CustomerPurchaseOrderId"
+                            id="customerPurchaseOrderSelect"
+                            class="form-select js-production-po-select"
+                            data-source-url="@Url.Action(
+                                "GetCustomerPurchaseOrderSource",
+                                "ProductionJob")">
 
-                            <option value=""></option>
+                        <option value="">
+                            -- Select Customer PO --
+                        </option>
 
 
-                            @foreach (var source in Model.SourceItems)
+                        @foreach (var purchaseOrder
+                            in Model.CustomerPurchaseOrders)
+                        {
+                            if (purchaseOrder.Selected)
                             {
-                                var displayText =
-                                $"{source.CustomerPurchaseOrderNumber} | " +
-                                $"{source.ItemCode} - {source.ItemName} | " +
-                                $"Remaining: {source.RemainingQuantity:0.###} {source.UnitName}";
+                                <option value="@purchaseOrder.Value"
+                                        selected>
 
+                                    @purchaseOrder.Text
 
-                                if (source.RemainingQuantity <= 0)
-                                {
-                                    <option value="@source.CustomerPurchaseOrderItemId"
-                                            disabled>
-
-                                        @displayText - Fully Allocated
-
-                                    </option>
-                                }
-                                else if (
-                                source.CustomerPurchaseOrderItemId ==
-                                Model.CustomerPurchaseOrderItemId)
-                                {
-                                    <option value="@source.CustomerPurchaseOrderItemId"
-                                            selected>
-
-                                        @displayText
-
-                                    </option>
-                                }
-                                else
-                                {
-                                    <option value="@source.CustomerPurchaseOrderItemId">
-
-                                        @displayText
-
-                                    </option>
-                                }
+                                </option>
                             }
+                            else
+                            {
+                                <option value="@purchaseOrder.Value">
 
-                        </select>
+                                    @purchaseOrder.Text
+
+                                </option>
+                            }
+                        }
+
+                    </select>
 
 
-                        <span asp-validation-for="CustomerPurchaseOrderItemId"
-                              class="text-danger small">
-                        </span>
-
-                    </div>
+                    <span asp-validation-for="CustomerPurchaseOrderId"
+                          class="text-danger small">
+                    </span>
 
 
                     <div class="form-text">
-                        Only confirmed Customer PO Items with a Released Routing
-                        and remaining quantity can be selected.
+
+                        Select one confirmed Customer PO.
+                        All PO Items will be loaded automatically
+                        under the same Production Job.
+
                     </div>
 
                 </div>
@@ -146,13 +188,13 @@
 }
 else
 {
-    <!-- =====================================================
-         EDIT MODE — IMMUTABLE PRODUCTION SOURCE
-    ====================================================== -->
-
-    <input asp-for="CustomerPurchaseOrderItemId"
+    <input asp-for="CustomerPurchaseOrderId"
            type="hidden" />
 
+
+    <!-- =====================================================
+         EDIT MODE — IMMUTABLE CUSTOMER PO SOURCE
+    ====================================================== -->
 
     <div class="card shadow-sm border-0 mb-4">
 
@@ -175,6 +217,23 @@ else
 
 
                 <!-- =========================================
+                     PRODUCTION JOB
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Production Job
+                    </div>
+
+                    <div class="fw-semibold">
+                        @Model.Code
+                    </div>
+
+                </div>
+
+
+                <!-- =========================================
                      CUSTOMER PO
                 ========================================== -->
 
@@ -189,10 +248,13 @@ else
                     </div>
 
                     @if (!string.IsNullOrWhiteSpace(
-                                    Model.CustomerPurchaseOrderNumber))
+                        Model.CustomerPurchaseOrderNumber))
                     {
                         <div class="small text-muted">
-                            PO No: @Model.CustomerPurchaseOrderNumber
+
+                            PO No:
+                            @Model.CustomerPurchaseOrderNumber
+
                         </div>
                     }
 
@@ -217,61 +279,34 @@ else
 
 
                 <!-- =========================================
-                     ITEM
+                     RECEIVED DATE
                 ========================================== -->
 
                 <div class="col-lg-4 col-md-6">
 
                     <div class="small text-muted mb-1">
-                        Item
+                        PO Received Date
                     </div>
 
                     <div class="fw-semibold">
-                        @Model.ItemCode
-                    </div>
-
-                    <div class="small text-muted">
-                        @Model.ItemName
+                        @FormatDate(Model.ReceivedDate)
                     </div>
 
                 </div>
 
 
                 <!-- =========================================
-                     PRODUCTION JOB
+                     REQUIRED DELIVERY
                 ========================================== -->
 
                 <div class="col-lg-4 col-md-6">
 
                     <div class="small text-muted mb-1">
-                        Production Job
+                        Required Delivery
                     </div>
 
                     <div class="fw-semibold">
-                        @Model.Code
-                    </div>
-
-                </div>
-
-
-                <!-- =========================================
-                     ROUTING
-                ========================================== -->
-
-                <div class="col-lg-4 col-md-6">
-
-                    <div class="small text-muted mb-1">
-                        Routing Used
-                    </div>
-
-                    <div class="fw-semibold text-success">
-
-                        @Model.RoutingCode
-
-                    </div>
-
-                    <div class="small text-muted">
-                        Revision @Model.RoutingRevisionNumber
+                        @FormatDate(Model.RequiredDeliveryDate)
                     </div>
 
                 </div>
@@ -303,8 +338,8 @@ else
 
                 <i class="fa-solid fa-lock me-1"></i>
 
-                Customer PO Item, Item and Routing cannot be changed
-                after Production Job creation.
+                Customer PO and its source Items cannot be
+                changed after Production Job creation.
 
             </div>
 
@@ -315,12 +350,18 @@ else
 
 
 <!-- =========================================================
-     REGION 2 — SELECTED SOURCE INFORMATION
+     REGION 2 — SELECTED CUSTOMER PO INFORMATION
 ========================================================== -->
+
 @if (!isEditMode)
 {
-    <div id="selectedSourceCard"
-         class="card shadow-sm border-0 mb-4 d-none">
+    var hideSourceSummary =
+        Model.CustomerPurchaseOrderId <= 0;
+
+
+    <div id="selectedPoSummaryCard"
+         class="card shadow-sm border-0 mb-4
+                @(hideSourceSummary ? "d-none" : "")">
 
         <div class="card-header bg-light">
 
@@ -328,7 +369,7 @@ else
 
                 <i class="fa-solid fa-circle-info me-1"></i>
 
-                Production Source Information
+                Customer PO Information
 
             </span>
 
@@ -341,7 +382,7 @@ else
 
 
                 <!-- =========================================
-                     CUSTOMER PO
+                     CUSTOMER PO CODE
                 ========================================== -->
 
                 <div class="col-lg-4 col-md-6">
@@ -350,17 +391,36 @@ else
                         Customer PO
                     </div>
 
-                    <div class="fw-semibold"
-                         id="sourceCpoCode">
+                    <div id="selectedPoCode"
+                         class="fw-semibold">
 
-                        -
+                        @(string.IsNullOrWhiteSpace(
+                            Model.CustomerPurchaseOrderCode)
+                            ? "-"
+                            : Model.CustomerPurchaseOrderCode)
 
                     </div>
 
-                    <div class="small text-muted"
-                         id="sourceCustomerPoNumber">
+                </div>
 
-                        -
+
+                <!-- =========================================
+                     CUSTOMER PO NUMBER
+                ========================================== -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Customer PO Number
+                    </div>
+
+                    <div id="selectedPoNumber"
+                         class="fw-semibold">
+
+                        @(string.IsNullOrWhiteSpace(
+                            Model.CustomerPurchaseOrderNumber)
+                            ? "-"
+                            : Model.CustomerPurchaseOrderNumber)
 
                     </div>
 
@@ -377,10 +437,13 @@ else
                         Customer
                     </div>
 
-                    <div class="fw-semibold"
-                         id="sourceCustomer">
+                    <div id="selectedPoCustomer"
+                         class="fw-semibold">
 
-                        -
+                        @(string.IsNullOrWhiteSpace(
+                            Model.CustomerName)
+                            ? "-"
+                            : Model.CustomerName)
 
                     </div>
 
@@ -388,19 +451,19 @@ else
 
 
                 <!-- =========================================
-                     ITEM
+                     RECEIVED DATE
                 ========================================== -->
 
                 <div class="col-lg-4 col-md-6">
 
                     <div class="small text-muted mb-1">
-                        Item
+                        PO Received Date
                     </div>
 
-                    <div class="fw-semibold"
-                         id="sourceItem">
+                    <div id="selectedPoReceivedDate"
+                         class="fw-semibold">
 
-                        -
+                        @FormatDate(Model.ReceivedDate)
 
                     </div>
 
@@ -408,19 +471,19 @@ else
 
 
                 <!-- =========================================
-                     ORDERED QUANTITY
+                     REQUIRED DELIVERY DATE
                 ========================================== -->
 
                 <div class="col-lg-4 col-md-6">
 
                     <div class="small text-muted mb-1">
-                        Ordered Quantity
+                        Required Delivery
                     </div>
 
-                    <div class="fw-semibold"
-                         id="sourceOrdered">
+                    <div id="selectedPoDeliveryDate"
+                         class="fw-semibold">
 
-                        -
+                        @FormatDate(Model.RequiredDeliveryDate)
 
                     </div>
 
@@ -428,65 +491,20 @@ else
 
 
                 <!-- =========================================
-                     ALLOCATED QUANTITY
+                     TOTAL ITEMS
                 ========================================== -->
 
                 <div class="col-lg-4 col-md-6">
 
                     <div class="small text-muted mb-1">
-                        Already Allocated
+                        PO Items
                     </div>
 
-                    <div class="fw-semibold"
-                         id="sourceAllocated">
+                    <div id="selectedPoItemCount"
+                         class="fw-semibold">
 
-                        -
+                        @Model.Items.Count
 
-                    </div>
-
-                </div>
-
-
-                <!-- =========================================
-                     REMAINING QUANTITY
-                ========================================== -->
-
-                <div class="col-lg-4 col-md-6">
-
-                    <div class="small text-muted mb-1">
-                        Remaining Quantity
-                    </div>
-
-                    <div class="fw-bold text-success"
-                         id="sourceRemaining">
-
-                        -
-
-                    </div>
-
-                </div>
-
-
-                <!-- =========================================
-                     RELEASED ROUTING
-                ========================================== -->
-
-                <div class="col-lg-6 col-md-12">
-
-                    <div class="small text-muted mb-1">
-                        Current Released Routing
-                    </div>
-
-                    <div class="fw-semibold text-success"
-                         id="sourceRouting">
-
-                        -
-
-                    </div>
-
-                    <div class="form-text">
-                        This Routing will automatically generate
-                        Production Job Steps.
                     </div>
 
                 </div>
@@ -500,7 +518,478 @@ else
 
 
 <!-- =========================================================
-     REGION 3 — PRODUCTION JOB INFORMATION
+     REGION 3 — ITEM-WISE PRODUCTION PLANNING
+========================================================== -->
+
+<div id="productionItemsCard"
+     class="card shadow-sm border-0 mb-4
+            @(
+                !isEditMode &&
+                Model.Items.Count == 0
+                    ? "d-none"
+                    : ""
+            )">
+
+    <div class="card-header bg-light">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    gap-2">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid fa-boxes-stacked me-1"></i>
+
+                Item-wise Production Planning
+
+            </span>
+
+
+            <span id="productionItemsCount"
+                  class="badge bg-secondary">
+
+                @Model.Items.Count Item(s)
+
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th style="min-width: 220px;">
+                            Item
+                        </th>
+
+                        <th class="text-end"
+                            style="min-width: 120px;">
+                            Ordered
+                        </th>
+
+                        <th class="text-end"
+                            style="min-width: 120px;">
+                            Completed
+                        </th>
+
+                        <th class="text-end"
+                            style="min-width: 120px;">
+                            Pending
+                        </th>
+
+                        <th style="min-width: 180px;">
+                            Production Qty
+                        </th>
+
+                        <th style="min-width: 170px;">
+                            Routing
+                        </th>
+
+                        <th style="min-width: 140px;">
+                            Delivery
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="productionItemsBody">
+
+                    @for (var i = 0;
+                        i < Model.Items.Count;
+                        i++)
+                    {
+                        var item =
+                            Model.Items[i];
+
+
+                        var isProductionFullyCompleted =
+                            item.OrderedQuantity > 0m
+                            &&
+                            item.CompletedQuantity >=
+                                item.OrderedQuantity;
+
+
+                        <!-- =================================
+                             HIDDEN TRUSTED SOURCE REFERENCES
+                        ================================== -->
+
+                        <input asp-for="Items[i].Id"
+                               type="hidden" />
+
+                        <input asp-for="Items[i].CustomerPurchaseOrderItemId"
+                               type="hidden" />
+
+                        <input asp-for="Items[i].ItemId"
+                               type="hidden" />
+
+                        <input asp-for="Items[i].ItemCode"
+                               type="hidden" />
+
+                        <input asp-for="Items[i].ItemName"
+                               type="hidden" />
+
+                        <input asp-for="Items[i].UnitName"
+                               type="hidden" />
+
+                        <input asp-for="Items[i].OrderedQuantity"
+                               type="hidden" />
+
+                        <input asp-for="Items[i].CompletedQuantity"
+                               type="hidden" />
+
+                        <input asp-for="Items[i].ItemProcessRoutingId"
+                               type="hidden" />
+
+                        <input asp-for="Items[i].RoutingCode"
+                               type="hidden" />
+
+                        <input asp-for="Items[i].RoutingRevisionNumber"
+                               type="hidden" />
+
+                        <input asp-for="Items[i].HasReleasedRouting"
+                               type="hidden" />
+
+                        <input asp-for="Items[i].RequiredDeliveryDate"
+                               type="hidden" />
+
+
+                        <tr data-production-item-row
+                            data-item-index="@i">
+
+
+                            <!-- =============================
+                                 ITEM
+                            ============================== -->
+
+                            <td>
+
+                                <div class="fw-semibold">
+                                    @item.ItemCode
+                                </div>
+
+                                <div class="small text-muted">
+                                    @item.ItemName
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    item.UnitName))
+                                {
+                                    <div class="small text-muted mt-1">
+
+                                        UOM:
+                                        @item.UnitName
+
+                                    </div>
+                                }
+
+                            </td>
+
+
+                            <!-- =============================
+                                 ORDERED QUANTITY
+                            ============================== -->
+
+                            <td class="text-end">
+
+                                <span class="fw-semibold">
+                                    @FormatQuantity(item.OrderedQuantity)
+                                </span>
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    item.UnitName))
+                                {
+                                    <div class="small text-muted">
+                                        @item.UnitName
+                                    </div>
+                                }
+
+                            </td>
+
+
+                            <!-- =============================
+                                 COMPLETED QUANTITY
+                            ============================== -->
+
+                            <td class="text-end">
+
+                                <span class="fw-semibold
+                                             @(item.CompletedQuantity > 0m
+                                                 ? "text-success"
+                                                 : "")">
+
+                                    @FormatQuantity(
+                                        item.CompletedQuantity)
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- =============================
+                                 PENDING ORDER QUANTITY
+                            ============================== -->
+
+                            <td class="text-end">
+
+                                @if (item.PendingQuantity <= 0m)
+                                {
+                                    <span class="fw-semibold text-success">
+                                        0
+                                    </span>
+
+                                    <div>
+                                        <span class="badge bg-success">
+                                            Complete
+                                        </span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="fw-semibold">
+
+                                        @FormatQuantity(
+                                            item.PendingQuantity)
+
+                                    </span>
+                                }
+
+                            </td>
+
+
+                            <!-- =============================
+                                 PRODUCTION QUANTITY
+                            ============================== -->
+
+                            <td>
+
+                                @if (isProductionFullyCompleted)
+                                {
+                                    <input asp-for="Items[i].ProductionQuantity"
+                                           type="number"
+                                           step="0.001"
+                                           class="form-control
+                                                  production-quantity-input
+                                                  bg-light"
+                                           data-ordered-quantity="@item.OrderedQuantity"
+                                           data-completed-quantity="@item.CompletedQuantity"
+                                           readonly />
+
+
+                                    <div class="small
+                                                text-success
+                                                mt-1
+                                                fw-semibold">
+
+                                        <i class="fa-solid
+                                                  fa-circle-check
+                                                  me-1">
+                                        </i>
+
+                                        Production completed
+
+                                    </div>
+                                }
+                                else
+                                {
+                                    <input asp-for="Items[i].ProductionQuantity"
+                                           type="number"
+                                           min="@item.CompletedQuantity"
+                                           max="@item.OrderedQuantity"
+                                           step="0.001"
+                                           class="form-control
+                                                  production-quantity-input"
+                                           placeholder="0.000"
+                                           data-ordered-quantity="@item.OrderedQuantity"
+                                           data-completed-quantity="@item.CompletedQuantity" />
+
+
+                                    <div class="small text-muted mt-1">
+
+                                        Cannot be less than completed
+                                        quantity
+
+                                        <span class="fw-semibold">
+                                            @FormatQuantity(
+                                                item.CompletedQuantity)
+                                        </span>.
+
+                                    </div>
+                                }
+
+
+                                <span asp-validation-for="Items[i].ProductionQuantity"
+                                      class="text-danger small">
+                                </span>
+
+                            </td>
+
+
+                            <!-- =============================
+                                 ROUTING
+                            ============================== -->
+
+                            <td>
+
+                                @if (item.HasReleasedRouting)
+                                {
+                                    <div class="fw-semibold text-success">
+                                        @item.RoutingCode
+                                    </div>
+
+                                    <div class="small text-muted">
+
+                                        Revision
+                                        @FormatRevision(
+                                            item.RoutingRevisionNumber)
+
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">
+                                        Routing Missing
+                                    </span>
+
+                                    <div class="small text-danger mt-1">
+                                        Released Routing required.
+                                    </div>
+                                }
+
+                            </td>
+
+
+                            <!-- =============================
+                                 REQUIRED DELIVERY
+                            ============================== -->
+
+                            <td>
+
+                                <span class="@(
+                                    item.RequiredDeliveryDate.HasValue
+                                        ? ""
+                                        : "text-muted"
+                                )">
+
+                                    @FormatDate(
+                                        item.RequiredDeliveryDate)
+
+                                </span>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <!-- =================================================
+             EMPTY ITEM MESSAGE
+        ================================================== -->
+
+        <div id="productionItemsEmptyState"
+             class="text-center
+                    text-muted
+                    py-5
+                    @(Model.Items.Count > 0
+                        ? "d-none"
+                        : "")">
+
+            <i class="fa-solid
+                      fa-box-open
+                      fa-2x
+                      mb-3">
+            </i>
+
+            <div class="fw-semibold">
+                No Production Items loaded
+            </div>
+
+            <div class="small">
+
+                Select a Customer PO to load all
+                PO Items.
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 4 — QUANTITY RULE INFORMATION
+========================================================== -->
+
+<div class="alert
+            alert-light
+            border
+            d-flex
+            align-items-start
+            gap-2
+            mb-4">
+
+    <i class="fa-solid
+              fa-circle-info
+              text-primary
+              mt-1">
+    </i>
+
+
+    <div>
+
+        <div class="fw-semibold">
+            Production Quantity
+        </div>
+
+
+        <div class="small text-muted">
+
+            Production Quantity is the current cumulative target
+            planned by Admin for each Item.
+
+        </div>
+
+
+        <div class="small text-muted mt-1">
+
+            Example:
+            Ordered 100 →
+            Production Qty 50 →
+            Complete 50 →
+            later Admin may increase Production Qty to 100
+            under the same Production Job.
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 5 — PRODUCTION JOB INFORMATION
 ========================================================== -->
 
 <div class="card shadow-sm border-0 mb-4">
@@ -524,69 +1013,10 @@ else
 
 
             <!-- =============================================
-                 JOB QUANTITY
-            ============================================== -->
-
-            <div class="col-lg-4 col-md-6">
-
-                <label asp-for="JobQuantity"
-                       class="form-label fw-semibold">
-                </label>
-
-                <span class="text-danger">*</span>
-
-
-                <div class="input-group">
-
-                    <input asp-for="JobQuantity"
-                           id="jobQuantityInput"
-                           type="number"
-                           min="0.001"
-                           step="0.001"
-                           class="form-control"
-                           placeholder="Enter production quantity" />
-
-
-                    @if (isEditMode &&
-                                        !string.IsNullOrWhiteSpace(
-                                        Model.UnitName))
-                    {
-                        <span class="input-group-text">
-                            @Model.UnitName
-                        </span>
-                    }
-
-                </div>
-
-
-                <span asp-validation-for="JobQuantity"
-                      class="text-danger small">
-                </span>
-
-
-                @if (!isEditMode)
-                {
-                    <div class="form-text">
-                        Multiple Production Jobs can be created for
-                        one Customer PO Item until its ordered quantity
-                        is fully allocated.
-                    </div>
-                }
-                else
-                {
-                    <div class="form-text">
-                        Job Quantity can be changed while the Job is Draft.
-                    </div>
-                }
-
-            </div>
-
-
-            <!-- =============================================
                  PLANNED START
             ============================================== -->
 
-            <div class="col-lg-4 col-md-6">
+            <div class="col-lg-6 col-md-6">
 
                 <label asp-for="PlannedStartOn"
                        class="form-label fw-semibold">
@@ -609,7 +1039,7 @@ else
                  PLANNED COMPLETION
             ============================================== -->
 
-            <div class="col-lg-4 col-md-6">
+            <div class="col-lg-6 col-md-6">
 
                 <label asp-for="PlannedCompletionOn"
                        class="form-label fw-semibold">
@@ -660,458 +1090,83 @@ else
 
 
 <!-- =========================================================
-     REGION 4 — ROUTING PROCESS NOTE
+     REGION 6 — PIPELINE INFORMATION
 ========================================================== -->
-@if (!isEditMode)
-{
-    <div class="alert
-                    alert-light
-                    border
-                    d-flex
-                    align-items-start
-                    gap-2
-                    mb-4">
 
+<div class="alert
+            alert-light
+            border
+            d-flex
+            align-items-start
+            gap-2
+            mb-4">
+
+    @if (!isEditMode)
+    {
         <i class="fa-solid
-                      fa-diagram-project
-                      text-primary
-                      mt-1">
+                  fa-diagram-project
+                  text-primary
+                  mt-1">
         </i>
 
 
         <div>
 
             <div class="fw-semibold">
-                Production Steps are automatic
+                Production Pipelines are created automatically
             </div>
+
 
             <div class="small text-muted">
 
-                When this Production Job is created, the current
-                Released Item Process Routing will be copied into
-                executable Production Job Steps.
+                When the Production Job is created, every Item's
+                current Released Item Process Routing is copied
+                into its own executable Production Pipeline.
+
+            </div>
+
+
+            <div class="small text-muted mt-1">
+
+                All Items remain under the same Production Job ID.
 
             </div>
 
         </div>
-
-    </div>
-}
-else
-{
-    <div class="alert
-                    alert-light
-                    border
-                    d-flex
-                    align-items-start
-                    gap-2
-                    mb-4">
-
+    }
+    else
+    {
         <i class="fa-solid
-                      fa-lock
-                      text-secondary
-                      mt-1">
+                  fa-diagram-project
+                  text-secondary
+                  mt-1">
         </i>
 
 
         <div>
 
             <div class="fw-semibold">
-                Existing Production Steps remain unchanged
+                Production Pipeline remains Item-wise
             </div>
+
 
             <div class="small text-muted">
 
-                Editing this Draft Job changes only Job Quantity,
-                planning dates and remarks. The Routing snapshot and
-                Production Job Steps are not regenerated.
+                Updating Production Quantity does not create
+                another Production Job.
+
+            </div>
+
+
+            <div class="small text-muted mt-1">
+
+                When a completed partial-production target is
+                increased, the same Item Pipeline is reused for
+                the remaining Production Quantity.
 
             </div>
 
         </div>
+    }
 
-    </div>
-}
-
-
-<!-- =========================================================
-     REGION 5 — CREATE MODE SOURCE SCRIPT
-========================================================== -->
-@if (!isEditMode)
-{
-    <script>
-
-        document.addEventListener(
-            "DOMContentLoaded",
-            function () {
-
-                // =============================================
-                // REGION 5.1 — ELEMENT REFERENCES
-                // =============================================
-
-                const sourceSelect =
-                    document.getElementById(
-                        "customerPoItemSelect"
-                    );
-
-
-                const sourceCard =
-                    document.getElementById(
-                        "selectedSourceCard"
-                    );
-
-
-                const quantityInput =
-                    document.getElementById(
-                        "jobQuantityInput"
-                    );
-
-
-                if (!sourceSelect ||
-                    !sourceCard) {
-
-                    return;
-                }
-
-
-                // =============================================
-                // REGION 5.2 — NUMBER FORMAT
-                // =============================================
-
-                function formatQuantity(
-                    value) {
-
-                    if (
-                        value === undefined ||
-                        value === null ||
-                        value === ""
-                    ) {
-
-                        return "0";
-                    }
-
-
-                    const number =
-                        parseFloat(
-                            value
-                        );
-
-
-                    if (isNaN(number)) {
-
-                        return value;
-                    }
-
-
-                    return number.toLocaleString(
-                        undefined,
-                        {
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 3
-                        }
-                    );
-                }
-
-
-                // =============================================
-                // REGION 5.3 — SOURCE INFORMATION
-                // =============================================
-
-                function updateSourceInformation() {
-
-                    const selectedOption =
-                        sourceSelect.options[
-                            sourceSelect.selectedIndex
-                        ];
-
-
-                    if (!selectedOption ||
-                        !selectedOption.value) {
-
-                        sourceCard.classList.add(
-                            "d-none"
-                        );
-
-
-                        if (quantityInput) {
-
-                            quantityInput.removeAttribute(
-                                "max"
-                            );
-                        }
-
-
-                        return;
-                    }
-
-
-                    const unit =
-                        selectedOption.dataset.unit || "";
-
-
-                    const cpoCode =
-                        selectedOption.dataset.cpoCode || "-";
-
-
-                    const customerPoNumber =
-                        selectedOption.dataset.customerPoNumber || "";
-
-
-                    const customer =
-                        selectedOption.dataset.customer || "-";
-
-
-                    const itemCode =
-                        selectedOption.dataset.itemCode || "";
-
-
-                    const itemName =
-                        selectedOption.dataset.itemName || "";
-
-
-                    const ordered =
-                        selectedOption.dataset.ordered || "0";
-
-
-                    const allocated =
-                        selectedOption.dataset.allocated || "0";
-
-
-                    const remaining =
-                        selectedOption.dataset.remaining || "0";
-
-
-                    const routingCode =
-                        selectedOption.dataset.routingCode || "-";
-
-
-                    const routingRevision =
-                        selectedOption.dataset.routingRevision || "-";
-
-
-                    // =========================================
-                    // CUSTOMER PO
-                    // =========================================
-
-                    const cpoCodeElement =
-                        document.getElementById(
-                            "sourceCpoCode"
-                        );
-
-
-                    if (cpoCodeElement) {
-
-                        cpoCodeElement.textContent =
-                            cpoCode;
-                    }
-
-
-                    const customerPoNumberElement =
-                        document.getElementById(
-                            "sourceCustomerPoNumber"
-                        );
-
-
-                    if (customerPoNumberElement) {
-
-                        customerPoNumberElement.textContent =
-                            customerPoNumber
-                                ? "Customer PO No: " +
-                                  customerPoNumber
-                                : "-";
-                    }
-
-
-                    // =========================================
-                    // CUSTOMER
-                    // =========================================
-
-                    const customerElement =
-                        document.getElementById(
-                            "sourceCustomer"
-                        );
-
-
-                    if (customerElement) {
-
-                        customerElement.textContent =
-                            customer;
-                    }
-
-
-                    // =========================================
-                    // ITEM
-                    // =========================================
-
-                    const itemElement =
-                        document.getElementById(
-                            "sourceItem"
-                        );
-
-
-                    if (itemElement) {
-
-                        itemElement.textContent =
-                            itemCode +
-                            " - " +
-                            itemName;
-                    }
-
-
-                    // =========================================
-                    // QUANTITY
-                    // =========================================
-
-                    const orderedElement =
-                        document.getElementById(
-                            "sourceOrdered"
-                        );
-
-
-                    if (orderedElement) {
-
-                        orderedElement.textContent =
-                            formatQuantity(
-                                ordered
-                            ) +
-                            (
-                                unit
-                                    ? " " + unit
-                                    : ""
-                            );
-                    }
-
-
-                    const allocatedElement =
-                        document.getElementById(
-                            "sourceAllocated"
-                        );
-
-
-                    if (allocatedElement) {
-
-                        allocatedElement.textContent =
-                            formatQuantity(
-                                allocated
-                            ) +
-                            (
-                                unit
-                                    ? " " + unit
-                                    : ""
-                            );
-                    }
-
-
-                    const remainingElement =
-                        document.getElementById(
-                            "sourceRemaining"
-                        );
-
-
-                    if (remainingElement) {
-
-                        remainingElement.textContent =
-                            formatQuantity(
-                                remaining
-                            ) +
-                            (
-                                unit
-                                    ? " " + unit
-                                    : ""
-                            );
-                    }
-
-
-                    // =========================================
-                    // ROUTING
-                    // =========================================
-
-                    const routingElement =
-                        document.getElementById(
-                            "sourceRouting"
-                        );
-
-
-                    if (routingElement) {
-
-                        routingElement.textContent =
-                            routingCode +
-                            " / Rev " +
-                            routingRevision;
-                    }
-
-
-                    // =========================================
-                    // JOB QUANTITY
-                    // =========================================
-
-                    if (quantityInput) {
-
-                        /*
-                         * Auto-fill the entire Remaining Quantity
-                         * only when Job Quantity is empty or zero.
-                         */
-
-                        const currentQuantity =
-                            parseFloat(
-                                quantityInput.value || "0"
-                            );
-
-
-                        if (
-                            isNaN(currentQuantity) ||
-                            currentQuantity <= 0
-                        ) {
-
-                            quantityInput.value =
-                                remaining;
-                        }
-
-
-                        quantityInput.max =
-                            remaining;
-                    }
-
-
-                    sourceCard.classList.remove(
-                        "d-none"
-                    );
-                }
-
-
-                // =============================================
-                // REGION 5.4 — SOURCE CHANGE
-                // =============================================
-
-                sourceSelect.addEventListener(
-                    "change",
-                    function () {
-
-                        /*
-                         * When source changes manually,
-                         * populate new source Remaining Qty.
-                         */
-
-                        if (quantityInput) {
-
-                            quantityInput.value =
-                                "";
-                        }
-
-
-                        updateSourceInformation();
-                    }
-                );
-
-
-                // =============================================
-                // REGION 5.5 — INITIALIZATION
-                // =============================================
-
-                updateSourceInformation();
-
-            }
-        );
-
-    </script>
-}
+</div>

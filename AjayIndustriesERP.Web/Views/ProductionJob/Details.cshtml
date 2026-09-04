@@ -4,26 +4,40 @@
 
     Purpose:
     Displays complete read-only Production Job details and
-    Production Step execution history.
+    Item-wise Production execution history.
+
+    Production Structure:
+
+    Customer Purchase Order
+            ↓
+    Production Job
+            ↓
+    Production Job Item
+            ↓
+    Production Job Step
+            ↓
+    Production Job Step History
 
     Responsibilities:
-    - Display Production Job information.
+    - Display Production Job Header.
     - Display Customer PO source.
-    - Display Item and Job Quantity.
-    - Display Routing snapshot.
-    - Display planned and actual production timing.
-    - Display Production Step details.
+    - Display all Production Job Items.
+    - Display Item-wise Production quantities.
+    - Display Item-wise Routing snapshot.
+    - Display Item-wise Workshop / Customer Drawings.
+    - Display Item-wise Production Steps.
     - Display machine assignment.
-    - Display Good and Rejected Quantity.
+    - Display cumulative Good / Rejected Quantity.
     - Display operation instructions and remarks.
-    - Display complete execution history.
+    - Display complete Step execution history.
 
     Important:
     - This is a read-only Details / Audit screen.
     - Production execution actions belong to Pipeline.cshtml.
-    - Start / Complete / Cancel actions are intentionally not
-      available on this page.
-    - Routing changes after Job creation do not modify this Job.
+    - One Customer PO has one Production Job.
+    - Each Item has its own executable Pipeline.
+    - Routing changes after Job creation do not modify
+      copied Production Steps.
     ============================================================
 *@
 
@@ -32,8 +46,32 @@
 @using AjayIndustriesERP.Domain.Enums
 
 @{
-    ViewData["Title"] = "Production Job Details";
+    ViewData["Title"] =
+        "Production Job Details";
 
+
+    var totalItems =
+        Model.Items.Count;
+
+
+    var completedItems =
+        Model.Items.Count(x =>
+            x.IsProductionCompleted);
+
+
+    var runningSteps =
+        Model.Items
+            .SelectMany(item =>
+                item.Steps.Select(step =>
+                    new
+                    {
+                        Item = item,
+                        Step = step
+                    }))
+            .Where(x =>
+                x.Step.Status ==
+                ProductionJobStepStatus.InProgress)
+            .ToList();
 }
 
 
@@ -70,9 +108,12 @@
            asp-route-id="@Model.Id"
            class="btn btn-primary">
 
-            <i class="fa-solid fa-diagram-project me-1"></i>
+            <i class="fa-solid
+                      fa-diagram-project
+                      me-1">
+            </i>
 
-            Back to Pipeline
+            Production Pipeline
 
         </a>
 
@@ -80,7 +121,10 @@
         <a asp-action="Index"
            class="btn btn-outline-secondary">
 
-            <i class="fa-solid fa-arrow-left me-1"></i>
+            <i class="fa-solid
+                      fa-arrow-left
+                      me-1">
+            </i>
 
             Production Jobs
 
@@ -97,13 +141,27 @@
 
 @if (Model.Status == ProductionJobStatus.Completed)
 {
-    <div class="alert alert-success border mb-4">
+    <div class="alert
+                alert-success
+                border
+                mb-4">
 
         <div class="fw-semibold">
 
-            <i class="fa-solid fa-circle-check me-1"></i>
+            <i class="fa-solid
+                      fa-circle-check
+                      me-1">
+            </i>
 
             Production Job Completed
+
+        </div>
+
+
+        <div class="small mt-1">
+
+            All Production Items have completed
+            their full Customer PO Ordered Quantity.
 
         </div>
 
@@ -115,7 +173,8 @@
                 Completed On:
 
                 <strong>
-                    @(Model.CompletedOn.Value.ToString("dd-MM-yyyy HH:mm"))
+                    @(Model.CompletedOn.Value
+                        .ToString("dd-MM-yyyy HH:mm"))
                 </strong>
 
             </div>
@@ -125,11 +184,17 @@
 }
 else if (Model.Status == ProductionJobStatus.Cancelled)
 {
-    <div class="alert alert-danger border mb-4">
+    <div class="alert
+                alert-danger
+                border
+                mb-4">
 
         <div class="fw-semibold">
 
-            <i class="fa-solid fa-ban me-1"></i>
+            <i class="fa-solid
+                      fa-ban
+                      me-1">
+            </i>
 
             Production Job Cancelled
 
@@ -143,7 +208,10 @@ else if (Model.Status == ProductionJobStatus.Cancelled)
                 Cancelled On:
 
                 <strong>
-                    @(Model.CancelledOn.Value.ToString("dd-MM-yyyy HH:mm"))
+
+                    @(Model.CancelledOn.Value
+                        .ToString("dd-MM-yyyy HH:mm"))
+
                 </strong>
 
             </div>
@@ -155,8 +223,12 @@ else if (Model.Status == ProductionJobStatus.Cancelled)
         {
             <div class="mt-3">
 
-                <div class="small text-muted mb-1">
+                <div class="small
+                            text-muted
+                            mb-1">
+
                     Cancellation Reason
+
                 </div>
 
                 <div class="fw-semibold">
@@ -170,33 +242,60 @@ else if (Model.Status == ProductionJobStatus.Cancelled)
 }
 else if (Model.Status == ProductionJobStatus.InProgress)
 {
-    var runningStep =
-        Model.Steps
-            .FirstOrDefault(x =>
-                x.Status ==
-                ProductionJobStepStatus.InProgress);
-
-
-    <div class="alert alert-warning border mb-4">
+    <div class="alert
+                alert-warning
+                border
+                mb-4">
 
         <div class="fw-semibold">
 
-            <i class="fa-solid fa-gears me-1"></i>
+            <i class="fa-solid
+                      fa-gears
+                      me-1">
+            </i>
 
             Production In Progress
 
         </div>
 
 
-        @if (runningStep != null)
+        @if (runningSteps.Any())
+        {
+            <div class="small mt-2">
+
+                Current Running Operation(s):
+
+            </div>
+
+
+            <div class="d-flex
+                        flex-wrap
+                        gap-2
+                        mt-2">
+
+                @foreach (var running
+                    in runningSteps)
+                {
+                    <span class="badge
+                                 bg-light
+                                 text-dark
+                                 border">
+
+                        @running.Item.ItemCode
+                        —
+                        @running.Step.OperationName
+
+                    </span>
+                }
+
+            </div>
+        }
+        else
         {
             <div class="small mt-1">
 
-                Current Operation:
-
-                <strong>
-                    @runningStep.OperationName
-                </strong>
+                Production has started and pending
+                quantity remains.
 
             </div>
         }
@@ -205,32 +304,47 @@ else if (Model.Status == ProductionJobStatus.InProgress)
 }
 else if (Model.Status == ProductionJobStatus.Ready)
 {
-    <div class="alert alert-primary border mb-4">
+    <div class="alert
+                alert-primary
+                border
+                mb-4">
 
         <div class="fw-semibold">
 
-            <i class="fa-solid fa-circle-play me-1"></i>
+            <i class="fa-solid
+                      fa-circle-play
+                      me-1">
+            </i>
 
             Production Job Ready
 
         </div>
 
         <div class="small mt-1">
-            This Job is ready for shop-floor execution.
+
+            Planned Items are ready for
+            shop-floor execution.
+
         </div>
 
     </div>
 }
 else if (Model.Status == ProductionJobStatus.Draft)
 {
-    <div class="alert alert-secondary border mb-4">
+    <div class="alert
+                alert-secondary
+                border
+                mb-4">
 
         <div class="fw-semibold">
             Production Job Draft
         </div>
 
         <div class="small mt-1">
-            This Job has not yet been marked Ready for production.
+
+            Production Quantity and Item Pipelines
+            can be reviewed before Mark Ready.
+
         </div>
 
     </div>
@@ -247,7 +361,10 @@ else if (Model.Status == ProductionJobStatus.Draft)
 
         <span class="fw-semibold">
 
-            <i class="fa-solid fa-industry me-1"></i>
+            <i class="fa-solid
+                      fa-industry
+                      me-1">
+            </i>
 
             Production Job Information
 
@@ -307,8 +424,12 @@ else if (Model.Status == ProductionJobStatus.Draft)
 
                     case ProductionJobStatus.InProgress:
 
-                        <span class="badge bg-warning text-dark">
+                        <span class="badge
+                                     bg-warning
+                                     text-dark">
+
                             In Progress
+
                         </span>
 
                         break;
@@ -335,503 +456,34 @@ else if (Model.Status == ProductionJobStatus.Draft)
             </div>
 
 
-            <!-- ITEM -->
+            <!-- TOTAL ITEMS -->
 
-            <div class="col-lg-4 col-md-6">
+            <div class="col-lg-3 col-md-6">
 
                 <div class="small text-muted mb-1">
-                    Item
+                    Production Items
                 </div>
 
                 <div class="fw-semibold">
-                    @Model.ItemCode
-                </div>
 
-                <div class="small text-muted">
-                    @Model.ItemName
+                    @totalItems
+
                 </div>
 
             </div>
 
 
-            <!-- JOB QUANTITY -->
+            <!-- COMPLETED ITEMS -->
 
-            <div class="col-lg-2 col-md-6">
+            <div class="col-lg-3 col-md-6">
 
                 <div class="small text-muted mb-1">
-                    Job Quantity
+                    Fully Completed Items
                 </div>
 
-                <div class="fw-bold">
+                <div class="fw-semibold">
 
-                    @(Model.JobQuantity.ToString("0.###"))
-
-                    @Model.UnitName
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-<!-- =========================================================
-     REGION — CURRENT DRAWINGS
-========================================================== -->
-
-<div class="card shadow-sm border-0 mb-4">
-
-    <div class="card-header bg-light">
-
-        <span class="fw-semibold">
-
-            <i class="fa-solid fa-file-lines me-1"></i>
-
-            Current Drawings
-
-        </span>
-
-    </div>
-
-
-    <div class="card-body">
-
-        <div class="row g-4">
-
-
-            <!-- =============================================
-                 WORKSHOP DRAWING
-            ============================================== -->
-
-            <div class="col-lg-6">
-
-                <div class="border
-                            rounded
-                            p-3
-                            bg-light
-                            h-100">
-
-                    <div class="d-flex
-                                justify-content-between
-                                align-items-center
-                                flex-wrap
-                                gap-2
-                                mb-3">
-
-                        <div class="fw-semibold">
-
-                            <i class="fa-solid
-                                      fa-screwdriver-wrench
-                                      me-1">
-                            </i>
-
-                            Workshop Drawing
-
-                        </div>
-
-
-                        @if (!string.IsNullOrWhiteSpace(
-                            Model.DrawingNumber))
-                        {
-                            <span class="badge bg-success">
-                                Current
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="badge
-                                         bg-light
-                                         text-dark
-                                         border">
-
-                                No Drawing
-
-                            </span>
-                        }
-
-                    </div>
-
-
-                    @if (!string.IsNullOrWhiteSpace(
-                        Model.DrawingNumber))
-                    {
-                        <div class="row g-3">
-
-
-                            <!-- DRAWING NUMBER -->
-
-                            <div class="col-md-6">
-
-                                <div class="small
-                                            text-muted
-                                            mb-1">
-
-                                    Drawing Number
-
-                                </div>
-
-                                <div class="fw-semibold">
-
-                                    @Model.DrawingNumber
-
-                                </div>
-
-                            </div>
-
-
-                            <!-- REVISION -->
-
-                            <div class="col-md-6">
-
-                                <div class="small
-                                            text-muted
-                                            mb-1">
-
-                                    Revision
-
-                                </div>
-
-                                <div class="fw-semibold">
-
-                                    @(string.IsNullOrWhiteSpace(
-                                        Model.DrawingRevisionNumber)
-                                        ? "-"
-                                        : Model.DrawingRevisionNumber)
-
-                                </div>
-
-                            </div>
-
-
-                            <!-- DRAWING NAME -->
-
-                            <div class="col-md-6">
-
-                                <div class="small
-                                            text-muted
-                                            mb-1">
-
-                                    Drawing Name
-
-                                </div>
-
-                                <div>
-
-                                    @(string.IsNullOrWhiteSpace(
-                                        Model.DrawingName)
-                                        ? "-"
-                                        : Model.DrawingName)
-
-                                </div>
-
-                            </div>
-
-
-                            <!-- DRAWING TYPE -->
-
-                            <div class="col-md-6">
-
-                                <div class="small
-                                            text-muted
-                                            mb-1">
-
-                                    Drawing Type
-
-                                </div>
-
-                                <div>
-
-                                    @(string.IsNullOrWhiteSpace(
-                                        Model.DrawingType)
-                                        ? "-"
-                                        : Model.DrawingType)
-
-                                </div>
-
-                            </div>
-
-
-                            <!-- DRAWING FILE -->
-
-                            <div class="col-12">
-
-                                <div class="small
-                                            text-muted
-                                            mb-1">
-
-                                    Drawing File
-
-                                </div>
-
-
-                                @if (!string.IsNullOrWhiteSpace(
-                                    Model.DrawingFilePath))
-                                {
-                                    <a href="@Model.DrawingFilePath"
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       class="btn
-                                              btn-sm
-                                              btn-outline-primary">
-
-                                        <i class="fa-solid
-                                                  fa-file
-                                                  me-1">
-                                        </i>
-
-                                        @(string.IsNullOrWhiteSpace(
-                                            Model.DrawingFileName)
-                                            ? "View File"
-                                            : Model.DrawingFileName)
-
-                                    </a>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">
-                                        No File
-                                    </span>
-                                }
-
-                            </div>
-
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="text-muted">
-
-                            <i class="fa-solid
-                                      fa-circle-info
-                                      me-1">
-                            </i>
-
-                            No active Workshop Drawing is linked
-                            with this Item.
-
-                        </div>
-                    }
-
-                </div>
-
-            </div>
-
-
-            <!-- =============================================
-                 CUSTOMER DRAWING
-            ============================================== -->
-
-            <div class="col-lg-6">
-
-                <div class="border
-                            rounded
-                            p-3
-                            bg-light
-                            h-100">
-
-                    <div class="d-flex
-                                justify-content-between
-                                align-items-center
-                                flex-wrap
-                                gap-2
-                                mb-3">
-
-                        <div class="fw-semibold">
-
-                            <i class="fa-solid
-                                      fa-file-signature
-                                      me-1">
-                            </i>
-
-                            Customer Drawing
-
-                        </div>
-
-
-                        @if (!string.IsNullOrWhiteSpace(
-                            Model.CustomerDrawingNumber))
-                        {
-                            <span class="badge bg-success">
-                                Current
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="badge
-                                         bg-light
-                                         text-dark
-                                         border">
-
-                                No Drawing
-
-                            </span>
-                        }
-
-                    </div>
-
-
-                    @if (!string.IsNullOrWhiteSpace(
-                        Model.CustomerDrawingNumber))
-                    {
-                        <div class="row g-3">
-
-
-                            <!-- DRAWING NUMBER -->
-
-                            <div class="col-md-6">
-
-                                <div class="small
-                                            text-muted
-                                            mb-1">
-
-                                    Drawing Number
-
-                                </div>
-
-                                <div class="fw-semibold">
-
-                                    @Model.CustomerDrawingNumber
-
-                                </div>
-
-                            </div>
-
-
-                            <!-- REVISION -->
-
-                            <div class="col-md-6">
-
-                                <div class="small
-                                            text-muted
-                                            mb-1">
-
-                                    Revision
-
-                                </div>
-
-                                <div class="fw-semibold">
-
-                                    @(string.IsNullOrWhiteSpace(
-                                        Model.CustomerDrawingRevisionNumber)
-                                        ? "-"
-                                        : Model.CustomerDrawingRevisionNumber)
-
-                                </div>
-
-                            </div>
-
-
-                            <!-- DRAWING NAME -->
-
-                            <div class="col-md-6">
-
-                                <div class="small
-                                            text-muted
-                                            mb-1">
-
-                                    Drawing Name
-
-                                </div>
-
-                                <div>
-
-                                    @(string.IsNullOrWhiteSpace(
-                                        Model.CustomerDrawingName)
-                                        ? "-"
-                                        : Model.CustomerDrawingName)
-
-                                </div>
-
-                            </div>
-
-
-                            <!-- DRAWING TYPE -->
-
-                            <div class="col-md-6">
-
-                                <div class="small
-                                            text-muted
-                                            mb-1">
-
-                                    Drawing Type
-
-                                </div>
-
-                                <div>
-
-                                    @(string.IsNullOrWhiteSpace(
-                                        Model.CustomerDrawingType)
-                                        ? "-"
-                                        : Model.CustomerDrawingType)
-
-                                </div>
-
-                            </div>
-
-
-                            <!-- DRAWING FILE -->
-
-                            <div class="col-12">
-
-                                <div class="small
-                                            text-muted
-                                            mb-1">
-
-                                    Drawing File
-
-                                </div>
-
-
-                                @if (!string.IsNullOrWhiteSpace(
-                                    Model.CustomerDrawingFilePath))
-                                {
-                                    <a href="@Model.CustomerDrawingFilePath"
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       class="btn
-                                              btn-sm
-                                              btn-outline-primary">
-
-                                        <i class="fa-solid
-                                                  fa-file
-                                                  me-1">
-                                        </i>
-
-                                        @(string.IsNullOrWhiteSpace(
-                                            Model.CustomerDrawingFileName)
-                                            ? "View File"
-                                            : Model.CustomerDrawingFileName)
-
-                                    </a>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">
-                                        No File
-                                    </span>
-                                }
-
-                            </div>
-
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="text-muted">
-
-                            <i class="fa-solid
-                                      fa-circle-info
-                                      me-1">
-                            </i>
-
-                            No active Customer Drawing is linked
-                            with this Customer and Item.
-
-                        </div>
-                    }
+                    @completedItems / @totalItems
 
                 </div>
 
@@ -848,17 +500,16 @@ else if (Model.Status == ProductionJobStatus.Draft)
      REGION 4 — CUSTOMER PO SOURCE
 ========================================================== -->
 
-<!-- =========================================================
-     REGION 4 — CUSTOMER PO SOURCE
-========================================================== -->
-
 <div class="card shadow-sm border-0 mb-4">
 
     <div class="card-header bg-light">
 
         <span class="fw-semibold">
 
-            <i class="fa-solid fa-file-lines me-1"></i>
+            <i class="fa-solid
+                      fa-file-lines
+                      me-1">
+            </i>
 
             Customer PO Source
 
@@ -892,6 +543,26 @@ else if (Model.Status == ProductionJobStatus.Draft)
             </div>
 
 
+            <!-- ERP PO CODE -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    ERP PO Code
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(string.IsNullOrWhiteSpace(
+                        Model.CustomerPurchaseOrderCode)
+                        ? "-"
+                        : Model.CustomerPurchaseOrderCode)
+
+                </div>
+
+            </div>
+
+
             <!-- CUSTOMER -->
 
             <div class="col-lg-4 col-md-6">
@@ -912,20 +583,60 @@ else if (Model.Status == ProductionJobStatus.Draft)
             </div>
 
 
-            <!-- ERP PO CODE -->
+            <!-- PO DATE -->
 
             <div class="col-lg-4 col-md-6">
 
                 <div class="small text-muted mb-1">
-                    ERP PO Code
+                    Customer PO Date
                 </div>
 
                 <div class="fw-semibold">
 
-                    @(string.IsNullOrWhiteSpace(
-                        Model.CustomerPurchaseOrderCode)
-                        ? "-"
-                        : Model.CustomerPurchaseOrderCode)
+                    @(Model.CustomerPurchaseOrderDate.HasValue
+                        ? Model.CustomerPurchaseOrderDate.Value
+                            .ToString("dd-MM-yyyy")
+                        : "-")
+
+                </div>
+
+            </div>
+
+
+            <!-- RECEIVED -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    PO Received Date
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(Model.ReceivedDate.HasValue
+                        ? Model.ReceivedDate.Value
+                            .ToString("dd-MM-yyyy")
+                        : "-")
+
+                </div>
+
+            </div>
+
+
+            <!-- REQUIRED DELIVERY -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="small text-muted mb-1">
+                    Required Delivery
+                </div>
+
+                <div class="fw-semibold">
+
+                    @(Model.RequiredDeliveryDate.HasValue
+                        ? Model.RequiredDeliveryDate.Value
+                            .ToString("dd-MM-yyyy")
+                        : "-")
 
                 </div>
 
@@ -939,7 +650,7 @@ else if (Model.Status == ProductionJobStatus.Draft)
 
 
 <!-- =========================================================
-     REGION 5 — ROUTING INFORMATION
+     REGION 5 — PRODUCTION TIMING
 ========================================================== -->
 
 <div class="card shadow-sm border-0 mb-4">
@@ -948,92 +659,10 @@ else if (Model.Status == ProductionJobStatus.Draft)
 
         <span class="fw-semibold">
 
-            <i class="fa-solid fa-route me-1"></i>
-
-            Routing Used
-
-        </span>
-
-    </div>
-
-
-    <div class="card-body">
-
-        <div class="row g-4">
-
-
-            <!-- ROUTING CODE -->
-
-            <div class="col-lg-4 col-md-6">
-
-                <div class="small text-muted mb-1">
-                    Routing Code
-                </div>
-
-                <div class="fw-semibold text-success">
-                    @Model.RoutingCode
-                </div>
-
-            </div>
-
-
-            <!-- REVISION -->
-
-            <div class="col-lg-4 col-md-6">
-
-                <div class="small text-muted mb-1">
-                    Routing Revision
-                </div>
-
-                <div class="fw-semibold">
-                    Rev @Model.RoutingRevisionNumber
-                </div>
-
-            </div>
-
-
-            <!-- TOTAL STEPS -->
-
-            <div class="col-lg-4 col-md-6">
-
-                <div class="small text-muted mb-1">
-                    Total Production Steps
-                </div>
-
-                <div class="fw-semibold">
-                    @Model.Steps.Count
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="small text-muted mt-3">
-
-            <i class="fa-solid fa-circle-info me-1"></i>
-
-            Production Steps were copied from this Routing
-            revision when the Job was created.
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- =========================================================
-     REGION 6 — PRODUCTION TIMING
-========================================================== -->
-
-<div class="card shadow-sm border-0 mb-4">
-
-    <div class="card-header bg-light">
-
-        <span class="fw-semibold">
-
-            <i class="fa-solid fa-clock me-1"></i>
+            <i class="fa-solid
+                      fa-clock
+                      me-1">
+            </i>
 
             Production Timing
 
@@ -1057,12 +686,10 @@ else if (Model.Status == ProductionJobStatus.Draft)
 
                 <div class="fw-semibold">
 
-                    @(
-                        Model.PlannedStartOn.HasValue
-                            ? Model.PlannedStartOn.Value
-                                .ToString("dd-MM-yyyy")
-                            : "-"
-                    )
+                    @(Model.PlannedStartOn.HasValue
+                        ? Model.PlannedStartOn.Value
+                            .ToString("dd-MM-yyyy")
+                        : "-")
 
                 </div>
 
@@ -1079,12 +706,10 @@ else if (Model.Status == ProductionJobStatus.Draft)
 
                 <div class="fw-semibold">
 
-                    @(
-                        Model.PlannedCompletionOn.HasValue
-                            ? Model.PlannedCompletionOn.Value
-                                .ToString("dd-MM-yyyy")
-                            : "-"
-                    )
+                    @(Model.PlannedCompletionOn.HasValue
+                        ? Model.PlannedCompletionOn.Value
+                            .ToString("dd-MM-yyyy")
+                        : "-")
 
                 </div>
 
@@ -1101,12 +726,10 @@ else if (Model.Status == ProductionJobStatus.Draft)
 
                 <div class="fw-semibold">
 
-                    @(
-                        Model.StartedOn.HasValue
-                            ? Model.StartedOn.Value
-                                .ToString("dd-MM-yyyy HH:mm")
-                            : "-"
-                    )
+                    @(Model.StartedOn.HasValue
+                        ? Model.StartedOn.Value
+                            .ToString("dd-MM-yyyy HH:mm")
+                        : "-")
 
                 </div>
 
@@ -1117,7 +740,8 @@ else if (Model.Status == ProductionJobStatus.Draft)
 
             <div class="col-lg-3 col-md-6">
 
-                @if (Model.Status ==
+                @if (
+                    Model.Status ==
                     ProductionJobStatus.Cancelled)
                 {
                     <div class="small text-muted mb-1">
@@ -1126,12 +750,10 @@ else if (Model.Status == ProductionJobStatus.Draft)
 
                     <div class="fw-semibold text-danger">
 
-                        @(
-                            Model.CancelledOn.HasValue
-                                ? Model.CancelledOn.Value
-                                    .ToString("dd-MM-yyyy HH:mm")
-                                : "-"
-                        )
+                        @(Model.CancelledOn.HasValue
+                            ? Model.CancelledOn.Value
+                                .ToString("dd-MM-yyyy HH:mm")
+                            : "-")
 
                     </div>
                 }
@@ -1143,12 +765,10 @@ else if (Model.Status == ProductionJobStatus.Draft)
 
                     <div class="fw-semibold">
 
-                        @(
-                            Model.CompletedOn.HasValue
-                                ? Model.CompletedOn.Value
-                                    .ToString("dd-MM-yyyy HH:mm")
-                                : "-"
-                        )
+                        @(Model.CompletedOn.HasValue
+                            ? Model.CompletedOn.Value
+                                .ToString("dd-MM-yyyy HH:mm")
+                            : "-")
 
                     </div>
                 }
@@ -1163,7 +783,7 @@ else if (Model.Status == ProductionJobStatus.Draft)
 
 
 <!-- =========================================================
-     REGION 7 — JOB REMARKS
+     REGION 6 — JOB REMARKS
 ========================================================== -->
 
 @if (!string.IsNullOrWhiteSpace(
@@ -1175,7 +795,10 @@ else if (Model.Status == ProductionJobStatus.Draft)
 
             <span class="fw-semibold">
 
-                <i class="fa-solid fa-note-sticky me-1"></i>
+                <i class="fa-solid
+                          fa-note-sticky
+                          me-1">
+                </i>
 
                 Job Remarks
 
@@ -1184,7 +807,8 @@ else if (Model.Status == ProductionJobStatus.Draft)
         </div>
 
 
-        <div class="card-body">
+        <div class="card-body"
+             style="white-space: pre-wrap;">
 
             @Model.Remarks
 
@@ -1195,75 +819,286 @@ else if (Model.Status == ProductionJobStatus.Draft)
 
 
 <!-- =========================================================
-     REGION 8 — CANCELLATION INFORMATION
+     REGION 7 — ITEM PRODUCTION OVERVIEW
 ========================================================== -->
 
-@if (Model.Status ==
-        ProductionJobStatus.Cancelled &&
-    !string.IsNullOrWhiteSpace(
-        Model.CancellationReason))
-{
-    <div class="card border-danger shadow-sm mb-4">
+<div class="card shadow-sm border-0 mb-4">
 
-        <div class="card-header bg-danger text-white">
+    <div class="card-header bg-light">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
 
             <span class="fw-semibold">
 
-                <i class="fa-solid fa-ban me-1"></i>
+                <i class="fa-solid
+                          fa-boxes-stacked
+                          me-1">
+                </i>
 
-                Cancellation Information
+                Item-wise Production Progress
+
+            </span>
+
+
+            <span class="badge
+                         bg-light
+                         text-dark
+                         border">
+
+                @Model.Items.Count Item(s)
 
             </span>
 
         </div>
 
-
-        <div class="card-body">
-
-            <div class="row g-4">
-
-                <div class="col-lg-4 col-md-6">
-
-                    <div class="small text-muted mb-1">
-                        Cancelled On
-                    </div>
-
-                    <div class="fw-semibold">
-
-                        @(
-                            Model.CancelledOn.HasValue
-                                ? Model.CancelledOn.Value
-                                    .ToString("dd-MM-yyyy HH:mm")
-                                : "-"
-                        )
-
-                    </div>
-
-                </div>
+    </div>
 
 
-                <div class="col-lg-8 col-md-6">
+    <div class="card-body p-0">
 
-                    <div class="small text-muted mb-1">
-                        Cancellation Reason
-                    </div>
+        @if (Model.Items.Any())
+        {
+            <div class="table-responsive">
 
-                    <div class="fw-semibold">
-                        @Model.CancellationReason
-                    </div>
+                <table class="table
+                              table-hover
+                              align-middle
+                              mb-0">
 
-                </div>
+                    <thead class="table-light">
+
+                        <tr>
+
+                            <th>
+                                Item
+                            </th>
+
+                            <th class="text-end">
+                                Ordered
+                            </th>
+
+                            <th class="text-end">
+                                Production
+                            </th>
+
+                            <th class="text-end">
+                                Completed
+                            </th>
+
+                            <th class="text-end">
+                                Pending
+                            </th>
+
+                            <th>
+                                Routing
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th class="text-end">
+                                Pipeline
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @foreach (var item
+                            in Model.Items)
+                        {
+                            <tr>
+
+                                <!-- ITEM -->
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        @item.ItemCode
+                                    </div>
+
+                                    <div class="small text-muted">
+                                        @item.ItemName
+                                    </div>
+
+                                </td>
+
+
+                                <!-- ORDERED -->
+
+                                <td class="text-end">
+
+                                    <div class="fw-semibold">
+
+                                        @(item.OrderedQuantity
+                                            .ToString("0.###"))
+
+                                    </div>
+
+                                    <div class="small text-muted">
+                                        @item.UnitName
+                                    </div>
+
+                                </td>
+
+
+                                <!-- PRODUCTION -->
+
+                                <td class="text-end">
+
+                                    <div class="fw-semibold text-primary">
+
+                                        @(item.ProductionQuantity
+                                            .ToString("0.###"))
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- COMPLETED -->
+
+                                <td class="text-end">
+
+                                    <div class="fw-semibold text-success">
+
+                                        @(item.CompletedQuantity
+                                            .ToString("0.###"))
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- PENDING -->
+
+                                <td class="text-end">
+
+                                    <div class="fw-semibold">
+
+                                        @(item.PendingQuantity
+                                            .ToString("0.###"))
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- ROUTING -->
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        @item.RoutingCode
+                                    </div>
+
+                                    <div class="small text-muted">
+
+                                        Rev
+                                        @item.RoutingRevisionNumber
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- STATUS -->
+
+                                <td>
+
+                                    @if (item.IsProductionCompleted)
+                                    {
+                                        <span class="badge bg-success">
+                                            Full Complete
+                                        </span>
+                                    }
+                                    else if (
+                                        item.IsCurrentProductionCompleted
+                                        &&
+                                        item.PendingQuantity > 0)
+                                    {
+                                        <span class="badge
+                                                     bg-warning
+                                                     text-dark">
+
+                                            Current Plan Complete
+
+                                        </span>
+                                    }
+                                    else if (
+                                        item.ProductionQuantity > 0)
+                                    {
+                                        <span class="badge bg-primary">
+                                            Production Planned
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+                                            Not Planned
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- PIPELINE -->
+
+                                <td class="text-end">
+
+                                    <a asp-action="Pipeline"
+                                       asp-route-id="@Model.Id"
+                                       asp-route-itemId="@item.Id"
+                                       class="btn
+                                              btn-sm
+                                              btn-outline-primary">
+
+                                        <i class="fa-solid
+                                                  fa-diagram-project
+                                                  me-1">
+                                        </i>
+
+                                        Pipeline
+
+                                    </a>
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
 
             </div>
+        }
+        else
+        {
+            <div class="text-center
+                        text-muted
+                        py-5">
 
-        </div>
+                No Production Items found.
+
+            </div>
+        }
 
     </div>
-}
+
+</div>
 
 
 <!-- =========================================================
-     REGION 9 — PRODUCTION STEP DETAILS HEADER
+     REGION 8 — ITEM DETAILS HEADER
 ========================================================== -->
 
 <div class="d-flex
@@ -1276,652 +1111,894 @@ else if (Model.Status == ProductionJobStatus.Draft)
     <div>
 
         <h4 class="fw-bold mb-1">
-            Production Step Details
+            Item Production Details
         </h4>
 
         <div class="small text-muted">
-            Complete execution and audit information for each Step.
+
+            Routing, drawings, pipeline and complete
+            execution audit for every Item.
+
         </div>
 
     </div>
-
-
-    <span class="badge
-                 bg-light
-                 text-dark
-                 border
-                 px-3
-                 py-2">
-
-        @Model.Steps.Count
-        @(Model.Steps.Count == 1 ? "Step" : "Steps")
-
-    </span>
 
 </div>
 
 
 <!-- =========================================================
-     REGION 10 — PRODUCTION STEPS
+     REGION 9 — ITEM DETAILS
 ========================================================== -->
 
-@if (Model.Steps.Any())
+@if (Model.Items.Any())
 {
-    @foreach (var step in
-        Model.Steps
-            .OrderBy(x =>
-                x.SequenceNumber))
+    @foreach (var item
+        in Model.Items)
     {
-        <div id="productionStep_@step.Id"
-             class="card shadow-sm border-0 mb-4">
+        var itemSteps =
+            item.Steps
+                .OrderBy(x =>
+                    x.SequenceNumber)
+                .ToList();
 
 
-            <!-- =============================================
-                 STEP HEADER
-            ============================================== -->
-
-            <!-- =============================================
-     STEP HEADER — COLLAPSE TRIGGER
-============================================== -->
-
-<div class="card-header bg-light p-0">
-
-    <button type="button"
-            class="btn
-                   w-100
-                   border-0
-                   rounded-0
-                   text-start
-                   p-3"
-            data-bs-toggle="collapse"
-            data-bs-target="#stepDetails_@step.Id"
-            aria-expanded="false"
-            aria-controls="stepDetails_@step.Id">
-
-        <div class="d-flex
-                    justify-content-between
-                    align-items-center
-                    flex-wrap
-                    gap-3">
-
-            <div class="d-flex
-                        align-items-center
-                        flex-wrap
-                        gap-2">
-
-                <span class="badge
-                             bg-light
-                             text-dark
-                             border">
-
-                    Seq @step.SequenceNumber
-
-                </span>
+        <div class="card
+                    shadow-sm
+                    border-0
+                    mb-4">
 
 
-                <span class="fw-semibold fs-6">
-                    @step.OperationName
-                </span>
+            <!-- =================================================
+                 ITEM HEADER
+            ================================================== -->
+
+            <div class="card-header bg-light p-0">
+
+                <button type="button"
+                        class="btn
+                               w-100
+                               border-0
+                               rounded-0
+                               text-start
+                               p-3"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#productionItemDetails_@item.Id"
+                        aria-expanded="false"
+                        aria-controls="productionItemDetails_@item.Id">
+
+                    <div class="d-flex
+                                justify-content-between
+                                align-items-center
+                                flex-wrap
+                                gap-3">
+
+                        <div>
+
+                            <div class="d-flex
+                                        align-items-center
+                                        gap-2
+                                        flex-wrap">
+
+                                <span class="fw-semibold fs-5">
+
+                                    @item.ItemCode
+
+                                </span>
 
 
-                <span class="small text-muted">
-                    @step.OperationCode
-                </span>
+                                @if (item.IsProductionCompleted)
+                                {
+                                    <span class="badge bg-success">
+                                        Full Order Complete
+                                    </span>
+                                }
+                                else if (
+                                    item.IsCurrentProductionCompleted)
+                                {
+                                    <span class="badge
+                                                 bg-warning
+                                                 text-dark">
+
+                                        Current Plan Complete
+
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-primary">
+                                        Production Pending
+                                    </span>
+                                }
+
+                            </div>
+
+
+                            <div class="small text-muted mt-1">
+                                @item.ItemName
+                            </div>
+
+                        </div>
+
+
+                        <div class="d-flex
+                                    align-items-center
+                                    gap-3
+                                    flex-wrap">
+
+                            <div class="small">
+
+                                <span class="text-muted">
+                                    Completed:
+                                </span>
+
+                                <strong class="text-success">
+
+                                    @(item.CompletedQuantity
+                                        .ToString("0.###"))
+                                    /
+                                    @(item.OrderedQuantity
+                                        .ToString("0.###"))
+
+                                    @item.UnitName
+
+                                </strong>
+
+                            </div>
+
+
+                            <span class="text-muted">
+
+                                <i class="fa-solid
+                                          fa-chevron-down">
+                                </i>
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </button>
 
             </div>
 
 
-            <div class="d-flex
-                        align-items-center
-                        gap-3">
+            <!-- =================================================
+                 ITEM BODY
+            ================================================== -->
 
-                @switch (step.Status)
-                {
-                    case ProductionJobStepStatus.Pending:
+            <div class="collapse"
+                 id="productionItemDetails_@item.Id">
 
-                        <span class="badge bg-secondary">
-                            Pending
-                        </span>
-
-                        break;
+                <div class="card-body">
 
 
-                    case ProductionJobStepStatus.InProgress:
+                    <!-- =========================================
+                         QUANTITIES / ROUTING
+                    ========================================== -->
 
-                        <span class="badge
-                                     bg-warning
-                                     text-dark">
-
-                            In Progress
-
-                        </span>
-
-                        break;
+                    <div class="row g-4">
 
 
-                    case ProductionJobStepStatus.Completed:
+                        <div class="col-lg-3 col-md-6">
 
-                        <span class="badge bg-success">
-                            Completed
-                        </span>
-
-                        break;
-
-
-                    case ProductionJobStepStatus.Cancelled:
-
-                        <span class="badge bg-danger">
-                            Cancelled
-                        </span>
-
-                        break;
-                }
-
-
-                <span class="text-muted">
-
-                    <i class="fa-solid fa-chevron-down"></i>
-
-                </span>
-
-            </div>
-
-        </div>
-
-    </button>
-
-</div>
-
-
-            <!-- =============================================
-                 STEP BODY
-            ============================================== -->
-            <!-- =============================================
-     COLLAPSIBLE STEP DETAILS
-============================================== -->
-
-<div class="collapse"
-     id="stepDetails_@step.Id">
-
-            <div class="card-body">
-
-
-                <!-- =========================================
-                     EXECUTION INFORMATION
-                ========================================== -->
-
-                <div class="row g-4">
-
-
-                    <!-- DEFAULT MACHINE -->
-
-                    <div class="col-lg-3 col-md-6">
-
-                        <div class="small text-muted mb-1">
-                            Default Machine
-                        </div>
-
-
-                        @if (step.DefaultMachineId.HasValue)
-                        {
-                            <div class="fw-semibold">
-                                @step.DefaultMachineCode
+                            <div class="small text-muted mb-1">
+                                Ordered Quantity
                             </div>
 
-                            <div class="small text-muted">
-                                @step.DefaultMachineName
-                            </div>
-                        }
-                        else
-                        {
-                            <span class="text-muted">
-                                -
-                            </span>
-                        }
-
-                    </div>
-
-
-                    <!-- ASSIGNED MACHINE -->
-
-                    <div class="col-lg-3 col-md-6">
-
-                        <div class="small text-muted mb-1">
-                            Assigned Machine
-                        </div>
-
-
-                        @if (step.AssignedMachineId.HasValue)
-                        {
-                            <div class="fw-semibold">
-                                @step.AssignedMachineCode
-                            </div>
-
-                            <div class="small text-muted">
-                                @step.AssignedMachineName
-                            </div>
-                        }
-                        else
-                        {
-                            <span class="text-muted">
-                                Not Assigned
-                            </span>
-                        }
-
-                    </div>
-
-
-                    <!-- SETUP -->
-
-                    <div class="col-lg-3 col-md-6">
-
-                        <div class="small text-muted mb-1">
-                            Setup Time
-                        </div>
-
-
-                        @if (step.SetupTimeMinutes.HasValue)
-                        {
                             <div class="fw-semibold">
 
-                                @(step.SetupTimeMinutes.Value.ToString("0.###"))
-                                min
+                                @(item.OrderedQuantity
+                                    .ToString("0.###"))
+
+                                @item.UnitName
 
                             </div>
-                        }
-                        else
-                        {
-                            <span class="text-muted">
-                                -
-                            </span>
-                        }
 
-                    </div>
-
-
-                    <!-- CYCLE -->
-
-                    <div class="col-lg-3 col-md-6">
-
-                        <div class="small text-muted mb-1">
-                            Cycle / Piece
                         </div>
 
 
-                        @if (step.CycleTimeMinutes.HasValue)
-                        {
-                            <div class="fw-semibold">
+                        <div class="col-lg-3 col-md-6">
 
-                                @(step.CycleTimeMinutes.Value.ToString("0.###"))
-                                min
+                            <div class="small text-muted mb-1">
+                                Production Quantity
+                            </div>
+
+                            <div class="fw-semibold text-primary">
+
+                                @(item.ProductionQuantity
+                                    .ToString("0.###"))
+
+                                @item.UnitName
 
                             </div>
-                        }
-                        else
-                        {
-                            <span class="text-muted">
-                                -
-                            </span>
-                        }
-
-                    </div>
-
-
-                    <!-- STARTED -->
-
-                    <div class="col-lg-3 col-md-6">
-
-                        <div class="small text-muted mb-1">
-                            Started
-                        </div>
-
-                        <div class="fw-semibold">
-
-                            @(
-                                step.StartedOn.HasValue
-                                    ? step.StartedOn.Value
-                                        .ToString("dd-MM-yyyy HH:mm")
-                                    : "-"
-                            )
 
                         </div>
 
-                    </div>
 
+                        <div class="col-lg-3 col-md-6">
 
-                    <!-- COMPLETED -->
+                            <div class="small text-muted mb-1">
+                                Completed Quantity
+                            </div>
 
-                    <div class="col-lg-3 col-md-6">
-
-                        <div class="small text-muted mb-1">
-                            Completed
-                        </div>
-
-                        <div class="fw-semibold">
-
-                            @(
-                                step.CompletedOn.HasValue
-                                    ? step.CompletedOn.Value
-                                        .ToString("dd-MM-yyyy HH:mm")
-                                    : "-"
-                            )
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- GOOD QUANTITY -->
-
-                    <div class="col-lg-3 col-md-6">
-
-                        <div class="small text-muted mb-1">
-                            Good Quantity
-                        </div>
-
-
-                        @if (step.GoodQuantity.HasValue)
-                        {
                             <div class="fw-semibold text-success">
 
-                                @(step.GoodQuantity.Value.ToString("0.###"))
+                                @(item.CompletedQuantity
+                                    .ToString("0.###"))
 
-                                @Model.UnitName
+                                @item.UnitName
 
                             </div>
-                        }
-                        else
-                        {
-                            <span class="text-muted">
-                                -
-                            </span>
-                        }
 
-                    </div>
-
-
-                    <!-- REJECTED QUANTITY -->
-
-                    <div class="col-lg-3 col-md-6">
-
-                        <div class="small text-muted mb-1">
-                            Rejected Quantity
                         </div>
 
 
-                        @if (step.RejectedQuantity.HasValue)
-                        {
+                        <div class="col-lg-3 col-md-6">
+
+                            <div class="small text-muted mb-1">
+                                Order Pending
+                            </div>
+
                             <div class="fw-semibold">
 
-                                @(step.RejectedQuantity.Value.ToString("0.###"))
+                                @(item.PendingQuantity
+                                    .ToString("0.###"))
 
-                                @Model.UnitName
+                                @item.UnitName
 
                             </div>
-                        }
-                        else
-                        {
-                            <span class="text-muted">
-                                -
-                            </span>
-                        }
+
+                        </div>
+
+
+                        <div class="col-lg-3 col-md-6">
+
+                            <div class="small text-muted mb-1">
+                                Current Plan Pending
+                            </div>
+
+                            <div class="fw-semibold">
+
+                                @(item.ProductionPendingQuantity
+                                    .ToString("0.###"))
+
+                                @item.UnitName
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-lg-3 col-md-6">
+
+                            <div class="small text-muted mb-1">
+                                Routing Code
+                            </div>
+
+                            <div class="fw-semibold text-success">
+                                @item.RoutingCode
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-lg-3 col-md-6">
+
+                            <div class="small text-muted mb-1">
+                                Routing Revision
+                            </div>
+
+                            <div class="fw-semibold">
+
+                                Rev
+                                @item.RoutingRevisionNumber
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-lg-3 col-md-6">
+
+                            <div class="small text-muted mb-1">
+                                Production Steps
+                            </div>
+
+                            <div class="fw-semibold">
+                                @itemSteps.Count
+                            </div>
+
+                        </div>
 
                     </div>
 
-                </div>
+
+                    @if (!string.IsNullOrWhiteSpace(
+                        item.PipelineModificationReason))
+                    {
+                        <hr class="my-4" />
 
 
-                <!-- =========================================
-                     OPERATION INFORMATION
-                ========================================== -->
+                        <div>
 
-                @if (
-                    !string.IsNullOrWhiteSpace(
-                        step.OperationInstruction) ||
-                    !string.IsNullOrWhiteSpace(
-                        step.RoutingRemarks))
-                {
+                            <div class="small text-muted mb-1">
+                                Pipeline Modification Reason
+                            </div>
+
+                            <div>
+                                @item.PipelineModificationReason
+                            </div>
+
+                        </div>
+                    }
+
+
+                    <!-- =========================================
+                         CURRENT DRAWINGS
+                    ========================================== -->
+
                     <hr class="my-4" />
+
+
+                    <div class="fw-semibold mb-3">
+
+                        <i class="fa-solid
+                                  fa-file-lines
+                                  me-1">
+                        </i>
+
+                        Current Drawings
+
+                    </div>
 
 
                     <div class="row g-4">
 
 
-                        @if (!string.IsNullOrWhiteSpace(
-                            step.OperationInstruction))
-                        {
-                            <div class="col-lg-6">
+                        <!-- =====================================
+                             WORKSHOP DRAWING
+                        ====================================== -->
 
-                                <div class="small text-muted mb-1">
-                                    Operation Instruction
+                        <div class="col-lg-6">
+
+                            <div class="border
+                                        rounded
+                                        p-3
+                                        bg-light
+                                        h-100">
+
+                                <div class="d-flex
+                                            justify-content-between
+                                            align-items-center
+                                            flex-wrap
+                                            gap-2
+                                            mb-3">
+
+                                    <div class="fw-semibold">
+
+                                        <i class="fa-solid
+                                                  fa-screwdriver-wrench
+                                                  me-1">
+                                        </i>
+
+                                        Workshop Drawing
+
+                                    </div>
+
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        item.DrawingNumber))
+                                    {
+                                        <span class="badge bg-success">
+                                            Current
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge
+                                                     bg-light
+                                                     text-dark
+                                                     border">
+
+                                            No Drawing
+
+                                        </span>
+                                    }
+
                                 </div>
 
-                                <div>
-                                    @step.OperationInstruction
-                                </div>
 
-                            </div>
-                        }
-
-
-                        @if (!string.IsNullOrWhiteSpace(
-                            step.RoutingRemarks))
-                        {
-                            <div class="col-lg-6">
-
-                                <div class="small text-muted mb-1">
-                                    Routing Remarks
-                                </div>
-
-                                <div>
-                                    @step.RoutingRemarks
-                                </div>
-
-                            </div>
-                        }
-
-                    </div>
-                }
-
-
-                <!-- =========================================
-                     EXECUTION REMARKS
-                ========================================== -->
-
-                @if (!string.IsNullOrWhiteSpace(
-                    step.ExecutionRemarks))
-                {
-                    <hr class="my-4" />
-
-
-                    <div>
-
-                        <div class="small text-muted mb-1">
-                            Execution Remarks
-                        </div>
-
-                        <div>
-                            @step.ExecutionRemarks
-                        </div>
-
-                    </div>
-                }
-
-
-                <!-- =========================================
-                     EXECUTION HISTORY HEADER
-                ========================================== -->
-
-                <hr class="my-4" />
-
-
-                <div class="d-flex
-                            justify-content-between
-                            align-items-center
-                            flex-wrap
-                            gap-3
-                            mb-3">
-
-                    <div>
-
-                        <div class="fw-semibold">
-                            Execution History
-                        </div>
-
-                        <div class="small text-muted mt-1">
-                            Status movement and execution audit
-                            for this Production Step.
-                        </div>
-
-                    </div>
-
-
-                    <span class="badge
-                                 bg-light
-                                 text-dark
-                                 border
-                                 px-3
-                                 py-2">
-
-                        @step.History.Count
-                        @(step.History.Count == 1
-                            ? "Entry"
-                            : "Entries")
-
-                    </span>
-
-                </div>
-
-
-                <!-- =========================================
-                     EXECUTION HISTORY TABLE
-                ========================================== -->
-
-                @if (step.History.Any())
-                {
-                    <div class="table-responsive border rounded">
-
-                        <table class="table
-                                      table-hover
-                                      align-middle
-                                      mb-0">
-
-                            <thead class="table-light">
-
-                                <tr>
-
-                                    <th class="px-3 py-3 text-nowrap">
-                                        Time
-                                    </th>
-
-                                    <th class="px-3 py-3 text-nowrap">
-                                        Status Change
-                                    </th>
-
-                                    <th class="px-3 py-3 text-nowrap">
-                                        Machine
-                                    </th>
-
-                                    <th class="px-3 py-3 text-end text-nowrap">
-                                        Good Qty
-                                    </th>
-
-                                    <th class="px-3 py-3 text-end text-nowrap">
-                                        Rejected Qty
-                                    </th>
-
-                                    <th class="px-3 py-3">
-                                        Remarks
-                                    </th>
-
-                                    <th class="px-3 py-3 text-nowrap">
-                                        Changed By
-                                    </th>
-
-                                </tr>
-
-                            </thead>
-
-
-                            <tbody>
-
-                                @foreach (var history in
-                                    step.History
-                                        .OrderByDescending(x =>
-                                            x.ChangedOn))
+                                @if (!string.IsNullOrWhiteSpace(
+                                    item.DrawingNumber))
                                 {
-                                    <tr>
+                                    <div class="row g-3">
 
 
-                                        <!-- TIME -->
+                                        <div class="col-md-6">
 
-                                        <td class="px-3 py-3 text-nowrap">
+                                            <div class="small
+                                                        text-muted
+                                                        mb-1">
+
+                                                Drawing Number
+
+                                            </div>
+
+                                            <div class="fw-semibold">
+                                                @item.DrawingNumber
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="col-md-6">
+
+                                            <div class="small
+                                                        text-muted
+                                                        mb-1">
+
+                                                Revision
+
+                                            </div>
 
                                             <div class="fw-semibold">
 
-                                                @(
-                                                    history.ChangedOn
-                                                        .ToString("dd-MM-yyyy")
-                                                )
+                                                @(string.IsNullOrWhiteSpace(
+                                                    item.DrawingRevisionNumber)
+                                                    ? "-"
+                                                    : item.DrawingRevisionNumber)
 
                                             </div>
 
-                                            <div class="small text-muted">
+                                        </div>
 
-                                                @(
-                                                    history.ChangedOn
-                                                        .ToString("HH:mm")
-                                                )
+
+                                        <div class="col-md-6">
+
+                                            <div class="small
+                                                        text-muted
+                                                        mb-1">
+
+                                                Drawing Name
 
                                             </div>
 
-                                        </td>
+                                            <div>
+
+                                                @(string.IsNullOrWhiteSpace(
+                                                    item.DrawingName)
+                                                    ? "-"
+                                                    : item.DrawingName)
+
+                                            </div>
+
+                                        </div>
 
 
-                                        <!-- STATUS CHANGE -->
+                                        <div class="col-md-6">
 
-                                        <td class="px-3 py-3 text-nowrap">
+                                            <div class="small
+                                                        text-muted
+                                                        mb-1">
+
+                                                Drawing Type
+
+                                            </div>
+
+                                            <div>
+
+                                                @(string.IsNullOrWhiteSpace(
+                                                    item.DrawingType)
+                                                    ? "-"
+                                                    : item.DrawingType)
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="col-12">
+
+                                            <div class="small
+                                                        text-muted
+                                                        mb-1">
+
+                                                Drawing File
+
+                                            </div>
+
+
+                                            @if (!string.IsNullOrWhiteSpace(
+                                                item.DrawingFilePath))
+                                            {
+                                                <a href="@item.DrawingFilePath"
+                                                   target="_blank"
+                                                   rel="noopener noreferrer"
+                                                   class="btn
+                                                          btn-sm
+                                                          btn-outline-primary">
+
+                                                    <i class="fa-solid
+                                                              fa-file
+                                                              me-1">
+                                                    </i>
+
+                                                    @(string.IsNullOrWhiteSpace(
+                                                        item.DrawingFileName)
+                                                        ? "View File"
+                                                        : item.DrawingFileName)
+
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">
+                                                    No File
+                                                </span>
+                                            }
+
+                                        </div>
+
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-muted">
+
+                                        No active Workshop Drawing
+                                        is linked with this Item.
+
+                                    </div>
+                                }
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- =====================================
+                             CUSTOMER DRAWING
+                        ====================================== -->
+
+                        <div class="col-lg-6">
+
+                            <div class="border
+                                        rounded
+                                        p-3
+                                        bg-light
+                                        h-100">
+
+                                <div class="d-flex
+                                            justify-content-between
+                                            align-items-center
+                                            flex-wrap
+                                            gap-2
+                                            mb-3">
+
+                                    <div class="fw-semibold">
+
+                                        <i class="fa-solid
+                                                  fa-file-signature
+                                                  me-1">
+                                        </i>
+
+                                        Customer Drawing
+
+                                    </div>
+
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        item.CustomerDrawingNumber))
+                                    {
+                                        <span class="badge bg-success">
+                                            Current
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge
+                                                     bg-light
+                                                     text-dark
+                                                     border">
+
+                                            No Drawing
+
+                                        </span>
+                                    }
+
+                                </div>
+
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    item.CustomerDrawingNumber))
+                                {
+                                    <div class="row g-3">
+
+
+                                        <div class="col-md-6">
+
+                                            <div class="small
+                                                        text-muted
+                                                        mb-1">
+
+                                                Drawing Number
+
+                                            </div>
+
+                                            <div class="fw-semibold">
+                                                @item.CustomerDrawingNumber
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="col-md-6">
+
+                                            <div class="small
+                                                        text-muted
+                                                        mb-1">
+
+                                                Revision
+
+                                            </div>
+
+                                            <div class="fw-semibold">
+
+                                                @(string.IsNullOrWhiteSpace(
+                                                    item.CustomerDrawingRevisionNumber)
+                                                    ? "-"
+                                                    : item.CustomerDrawingRevisionNumber)
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="col-md-6">
+
+                                            <div class="small
+                                                        text-muted
+                                                        mb-1">
+
+                                                Drawing Name
+
+                                            </div>
+
+                                            <div>
+
+                                                @(string.IsNullOrWhiteSpace(
+                                                    item.CustomerDrawingName)
+                                                    ? "-"
+                                                    : item.CustomerDrawingName)
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="col-md-6">
+
+                                            <div class="small
+                                                        text-muted
+                                                        mb-1">
+
+                                                Drawing Type
+
+                                            </div>
+
+                                            <div>
+
+                                                @(string.IsNullOrWhiteSpace(
+                                                    item.CustomerDrawingType)
+                                                    ? "-"
+                                                    : item.CustomerDrawingType)
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="col-12">
+
+                                            <div class="small
+                                                        text-muted
+                                                        mb-1">
+
+                                                Drawing File
+
+                                            </div>
+
+
+                                            @if (!string.IsNullOrWhiteSpace(
+                                                item.CustomerDrawingFilePath))
+                                            {
+                                                <a href="@item.CustomerDrawingFilePath"
+                                                   target="_blank"
+                                                   rel="noopener noreferrer"
+                                                   class="btn
+                                                          btn-sm
+                                                          btn-outline-primary">
+
+                                                    <i class="fa-solid
+                                                              fa-file
+                                                              me-1">
+                                                    </i>
+
+                                                    @(string.IsNullOrWhiteSpace(
+                                                        item.CustomerDrawingFileName)
+                                                        ? "View File"
+                                                        : item.CustomerDrawingFileName)
+
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">
+                                                    No File
+                                                </span>
+                                            }
+
+                                        </div>
+
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-muted">
+
+                                        No active Customer Drawing
+                                        is linked with this Customer
+                                        and Item.
+
+                                    </div>
+                                }
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =========================================
+                         ITEM PIPELINE HEADER
+                    ========================================== -->
+
+                    <hr class="my-4" />
+
+
+                    <div class="d-flex
+                                justify-content-between
+                                align-items-center
+                                flex-wrap
+                                gap-3
+                                mb-3">
+
+                        <div>
+
+                            <div class="fw-semibold">
+                                Production Step Details
+                            </div>
+
+                            <div class="small text-muted mt-1">
+
+                                Complete execution and audit
+                                history for this Item Pipeline.
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="d-flex gap-2">
+
+                            <span class="badge
+                                         bg-light
+                                         text-dark
+                                         border
+                                         px-3
+                                         py-2">
+
+                                @itemSteps.Count
+                                @(itemSteps.Count == 1
+                                    ? "Step"
+                                    : "Steps")
+
+                            </span>
+
+
+                            <a asp-action="Pipeline"
+                               asp-route-id="@Model.Id"
+                               asp-route-itemId="@item.Id"
+                               class="btn
+                                      btn-sm
+                                      btn-outline-primary">
+
+                                Open Pipeline
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =========================================
+                         PRODUCTION STEPS
+                    ========================================== -->
+
+                    @if (itemSteps.Any())
+                    {
+                        @foreach (var step
+                            in itemSteps)
+                        {
+                            <div id="productionStep_@step.Id"
+                                 class="card
+                                        border
+                                        shadow-sm
+                                        mb-3">
+
+
+                                <!-- =============================
+                                     STEP HEADER
+                                ============================== -->
+
+                                <div class="card-header
+                                            bg-light
+                                            p-0">
+
+                                    <button type="button"
+                                            class="btn
+                                                   w-100
+                                                   border-0
+                                                   rounded-0
+                                                   text-start
+                                                   p-3"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#stepDetails_@step.Id"
+                                            aria-expanded="false"
+                                            aria-controls="stepDetails_@step.Id">
+
+                                        <div class="d-flex
+                                                    justify-content-between
+                                                    align-items-center
+                                                    flex-wrap
+                                                    gap-3">
 
                                             <div class="d-flex
                                                         align-items-center
+                                                        flex-wrap
                                                         gap-2">
 
-                                                @if (history.PreviousStatus.HasValue)
-                                                {
-                                                    <span class="badge
-                                                                 bg-light
-                                                                 text-dark
-                                                                 border">
+                                                <span class="badge
+                                                             bg-light
+                                                             text-dark
+                                                             border">
 
-                                                        @(
-                                                            history.PreviousStatus.Value ==
-                                                                ProductionJobStepStatus.InProgress
-                                                                ? "In Progress"
-                                                                : history.PreviousStatus.Value.ToString()
-                                                        )
+                                                    Seq
+                                                    @step.SequenceNumber
 
-                                                    </span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge
-                                                                 bg-light
-                                                                 text-muted
-                                                                 border">
-
-                                                        Created
-
-                                                    </span>
-                                                }
+                                                </span>
 
 
-                                                <i class="fa-solid
-                                                          fa-arrow-right
-                                                          text-muted">
-                                                </i>
+                                                <span class="fw-semibold fs-6">
+                                                    @step.OperationName
+                                                </span>
 
 
-                                                @switch (history.NewStatus)
+                                                <span class="small text-muted">
+                                                    @step.OperationCode
+                                                </span>
+
+                                            </div>
+
+
+                                            <div class="d-flex
+                                                        align-items-center
+                                                        gap-3">
+
+                                                @switch (step.Status)
                                                 {
                                                     case ProductionJobStepStatus.Pending:
 
@@ -1963,155 +2040,820 @@ else if (Model.Status == ProductionJobStatus.Draft)
                                                         break;
                                                 }
 
+
+                                                <span class="text-muted">
+
+                                                    <i class="fa-solid
+                                                              fa-chevron-down">
+                                                    </i>
+
+                                                </span>
+
                                             </div>
 
-                                        </td>
+                                        </div>
+
+                                    </button>
+
+                                </div>
 
 
-                                        <!-- MACHINE -->
+                                <!-- =============================
+                                     STEP BODY
+                                ============================== -->
 
-                                        <td class="px-3 py-3">
+                                <div class="collapse"
+                                     id="stepDetails_@step.Id">
 
-                                            @if (!string.IsNullOrWhiteSpace(
-                                                history.MachineName))
-                                            {
-                                                <div class="fw-semibold text-nowrap">
-                                                    @history.MachineCode
+                                    <div class="card-body">
+
+
+                                        <!-- =====================
+                                             EXECUTION INFO
+                                        ====================== -->
+
+                                        <div class="row g-4">
+
+
+                                            <!-- DEFAULT MACHINE -->
+
+                                            <div class="col-lg-3 col-md-6">
+
+                                                <div class="small
+                                                            text-muted
+                                                            mb-1">
+
+                                                    Default Machine
+
                                                 </div>
 
-                                                <div class="small text-muted">
-                                                    @history.MachineName
+
+                                                @if (step.DefaultMachineId.HasValue)
+                                                {
+                                                    <div class="fw-semibold">
+                                                        @step.DefaultMachineCode
+                                                    </div>
+
+                                                    <div class="small text-muted">
+                                                        @step.DefaultMachineName
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">
+                                                        -
+                                                    </span>
+                                                }
+
+                                            </div>
+
+
+                                            <!-- ASSIGNED MACHINE -->
+
+                                            <div class="col-lg-3 col-md-6">
+
+                                                <div class="small
+                                                            text-muted
+                                                            mb-1">
+
+                                                    Assigned Machine
+
                                                 </div>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">
-                                                    -
-                                                </span>
-                                            }
-
-                                        </td>
 
 
-                                        <!-- GOOD QTY -->
+                                                @if (step.AssignedMachineId.HasValue)
+                                                {
+                                                    <div class="fw-semibold">
+                                                        @step.AssignedMachineCode
+                                                    </div>
 
-                                        <td class="px-3
-                                                   py-3
-                                                   text-end
-                                                   text-nowrap">
+                                                    <div class="small text-muted">
+                                                        @step.AssignedMachineName
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">
+                                                        Not Assigned
+                                                    </span>
+                                                }
 
-                                            @if (history.GoodQuantity.HasValue)
-                                            {
-                                                <span class="fw-semibold">
-
-                                                    @(
-                                                        history.GoodQuantity.Value
-                                                            .ToString("0.###")
-                                                    )
-
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">
-                                                    -
-                                                </span>
-                                            }
-
-                                        </td>
+                                            </div>
 
 
-                                        <!-- REJECTED QTY -->
+                                            <!-- SETUP TIME -->
 
-                                        <td class="px-3
-                                                   py-3
-                                                   text-end
-                                                   text-nowrap">
+                                            <div class="col-lg-3 col-md-6">
 
-                                            @if (history.RejectedQuantity.HasValue)
-                                            {
-                                                @(
-                                                    history.RejectedQuantity.Value
-                                                        .ToString("0.###")
-                                                )
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">
-                                                    -
-                                                </span>
-                                            }
+                                                <div class="small
+                                                            text-muted
+                                                            mb-1">
 
-                                        </td>
+                                                    Setup Time
+
+                                                </div>
 
 
-                                        <!-- REMARKS -->
+                                                @if (step.SetupTimeMinutes.HasValue)
+                                                {
+                                                    <div class="fw-semibold">
 
-                                        <td class="px-3 py-3">
+                                                        @(step.SetupTimeMinutes.Value
+                                                            .ToString("0.###"))
+                                                        min
 
-                                            @if (!string.IsNullOrWhiteSpace(
-                                                history.Remarks))
-                                            {
-                                                @history.Remarks
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">
-                                                    -
-                                                </span>
-                                            }
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">
+                                                        -
+                                                    </span>
+                                                }
 
-                                        </td>
+                                            </div>
 
 
-                                        <!-- CHANGED BY -->
+                                            <!-- CYCLE TIME -->
 
-                                        <td class="px-3 py-3 text-nowrap">
+                                            <div class="col-lg-3 col-md-6">
 
-                                            <i class="fa-solid
-                                                      fa-user
-                                                      text-muted
-                                                      me-1">
-                                            </i>
+                                                <div class="small
+                                                            text-muted
+                                                            mb-1">
 
-                                            @(string.IsNullOrWhiteSpace(
-                                                history.ChangedBy)
-                                                ? "System"
-                                                : history.ChangedBy)
+                                                    Cycle / Piece
 
-                                        </td>
+                                                </div>
 
-                                    </tr>
-                                }
 
-                            </tbody>
+                                                @if (step.CycleTimeMinutes.HasValue)
+                                                {
+                                                    <div class="fw-semibold">
 
-                        </table>
+                                                        @(step.CycleTimeMinutes.Value
+                                                            .ToString("0.###"))
+                                                        min
 
-                    </div>
-                }
-                else
-                {
-                    <div class="border
-                                rounded
-                                bg-light
-                                text-center
-                                text-muted
-                                py-4">
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">
+                                                        -
+                                                    </span>
+                                                }
 
-                        <i class="fa-solid
-                                  fa-clock-rotate-left
-                                  me-1">
-                        </i>
+                                            </div>
 
-                        No execution history available.
 
-                    </div>
-                }
+                                            <!-- STARTED -->
+
+                                            <div class="col-lg-3 col-md-6">
+
+                                                <div class="small
+                                                            text-muted
+                                                            mb-1">
+
+                                                    Started
+
+                                                </div>
+
+                                                <div class="fw-semibold">
+
+                                                    @(step.StartedOn.HasValue
+                                                        ? step.StartedOn.Value
+                                                            .ToString(
+                                                                "dd-MM-yyyy HH:mm")
+                                                        : "-")
+
+                                                </div>
+
+                                            </div>
+
+
+                                            <!-- COMPLETED -->
+
+                                            <div class="col-lg-3 col-md-6">
+
+                                                <div class="small
+                                                            text-muted
+                                                            mb-1">
+
+                                                    Completed
+
+                                                </div>
+
+                                                <div class="fw-semibold">
+
+                                                    @(step.CompletedOn.HasValue
+                                                        ? step.CompletedOn.Value
+                                                            .ToString(
+                                                                "dd-MM-yyyy HH:mm")
+                                                        : "-")
+
+                                                </div>
+
+                                            </div>
+
+
+                                            <!-- GOOD QUANTITY -->
+
+                                            <div class="col-lg-3 col-md-6">
+
+                                                <div class="small
+                                                            text-muted
+                                                            mb-1">
+
+                                                    Good Quantity
+
+                                                </div>
+
+
+                                                @if (step.GoodQuantity.HasValue)
+                                                {
+                                                    <div class="fw-semibold
+                                                                text-success">
+
+                                                        @(step.GoodQuantity.Value
+                                                            .ToString("0.###"))
+
+                                                        @item.UnitName
+
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">
+                                                        -
+                                                    </span>
+                                                }
+
+                                            </div>
+
+
+                                            <!-- REJECTED QUANTITY -->
+
+                                            <div class="col-lg-3 col-md-6">
+
+                                                <div class="small
+                                                            text-muted
+                                                            mb-1">
+
+                                                    Rejected Quantity
+
+                                                </div>
+
+
+                                                @if (step.RejectedQuantity.HasValue)
+                                                {
+                                                    <div class="fw-semibold">
+
+                                                        @(step.RejectedQuantity.Value
+                                                            .ToString("0.###"))
+
+                                                        @item.UnitName
+
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">
+                                                        -
+                                                    </span>
+                                                }
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <!-- =====================
+                                             OPERATION INFO
+                                        ====================== -->
+
+                                        @if (
+                                            !string.IsNullOrWhiteSpace(
+                                                step.OperationInstruction)
+                                            ||
+                                            !string.IsNullOrWhiteSpace(
+                                                step.RoutingRemarks))
+                                        {
+                                            <hr class="my-4" />
+
+
+                                            <div class="row g-4">
+
+
+                                                @if (!string.IsNullOrWhiteSpace(
+                                                    step.OperationInstruction))
+                                                {
+                                                    <div class="col-lg-6">
+
+                                                        <div class="small
+                                                                    text-muted
+                                                                    mb-1">
+
+                                                            Operation Instruction
+
+                                                        </div>
+
+                                                        <div>
+                                                            @step.OperationInstruction
+                                                        </div>
+
+                                                    </div>
+                                                }
+
+
+                                                @if (!string.IsNullOrWhiteSpace(
+                                                    step.RoutingRemarks))
+                                                {
+                                                    <div class="col-lg-6">
+
+                                                        <div class="small
+                                                                    text-muted
+                                                                    mb-1">
+
+                                                            Routing Remarks
+
+                                                        </div>
+
+                                                        <div>
+                                                            @step.RoutingRemarks
+                                                        </div>
+
+                                                    </div>
+                                                }
+
+                                            </div>
+                                        }
+
+
+                                        <!-- =====================
+                                             EXECUTION REMARKS
+                                        ====================== -->
+
+                                        @if (!string.IsNullOrWhiteSpace(
+                                            step.ExecutionRemarks))
+                                        {
+                                            <hr class="my-4" />
+
+
+                                            <div>
+
+                                                <div class="small
+                                                            text-muted
+                                                            mb-1">
+
+                                                    Execution Remarks
+
+                                                </div>
+
+                                                <div>
+                                                    @step.ExecutionRemarks
+                                                </div>
+
+                                            </div>
+                                        }
+
+
+                                        <!-- =====================
+                                             HISTORY HEADER
+                                        ====================== -->
+
+                                        <hr class="my-4" />
+
+
+                                        <div class="d-flex
+                                                    justify-content-between
+                                                    align-items-center
+                                                    flex-wrap
+                                                    gap-3
+                                                    mb-3">
+
+                                            <div>
+
+                                                <div class="fw-semibold">
+                                                    Execution History
+                                                </div>
+
+                                                <div class="small
+                                                            text-muted
+                                                            mt-1">
+
+                                                    Status movement and
+                                                    cumulative execution audit.
+
+                                                </div>
+
+                                            </div>
+
+
+                                            <span class="badge
+                                                         bg-light
+                                                         text-dark
+                                                         border
+                                                         px-3
+                                                         py-2">
+
+                                                @step.History.Count
+                                                @(step.History.Count == 1
+                                                    ? "Entry"
+                                                    : "Entries")
+
+                                            </span>
+
+                                        </div>
+
+
+                                        <!-- =====================
+                                             HISTORY TABLE
+                                        ====================== -->
+
+                                        @if (step.History.Any())
+                                        {
+                                            <div class="table-responsive
+                                                        border
+                                                        rounded">
+
+                                                <table class="table
+                                                              table-hover
+                                                              align-middle
+                                                              mb-0">
+
+                                                    <thead class="table-light">
+
+                                                        <tr>
+
+                                                            <th class="px-3
+                                                                       py-3
+                                                                       text-nowrap">
+
+                                                                Time
+
+                                                            </th>
+
+                                                            <th class="px-3
+                                                                       py-3
+                                                                       text-nowrap">
+
+                                                                Status Change
+
+                                                            </th>
+
+                                                            <th class="px-3
+                                                                       py-3
+                                                                       text-nowrap">
+
+                                                                Machine
+
+                                                            </th>
+
+                                                            <th class="px-3
+                                                                       py-3
+                                                                       text-end
+                                                                       text-nowrap">
+
+                                                                Good Qty
+
+                                                            </th>
+
+                                                            <th class="px-3
+                                                                       py-3
+                                                                       text-end
+                                                                       text-nowrap">
+
+                                                                Rejected Qty
+
+                                                            </th>
+
+                                                            <th class="px-3 py-3">
+                                                                Remarks
+                                                            </th>
+
+                                                            <th class="px-3
+                                                                       py-3
+                                                                       text-nowrap">
+
+                                                                Changed By
+
+                                                            </th>
+
+                                                        </tr>
+
+                                                    </thead>
+
+
+                                                    <tbody>
+
+                                                        @foreach (var history
+                                                            in step.History
+                                                                .OrderByDescending(
+                                                                    x =>
+                                                                        x.ChangedOn))
+                                                        {
+                                                            <tr>
+
+
+                                                                <!-- TIME -->
+
+                                                                <td class="px-3
+                                                                           py-3
+                                                                           text-nowrap">
+
+                                                                    <div class="fw-semibold">
+
+                                                                        @(history
+                                                                            .ChangedOn
+                                                                            .ToString(
+                                                                                "dd-MM-yyyy"))
+
+                                                                    </div>
+
+                                                                    <div class="small
+                                                                                text-muted">
+
+                                                                        @(history
+                                                                            .ChangedOn
+                                                                            .ToString(
+                                                                                "HH:mm"))
+
+                                                                    </div>
+
+                                                                </td>
+
+
+                                                                <!-- STATUS -->
+
+                                                                <td class="px-3
+                                                                           py-3
+                                                                           text-nowrap">
+
+                                                                    <div class="d-flex
+                                                                                align-items-center
+                                                                                gap-2">
+
+                                                                        @if (history.PreviousStatus.HasValue)
+                                                                        {
+                                                                            <span class="badge
+                                                                                         bg-light
+                                                                                         text-dark
+                                                                                         border">
+
+                                                                                @(history.PreviousStatus.Value ==
+                                                                                    ProductionJobStepStatus.InProgress
+                                                                                    ? "In Progress"
+                                                                                    : history.PreviousStatus.Value
+                                                                                        .ToString())
+
+                                                                            </span>
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            <span class="badge
+                                                                                         bg-light
+                                                                                         text-muted
+                                                                                         border">
+
+                                                                                Created
+
+                                                                            </span>
+                                                                        }
+
+
+                                                                        <i class="fa-solid
+                                                                                  fa-arrow-right
+                                                                                  text-muted">
+                                                                        </i>
+
+
+                                                                        @switch (history.NewStatus)
+                                                                        {
+                                                                            case ProductionJobStepStatus.Pending:
+
+                                                                                <span class="badge bg-secondary">
+                                                                                    Pending
+                                                                                </span>
+
+                                                                                break;
+
+
+                                                                            case ProductionJobStepStatus.InProgress:
+
+                                                                                <span class="badge
+                                                                                             bg-warning
+                                                                                             text-dark">
+
+                                                                                    In Progress
+
+                                                                                </span>
+
+                                                                                break;
+
+
+                                                                            case ProductionJobStepStatus.Completed:
+
+                                                                                <span class="badge bg-success">
+                                                                                    Completed
+                                                                                </span>
+
+                                                                                break;
+
+
+                                                                            case ProductionJobStepStatus.Cancelled:
+
+                                                                                <span class="badge bg-danger">
+                                                                                    Cancelled
+                                                                                </span>
+
+                                                                                break;
+                                                                        }
+
+                                                                    </div>
+
+                                                                </td>
+
+
+                                                                <!-- MACHINE -->
+
+                                                                <td class="px-3 py-3">
+
+                                                                    @if (!string.IsNullOrWhiteSpace(
+                                                                        history.MachineName))
+                                                                    {
+                                                                        <div class="fw-semibold
+                                                                                    text-nowrap">
+
+                                                                            @history.MachineCode
+
+                                                                        </div>
+
+                                                                        <div class="small
+                                                                                    text-muted">
+
+                                                                            @history.MachineName
+
+                                                                        </div>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="text-muted">
+                                                                            -
+                                                                        </span>
+                                                                    }
+
+                                                                </td>
+
+
+                                                                <!-- GOOD -->
+
+                                                                <td class="px-3
+                                                                           py-3
+                                                                           text-end
+                                                                           text-nowrap">
+
+                                                                    @if (history.GoodQuantity.HasValue)
+                                                                    {
+                                                                        <span class="fw-semibold">
+
+                                                                            @(history
+                                                                                .GoodQuantity
+                                                                                .Value
+                                                                                .ToString(
+                                                                                    "0.###"))
+
+                                                                        </span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="text-muted">
+                                                                            -
+                                                                        </span>
+                                                                    }
+
+                                                                </td>
+
+
+                                                                <!-- REJECT -->
+
+                                                                <td class="px-3
+                                                                           py-3
+                                                                           text-end
+                                                                           text-nowrap">
+
+                                                                    @if (history.RejectedQuantity.HasValue)
+                                                                    {
+                                                                        @(history.RejectedQuantity.Value.ToString(
+                                                                                "0.###"))
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="text-muted">
+                                                                            -
+                                                                        </span>
+                                                                    }
+
+                                                                </td>
+
+
+                                                                <!-- REMARKS -->
+
+                                                                <td class="px-3 py-3">
+
+                                                                    @if (!string.IsNullOrWhiteSpace(
+                                                                        history.Remarks))
+                                                                    {
+                                                                        @history.Remarks
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="text-muted">
+                                                                            -
+                                                                        </span>
+                                                                    }
+
+                                                                </td>
+
+
+                                                                <!-- CHANGED BY -->
+
+                                                                <td class="px-3
+                                                                           py-3
+                                                                           text-nowrap">
+
+                                                                    <i class="fa-solid
+                                                                              fa-user
+                                                                              text-muted
+                                                                              me-1">
+                                                                    </i>
+
+                                                                    @(string.IsNullOrWhiteSpace(
+                                                                        history.ChangedBy)
+                                                                        ? "System"
+                                                                        : history.ChangedBy)
+
+                                                                </td>
+
+                                                            </tr>
+                                                        }
+
+                                                    </tbody>
+
+                                                </table>
+
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="border
+                                                        rounded
+                                                        bg-light
+                                                        text-center
+                                                        text-muted
+                                                        py-4">
+
+                                                <i class="fa-solid
+                                                          fa-clock-rotate-left
+                                                          me-1">
+                                                </i>
+
+                                                No execution history available.
+
+                                            </div>
+                                        }
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="border
+                                    rounded
+                                    bg-light
+                                    text-center
+                                    text-muted
+                                    py-4">
+
+                            <i class="fa-solid
+                                      fa-diagram-project
+                                      me-1">
+                            </i>
+
+                            No Production Steps available
+                            for this Item.
+
+                        </div>
+                    }
+
+                </div>
 
             </div>
 
-        </div>
         </div>
     }
 }
@@ -2121,18 +2863,95 @@ else
 
         <div class="card-body
                     text-center
+                    text-muted
                     py-5">
 
-            <div class="text-muted">
+            <i class="fa-solid
+                      fa-box-open
+                      fa-2x
+                      mb-3">
+            </i>
+
+            <div class="fw-semibold">
+                No Production Items Found
+            </div>
+
+        </div>
+
+    </div>
+}
+
+
+<!-- =========================================================
+     REGION 10 — CANCELLATION INFORMATION
+========================================================== -->
+
+@if (
+    Model.Status ==
+        ProductionJobStatus.Cancelled
+    &&
+    !string.IsNullOrWhiteSpace(
+        Model.CancellationReason))
+{
+    <div class="card
+                border-danger
+                shadow-sm
+                mb-4">
+
+        <div class="card-header
+                    bg-danger
+                    text-white">
+
+            <span class="fw-semibold">
 
                 <i class="fa-solid
-                          fa-diagram-project
-                          fa-2x
-                          mb-3">
+                          fa-ban
+                          me-1">
                 </i>
 
-                <div class="fw-semibold">
-                    No Production Steps Found
+                Cancellation Information
+
+            </span>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="row g-4">
+
+                <div class="col-lg-4 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Cancelled On
+                    </div>
+
+                    <div class="fw-semibold">
+
+                        @(Model.CancelledOn.HasValue
+                            ? Model.CancelledOn.Value
+                                .ToString(
+                                    "dd-MM-yyyy HH:mm")
+                            : "-")
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-lg-8 col-md-6">
+
+                    <div class="small text-muted mb-1">
+                        Cancellation Reason
+                    </div>
+
+                    <div class="fw-semibold"
+                         style="white-space: pre-wrap;">
+
+                        @Model.CancellationReason
+
+                    </div>
+
                 </div>
 
             </div>
@@ -2158,9 +2977,12 @@ else
        asp-route-id="@Model.Id"
        class="btn btn-primary">
 
-        <i class="fa-solid fa-diagram-project me-1"></i>
+        <i class="fa-solid
+                  fa-diagram-project
+                  me-1">
+        </i>
 
-        Back to Pipeline
+        Production Pipeline
 
     </a>
 

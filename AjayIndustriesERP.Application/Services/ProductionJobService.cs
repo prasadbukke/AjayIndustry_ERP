@@ -3,29 +3,61 @@
 File: ProductionJobService.cs
 
 Purpose:
-Implements Production Job creation and initial workflow.
+Implements Production Job planning and execution.
 
-Responsibilities:
-- Validate Customer PO Item.
-- Validate remaining production quantity.
-- Find current Released Item Routing.
-- Generate Production Job Code.
-- Copy Routing Header snapshot.
-- Copy Routing Steps into executable Production Job Steps.
-- Create initial Pending Step History.
-- Mark Draft Job as Ready.
-- Soft-delete Draft Production Job.
+Production Structure:
 
-Production Job Code:
-AI/PJOB/{YY-YY}/{00001}
+Customer Purchase Order
+        ↓
+Production Job
+        ↓
+Production Job Item
+        ↓
+Production Job Step
+        ↓
+Production Job Step History
+
+Core Rules:
+
+1. One Customer PO has one Production Job.
+
+2. Every active Customer PO Item is created under
+   the same Production Job.
+
+3. OrderedQuantity comes from Customer PO.
+
+4. ProductionQuantity is planned by Admin.
+
+5. Worker cannot change ProductionQuantity.
+
+6. CompletedQuantity is cumulative final Step GOOD output.
+
+7. Partial Production is supported.
 
 Example:
-AI/PJOB/26-27/00001
 
-Important:
-- Production Job is an actual manufacturing transaction.
-- Routing is only the reusable manufacturing template.
-- Routing changes after Job creation must not modify Job Steps.
+OrderedQuantity      = 100
+ProductionQuantity   = 50
+CompletedQuantity    = 50
+
+Current 50 production is complete,
+but the full Item is NOT complete.
+
+Later Admin may increase:
+
+ProductionQuantity = 100
+
+The same Item Pipeline is reopened for the
+remaining Production Quantity.
+
+8. Parent Production Job becomes Completed only when
+   all active ProductionJobItems complete their full
+   OrderedQuantity.
+
+9. Different ProductionJobItems have independent Pipelines.
+
+10. Routing changes after Production Job creation do not
+    modify copied Production Steps.
 ============================================================
 */
 
@@ -53,7 +85,8 @@ namespace AjayIndustriesERP.Application.Services
         public ProductionJobService(
             IProductionJobRepository repository)
         {
-            _repository = repository;
+            _repository =
+                repository;
         }
 
         #endregion
@@ -72,7 +105,8 @@ namespace AjayIndustriesERP.Application.Services
 
 
             return await _repository
-                .GetByIdAsync(id);
+                .GetByIdAsync(
+                    id);
         }
 
 
@@ -104,62 +138,38 @@ namespace AjayIndustriesERP.Application.Services
                     pageSize);
         }
 
-        public async Task<List<ProductionOperation>>
-    GetProductionOperationsForPipelineAsync()
-        {
-            return await _repository
-                .GetProductionOperationsForPipelineAsync();
-        }
-
         #endregion
 
 
         #region Customer PO Source
 
-        public async Task<List<CustomerPurchaseOrderItem>>
-            GetCustomerPurchaseOrderItemsForProductionAsync()
+        public async Task<List<CustomerPurchaseOrder>>
+            GetCustomerPurchaseOrdersForProductionAsync()
         {
             return await _repository
-                .GetCustomerPurchaseOrderItemsForProductionAsync();
+                .GetCustomerPurchaseOrdersForProductionAsync();
         }
 
 
-        public async Task<decimal>
-            GetRemainingQuantityAsync(
-                int customerPurchaseOrderItemId)
+        public async Task<CustomerPurchaseOrder?>
+            GetCustomerPurchaseOrderForProductionAsync(
+                int customerPurchaseOrderId)
         {
-            var customerPoItem =
-                await _repository
-                    .GetCustomerPurchaseOrderItemForProductionAsync(
-                        customerPurchaseOrderItemId);
-
-
-            if (customerPoItem == null)
+            if (customerPurchaseOrderId <= 0)
             {
-                throw new BusinessException(
-                    "Customer PO Item is not available for Production.");
+                return null;
             }
 
 
-            var allocatedQuantity =
-                await _repository
-                    .GetAllocatedJobQuantityAsync(
-                        customerPurchaseOrderItemId);
-
-
-            var remainingQuantity =
-                customerPoItem.OrderedQuantity -
-                allocatedQuantity;
-
-
-            return remainingQuantity < 0
-                ? 0
-                : remainingQuantity;
+            return await _repository
+                .GetCustomerPurchaseOrderForProductionAsync(
+                    customerPurchaseOrderId);
         }
 
+
         public async Task<ItemProcessRouting?>
-    GetReleasedRoutingForItemAsync(
-        int itemId)
+            GetReleasedRoutingForItemAsync(
+                int itemId)
         {
             if (itemId <= 0)
             {
@@ -175,15 +185,726 @@ namespace AjayIndustriesERP.Application.Services
         #endregion
 
 
+        #region Pipeline Lookups
 
-        #region Pipeline Editing Before Start
+        public async Task<List<ProductionOperation>>
+            GetProductionOperationsForPipelineAsync()
+        {
+            return await _repository
+                .GetProductionOperationsForPipelineAsync();
+        }
+
+        #endregion
+
+
+        #region Production Execution Lookups
+
+        public async Task<List<Machine>>
+            GetMachinesForExecutionAsync()
+        {
+            return await _repository
+                .GetMachinesForExecutionAsync();
+        }
+
+        #endregion
+
+
+        #region Create Production Job
+
+        public async Task<ProductionJob>
+            CreateAsync(
+                ProductionJob productionJob)
+        {
+            #region Basic Validation
+
+            if (productionJob == null)
+            {
+                throw new BusinessException(
+                    "Production Job information is required.");
+            }
+
+
+            if (productionJob.CustomerPurchaseOrderId <= 0)
+            {
+                throw new BusinessException(
+                    "Customer Purchase Order is required.");
+            }
+
+            #endregion
+
+
+            #region Customer PO
+
+            var customerPurchaseOrder =
+                await _repository
+                    .GetCustomerPurchaseOrderForProductionAsync(
+                        productionJob.CustomerPurchaseOrderId);
+
+
+            if (customerPurchaseOrder == null)
+            {
+                throw new BusinessException(
+                    "Selected Customer Purchase Order is not available for Production.");
+            }
+
+
+            var existingJob =
+                await _repository
+                    .GetByCustomerPurchaseOrderIdAsync(
+                        customerPurchaseOrder.Id);
+
+
+            if (existingJob != null)
+            {
+                throw new BusinessException(
+                    $"Production Job {existingJob.Code} already exists for this Customer PO.");
+            }
+
+
+            var customerPoItems =
+                customerPurchaseOrder
+                    .Items
+                    .Where(x =>
+                        !x.IsDeleted &&
+                        x.IsActive)
+                    .OrderBy(x =>
+                        x.Id)
+                    .ToList();
+
+
+            if (!customerPoItems.Any())
+            {
+                throw new BusinessException(
+                    "Selected Customer PO does not contain any active Items.");
+            }
+
+            #endregion
+
+
+            #region Capture Submitted Production Quantities
+
+            /*
+             * Controller submits Admin planned Production
+             * Quantity Item-wise.
+             *
+             * Source Item / Ordered Qty / Routing are always
+             * trusted from database, never from POST.
+             */
+
+            var submittedQuantityLookup =
+                productionJob
+                    .Items
+                    .Where(x =>
+                        x.CustomerPurchaseOrderItemId > 0)
+                    .GroupBy(x =>
+                        x.CustomerPurchaseOrderItemId)
+                    .ToDictionary(
+                        group =>
+                            group.Key,
+                        group =>
+                            group.Last()
+                                .ProductionQuantity);
+
+
+            /*
+             * Rebuild Items only from trusted PO source.
+             */
+            productionJob.Items.Clear();
+
+            #endregion
+
+
+            #region Production Job Header
+
+            productionJob.Code =
+                await GenerateJobCodeAsync();
+
+
+            productionJob.CustomerPurchaseOrderId =
+                customerPurchaseOrder.Id;
+
+
+            productionJob.Status =
+                ProductionJobStatus.Draft;
+
+
+            productionJob.Remarks =
+                NormalizeOptional(
+                    productionJob.Remarks);
+
+
+            ValidatePlanningDates(
+                productionJob);
+
+
+            productionJob.StartedOn =
+                null;
+
+            productionJob.CompletedOn =
+                null;
+
+            productionJob.CancelledOn =
+                null;
+
+            productionJob.CancellationReason =
+                null;
+
+
+            productionJob.IsActive =
+                true;
+
+            productionJob.IsDeleted =
+                false;
+
+            productionJob.CreatedOn =
+                DateTime.UtcNow;
+
+            productionJob.CreatedBy =
+                "System";
+
+            #endregion
+
+
+            #region Create Production Job Items
+
+            foreach (var customerPoItem
+                in customerPoItems)
+            {
+                var productionQuantity =
+                    submittedQuantityLookup
+                        .TryGetValue(
+                            customerPoItem.Id,
+                            out var submittedQuantity)
+                        ? submittedQuantity
+                        : 0m;
+
+
+                ValidateProductionQuantity(
+                    orderedQuantity:
+                        customerPoItem.OrderedQuantity,
+                    productionQuantity:
+                        productionQuantity,
+                    completedQuantity:
+                        0m,
+                    itemDisplay:
+                        $"{customerPoItem.ItemCode} - {customerPoItem.ItemName}");
+
+
+                #region Released Routing
+
+                var routing =
+                    await _repository
+                        .GetReleasedRoutingForItemAsync(
+                            customerPoItem.ItemId);
+
+
+                if (routing == null)
+                {
+                    throw new BusinessException(
+                        $"No Released Item Process Routing exists for {customerPoItem.ItemCode} - {customerPoItem.ItemName}.");
+                }
+
+
+                var routingSteps =
+                    routing
+                        .Steps
+                        .Where(x =>
+                            !x.IsDeleted &&
+                            x.IsActive)
+                        .OrderBy(x =>
+                            x.SequenceNumber)
+                        .ToList();
+
+
+                if (!routingSteps.Any())
+                {
+                    throw new BusinessException(
+                        $"Released Routing for {customerPoItem.ItemCode} - {customerPoItem.ItemName} does not contain any active Process Steps.");
+                }
+
+                #endregion
+
+
+                #region Production Job Item
+
+                var productionJobItem =
+                    new ProductionJobItem
+                    {
+                        CustomerPurchaseOrderItemId =
+                            customerPoItem.Id,
+
+                        ItemId =
+                            customerPoItem.ItemId,
+
+                        ItemCode =
+                            customerPoItem.ItemCode,
+
+                        ItemName =
+                            customerPoItem.ItemName,
+
+                        UnitName =
+                            NormalizeOptional(
+                                customerPoItem.UnitName),
+
+                        OrderedQuantity =
+                            customerPoItem.OrderedQuantity,
+
+                        ProductionQuantity =
+                            productionQuantity,
+
+                        CompletedQuantity =
+                            0m,
+
+                        ItemProcessRoutingId =
+                            routing.Id,
+
+                        RoutingCode =
+                            routing.Code,
+
+                        RoutingRevisionNumber =
+                            routing.RevisionNumber,
+
+                        PipelineModificationReason =
+                            null,
+
+                        IsActive =
+                            true,
+
+                        IsDeleted =
+                            false,
+
+                        CreatedOn =
+                            DateTime.UtcNow,
+
+                        CreatedBy =
+                            "System"
+                    };
+
+                #endregion
+
+
+                #region Copy Routing Steps
+
+                foreach (var routingStep
+                    in routingSteps)
+                {
+                    if (routingStep.ProductionOperation == null)
+                    {
+                        throw new BusinessException(
+                            $"Operation information is missing for Routing Sequence {routingStep.SequenceNumber}.");
+                    }
+
+
+                    var productionStep =
+                        new ProductionJobStep
+                        {
+                            SequenceNumber =
+                                routingStep.SequenceNumber,
+
+                            ProductionOperationId =
+                                routingStep.ProductionOperationId,
+
+                            OperationCode =
+                                routingStep
+                                    .ProductionOperation
+                                    .Code,
+
+                            OperationName =
+                                routingStep
+                                    .ProductionOperation
+                                    .OperationName,
+
+                            OperationType =
+                                routingStep
+                                    .ProductionOperation
+                                    .OperationType,
+
+                            DefaultMachineId =
+                                routingStep.DefaultMachineId,
+
+                            AssignedMachineId =
+                                null,
+
+                            SetupTimeMinutes =
+                                routingStep.SetupTimeMinutes,
+
+                            CycleTimeMinutes =
+                                routingStep.CycleTimeMinutes,
+
+                            OperationInstruction =
+                                NormalizeOptional(
+                                    routingStep.OperationInstruction),
+
+                            RoutingRemarks =
+                                NormalizeOptional(
+                                    routingStep.Remarks),
+
+                            Status =
+                                ProductionJobStepStatus.Pending,
+
+                            StartedOn =
+                                null,
+
+                            CompletedOn =
+                                null,
+
+                            GoodQuantity =
+                                0m,
+
+                            RejectedQuantity =
+                                0m,
+
+                            ExecutionRemarks =
+                                null,
+
+                            IsActive =
+                                true,
+
+                            IsDeleted =
+                                false,
+
+                            CreatedOn =
+                                DateTime.UtcNow,
+
+                            CreatedBy =
+                                "System"
+                        };
+
+
+                    productionStep.History.Add(
+                        new ProductionJobStepHistory
+                        {
+                            PreviousStatus =
+                                null,
+
+                            NewStatus =
+                                ProductionJobStepStatus.Pending,
+
+                            MachineId =
+                                null,
+
+                            MachineCode =
+                                null,
+
+                            MachineName =
+                                null,
+
+                            GoodQuantity =
+                                0m,
+
+                            RejectedQuantity =
+                                0m,
+
+                            Remarks =
+                                "Production Job Step created from Released Routing.",
+
+                            ChangedOn =
+                                DateTime.UtcNow,
+
+                            ChangedBy =
+                                "System"
+                        });
+
+
+                    productionJobItem
+                        .Steps
+                        .Add(
+                            productionStep);
+                }
+
+                #endregion
+
+
+                productionJob
+                    .Items
+                    .Add(
+                        productionJobItem);
+            }
+
+            #endregion
+
+
+            await _repository
+                .AddAsync(
+                    productionJob);
+
+
+            return productionJob;
+        }
+
+        #endregion
+
+
+        #region Update Production Planning
+
+        public async Task<ProductionJob>
+            UpdateAsync(
+                ProductionJob productionJob)
+        {
+            #region Basic Validation
+
+            if (
+                productionJob == null ||
+                productionJob.Id <= 0
+            )
+            {
+                throw new BusinessException(
+                    "Invalid Production Job.");
+            }
+
+            #endregion
+
+
+            #region Load Existing Job
+
+            var existing =
+                await _repository
+                    .GetForUpdateAsync(
+                        productionJob.Id);
+
+
+            if (existing == null)
+            {
+                throw new BusinessException(
+                    "Production Job not found.");
+            }
+
+
+            if (
+                existing.Status ==
+                    ProductionJobStatus.Completed
+                ||
+                existing.Status ==
+                    ProductionJobStatus.Cancelled
+            )
+            {
+                throw new BusinessException(
+                    "Completed or Cancelled Production Job cannot be edited.");
+            }
+
+            #endregion
+
+
+            #region Validate Planning
+
+            ValidatePlanningDates(
+                productionJob);
+
+            #endregion
+
+
+            #region Update Item Production Quantities
+
+            foreach (var submittedItem
+                in productionJob.Items)
+            {
+                ProductionJobItem?
+                    existingItem =
+                        null;
+
+
+                if (submittedItem.Id > 0)
+                {
+                    existingItem =
+                        existing.Items
+                            .FirstOrDefault(x =>
+                                x.Id ==
+                                    submittedItem.Id
+                                &&
+                                !x.IsDeleted
+                                &&
+                                x.IsActive);
+                }
+                else if (
+                    submittedItem
+                        .CustomerPurchaseOrderItemId > 0
+                )
+                {
+                    existingItem =
+                        existing.Items
+                            .FirstOrDefault(x =>
+                                x.CustomerPurchaseOrderItemId ==
+                                    submittedItem
+                                        .CustomerPurchaseOrderItemId
+                                &&
+                                !x.IsDeleted
+                                &&
+                                x.IsActive);
+                }
+
+
+                if (existingItem == null)
+                {
+                    throw new BusinessException(
+                        "Invalid Production Job Item.");
+                }
+
+
+                var newProductionQuantity =
+                    submittedItem
+                        .ProductionQuantity;
+
+
+                ValidateProductionQuantity(
+                    existingItem.OrderedQuantity,
+                    newProductionQuantity,
+                    existingItem.CompletedQuantity,
+                    $"{existingItem.ItemCode} - {existingItem.ItemName}");
+
+
+                /*
+                 * Once Job leaves Draft,
+                 * Production Quantity can only increase.
+                 *
+                 * This avoids reducing an already released
+                 * shop-floor target.
+                 */
+                if (
+                    existing.Status !=
+                        ProductionJobStatus.Draft
+                    &&
+                    newProductionQuantity <
+                        existingItem.ProductionQuantity
+                )
+                {
+                    throw new BusinessException(
+                        $"Production Quantity for {existingItem.ItemCode} cannot be reduced after the Job is released.");
+                }
+
+
+                var quantityIncreased =
+                    newProductionQuantity >
+                    existingItem.ProductionQuantity;
+
+
+                if (
+                    quantityIncreased
+                    &&
+                    existing.Status ==
+                        ProductionJobStatus.InProgress
+                )
+                {
+                    var activeSteps =
+                        GetActiveSteps(
+                            existingItem);
+
+
+                    if (
+                        activeSteps.Any(x =>
+                            x.Status ==
+                                ProductionJobStepStatus.InProgress)
+                    )
+                    {
+                        throw new BusinessException(
+                            $"Production Quantity for {existingItem.ItemCode} cannot be increased while an Operation is In Progress.");
+                    }
+
+
+                    /*
+                     * New Production Quantity is released only
+                     * after the previous planned quantity cycle
+                     * has completed.
+                     */
+                    if (
+                        !existingItem
+                            .IsCurrentProductionCompleted
+                    )
+                    {
+                        throw new BusinessException(
+                            $"Complete the current planned Production Quantity for {existingItem.ItemCode} before increasing it.");
+                    }
+
+
+                    if (
+                        activeSteps.Any()
+                        &&
+                        !activeSteps.All(x =>
+                            x.Status ==
+                                ProductionJobStepStatus.Completed)
+                    )
+                    {
+                        throw new BusinessException(
+                            $"Complete the current Production Pipeline for {existingItem.ItemCode} before increasing Production Quantity.");
+                    }
+                }
+
+
+                existingItem.ProductionQuantity =
+                    newProductionQuantity;
+
+
+                /*
+                 * When Admin increases Production Quantity after
+                 * a completed production cycle, reopen the same
+                 * Pipeline for the next quantity.
+                 */
+                if (
+                    quantityIncreased
+                    &&
+                    existing.Status ==
+                        ProductionJobStatus.InProgress
+                )
+                {
+                    ReopenItemPipeline(
+                        existingItem,
+                        "Production Quantity increased by Admin. Pipeline reopened for remaining Production.");
+                }
+
+
+                existingItem.ModifiedOn =
+                    DateTime.UtcNow;
+
+                existingItem.ModifiedBy =
+                    "System";
+            }
+
+            #endregion
+
+
+            #region Update Job
+
+            existing.PlannedStartOn =
+                productionJob.PlannedStartOn;
+
+
+            existing.PlannedCompletionOn =
+                productionJob.PlannedCompletionOn;
+
+
+            existing.Remarks =
+                NormalizeOptional(
+                    productionJob.Remarks);
+
+
+            existing.ModifiedOn =
+                DateTime.UtcNow;
+
+            existing.ModifiedBy =
+                "System";
+
+            #endregion
+
+
+            await _repository
+                .UpdateAsync(
+                    existing);
+
+
+            return existing;
+        }
+
+        #endregion
+
+
+        #region Draft Pipeline Editing
 
         public async Task UpdateDraftPipelineAsync(
-    int productionJobId,
-    List<ProductionJobStep> steps,
-    string? modificationReason)
+            int productionJobId,
+            int productionJobItemId,
+            List<ProductionJobStep> steps,
+            string? modificationReason)
         {
-            #region Validate Production Job
+            #region Load Job
 
             var productionJob =
                 await _repository
@@ -197,29 +918,88 @@ namespace AjayIndustriesERP.Application.Services
                     "Production Job not found.");
             }
 
-
-            var canEditPipeline =
-    (
-        productionJob.Status ==
-            ProductionJobStatus.Draft
-        ||
-        productionJob.Status ==
-            ProductionJobStatus.Ready
-    )
-    &&
-    !productionJob.StartedOn.HasValue;
+            #endregion
 
 
-            if (!canEditPipeline)
+            #region Find Production Item
+
+            var productionJobItem =
+                productionJob
+                    .Items
+                    .FirstOrDefault(x =>
+                        x.Id ==
+                            productionJobItemId
+                        &&
+                        !x.IsDeleted
+                        &&
+                        x.IsActive);
+
+
+            if (productionJobItem == null)
             {
                 throw new BusinessException(
-                    "Production Pipeline can be edited only before Production starts.");
+                    "Production Job Item not found.");
             }
 
             #endregion
 
 
-            #region Normalize Modification Reason
+            #region Validate Pipeline Editing
+
+            var activeExistingSteps =
+                GetActiveSteps(
+                    productionJobItem);
+
+
+            var productionStarted =
+                activeExistingSteps
+                    .Any(step =>
+                        step.StartedOn.HasValue
+                        ||
+                        step.History.Any(history =>
+                            history.NewStatus ==
+                                ProductionJobStepStatus.InProgress
+                            ||
+                            history.NewStatus ==
+                                ProductionJobStepStatus.Completed));
+
+
+            /*
+             * Important:
+             *
+             * Parent Production Job may already be InProgress
+             * because another Item under the same Job has started.
+             *
+             * That must NOT lock this Item's Pipeline.
+             *
+             * Pipeline becomes locked only after Production starts
+             * for this specific ProductionJobItem.
+             */
+            var canEditPipeline =
+                (
+                    productionJob.Status ==
+                        ProductionJobStatus.Draft
+                    ||
+                    productionJob.Status ==
+                        ProductionJobStatus.Ready
+                    ||
+                    productionJob.Status ==
+                        ProductionJobStatus.InProgress
+                )
+                &&
+                !productionStarted;
+
+
+            if (!canEditPipeline)
+            {
+                throw new BusinessException(
+                    "Production Pipeline can be edited only before Production starts for this Item.");
+            }
+
+            #endregion
+
+
+            #region Modification Reason
 
             modificationReason =
                 NormalizeOptional(
@@ -235,10 +1015,13 @@ namespace AjayIndustriesERP.Application.Services
             #endregion
 
 
-            #region Validate Submitted Pipeline
+            #region Submitted Pipeline Validation
 
-            if (steps == null ||
-                steps.Count == 0)
+            if (
+                steps == null
+                ||
+                steps.Count == 0
+            )
             {
                 throw new BusinessException(
                     "Production Pipeline must contain at least one Operation.");
@@ -251,16 +1034,9 @@ namespace AjayIndustriesERP.Application.Services
 
 
             var operationLookup =
-                operations.ToDictionary(
-                    x => x.Id);
-
-
-            var activeExistingSteps =
-                productionJob.Steps
-                    .Where(x =>
-                        !x.IsDeleted &&
-                        x.IsActive)
-                    .ToList();
+                operations
+                    .ToDictionary(x =>
+                        x.Id);
 
 
             var submittedExistingIds =
@@ -272,25 +1048,28 @@ namespace AjayIndustriesERP.Application.Services
                     .ToList();
 
 
-            if (submittedExistingIds.Count !=
+            if (
+                submittedExistingIds.Count
+                !=
                 submittedExistingIds
                     .Distinct()
-                    .Count())
+                    .Count()
+            )
             {
                 throw new BusinessException(
                     "Duplicate Production Pipeline Step found.");
             }
 
 
-            foreach (var submittedStep in
-                steps.Where(x =>
+            foreach (var submittedStep
+                in steps.Where(x =>
                     x.Id > 0))
             {
                 var existingStep =
                     activeExistingSteps
                         .FirstOrDefault(x =>
                             x.Id ==
-                            submittedStep.Id);
+                                submittedStep.Id);
 
 
                 if (existingStep == null)
@@ -300,16 +1079,21 @@ namespace AjayIndustriesERP.Application.Services
                 }
 
 
-                if (existingStep.Status !=
-                    ProductionJobStepStatus.Pending)
+                if (
+                    existingStep.Status !=
+                        ProductionJobStepStatus.Pending
+                )
                 {
                     throw new BusinessException(
                         "Only Pending Production Steps can be modified.");
                 }
 
 
-                if (existingStep.ProductionOperationId !=
-                    submittedStep.ProductionOperationId)
+                if (
+                    existingStep.ProductionOperationId
+                    !=
+                    submittedStep.ProductionOperationId
+                )
                 {
                     throw new BusinessException(
                         "Existing Production Operation cannot be changed directly. Remove it and add the required Operation.");
@@ -317,12 +1101,15 @@ namespace AjayIndustriesERP.Application.Services
             }
 
 
-            foreach (var submittedStep in
-                steps.Where(x =>
+            foreach (var submittedStep
+                in steps.Where(x =>
                     x.Id <= 0))
             {
-                if (!operationLookup.ContainsKey(
-                    submittedStep.ProductionOperationId))
+                if (
+                    !operationLookup.ContainsKey(
+                        submittedStep
+                            .ProductionOperationId)
+                )
                 {
                     throw new BusinessException(
                         "Selected Production Operation is invalid or inactive.");
@@ -334,34 +1121,14 @@ namespace AjayIndustriesERP.Application.Services
 
             #region Temporary Sequence Reset
 
-            /*
-             * ProductionJobId + SequenceNumber has a UNIQUE index.
-             *
-             * Example:
-             * Existing:
-             * 1 Cutting
-             * 2 Turning
-             * 3 Inspection
-             *
-             * Reorder:
-             * 1 Cutting
-             * 2 Inspection
-             * 3 Turning
-             *
-             * Updating directly can temporarily create duplicate
-             * SequenceNumber values while SQL updates rows.
-             *
-             * Therefore all persisted Steps are first moved to
-             * unique negative Sequence Numbers.
-             */
-
-            foreach (var existingStep in
-                productionJob.Steps
+            foreach (var existingStep
+                in activeExistingSteps
                     .Where(x =>
                         x.Id > 0))
             {
                 existingStep.SequenceNumber =
                     -existingStep.Id;
+
 
                 existingStep.ModifiedOn =
                     DateTime.UtcNow;
@@ -380,20 +1147,14 @@ namespace AjayIndustriesERP.Application.Services
 
             #region Remove Operations
 
-            foreach (var existingStep in
-                activeExistingSteps)
+            foreach (var existingStep
+                in activeExistingSteps)
             {
-                if (!submittedExistingIds.Contains(
-                    existingStep.Id))
+                if (
+                    !submittedExistingIds.Contains(
+                        existingStep.Id)
+                )
                 {
-                    if (existingStep.Status !=
-                        ProductionJobStepStatus.Pending)
-                    {
-                        throw new BusinessException(
-                            $"Production Step '{existingStep.OperationName}' cannot be removed because it is not Pending.");
-                    }
-
-
                     existingStep.IsDeleted =
                         true;
 
@@ -417,8 +1178,8 @@ namespace AjayIndustriesERP.Application.Services
                 1;
 
 
-            foreach (var submittedStep in
-                steps)
+            foreach (var submittedStep
+                in steps)
             {
                 if (submittedStep.Id > 0)
                 {
@@ -426,7 +1187,7 @@ namespace AjayIndustriesERP.Application.Services
                         activeExistingSteps
                             .First(x =>
                                 x.Id ==
-                                submittedStep.Id);
+                                    submittedStep.Id);
 
 
                     existingStep.SequenceNumber =
@@ -448,14 +1209,15 @@ namespace AjayIndustriesERP.Application.Services
                 {
                     var operation =
                         operationLookup[
-                            submittedStep.ProductionOperationId];
+                            submittedStep
+                                .ProductionOperationId];
 
 
                     var newStep =
                         new ProductionJobStep
                         {
-                            ProductionJobId =
-                                productionJob.Id,
+                            ProductionJobItemId =
+                                productionJobItem.Id,
 
                             SequenceNumber =
                                 sequenceNumber,
@@ -500,10 +1262,10 @@ namespace AjayIndustriesERP.Application.Services
                                 null,
 
                             GoodQuantity =
-                                null,
+                                0m,
 
                             RejectedQuantity =
-                                null,
+                                0m,
 
                             ExecutionRemarks =
                                 null,
@@ -541,13 +1303,13 @@ namespace AjayIndustriesERP.Application.Services
                                 null,
 
                             GoodQuantity =
-                                null,
+                                0m,
 
                             RejectedQuantity =
-                                null,
+                                0m,
 
                             Remarks =
-                                "Production Job Step added during Draft Pipeline modification.",
+                                "Production Job Step added during Pipeline modification.",
 
                             ChangedOn =
                                 DateTime.UtcNow,
@@ -557,8 +1319,10 @@ namespace AjayIndustriesERP.Application.Services
                         });
 
 
-                    productionJob.Steps.Add(
-                        newStep);
+                    productionJobItem
+                        .Steps
+                        .Add(
+                            newStep);
                 }
 
 
@@ -568,10 +1332,19 @@ namespace AjayIndustriesERP.Application.Services
             #endregion
 
 
-            #region Update Production Job
+            #region Update Item
 
-            productionJob.PipelineModificationReason =
-                modificationReason;
+            productionJobItem
+                .PipelineModificationReason =
+                    modificationReason;
+
+
+            productionJobItem.ModifiedOn =
+                DateTime.UtcNow;
+
+            productionJobItem.ModifiedBy =
+                "System";
+
 
             productionJob.ModifiedOn =
                 DateTime.UtcNow;
@@ -582,330 +1355,9 @@ namespace AjayIndustriesERP.Application.Services
             #endregion
 
 
-            #region Save Final Pipeline
-
             await _repository
                 .UpdateAsync(
                     productionJob);
-
-            #endregion
-        }
-
-        #endregion
-
-        #region Create Production Job
-
-        public async Task<ProductionJob>
-            CreateAsync(
-                ProductionJob productionJob)
-        {
-            if (productionJob == null)
-            {
-                throw new BusinessException(
-                    "Production Job information is required.");
-            }
-
-
-            if (productionJob.CustomerPurchaseOrderItemId <= 0)
-            {
-                throw new BusinessException(
-                    "Customer PO Item is required.");
-            }
-
-
-            if (productionJob.JobQuantity <= 0)
-            {
-                throw new BusinessException(
-                    "Production Job Quantity must be greater than zero.");
-            }
-
-
-            var customerPoItem =
-                await _repository
-                    .GetCustomerPurchaseOrderItemForProductionAsync(
-                        productionJob.CustomerPurchaseOrderItemId);
-
-
-            if (customerPoItem == null)
-            {
-                throw new BusinessException(
-                    "Selected Customer PO Item is not available for Production.");
-            }
-
-
-            #region Quantity Validation
-
-            var allocatedQuantity =
-                await _repository
-                    .GetAllocatedJobQuantityAsync(
-                        customerPoItem.Id);
-
-
-            var remainingQuantity =
-                customerPoItem.OrderedQuantity -
-                allocatedQuantity;
-
-
-            if (remainingQuantity <= 0)
-            {
-                throw new BusinessException(
-                    "The complete Customer PO Quantity is already allocated to Production Jobs.");
-            }
-
-
-            if (productionJob.JobQuantity >
-                remainingQuantity)
-            {
-                throw new BusinessException(
-                    $"Production Job Quantity cannot exceed remaining quantity {remainingQuantity:0.###}.");
-            }
-
-            #endregion
-
-
-            #region Released Routing
-
-            var routing =
-                await _repository
-                    .GetReleasedRoutingForItemAsync(
-                        customerPoItem.ItemId);
-
-
-            if (routing == null)
-            {
-                throw new BusinessException(
-                    $"No Released Item Process Routing exists for {customerPoItem.ItemCode} - {customerPoItem.ItemName}.");
-            }
-
-
-            var routingSteps =
-                routing.Steps
-                    .Where(x =>
-                        !x.IsDeleted &&
-                        x.IsActive)
-                    .OrderBy(x =>
-                        x.SequenceNumber)
-                    .ToList();
-
-
-            if (!routingSteps.Any())
-            {
-                throw new BusinessException(
-                    "The Released Routing does not contain any active Process Steps.");
-            }
-
-            #endregion
-
-
-            #region Header Preparation
-
-            productionJob.Code =
-                await GenerateJobCodeAsync();
-
-
-            productionJob.ItemId =
-                customerPoItem.ItemId;
-
-
-            /*
-             * Customer PO line snapshot is used here.
-             * This preserves the Item information used by
-             * the actual Customer Order.
-             */
-
-            productionJob.ItemCode =
-                customerPoItem.ItemCode;
-
-            productionJob.ItemName =
-                customerPoItem.ItemName;
-
-            productionJob.UnitName =
-                NormalizeOptional(
-                    customerPoItem.UnitName);
-
-
-            productionJob.ItemProcessRoutingId =
-                routing.Id;
-
-            productionJob.RoutingCode =
-                routing.Code;
-
-            productionJob.RoutingRevisionNumber =
-                routing.RevisionNumber;
-
-
-            productionJob.Status =
-                ProductionJobStatus.Draft;
-
-
-            productionJob.Remarks =
-                NormalizeOptional(
-                    productionJob.Remarks);
-
-
-            ValidatePlanningDates(
-                productionJob);
-
-
-            productionJob.IsActive =
-                true;
-
-            productionJob.IsDeleted =
-                false;
-
-            productionJob.CreatedOn =
-                DateTime.UtcNow;
-
-            productionJob.CreatedBy =
-                "System";
-
-            #endregion
-
-
-            #region Copy Routing Steps
-
-            productionJob.Steps.Clear();
-
-
-            var jobSequenceNumber =
-                1;
-
-
-            foreach (var routingStep
-                in routingSteps)
-            {
-                if (routingStep.ProductionOperation == null)
-                {
-                    throw new BusinessException(
-                        $"Operation information is missing for Routing Sequence {routingStep.SequenceNumber}.");
-                }
-
-
-                var jobStep =
-                    new ProductionJobStep
-                    {
-                        SequenceNumber =
-                            routingStep.SequenceNumber,
-
-                        ProductionOperationId =
-                            routingStep.ProductionOperationId,
-
-                        OperationCode =
-                            routingStep.ProductionOperation.Code,
-
-                        OperationName =
-                            routingStep.ProductionOperation.OperationName,
-
-                        OperationType =
-                            routingStep.ProductionOperation.OperationType,
-
-                        DefaultMachineId =
-                            routingStep.DefaultMachineId,
-
-                        /*
-                         * Actual Assigned Machine intentionally
-                         * remains null at Job creation.
-                         *
-                         * During shop-floor execution user can
-                         * select the Default Machine or another
-                         * available Machine.
-                         */
-
-                        AssignedMachineId =
-                            null,
-
-                        SetupTimeMinutes =
-                            routingStep.SetupTimeMinutes,
-
-                        CycleTimeMinutes =
-                            routingStep.CycleTimeMinutes,
-
-                        OperationInstruction =
-                            NormalizeOptional(
-                                routingStep.OperationInstruction),
-
-                        RoutingRemarks =
-                            NormalizeOptional(
-                                routingStep.Remarks),
-
-                        Status =
-                            ProductionJobStepStatus.Pending,
-
-                        GoodQuantity =
-                            null,
-
-                        RejectedQuantity =
-                            null,
-
-                        ExecutionRemarks =
-                            null,
-
-                        IsActive =
-                            true,
-
-                        IsDeleted =
-                            false,
-
-                        CreatedOn =
-                            DateTime.UtcNow,
-
-                        CreatedBy =
-                            "System"
-                    };
-
-
-                #region Initial Step History
-
-                jobStep.History.Add(
-                    new ProductionJobStepHistory
-                    {
-                        PreviousStatus =
-                            null,
-
-                        NewStatus =
-                            ProductionJobStepStatus.Pending,
-
-                        MachineId =
-                            null,
-
-                        MachineCode =
-                            null,
-
-                        MachineName =
-                            null,
-
-                        GoodQuantity =
-                            null,
-
-                        RejectedQuantity =
-                            null,
-
-                        Remarks =
-                            "Production Job Step created from Released Routing.",
-
-                        ChangedOn =
-                            DateTime.UtcNow,
-
-                        ChangedBy =
-                            "System"
-                    });
-
-                #endregion
-
-
-                productionJob.Steps.Add(
-                    jobStep);
-            }
-
-            #endregion
-
-
-            await _repository
-                .AddAsync(
-                    productionJob);
-
-
-            return productionJob;
         }
 
         #endregion
@@ -918,7 +1370,8 @@ namespace AjayIndustriesERP.Application.Services
         {
             var productionJob =
                 await _repository
-                    .GetForUpdateAsync(id);
+                    .GetForUpdateAsync(
+                        id);
 
 
             if (productionJob == null)
@@ -928,26 +1381,56 @@ namespace AjayIndustriesERP.Application.Services
             }
 
 
-            if (productionJob.Status !=
-                ProductionJobStatus.Draft)
+            if (
+                productionJob.Status !=
+                    ProductionJobStatus.Draft
+            )
             {
                 throw new BusinessException(
                     "Only Draft Production Job can be marked Ready.");
             }
 
 
-            var activeSteps =
-                productionJob.Steps
+            var activeItems =
+                GetActiveItems(
+                    productionJob);
+
+
+            if (!activeItems.Any())
+            {
+                throw new BusinessException(
+                    "Production Job does not contain any Production Items.");
+            }
+
+
+            var plannedItems =
+                activeItems
                     .Where(x =>
-                        !x.IsDeleted &&
-                        x.IsActive)
+                        x.ProductionQuantity >
+                            x.CompletedQuantity)
                     .ToList();
 
 
-            if (!activeSteps.Any())
+            if (!plannedItems.Any())
             {
                 throw new BusinessException(
-                    "Production Job does not contain any Production Steps.");
+                    "Enter Production Quantity for at least one Item before marking the Job Ready.");
+            }
+
+
+            foreach (var item
+                in plannedItems)
+            {
+                var activeSteps =
+                    GetActiveSteps(
+                        item);
+
+
+                if (!activeSteps.Any())
+                {
+                    throw new BusinessException(
+                        $"Production Pipeline is missing for {item.ItemCode} - {item.ItemName}.");
+                }
             }
 
 
@@ -970,16 +1453,20 @@ namespace AjayIndustriesERP.Application.Services
         #endregion
 
 
-        #region Delete Draft Job
+        #region Start Production Step
 
-        public async Task DeleteAsync(
-     int id)
+        public async Task StartStepAsync(
+            int productionJobId,
+            int productionJobStepId,
+            int? assignedMachineId,
+            string? remarks)
         {
-            #region Load Production Job
+            #region Load Job
 
             var productionJob =
                 await _repository
-                    .GetForUpdateAsync(id);
+                    .GetForUpdateAsync(
+                        productionJobId);
 
 
             if (productionJob == null)
@@ -991,13 +1478,940 @@ namespace AjayIndustriesERP.Application.Services
             #endregion
 
 
-            #region Validate Delete Status
+            #region Validate Job Status
+
+            if (
+                productionJob.Status !=
+                    ProductionJobStatus.Ready
+                &&
+                productionJob.Status !=
+                    ProductionJobStatus.InProgress
+            )
+            {
+                throw new BusinessException(
+                    "Only Ready or In Progress Production Job can start a Step.");
+            }
+
+            #endregion
+
+
+            #region Find Item And Step
+
+            var productionJobItem =
+                productionJob
+                    .Items
+                    .FirstOrDefault(item =>
+                        !item.IsDeleted
+                        &&
+                        item.IsActive
+                        &&
+                        item.Steps.Any(step =>
+                            step.Id ==
+                                productionJobStepId
+                            &&
+                            !step.IsDeleted
+                            &&
+                            step.IsActive));
+
+
+            if (productionJobItem == null)
+            {
+                throw new BusinessException(
+                    "Production Job Item not found.");
+            }
+
+
+            var step =
+                productionJobItem
+                    .Steps
+                    .FirstOrDefault(x =>
+                        x.Id ==
+                            productionJobStepId
+                        &&
+                        !x.IsDeleted
+                        &&
+                        x.IsActive);
+
+
+            if (step == null)
+            {
+                throw new BusinessException(
+                    "Production Job Step not found.");
+            }
+
+            #endregion
+
+
+            #region Validate Production Quantity
+
+            if (
+                productionJobItem
+                    .ProductionQuantity <= 0m
+            )
+            {
+                throw new BusinessException(
+                    $"Production Quantity is not planned for {productionJobItem.ItemCode}.");
+            }
+
+
+            if (
+                productionJobItem
+                    .IsCurrentProductionCompleted
+            )
+            {
+                throw new BusinessException(
+                    $"Current planned Production Quantity for {productionJobItem.ItemCode} is already completed.");
+            }
+
+            #endregion
+
+
+            #region Validate Step Status
+
+            if (
+                step.Status !=
+                    ProductionJobStepStatus.Pending
+            )
+            {
+                throw new BusinessException(
+                    "Only Pending Production Step can be started.");
+            }
+
+            #endregion
+
+
+            #region Validate Running Step Inside Same Item
+
+            var anotherRunningStep =
+                productionJobItem
+                    .Steps
+                    .Any(x =>
+                        x.Id != step.Id
+                        &&
+                        !x.IsDeleted
+                        &&
+                        x.IsActive
+                        &&
+                        x.Status ==
+                            ProductionJobStepStatus.InProgress);
+
+
+            if (anotherRunningStep)
+            {
+                throw new BusinessException(
+                    "Another Production Step is already In Progress for this Item. Complete it before starting the next Step.");
+            }
+
+            #endregion
+
+
+            #region Validate Sequence
+
+            var previousIncompleteStep =
+                productionJobItem
+                    .Steps
+                    .Where(x =>
+                        !x.IsDeleted
+                        &&
+                        x.IsActive
+                        &&
+                        x.SequenceNumber <
+                            step.SequenceNumber)
+                    .OrderBy(x =>
+                        x.SequenceNumber)
+                    .FirstOrDefault(x =>
+                        x.Status !=
+                            ProductionJobStepStatus.Completed);
+
+
+            if (previousIncompleteStep != null)
+            {
+                throw new BusinessException(
+                    $"Complete previous Step '{previousIncompleteStep.OperationName}' before starting '{step.OperationName}'.");
+            }
+
+            #endregion
+
+
+            #region Validate Machine
+
+            Machine? assignedMachine =
+                null;
+
+
+            if (assignedMachineId.HasValue)
+            {
+                assignedMachine =
+                    await _repository
+                        .GetMachineForExecutionAsync(
+                            assignedMachineId.Value);
+
+
+                if (assignedMachine == null)
+                {
+                    throw new BusinessException(
+                        "Selected Machine is not available.");
+                }
+            }
+
+            #endregion
+
+
+            #region Start Step
+
+            var previousStatus =
+                step.Status;
+
+
+            step.AssignedMachineId =
+                assignedMachineId;
+
+
+            step.Status =
+                ProductionJobStepStatus.InProgress;
+
+
+            step.StartedOn =
+                DateTime.UtcNow;
+
+
+            step.CompletedOn =
+                null;
+
+
+            step.ExecutionRemarks =
+                NormalizeOptional(
+                    remarks);
+
+
+            step.ModifiedOn =
+                DateTime.UtcNow;
+
+            step.ModifiedBy =
+                "System";
+
+            #endregion
+
+
+            #region Update Parent Job
+
+            if (!productionJob.StartedOn.HasValue)
+            {
+                productionJob.StartedOn =
+                    DateTime.UtcNow;
+            }
+
+
+            productionJob.Status =
+                ProductionJobStatus.InProgress;
+
+
+            productionJob.CompletedOn =
+                null;
+
+
+            productionJob.ModifiedOn =
+                DateTime.UtcNow;
+
+            productionJob.ModifiedBy =
+                "System";
+
+            #endregion
+
+
+            #region History
+
+            step.History.Add(
+                new ProductionJobStepHistory
+                {
+                    PreviousStatus =
+                        previousStatus,
+
+                    NewStatus =
+                        ProductionJobStepStatus.InProgress,
+
+                    MachineId =
+                        assignedMachine?.Id,
+
+                    MachineCode =
+                        assignedMachine?.Code,
+
+                    MachineName =
+                        assignedMachine?.MachineName,
+
+                    GoodQuantity =
+                        step.GoodQuantity,
+
+                    RejectedQuantity =
+                        step.RejectedQuantity,
+
+                    Remarks =
+                        NormalizeOptional(
+                            remarks),
+
+                    ChangedOn =
+                        DateTime.UtcNow,
+
+                    ChangedBy =
+                        "System"
+                });
+
+            #endregion
+
+
+            await _repository
+                .UpdateAsync(
+                    productionJob);
+        }
+
+        #endregion
+
+
+        #region Complete Production Step
+
+        public async Task CompleteStepAsync(
+            int productionJobId,
+            int productionJobStepId,
+            decimal goodQuantity,
+            decimal rejectedQuantity,
+            string? remarks)
+        {
+            #region Load Job
+
+            var productionJob =
+                await _repository
+                    .GetForUpdateAsync(
+                        productionJobId);
+
+
+            if (productionJob == null)
+            {
+                throw new BusinessException(
+                    "Production Job not found.");
+            }
+
+
+            if (
+                productionJob.Status !=
+                    ProductionJobStatus.InProgress
+            )
+            {
+                throw new BusinessException(
+                    "Production Job is not currently In Progress.");
+            }
+
+            #endregion
+
+
+            #region Find Item And Step
+
+            var productionJobItem =
+                productionJob
+                    .Items
+                    .FirstOrDefault(item =>
+                        !item.IsDeleted
+                        &&
+                        item.IsActive
+                        &&
+                        item.Steps.Any(step =>
+                            step.Id ==
+                                productionJobStepId
+                            &&
+                            !step.IsDeleted
+                            &&
+                            step.IsActive));
+
+
+            if (productionJobItem == null)
+            {
+                throw new BusinessException(
+                    "Production Job Item not found.");
+            }
+
+
+            var activeSteps =
+                GetActiveSteps(
+                    productionJobItem);
+
+
+            var step =
+                activeSteps
+                    .FirstOrDefault(x =>
+                        x.Id ==
+                            productionJobStepId);
+
+
+            if (step == null)
+            {
+                throw new BusinessException(
+                    "Production Job Step not found.");
+            }
+
+
+            if (
+                step.Status !=
+                    ProductionJobStepStatus.InProgress
+            )
+            {
+                throw new BusinessException(
+                    "Only In Progress Production Step can be completed.");
+            }
+
+            #endregion
+
+
+            #region Quantity Validation
+
+            if (goodQuantity < 0m)
+            {
+                throw new BusinessException(
+                    "Good Quantity cannot be negative.");
+            }
+
+
+            if (rejectedQuantity < 0m)
+            {
+                throw new BusinessException(
+                    "Rejected Quantity cannot be negative.");
+            }
+
+
+            var currentGood =
+                step.GoodQuantity
+                ??
+                0m;
+
+
+            var currentRejected =
+                step.RejectedQuantity
+                ??
+                0m;
+
+
+            /*
+             * Required GOOD quantity for a Step:
+             *
+             * Current Admin Production Quantity
+             * +
+             * cumulative downstream rejects.
+             *
+             * This allows upstream replacement Production
+             * when a later Operation rejects parts.
+             */
+            var requiredGoodQuantity =
+                GetRequiredGoodQuantity(
+                    productionJobItem,
+                    step,
+                    activeSteps);
+
+
+            var remainingGoodQuantity =
+                requiredGoodQuantity -
+                currentGood;
+
+
+            if (remainingGoodQuantity < 0m)
+            {
+                remainingGoodQuantity =
+                    0m;
+            }
+
+
+            if (
+                goodQuantity >
+                remainingGoodQuantity
+            )
+            {
+                throw new BusinessException(
+                    $"Good Quantity cannot exceed pending required quantity {remainingGoodQuantity:0.###}.");
+            }
+
+
+            /*
+             * For every Step except the first,
+             * processed input cannot exceed GOOD quantity
+             * produced by the previous Step.
+             */
+            var previousStep =
+                activeSteps
+                    .Where(x =>
+                        x.SequenceNumber <
+                            step.SequenceNumber)
+                    .OrderByDescending(x =>
+                        x.SequenceNumber)
+                    .FirstOrDefault();
+
+
+            if (previousStep != null)
+            {
+                var previousGood =
+                    previousStep.GoodQuantity
+                    ??
+                    0m;
+
+
+                var alreadyProcessedHere =
+                    currentGood +
+                    currentRejected;
+
+
+                var availableInput =
+                    previousGood -
+                    alreadyProcessedHere;
+
+
+                if (availableInput < 0m)
+                {
+                    availableInput =
+                        0m;
+                }
+
+
+                if (
+                    goodQuantity +
+                    rejectedQuantity >
+                    availableInput
+                )
+                {
+                    throw new BusinessException(
+                        $"Good Quantity + Rejected Quantity cannot exceed available previous Step quantity {availableInput:0.###}.");
+                }
+            }
+
+            #endregion
+
+
+            #region Complete Step Entry
+
+            var previousStatus =
+                step.Status;
+
+
+            /*
+             * Quantities stored on Step are cumulative.
+             *
+             * Popup values represent THIS completion entry.
+             */
+            step.GoodQuantity =
+                currentGood +
+                goodQuantity;
+
+
+            step.RejectedQuantity =
+                currentRejected +
+                rejectedQuantity;
+
+
+            step.ExecutionRemarks =
+                NormalizeOptional(
+                    remarks);
+
+
+            step.Status =
+                ProductionJobStepStatus.Completed;
+
+
+            step.CompletedOn =
+                DateTime.UtcNow;
+
+
+            step.ModifiedOn =
+                DateTime.UtcNow;
+
+            step.ModifiedBy =
+                "System";
+
+            #endregion
+
+
+            #region Machine Snapshot
+
+            Machine? assignedMachine =
+                null;
+
+
+            if (step.AssignedMachineId.HasValue)
+            {
+                assignedMachine =
+                    await _repository
+                        .GetMachineForExecutionAsync(
+                            step.AssignedMachineId.Value);
+            }
+
+            #endregion
+
+
+            #region History
+
+            step.History.Add(
+                new ProductionJobStepHistory
+                {
+                    PreviousStatus =
+                        previousStatus,
+
+                    NewStatus =
+                        ProductionJobStepStatus.Completed,
+
+                    MachineId =
+                        assignedMachine?.Id,
+
+                    MachineCode =
+                        assignedMachine?.Code,
+
+                    MachineName =
+                        assignedMachine?.MachineName,
+
+                    /*
+                     * History stores cumulative Step snapshot.
+                     */
+                    GoodQuantity =
+                        step.GoodQuantity,
+
+                    RejectedQuantity =
+                        step.RejectedQuantity,
+
+                    Remarks =
+                        NormalizeOptional(
+                            remarks),
+
+                    ChangedOn =
+                        DateTime.UtcNow,
+
+                    ChangedBy =
+                        "System"
+                });
+
+            #endregion
+
+
+            #region Item Pipeline Completion
+
+            var allItemStepsCompleted =
+                activeSteps
+                    .All(x =>
+                        x.Status ==
+                            ProductionJobStepStatus.Completed);
+
+
+            if (allItemStepsCompleted)
+            {
+                var finalStep =
+                    activeSteps
+                        .OrderByDescending(x =>
+                            x.SequenceNumber)
+                        .First();
+
+
+                productionJobItem.CompletedQuantity =
+                    Math.Min(
+                        productionJobItem.OrderedQuantity,
+                        finalStep.GoodQuantity
+                        ??
+                        0m);
+
+
+                /*
+                 * Example:
+                 *
+                 * Production Qty = 50
+                 * Final Good     = 47
+                 *
+                 * Current Production plan is NOT complete.
+                 *
+                 * Reopen the same Pipeline automatically
+                 * for replacement / remaining quantity.
+                 */
+                if (
+                    productionJobItem.CompletedQuantity <
+                    productionJobItem.ProductionQuantity
+                )
+                {
+                    ReopenItemPipeline(
+                        productionJobItem,
+                        "Current planned Production Quantity is not yet achieved. Pipeline reopened for remaining quantity.");
+                }
+            }
+
+            #endregion
+
+
+            #region Parent Production Job Status
+
+            var activeItems =
+                GetActiveItems(
+                    productionJob);
+
+
+            var allItemsFullyProduced =
+                activeItems.Any()
+                &&
+                activeItems.All(x =>
+                    x.IsProductionCompleted);
+
+
+            if (allItemsFullyProduced)
+            {
+                productionJob.Status =
+                    ProductionJobStatus.Completed;
+
+
+                productionJob.CompletedOn =
+                    DateTime.UtcNow;
+            }
+            else
+            {
+                /*
+                 * Important:
+                 *
+                 * 50 / 100 complete does NOT complete PJOB.
+                 *
+                 * Parent remains InProgress until every Item
+                 * reaches full Ordered Quantity.
+                 */
+                productionJob.Status =
+                    ProductionJobStatus.InProgress;
+
+
+                productionJob.CompletedOn =
+                    null;
+            }
+
+
+            productionJobItem.ModifiedOn =
+                DateTime.UtcNow;
+
+            productionJobItem.ModifiedBy =
+                "System";
+
+
+            productionJob.ModifiedOn =
+                DateTime.UtcNow;
+
+            productionJob.ModifiedBy =
+                "System";
+
+            #endregion
+
+
+            await _repository
+                .UpdateAsync(
+                    productionJob);
+        }
+
+        #endregion
+
+
+        #region Cancel Production Job
+
+        public async Task CancelAsync(
+            int productionJobId,
+            string reason)
+        {
+            #region Validate Reason
+
+            var normalizedReason =
+                NormalizeOptional(
+                    reason);
+
+
+            if (string.IsNullOrWhiteSpace(
+                normalizedReason))
+            {
+                throw new BusinessException(
+                    "Cancellation Reason is required.");
+            }
+
+
+            if (normalizedReason.Length > 1000)
+            {
+                throw new BusinessException(
+                    "Cancellation Reason cannot exceed 1000 characters.");
+            }
+
+            #endregion
+
+
+            #region Load Job
+
+            var productionJob =
+                await _repository
+                    .GetForUpdateAsync(
+                        productionJobId);
+
+
+            if (productionJob == null)
+            {
+                throw new BusinessException(
+                    "Production Job not found.");
+            }
+
+
+            if (
+                productionJob.Status !=
+                    ProductionJobStatus.Ready
+                &&
+                productionJob.Status !=
+                    ProductionJobStatus.InProgress
+            )
+            {
+                throw new BusinessException(
+                    "Only Ready or In Progress Production Job can be cancelled.");
+            }
+
+            #endregion
+
+
+            #region Cancel Running Steps
+
+            var runningSteps =
+                productionJob
+                    .Items
+                    .Where(item =>
+                        !item.IsDeleted &&
+                        item.IsActive)
+                    .SelectMany(item =>
+                        item.Steps)
+                    .Where(step =>
+                        !step.IsDeleted
+                        &&
+                        step.IsActive
+                        &&
+                        step.Status ==
+                            ProductionJobStepStatus.InProgress)
+                    .ToList();
+
+
+            foreach (var runningStep
+                in runningSteps)
+            {
+                var previousStatus =
+                    runningStep.Status;
+
+
+                runningStep.Status =
+                    ProductionJobStepStatus.Cancelled;
+
+
+                runningStep.ExecutionRemarks =
+                    normalizedReason;
+
+
+                runningStep.ModifiedOn =
+                    DateTime.UtcNow;
+
+                runningStep.ModifiedBy =
+                    "System";
+
+
+                Machine? assignedMachine =
+                    null;
+
+
+                if (runningStep.AssignedMachineId.HasValue)
+                {
+                    assignedMachine =
+                        await _repository
+                            .GetMachineForExecutionAsync(
+                                runningStep
+                                    .AssignedMachineId
+                                    .Value);
+                }
+
+
+                runningStep.History.Add(
+                    new ProductionJobStepHistory
+                    {
+                        PreviousStatus =
+                            previousStatus,
+
+                        NewStatus =
+                            ProductionJobStepStatus.Cancelled,
+
+                        MachineId =
+                            assignedMachine?.Id,
+
+                        MachineCode =
+                            assignedMachine?.Code,
+
+                        MachineName =
+                            assignedMachine?.MachineName,
+
+                        GoodQuantity =
+                            runningStep.GoodQuantity,
+
+                        RejectedQuantity =
+                            runningStep.RejectedQuantity,
+
+                        Remarks =
+                            normalizedReason,
+
+                        ChangedOn =
+                            DateTime.UtcNow,
+
+                        ChangedBy =
+                            "System"
+                    });
+            }
+
+            #endregion
+
+
+            #region Cancel Parent Job
+
+            productionJob.Status =
+                ProductionJobStatus.Cancelled;
+
+
+            productionJob.CancelledOn =
+                DateTime.UtcNow;
+
+
+            productionJob.CancellationReason =
+                normalizedReason;
+
+
+            productionJob.ModifiedOn =
+                DateTime.UtcNow;
+
+            productionJob.ModifiedBy =
+                "System";
+
+            #endregion
+
+
+            await _repository
+                .UpdateAsync(
+                    productionJob);
+        }
+
+        #endregion
+
+
+        #region Delete Production Job
+
+        public async Task DeleteAsync(
+            int id)
+        {
+            var productionJob =
+                await _repository
+                    .GetForUpdateAsync(
+                        id);
+
+
+            if (productionJob == null)
+            {
+                throw new BusinessException(
+                    "Production Job not found.");
+            }
+
 
             var canDelete =
                 productionJob.Status ==
-                    ProductionJobStatus.Draft ||
+                    ProductionJobStatus.Draft
+                ||
                 productionJob.Status ==
-                    ProductionJobStatus.Completed ||
+                    ProductionJobStatus.Completed
+                ||
                 productionJob.Status ==
                     ProductionJobStatus.Cancelled;
 
@@ -1008,10 +2422,6 @@ namespace AjayIndustriesERP.Application.Services
                     "Ready or In Progress Production Job cannot be deleted. Cancel the Production Job first.");
             }
 
-            #endregion
-
-
-            #region Soft Delete Production Job
 
             productionJob.IsDeleted =
                 true;
@@ -1025,35 +2435,320 @@ namespace AjayIndustriesERP.Application.Services
             productionJob.ModifiedBy =
                 "System";
 
-            #endregion
 
-
-            #region Soft Delete Production Steps
-
-            foreach (var step in
-                productionJob.Steps
-                    .Where(x =>
-                        !x.IsDeleted))
+            foreach (var item
+                in productionJob.Items)
             {
-                step.IsDeleted =
+                item.IsDeleted =
                     true;
 
-                step.IsActive =
+                item.IsActive =
                     false;
+
+                item.ModifiedOn =
+                    DateTime.UtcNow;
+
+                item.ModifiedBy =
+                    "System";
+
+
+                foreach (var step
+                    in item.Steps)
+                {
+                    step.IsDeleted =
+                        true;
+
+                    step.IsActive =
+                        false;
+
+                    step.ModifiedOn =
+                        DateTime.UtcNow;
+
+                    step.ModifiedBy =
+                        "System";
+                }
+            }
+
+
+            await _repository
+                .UpdateAsync(
+                    productionJob);
+        }
+
+        #endregion
+
+
+        #region Deleted Jobs
+
+        public async Task<List<ProductionJob>>
+            GetDeletedAsync()
+        {
+            return await _repository
+                .GetDeletedAsync();
+        }
+
+
+        public async Task RestoreAsync(
+            int id)
+        {
+            var productionJob =
+                await _repository
+                    .GetDeletedForUpdateAsync(
+                        id);
+
+
+            if (productionJob == null)
+            {
+                throw new BusinessException(
+                    "Deleted Production Job not found.");
+            }
+
+
+            productionJob.IsDeleted =
+                false;
+
+            productionJob.IsActive =
+                true;
+
+            productionJob.ModifiedOn =
+                DateTime.UtcNow;
+
+            productionJob.ModifiedBy =
+                "System";
+
+
+            foreach (var item
+                in productionJob.Items)
+            {
+                item.IsDeleted =
+                    false;
+
+                item.IsActive =
+                    true;
+
+                item.ModifiedOn =
+                    DateTime.UtcNow;
+
+                item.ModifiedBy =
+                    "System";
+
+
+                foreach (var step
+                    in item.Steps)
+                {
+                    step.IsDeleted =
+                        false;
+
+                    step.IsActive =
+                        true;
+
+                    step.ModifiedOn =
+                        DateTime.UtcNow;
+
+                    step.ModifiedBy =
+                        "System";
+                }
+            }
+
+
+            await _repository
+                .UpdateAsync(
+                    productionJob);
+        }
+
+        #endregion
+
+
+        #region Quantity Helpers
+
+        private static void ValidateProductionQuantity(
+            decimal orderedQuantity,
+            decimal productionQuantity,
+            decimal completedQuantity,
+            string itemDisplay)
+        {
+            if (productionQuantity < 0m)
+            {
+                throw new BusinessException(
+                    $"Production Quantity for {itemDisplay} cannot be negative.");
+            }
+
+
+            if (
+                productionQuantity >
+                orderedQuantity
+            )
+            {
+                throw new BusinessException(
+                    $"Production Quantity for {itemDisplay} cannot exceed Ordered Quantity {orderedQuantity:0.###}.");
+            }
+
+
+            if (
+                productionQuantity <
+                completedQuantity
+            )
+            {
+                throw new BusinessException(
+                    $"Production Quantity for {itemDisplay} cannot be less than Completed Quantity {completedQuantity:0.###}.");
+            }
+        }
+
+
+        private static decimal
+            GetRequiredGoodQuantity(
+                ProductionJobItem productionJobItem,
+                ProductionJobStep currentStep,
+                List<ProductionJobStep> activeSteps)
+        {
+            var downstreamRejectedQuantity =
+                activeSteps
+                    .Where(step =>
+                        step.SequenceNumber >
+                            currentStep.SequenceNumber)
+                    .Sum(step =>
+                        step.RejectedQuantity
+                        ??
+                        0m);
+
+
+            return
+                productionJobItem.ProductionQuantity
+                +
+                downstreamRejectedQuantity;
+        }
+
+        #endregion
+
+
+        #region Pipeline Reopen
+
+        private static void ReopenItemPipeline(
+            ProductionJobItem productionJobItem,
+            string reason)
+        {
+            var activeSteps =
+                GetActiveSteps(
+                    productionJobItem);
+
+
+            foreach (var step
+                in activeSteps)
+            {
+                /*
+                 * Reopen only completed cycle Steps.
+                 *
+                 * Good / Rejected quantities remain cumulative.
+                 * Previous execution remains available in History.
+                 */
+                if (
+                    step.Status !=
+                        ProductionJobStepStatus.Completed
+                )
+                {
+                    continue;
+                }
+
+
+                var previousStatus =
+                    step.Status;
+
+
+                step.Status =
+                    ProductionJobStepStatus.Pending;
+
+
+                step.StartedOn =
+                    null;
+
+
+                step.CompletedOn =
+                    null;
+
+
+                step.AssignedMachineId =
+                    null;
+
+
+                step.ExecutionRemarks =
+                    null;
+
 
                 step.ModifiedOn =
                     DateTime.UtcNow;
 
                 step.ModifiedBy =
                     "System";
+
+
+                step.History.Add(
+                    new ProductionJobStepHistory
+                    {
+                        PreviousStatus =
+                            previousStatus,
+
+                        NewStatus =
+                            ProductionJobStepStatus.Pending,
+
+                        MachineId =
+                            null,
+
+                        MachineCode =
+                            null,
+
+                        MachineName =
+                            null,
+
+                        GoodQuantity =
+                            step.GoodQuantity,
+
+                        RejectedQuantity =
+                            step.RejectedQuantity,
+
+                        Remarks =
+                            reason,
+
+                        ChangedOn =
+                            DateTime.UtcNow,
+
+                        ChangedBy =
+                            "System"
+                    });
             }
+        }
 
-            #endregion
+        #endregion
 
 
-            await _repository
-                .UpdateAsync(
-                    productionJob);
+        #region Collection Helpers
+
+        private static List<ProductionJobItem>
+            GetActiveItems(
+                ProductionJob productionJob)
+        {
+            return productionJob
+                .Items
+                .Where(x =>
+                    !x.IsDeleted &&
+                    x.IsActive)
+                .OrderBy(x =>
+                    x.Id)
+                .ToList();
+        }
+
+
+        private static List<ProductionJobStep>
+            GetActiveSteps(
+                ProductionJobItem productionJobItem)
+        {
+            return productionJobItem
+                .Steps
+                .Where(x =>
+                    !x.IsDeleted &&
+                    x.IsActive)
+                .OrderBy(x =>
+                    x.SequenceNumber)
+                .ToList();
         }
 
         #endregion
@@ -1065,9 +2760,12 @@ namespace AjayIndustriesERP.Application.Services
             ProductionJob productionJob)
         {
             if (
-                productionJob.PlannedStartOn.HasValue &&
-                productionJob.PlannedCompletionOn.HasValue &&
-                productionJob.PlannedCompletionOn.Value <
+                productionJob.PlannedStartOn.HasValue
+                &&
+                productionJob.PlannedCompletionOn.HasValue
+                &&
+                productionJob.PlannedCompletionOn.Value
+                <
                 productionJob.PlannedStartOn.Value
             )
             {
@@ -1076,8 +2774,10 @@ namespace AjayIndustriesERP.Application.Services
             }
 
 
-            if (productionJob.Remarks?.Length >
-                1000)
+            if (
+                productionJob.Remarks?.Length >
+                1000
+            )
             {
                 throw new BusinessException(
                     "Production Job Remarks cannot exceed 1000 characters.");
@@ -1124,9 +2824,11 @@ namespace AjayIndustriesERP.Application.Services
                     prefix.Length);
 
 
-            if (!int.TryParse(
-                numberPart,
-                out var lastNumber))
+            if (
+                !int.TryParse(
+                    numberPart,
+                    out var lastNumber)
+            )
             {
                 throw new BusinessException(
                     "Unable to generate Production Job Code.");
@@ -1157,640 +2859,6 @@ namespace AjayIndustriesERP.Application.Services
 
         #endregion
 
-        #region Production Execution
-
-        public async Task<List<Machine>>
-            GetMachinesForExecutionAsync()
-        {
-            return await _repository
-                .GetMachinesForExecutionAsync();
-        }
-
-
-        public async Task StartStepAsync(
-            int productionJobId,
-            int productionJobStepId,
-            int? assignedMachineId,
-            string? remarks)
-        {
-            #region Load Job
-
-            var productionJob =
-                await _repository
-                    .GetForUpdateAsync(
-                        productionJobId);
-
-
-            if (productionJob == null)
-            {
-                throw new BusinessException(
-                    "Production Job not found.");
-            }
-
-            #endregion
-
-
-            #region Validate Job Status
-
-            if (productionJob.Status !=
-                    ProductionJobStatus.Ready &&
-                productionJob.Status !=
-                    ProductionJobStatus.InProgress)
-            {
-                throw new BusinessException(
-                    "Only Ready or In Progress Production Job can start a Step.");
-            }
-
-            #endregion
-
-
-            #region Find Step
-
-            var step =
-                productionJob.Steps
-                    .FirstOrDefault(x =>
-                        x.Id ==
-                            productionJobStepId &&
-                        !x.IsDeleted &&
-                        x.IsActive);
-
-
-            if (step == null)
-            {
-                throw new BusinessException(
-                    "Production Job Step not found.");
-            }
-
-
-            if (step.Status !=
-                ProductionJobStepStatus.Pending)
-            {
-                throw new BusinessException(
-                    "Only Pending Production Step can be started.");
-            }
-
-            #endregion
-
-
-            #region Validate Running Step
-
-            var anotherRunningStep =
-                productionJob.Steps
-                    .Any(x =>
-                        x.Id != step.Id &&
-                        !x.IsDeleted &&
-                        x.IsActive &&
-                        x.Status ==
-                            ProductionJobStepStatus.InProgress);
-
-
-            if (anotherRunningStep)
-            {
-                throw new BusinessException(
-                    "Another Production Step is already In Progress. Complete it before starting the next Step.");
-            }
-
-            #endregion
-
-
-            #region Validate Sequence
-
-            var previousIncompleteStep =
-    productionJob.Steps
-        .Where(x =>
-            !x.IsDeleted &&
-            x.IsActive &&
-            x.SequenceNumber <
-                step.SequenceNumber)
-        .OrderBy(x =>
-            x.SequenceNumber)
-        .FirstOrDefault(x =>
-            x.Status !=
-                ProductionJobStepStatus.Completed);
-
-
-            if (previousIncompleteStep != null)
-            {
-                throw new BusinessException(
-                    $"Complete previous Step '{previousIncompleteStep.OperationName}' before starting '{step.OperationName}'.");
-            }
-
-            #endregion
-
-
-            #region Validate Machine
-
-            Machine? assignedMachine =
-                null;
-
-
-            if (assignedMachineId.HasValue)
-            {
-                assignedMachine =
-                    await _repository
-                        .GetMachineForExecutionAsync(
-                            assignedMachineId.Value);
-
-
-                if (assignedMachine == null)
-                {
-                    throw new BusinessException(
-                        "Selected Machine is not available.");
-                }
-            }
-
-            #endregion
-
-
-            #region Start Step
-
-            var previousStatus =
-                step.Status;
-
-
-            step.AssignedMachineId =
-                assignedMachineId;
-
-            step.Status =
-                ProductionJobStepStatus.InProgress;
-
-            step.StartedOn =
-                DateTime.UtcNow;
-
-            step.CompletedOn =
-                null;
-
-            step.ModifiedOn =
-                DateTime.UtcNow;
-
-            step.ModifiedBy =
-                "System";
-
-            #endregion
-
-
-            #region Update Job
-
-            if (!productionJob.StartedOn.HasValue)
-            {
-                productionJob.StartedOn =
-                    DateTime.UtcNow;
-            }
-
-
-            productionJob.Status =
-                ProductionJobStatus.InProgress;
-
-            productionJob.ModifiedOn =
-                DateTime.UtcNow;
-
-            productionJob.ModifiedBy =
-                "System";
-
-            #endregion
-
-
-            #region Add History
-
-            step.History.Add(
-                new ProductionJobStepHistory
-                {
-                    PreviousStatus =
-                        previousStatus,
-
-                    NewStatus =
-                        ProductionJobStepStatus.InProgress,
-
-                    MachineId =
-                        assignedMachine?.Id,
-
-                    MachineCode =
-                        assignedMachine?.Code,
-
-                    MachineName =
-                        assignedMachine?.MachineName,
-
-                    GoodQuantity =
-                        step.GoodQuantity,
-
-                    RejectedQuantity =
-                        step.RejectedQuantity,
-
-                    Remarks =
-                        NormalizeOptional(
-                            remarks),
-
-                    ChangedOn =
-                        DateTime.UtcNow,
-
-                    ChangedBy =
-                        "System"
-                });
-
-            #endregion
-
-
-            await _repository
-                .UpdateAsync(
-                    productionJob);
-        }
-
-
-        public async Task CompleteStepAsync(
-            int productionJobId,
-            int productionJobStepId,
-            decimal goodQuantity,
-            decimal rejectedQuantity,
-            string? remarks)
-        {
-            #region Load Job
-
-            var productionJob =
-                await _repository
-                    .GetForUpdateAsync(
-                        productionJobId);
-
-
-            if (productionJob == null)
-            {
-                throw new BusinessException(
-                    "Production Job not found.");
-            }
-
-            #endregion
-
-
-            #region Validate Job
-
-            if (productionJob.Status !=
-                ProductionJobStatus.InProgress)
-            {
-                throw new BusinessException(
-                    "Production Job is not currently In Progress.");
-            }
-
-            #endregion
-
-
-            #region Find Step
-
-            var step =
-                productionJob.Steps
-                    .FirstOrDefault(x =>
-                        x.Id ==
-                            productionJobStepId &&
-                        !x.IsDeleted &&
-                        x.IsActive);
-
-
-            if (step == null)
-            {
-                throw new BusinessException(
-                    "Production Job Step not found.");
-            }
-
-
-            if (step.Status !=
-                ProductionJobStepStatus.InProgress)
-            {
-                throw new BusinessException(
-                    "Only In Progress Production Step can be completed.");
-            }
-
-            #endregion
-
-
-            #region Quantity Validation
-
-            if (goodQuantity < 0)
-            {
-                throw new BusinessException(
-                    "Good Quantity cannot be negative.");
-            }
-
-
-            if (rejectedQuantity < 0)
-            {
-                throw new BusinessException(
-                    "Rejected Quantity cannot be negative.");
-            }
-
-
-            if (goodQuantity +
-                rejectedQuantity >
-                productionJob.JobQuantity)
-            {
-                throw new BusinessException(
-                    $"Good Quantity + Rejected Quantity cannot exceed Job Quantity {productionJob.JobQuantity:0.###}.");
-            }
-
-            #endregion
-
-
-            #region Complete Step
-
-            var previousStatus =
-                step.Status;
-
-
-            step.GoodQuantity =
-                goodQuantity;
-
-            step.RejectedQuantity =
-                rejectedQuantity;
-
-            step.ExecutionRemarks =
-                NormalizeOptional(
-                    remarks);
-
-            step.Status =
-                ProductionJobStepStatus.Completed;
-
-            step.CompletedOn =
-                DateTime.UtcNow;
-
-            step.ModifiedOn =
-                DateTime.UtcNow;
-
-            step.ModifiedBy =
-                "System";
-
-            #endregion
-
-
-            #region Machine Snapshot
-
-            Machine? assignedMachine =
-                null;
-
-
-            if (step.AssignedMachineId.HasValue)
-            {
-                assignedMachine =
-                    await _repository
-                        .GetMachineForExecutionAsync(
-                            step.AssignedMachineId.Value);
-            }
-
-            #endregion
-
-
-            #region Add History
-
-            step.History.Add(
-                new ProductionJobStepHistory
-                {
-                    PreviousStatus =
-                        previousStatus,
-
-                    NewStatus =
-                        ProductionJobStepStatus.Completed,
-
-                    MachineId =
-                        assignedMachine?.Id,
-
-                    MachineCode =
-                        assignedMachine?.Code,
-
-                    MachineName =
-                        assignedMachine?.MachineName,
-
-                    GoodQuantity =
-                        goodQuantity,
-
-                    RejectedQuantity =
-                        rejectedQuantity,
-
-                    Remarks =
-                        NormalizeOptional(
-                            remarks),
-
-                    ChangedOn =
-                        DateTime.UtcNow,
-
-                    ChangedBy =
-                        "System"
-                });
-
-            #endregion
-
-
-            #region Complete Job When All Steps Finished
-
-            var allStepsFinished =
-    productionJob.Steps
-        .Where(x =>
-            !x.IsDeleted &&
-            x.IsActive)
-        .All(x =>
-            x.Status ==
-                ProductionJobStepStatus.Completed);
-
-
-            if (allStepsFinished)
-            {
-                productionJob.Status =
-                    ProductionJobStatus.Completed;
-
-                productionJob.CompletedOn =
-                    DateTime.UtcNow;
-            }
-            else
-            {
-                productionJob.Status =
-                    ProductionJobStatus.InProgress;
-            }
-
-
-            productionJob.ModifiedOn =
-                DateTime.UtcNow;
-
-            productionJob.ModifiedBy =
-                "System";
-
-            #endregion
-
-
-
-
-            await _repository
-                .UpdateAsync(
-                    productionJob);
-        }
-
-        public async Task CancelAsync(
-    int productionJobId,
-    string reason)
-        {
-            #region Validate Reason
-
-            var normalizedReason =
-                NormalizeOptional(
-                    reason);
-
-
-            if (string.IsNullOrWhiteSpace(
-                normalizedReason))
-            {
-                throw new BusinessException(
-                    "Cancellation Reason is required.");
-            }
-
-
-            if (normalizedReason.Length >
-                1000)
-            {
-                throw new BusinessException(
-                    "Cancellation Reason cannot exceed 1000 characters.");
-            }
-
-            #endregion
-
-
-            #region Load Production Job
-
-            var productionJob =
-                await _repository
-                    .GetForUpdateAsync(
-                        productionJobId);
-
-
-            if (productionJob == null)
-            {
-                throw new BusinessException(
-                    "Production Job not found.");
-            }
-
-            #endregion
-
-
-            #region Validate Job Status
-
-            if (productionJob.Status !=
-                    ProductionJobStatus.Ready &&
-                productionJob.Status !=
-                    ProductionJobStatus.InProgress)
-            {
-                throw new BusinessException(
-                    "Only Ready or In Progress Production Job can be cancelled.");
-            }
-
-            #endregion
-
-
-            #region Find Running Step
-
-            var runningStep =
-                productionJob.Steps
-                    .Where(x =>
-                        !x.IsDeleted &&
-                        x.IsActive)
-                    .FirstOrDefault(x =>
-                        x.Status ==
-                            ProductionJobStepStatus.InProgress);
-
-            #endregion
-
-
-            #region Cancel Running Step
-
-            if (runningStep != null)
-            {
-                var previousStatus =
-                    runningStep.Status;
-
-
-                runningStep.Status =
-                    ProductionJobStepStatus.Cancelled;
-
-                runningStep.ExecutionRemarks =
-                    normalizedReason;
-
-                runningStep.ModifiedOn =
-                    DateTime.UtcNow;
-
-                runningStep.ModifiedBy =
-                    "System";
-
-
-                Machine? assignedMachine =
-                    null;
-
-
-                if (runningStep.AssignedMachineId.HasValue)
-                {
-                    assignedMachine =
-                        await _repository
-                            .GetMachineForExecutionAsync(
-                                runningStep.AssignedMachineId.Value);
-                }
-
-
-                runningStep.History.Add(
-                    new ProductionJobStepHistory
-                    {
-                        PreviousStatus =
-                            previousStatus,
-
-                        NewStatus =
-                            ProductionJobStepStatus.Cancelled,
-
-                        MachineId =
-                            assignedMachine?.Id,
-
-                        MachineCode =
-                            assignedMachine?.Code,
-
-                        MachineName =
-                            assignedMachine?.MachineName,
-
-                        GoodQuantity =
-                            runningStep.GoodQuantity,
-
-                        RejectedQuantity =
-                            runningStep.RejectedQuantity,
-
-                        Remarks =
-                            normalizedReason,
-
-                        ChangedOn =
-                            DateTime.UtcNow,
-
-                        ChangedBy =
-                            "System"
-                    });
-            }
-
-            #endregion
-
-
-            #region Cancel Production Job
-
-            productionJob.Status =
-                ProductionJobStatus.Cancelled;
-
-            productionJob.CancelledOn =
-                DateTime.UtcNow;
-
-            productionJob.CancellationReason =
-                normalizedReason;
-
-            productionJob.ModifiedOn =
-                DateTime.UtcNow;
-
-            productionJob.ModifiedBy =
-                "System";
-
-            #endregion
-
-
-            await _repository
-                .UpdateAsync(
-                    productionJob);
-        }
-
-        #endregion
-
 
         #region Normalization
 
@@ -1806,230 +2874,6 @@ namespace AjayIndustriesERP.Application.Services
 
         #endregion
 
-        #region Update Draft Job
-
-        public async Task<ProductionJob> UpdateAsync(
-            ProductionJob productionJob)
-        {
-            if (productionJob == null ||
-                productionJob.Id <= 0)
-            {
-                throw new BusinessException(
-                    "Invalid Production Job.");
-            }
-
-
-            if (productionJob.JobQuantity <= 0)
-            {
-                throw new BusinessException(
-                    "Production Job Quantity must be greater than zero.");
-            }
-
-
-            var existing =
-                await _repository
-                    .GetForUpdateAsync(
-                        productionJob.Id);
-
-
-            if (existing == null)
-            {
-                throw new BusinessException(
-                    "Production Job not found.");
-            }
-
-
-            if (existing.Status !=
-                ProductionJobStatus.Draft)
-            {
-                throw new BusinessException(
-                    "Only Draft Production Job can be edited.");
-            }
-
-
-            var customerPoItem =
-                await _repository
-                    .GetCustomerPurchaseOrderItemForProductionAsync(
-                        existing.CustomerPurchaseOrderItemId);
-
-
-            if (customerPoItem == null)
-            {
-                throw new BusinessException(
-                    "Customer PO Item is no longer available for Production.");
-            }
-
-
-            var allocatedOtherJobs =
-                await _repository
-                    .GetAllocatedJobQuantityAsync(
-                        existing.CustomerPurchaseOrderItemId,
-                        existing.Id);
-
-
-            var availableQuantity =
-                customerPoItem.OrderedQuantity -
-                allocatedOtherJobs;
-
-
-            if (productionJob.JobQuantity >
-                availableQuantity)
-            {
-                throw new BusinessException(
-                    $"Production Job Quantity cannot exceed available quantity {availableQuantity:0.###}.");
-            }
-
-
-            ValidatePlanningDates(
-                productionJob);
-
-
-            existing.JobQuantity =
-                productionJob.JobQuantity;
-
-            existing.PlannedStartOn =
-                productionJob.PlannedStartOn;
-
-            existing.PlannedCompletionOn =
-                productionJob.PlannedCompletionOn;
-
-            existing.Remarks =
-                NormalizeOptional(
-                    productionJob.Remarks);
-
-
-            existing.ModifiedOn =
-                DateTime.UtcNow;
-
-            existing.ModifiedBy =
-                "System";
-
-
-            await _repository
-                .UpdateAsync(
-                    existing);
-
-
-            return existing;
-        }
-
-        #endregion
-
-        #region Deleted Jobs
-
-        public async Task<List<ProductionJob>>
-            GetDeletedAsync()
-        {
-            return await _repository
-                .GetDeletedAsync();
-        }
-
-
-        public async Task RestoreAsync(
-    int id)
-        {
-            #region Load Deleted Production Job
-
-            var productionJob =
-                await _repository
-                    .GetDeletedForUpdateAsync(id);
-
-
-            if (productionJob == null)
-            {
-                throw new BusinessException(
-                    "Deleted Production Job not found.");
-            }
-
-            #endregion
-
-
-            #region Validate Quantity Before Restore
-
-            // Cancelled Jobs are intentionally excluded from
-            // allocated Production quantity.
-            if (productionJob.Status !=
-                ProductionJobStatus.Cancelled)
-            {
-                var sourceItem =
-                    await _repository
-                        .GetCustomerPurchaseOrderItemForProductionAsync(
-                            productionJob.CustomerPurchaseOrderItemId);
-
-
-                if (sourceItem == null)
-                {
-                    throw new BusinessException(
-                        "Customer PO Item is no longer available for Production.");
-                }
-
-
-                var allocatedQuantity =
-                    await _repository
-                        .GetAllocatedJobQuantityAsync(
-                            productionJob.CustomerPurchaseOrderItemId);
-
-
-                var remainingQuantity =
-                    sourceItem.OrderedQuantity -
-                    allocatedQuantity;
-
-
-                if (productionJob.JobQuantity >
-                    remainingQuantity)
-                {
-                    throw new BusinessException(
-                        $"Production Job cannot be restored. Only {remainingQuantity:0.###} {productionJob.UnitName} is currently available to plan.");
-                }
-            }
-
-            #endregion
-
-
-            #region Restore Production Job
-
-            productionJob.IsDeleted =
-                false;
-
-            productionJob.IsActive =
-                true;
-
-            productionJob.ModifiedOn =
-                DateTime.UtcNow;
-
-            productionJob.ModifiedBy =
-                "System";
-
-            #endregion
-
-
-            #region Restore Production Steps
-
-            foreach (var step in
-                productionJob.Steps)
-            {
-                step.IsDeleted =
-                    false;
-
-                step.IsActive =
-                    true;
-
-                step.ModifiedOn =
-                    DateTime.UtcNow;
-
-                step.ModifiedBy =
-                    "System";
-            }
-
-            #endregion
-
-
-            await _repository
-                .UpdateAsync(
-                    productionJob);
-        }
-
-        #endregion
 
         #region Pagination
 
@@ -2039,15 +2883,21 @@ namespace AjayIndustriesERP.Application.Services
         {
             if (pageNumber < 1)
             {
-                pageNumber = 1;
+                pageNumber =
+                    1;
             }
 
 
-            if (pageSize != 10 &&
-                pageSize != 25 &&
-                pageSize != 50)
+            if (
+                pageSize != 10
+                &&
+                pageSize != 25
+                &&
+                pageSize != 50
+            )
             {
-                pageSize = 10;
+                pageSize =
+                    10;
             }
         }
 

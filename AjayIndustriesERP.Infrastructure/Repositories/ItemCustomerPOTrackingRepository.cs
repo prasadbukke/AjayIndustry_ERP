@@ -22,7 +22,7 @@ Production Tracking is separated into:
 
 1. Production Job Progress
    Example:
-   5 / 10 Completed
+   1 / 1 Completed
 
 2. Production PO Status
    Pending
@@ -47,7 +47,16 @@ Completed:
   belonging to the complete Customer PO
   are Completed.
 
+Current Production Structure:
+
+Customer Purchase Order
+        ↓
+Production Job
+        ↓
+Production Job Items
+
 Important:
+- ProductionJob directly stores CustomerPurchaseOrderId.
 - Production PO calculation is CUSTOMER PO LEVEL.
 - It is NOT Customer PO Item level.
 - Item filter does not reduce Production Job count.
@@ -130,16 +139,16 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 PagedResult<ItemCustomerPOTrackingRepositoryRow>
             {
                 Items =
-                        pagedRows,
+                    pagedRows,
 
                 PageNumber =
-                        pageNumber,
+                    pageNumber,
 
                 PageSize =
-                        pageSize,
+                    pageSize,
 
                 TotalRecords =
-                        totalRecords
+                    totalRecords
             };
         }
 
@@ -238,11 +247,11 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 #region Main Summary
 
                 TotalPurchaseOrders =
-                        poGroups.Count,
+                    poGroups.Count,
 
                 TotalOrderedQuantity =
-                        rows.Sum(row =>
-                            row.OrderedQuantity),
+                    rows.Sum(row =>
+                        row.OrderedQuantity),
 
                 #endregion
 
@@ -250,28 +259,28 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 #region Priority Summary
 
                 CriticalPriorityPurchaseOrders =
-                        poPriorities.Count(priority =>
-                            PriorityEquals(
-                                priority,
-                                CustomerPurchaseOrderPriority.Critical)),
+                    poPriorities.Count(priority =>
+                        PriorityEquals(
+                            priority,
+                            CustomerPurchaseOrderPriority.Critical)),
 
                 UrgentPurchaseOrders =
-                        poPriorities.Count(priority =>
-                            PriorityEquals(
-                                priority,
-                                CustomerPurchaseOrderPriority.Urgent)),
+                    poPriorities.Count(priority =>
+                        PriorityEquals(
+                            priority,
+                            CustomerPurchaseOrderPriority.Urgent)),
 
                 HighPriorityPurchaseOrders =
-                        poPriorities.Count(priority =>
-                            PriorityEquals(
-                                priority,
-                                CustomerPurchaseOrderPriority.High)),
+                    poPriorities.Count(priority =>
+                        PriorityEquals(
+                            priority,
+                            CustomerPurchaseOrderPriority.High)),
 
                 NormalPriorityPurchaseOrders =
-                        poPriorities.Count(priority =>
-                            PriorityEquals(
-                                priority,
-                                CustomerPurchaseOrderPriority.Normal)),
+                    poPriorities.Count(priority =>
+                        PriorityEquals(
+                            priority,
+                            CustomerPurchaseOrderPriority.Normal)),
 
                 #endregion
 
@@ -279,25 +288,25 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 #region Production PO Summary
 
                 ProductionPendingPurchaseOrders =
-                        poProductionStatuses.Count(status =>
-                            string.Equals(
-                                status,
-                                "Pending",
-                                StringComparison.OrdinalIgnoreCase)),
+                    poProductionStatuses.Count(status =>
+                        string.Equals(
+                            status,
+                            "Pending",
+                            StringComparison.OrdinalIgnoreCase)),
 
                 ProductionInProgressPurchaseOrders =
-                        poProductionStatuses.Count(status =>
-                            string.Equals(
-                                status,
-                                "In Progress",
-                                StringComparison.OrdinalIgnoreCase)),
+                    poProductionStatuses.Count(status =>
+                        string.Equals(
+                            status,
+                            "In Progress",
+                            StringComparison.OrdinalIgnoreCase)),
 
                 ProductionCompletedPurchaseOrders =
-                        poProductionStatuses.Count(status =>
-                            string.Equals(
-                                status,
-                                "Completed",
-                                StringComparison.OrdinalIgnoreCase))
+                    poProductionStatuses.Count(status =>
+                        string.Equals(
+                            status,
+                            "Completed",
+                            StringComparison.OrdinalIgnoreCase))
 
                 #endregion
             };
@@ -841,87 +850,25 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             #endregion
 
 
-            #region Load ALL Items Of Matching Customer POs
-
-            /*
-             * CRITICAL FIX:
-             *
-             * Suppose Item filter shows only SHAFT.
-             *
-             * That Customer PO may contain:
-             *
-             * SHAFT
-             * GEAR
-             * BUSH
-             * FLANGE
-             *
-             * Production PO Status must use Production Jobs
-             * belonging to ALL those PO Items,
-             * not only SHAFT.
-             */
-
-            var allCustomerPOItems =
-                await _context
-                    .CustomerPurchaseOrderItems
-                    .AsNoTracking()
-                    .Where(item =>
-                        !item.IsDeleted &&
-                        item.IsActive &&
-
-                        customerPurchaseOrderIds
-                            .Contains(
-                                item.CustomerPurchaseOrderId))
-                    .Select(item =>
-                        new CustomerPOItemLinkRow
-                        {
-                            CustomerPurchaseOrderItemId =
-                                item.Id,
-
-                            CustomerPurchaseOrderId =
-                                item.CustomerPurchaseOrderId
-                        })
-                    .ToListAsync();
-
-            #endregion
-
-
-            #region PO Item To PO Lookup
-
-            var poItemToPO =
-                allCustomerPOItems
-                    .ToDictionary(
-                        item =>
-                            item.CustomerPurchaseOrderItemId,
-
-                        item =>
-                            item.CustomerPurchaseOrderId);
-
-            #endregion
-
-
-            #region All Customer PO Item IDs
-
-            var allCustomerPOItemIds =
-                allCustomerPOItems
-                    .Select(item =>
-                        item.CustomerPurchaseOrderItemId)
-                    .Distinct()
-                    .ToList();
-
-            #endregion
-
-
             #region Load ALL Production Jobs For Matching POs
 
             /*
-             * Production Jobs are linked to
-             * CustomerPurchaseOrderItemId.
+             * CURRENT PRODUCTION ARCHITECTURE:
              *
-             * We fetch jobs for ALL items belonging
-             * to the matching Customer POs.
+             * CustomerPurchaseOrder
+             *          ↓
+             * ProductionJob
              *
-             * Cancelled and inactive/deleted jobs
-             * are not considered.
+             * ProductionJob directly stores
+             * CustomerPurchaseOrderId.
+             *
+             * Therefore no Customer PO Item mapping
+             * is required here.
+             *
+             * Item filter still does NOT reduce
+             * Production Job count because we load Jobs
+             * for every complete Customer PO represented
+             * in rawRows.
              */
 
             var productionJobs =
@@ -929,9 +876,9 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     .ProductionJobs
                     .AsNoTracking()
                     .Where(job =>
-                        allCustomerPOItemIds
+                        customerPurchaseOrderIds
                             .Contains(
-                                job.CustomerPurchaseOrderItemId)
+                                job.CustomerPurchaseOrderId)
                         &&
                         !job.IsDeleted
                         &&
@@ -942,8 +889,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     .Select(job =>
                         new ProductionJobTrackingRow
                         {
-                            CustomerPurchaseOrderItemId =
-                                job.CustomerPurchaseOrderItemId,
+                            CustomerPurchaseOrderId =
+                                job.CustomerPurchaseOrderId,
 
                             Status =
                                 job.Status
@@ -955,48 +902,16 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
             #region Group Production Jobs By Customer PO
 
-            /*
-             * Convert:
-             *
-             * Production Job
-             * → CustomerPurchaseOrderItemId
-             * → CustomerPurchaseOrderId
-             */
-
             var productionJobsByPO =
-                new Dictionary<
-                    int,
-                    List<ProductionJobTrackingRow>>();
+                productionJobs
+                    .GroupBy(job =>
+                        job.CustomerPurchaseOrderId)
+                    .ToDictionary(
+                        group =>
+                            group.Key,
 
-
-            foreach (var job in productionJobs)
-            {
-                if (!poItemToPO.TryGetValue(
-                    job.CustomerPurchaseOrderItemId,
-                    out var customerPurchaseOrderId))
-                {
-                    continue;
-                }
-
-
-                if (!productionJobsByPO.TryGetValue(
-                    customerPurchaseOrderId,
-                    out var poJobs))
-                {
-                    poJobs =
-                        new List<
-                            ProductionJobTrackingRow>();
-
-
-                    productionJobsByPO[
-                        customerPurchaseOrderId] =
-                            poJobs;
-                }
-
-
-                poJobs.Add(
-                    job);
-            }
+                        group =>
+                            group.ToList());
 
             #endregion
 
@@ -1244,13 +1159,13 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     ProductionPOSummaryRow
                 {
                     TotalProductionJobs =
-                            0,
+                        0,
 
                     CompletedProductionJobs =
-                            0,
+                        0,
 
                     ProductionPOStatus =
-                            "Pending"
+                        "Pending"
                 };
             }
 
@@ -1262,11 +1177,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             /*
              * This is the ONLY condition where
              * Production PO becomes Completed.
-             *
-             * Example:
-             *
-             * Total Jobs     = 10
-             * Completed Jobs = 10
              */
 
             if (completedJobs ==
@@ -1276,13 +1186,13 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     ProductionPOSummaryRow
                 {
                     TotalProductionJobs =
-                            totalJobs,
+                        totalJobs,
 
                     CompletedProductionJobs =
-                            completedJobs,
+                        completedJobs,
 
                     ProductionPOStatus =
-                            "Completed"
+                        "Completed"
                 };
             }
 
@@ -1319,13 +1229,13 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     ProductionPOSummaryRow
                 {
                     TotalProductionJobs =
-                            totalJobs,
+                        totalJobs,
 
                     CompletedProductionJobs =
-                            completedJobs,
+                        completedJobs,
 
                     ProductionPOStatus =
-                            "In Progress"
+                        "In Progress"
                 };
             }
 
@@ -1343,13 +1253,13 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 ProductionPOSummaryRow
             {
                 TotalProductionJobs =
-                        totalJobs,
+                    totalJobs,
 
                 CompletedProductionJobs =
-                        completedJobs,
+                    completedJobs,
 
                 ProductionPOStatus =
-                        "Pending"
+                    "Pending"
             };
 
             #endregion
@@ -1687,32 +1597,11 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
         #endregion
 
 
-        #region Customer PO Item Link Row
-
-        private sealed class CustomerPOItemLinkRow
-        {
-            public int CustomerPurchaseOrderItemId
-            {
-                get;
-                set;
-            }
-
-
-            public int CustomerPurchaseOrderId
-            {
-                get;
-                set;
-            }
-        }
-
-        #endregion
-
-
         #region Production Job Tracking Row
 
         private sealed class ProductionJobTrackingRow
         {
-            public int CustomerPurchaseOrderItemId
+            public int CustomerPurchaseOrderId
             {
                 get;
                 set;

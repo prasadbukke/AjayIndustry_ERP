@@ -5,13 +5,24 @@ File: PreDispatchInspectionController.cs
 Purpose:
 Handles Pre-Dispatch / Final Inspection HTTP requests.
 
+Production Structure:
+
+Customer Purchase Order
+        ↓
+Production Job
+        ↓
+Production Job Item
+        ↓
+Pre-Dispatch Inspection
+
 Responsibilities:
 - Display PDI Report Index.
-- Create PDI Report from Completed Production Job.
-- Auto-load Production Job source information.
+- Create PDI Report from completed Production Job Item.
+- Auto-load trusted Production source information.
 - Edit Draft PDI Report.
 - Display complete PDI Report Details.
 - Finalize Draft PDI Report.
+- Download Finalized PDI PDF.
 - Soft-delete Draft PDI Report.
 - Display deleted PDI Reports.
 - Restore deleted Draft PDI Report.
@@ -20,10 +31,19 @@ Responsibilities:
 Important:
 - Controller does not access DbContext or Repository.
 - Business logic belongs in PreDispatchInspectionService.
-- Production Job is the primary PDI source.
+- Production Job is the parent Production transaction.
+- Production Job Item is the actual PDI source.
 - Customer / PO / Item / Drawing source data is trusted
-  from the Application Service.
+  from Application Service.
 - Finalized PDI Reports are read-only.
+
+Temporary UI Compatibility:
+- Existing PreDispatchInspectionFormViewModel uses
+  property name ProductionJobId for the source dropdown.
+- The dropdown value now represents ProductionJobItemId.
+- Domain PreDispatchInspection still stores BOTH:
+    ProductionJobId
+    ProductionJobItemId
 ============================================================
 */
 
@@ -143,10 +163,20 @@ namespace AjayIndustriesERP.Web.Controllers
         public async Task<IActionResult> Create(
             int? productionJobId = null)
         {
+            /*
+             * IMPORTANT:
+             *
+             * Existing route/query parameter name
+             * productionJobId is retained for UI compatibility.
+             *
+             * Its value represents ProductionJobItemId.
+             */
+
             #region Empty Form
 
             if (
-                !productionJobId.HasValue ||
+                !productionJobId.HasValue
+                ||
                 productionJobId.Value <= 0
             )
             {
@@ -175,20 +205,24 @@ namespace AjayIndustriesERP.Web.Controllers
             #endregion
 
 
-            #region Prepare Selected Production Job
+            #region Prepare Selected Production Item
 
             try
             {
+                var productionJobItemId =
+                    productionJobId.Value;
+
+
                 var prepared =
                     await _preDispatchInspectionService
                         .PrepareDraftAsync(
-                            productionJobId.Value);
+                            productionJobItemId);
 
 
                 if (prepared == null)
                 {
                     TempData["ErrorMessage"] =
-                        "Selected Production Job is not available for Inspection.";
+                        "Selected Production Item is not available for Inspection.";
 
 
                     return RedirectToAction(
@@ -199,13 +233,30 @@ namespace AjayIndustriesERP.Web.Controllers
                 var productionJob =
                     await _preDispatchInspectionService
                         .GetProductionJobForInspectionAsync(
-                            productionJobId.Value);
+                            productionJobItemId);
+
+
+                if (productionJob == null)
+                {
+                    TempData["ErrorMessage"] =
+                        "Selected Production Item is not available for Inspection.";
+
+
+                    return RedirectToAction(
+                        nameof(Create));
+                }
+
+
+                var productionJobItem =
+                    GetProductionJobItem(
+                        productionJob,
+                        productionJobItemId);
 
 
                 var remainingQuantity =
                     await _preDispatchInspectionService
                         .GetRemainingInspectionQuantityAsync(
-                            productionJobId.Value);
+                            productionJobItemId);
 
 
                 var viewModel =
@@ -214,8 +265,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 viewModel.JobQuantity =
-                    productionJob?.JobQuantity
-                    ?? 0;
+                    productionJobItem
+                        .ProductionQuantity;
 
 
                 viewModel.RemainingInspectionQuantity =
@@ -318,25 +369,15 @@ namespace AjayIndustriesERP.Web.Controllers
         #endregion
 
 
-        #region Production Job Auto Load
+        #region Production Item Auto Load
 
         /*
-         * Used by Create UI when Production Job changes.
+         * Used by Create UI when Production source changes.
          *
-         * Returns trusted source information:
+         * Existing action name and parameter name are retained
+         * for JavaScript compatibility.
          *
-         * - Customer
-         * - Customer PO
-         * - Item
-         * - Part Number
-         * - UOM
-         * - Job Quantity
-         * - Remaining Inspection Quantity
-         * - Workshop Drawing
-         * - Customer Drawing
-         * - Inspection Parameter Lines
-         * - Default 7 Observations
-         * - Default 3 Interval Readings
+         * productionJobId actually contains ProductionJobItemId.
          */
 
         [HttpGet]
@@ -350,19 +391,23 @@ namespace AjayIndustriesERP.Web.Controllers
                     new
                     {
                         message =
-                            "Invalid Production Job."
+                            "Invalid Production Item."
                     });
             }
 
 
             try
             {
-                #region Prepare PDI Source
+                #region Load Production Source
+
+                var productionJobItemId =
+                    productionJobId;
+
 
                 var productionJob =
                     await _preDispatchInspectionService
                         .GetProductionJobForInspectionAsync(
-                            productionJobId);
+                            productionJobItemId);
 
 
                 if (productionJob == null)
@@ -371,15 +416,21 @@ namespace AjayIndustriesERP.Web.Controllers
                         new
                         {
                             message =
-                                "Production Job is not available for Inspection."
+                                "Production Item is not available for Inspection."
                         });
                 }
+
+
+                var productionJobItem =
+                    GetProductionJobItem(
+                        productionJob,
+                        productionJobItemId);
 
 
                 var prepared =
                     await _preDispatchInspectionService
                         .PrepareDraftAsync(
-                            productionJobId);
+                            productionJobItemId);
 
 
                 if (prepared == null)
@@ -396,7 +447,7 @@ namespace AjayIndustriesERP.Web.Controllers
                 var remainingQuantity =
                     await _preDispatchInspectionService
                         .GetRemainingInspectionQuantityAsync(
-                            productionJobId);
+                            productionJobItemId);
 
                 #endregion
 
@@ -406,64 +457,124 @@ namespace AjayIndustriesERP.Web.Controllers
                 return Json(
                     new
                     {
+                        /*
+                         * Existing JavaScript expects this
+                         * property.
+                         *
+                         * Value = ProductionJobItemId.
+                         */
+
                         productionJobId =
-                            prepared.ProductionJobId,
+                            prepared
+                                .ProductionJobItemId,
+
+
+                        /*
+                         * Actual parent Production Job ID.
+                         */
+
+                        parentProductionJobId =
+                            prepared
+                                .ProductionJobId,
+
 
                         productionJobCode =
-                            prepared.ProductionJobCode,
+                            prepared
+                                .ProductionJobCode,
+
 
                         customerName =
-                            prepared.CustomerName,
+                            prepared
+                                .CustomerName,
+
 
                         customerPurchaseOrderCode =
-                            prepared.CustomerPurchaseOrderCode,
+                            prepared
+                                .CustomerPurchaseOrderCode,
+
 
                         customerPurchaseOrderNumber =
-                            prepared.CustomerPurchaseOrderNumber,
+                            prepared
+                                .CustomerPurchaseOrderNumber,
+
 
                         customerItemCode =
-                            prepared.CustomerItemCode,
+                            prepared
+                                .CustomerItemCode,
+
 
                         itemId =
                             prepared.ItemId,
 
+
                         itemCode =
                             prepared.ItemCode,
+
 
                         itemName =
                             prepared.ItemName,
 
+
                         partNumber =
                             prepared.PartNumber,
+
 
                         unitName =
                             prepared.UnitName,
 
+
+                        /*
+                         * Existing UI label is Job Quantity.
+                         *
+                         * New equivalent is item-level
+                         * Production Quantity.
+                         */
+
                         jobQuantity =
-                            productionJob.JobQuantity,
+                            productionJobItem
+                                .ProductionQuantity,
+
+
+                        completedQuantity =
+                            productionJobItem
+                                .CompletedQuantity,
+
 
                         remainingInspectionQuantity =
                             remainingQuantity,
 
+
                         inspectionQuantity =
-                            prepared.InspectionQuantity,
+                            prepared
+                                .InspectionQuantity,
+
 
                         workshopDrawingNumber =
-                            prepared.WorkshopDrawingNumber,
+                            prepared
+                                .WorkshopDrawingNumber,
+
 
                         workshopDrawingRevision =
-                            prepared.WorkshopDrawingRevision,
+                            prepared
+                                .WorkshopDrawingRevision,
+
 
                         customerDrawingNumber =
-                            prepared.CustomerDrawingNumber,
+                            prepared
+                                .CustomerDrawingNumber,
+
 
                         customerDrawingRevision =
-                            prepared.CustomerDrawingRevision,
+                            prepared
+                                .CustomerDrawingRevision,
+
 
                         lines =
-                            prepared.Lines
+                            prepared
+                                .Lines
                                 .Where(x =>
-                                    !x.IsDeleted &&
+                                    !x.IsDeleted
+                                    &&
                                     x.IsActive)
                                 .OrderBy(x =>
                                     x.SequenceNumber)
@@ -483,38 +594,46 @@ namespace AjayIndustriesERP.Web.Controllers
                                             line.Specification,
 
                                         inspectionMethod =
-                                            line.InspectionMethod,
+                                            line
+                                                .InspectionMethod,
 
                                         result =
-                                            (int)line.Result,
+                                            (int)
+                                                line.Result,
 
                                         remarks =
                                             line.Remarks,
 
                                         observations =
-                                            line.Observations
+                                            line
+                                                .Observations
                                                 .Where(x =>
-                                                    !x.IsDeleted &&
+                                                    !x.IsDeleted
+                                                    &&
                                                     x.IsActive)
                                                 .OrderBy(x =>
                                                     x.IsIntervalReading)
                                                 .ThenBy(x =>
                                                     x.SequenceNumber)
-                                                .Select(observation =>
-                                                    new
-                                                    {
-                                                        id =
-                                                            observation.Id,
+                                                .Select(
+                                                    observation =>
+                                                        new
+                                                        {
+                                                            id =
+                                                                observation.Id,
 
-                                                        sequenceNumber =
-                                                            observation.SequenceNumber,
+                                                            sequenceNumber =
+                                                                observation
+                                                                    .SequenceNumber,
 
-                                                        isIntervalReading =
-                                                            observation.IsIntervalReading,
+                                                            isIntervalReading =
+                                                                observation
+                                                                    .IsIntervalReading,
 
-                                                        value =
-                                                            observation.Value
-                                                    })
+                                                            value =
+                                                                observation
+                                                                    .Value
+                                                        })
                                                 .ToList()
                                     })
                                 .ToList()
@@ -560,8 +679,10 @@ namespace AjayIndustriesERP.Web.Controllers
 
             #region Validate Draft
 
-            if (preDispatchInspection.Status !=
-                PreDispatchInspectionStatus.Draft)
+            if (
+                preDispatchInspection.Status !=
+                    PreDispatchInspectionStatus.Draft
+            )
             {
                 TempData["ErrorMessage"] =
                     "Only Draft PDI Report can be edited.";
@@ -584,7 +705,7 @@ namespace AjayIndustriesERP.Web.Controllers
                 await _preDispatchInspectionService
                     .GetRemainingInspectionQuantityAsync(
                         preDispatchInspection
-                            .ProductionJobId,
+                            .ProductionJobItemId,
                         preDispatchInspection.Id);
 
             #endregion
@@ -599,9 +720,11 @@ namespace AjayIndustriesERP.Web.Controllers
 
             viewModel.JobQuantity =
                 preDispatchInspection
-                    .ProductionJob?
-                    .JobQuantity
-                ?? 0;
+                    .ProductionJobItem?
+                    .ProductionQuantity
+                ??
+                preDispatchInspection
+                    .InspectionQuantity;
 
 
             viewModel.RemainingInspectionQuantity =
@@ -609,22 +732,28 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             /*
-             * Production Job is permanent after PDI Create.
-             * This list is only populated for safe model
-             * binding / display if the shared form needs it.
+             * Production source is permanent after
+             * PDI Create.
+             *
+             * Existing form dropdown property name is
+             * ProductionJobId, but its value is
+             * ProductionJobItemId.
              */
+
+            viewModel.ProductionJobs.Clear();
+
 
             viewModel.ProductionJobs.Add(
                 new SelectListItem
                 {
                     Value =
                         preDispatchInspection
-                            .ProductionJobId
+                            .ProductionJobItemId
                             .ToString(),
 
                     Text =
-                        preDispatchInspection
-                            .ProductionJobCode,
+                        BuildExistingProductionSourceText(
+                            preDispatchInspection),
 
                     Selected =
                         true
@@ -756,6 +885,7 @@ namespace AjayIndustriesERP.Web.Controllers
         }
 
         #endregion
+
 
         #region Download PDF
 
@@ -919,7 +1049,7 @@ namespace AjayIndustriesERP.Web.Controllers
         private async Task ReloadCreateFormAsync(
             PreDispatchInspectionFormViewModel viewModel)
         {
-            #region Production Job Dropdown
+            #region Production Source Dropdown
 
             await LoadProductionJobsAsync(
                 viewModel);
@@ -929,6 +1059,11 @@ namespace AjayIndustriesERP.Web.Controllers
 
             #region Source Information
 
+            /*
+             * ProductionJobId property on Form ViewModel
+             * contains ProductionJobItemId.
+             */
+
             if (viewModel.ProductionJobId <= 0)
             {
                 return;
@@ -937,20 +1072,26 @@ namespace AjayIndustriesERP.Web.Controllers
 
             try
             {
+                var productionJobItemId =
+                    viewModel
+                        .ProductionJobId;
+
+
                 var productionJob =
                     await _preDispatchInspectionService
                         .GetProductionJobForInspectionAsync(
-                            viewModel.ProductionJobId);
+                            productionJobItemId);
 
 
                 var prepared =
                     await _preDispatchInspectionService
                         .PrepareDraftAsync(
-                            viewModel.ProductionJobId);
+                            productionJobItemId);
 
 
                 if (
-                    productionJob == null ||
+                    productionJob == null
+                    ||
                     prepared == null
                 )
                 {
@@ -958,10 +1099,16 @@ namespace AjayIndustriesERP.Web.Controllers
                 }
 
 
+                var productionJobItem =
+                    GetProductionJobItem(
+                        productionJob,
+                        productionJobItemId);
+
+
                 var remainingQuantity =
                     await _preDispatchInspectionService
                         .GetRemainingInspectionQuantityAsync(
-                            viewModel.ProductionJobId);
+                            productionJobItemId);
 
 
                 ApplyTrustedDisplayValues(
@@ -970,7 +1117,8 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 viewModel.JobQuantity =
-                    productionJob.JobQuantity;
+                    productionJobItem
+                        .ProductionQuantity;
 
 
                 viewModel.RemainingInspectionQuantity =
@@ -979,8 +1127,8 @@ namespace AjayIndustriesERP.Web.Controllers
             catch (BusinessException)
             {
                 /*
-                 * Original BusinessException is handled
-                 * by the calling action.
+                 * Original validation / business message
+                 * is handled by calling action.
                  */
             }
 
@@ -1027,12 +1175,19 @@ namespace AjayIndustriesERP.Web.Controllers
                 existing.Result;
 
 
+            /*
+             * Form compatibility field:
+             * value = ProductionJobItemId.
+             */
+
             viewModel.ProductionJobId =
-                existing.ProductionJobId;
+                existing
+                    .ProductionJobItemId;
 
 
             viewModel.ProductionJobCode =
-                existing.ProductionJobCode;
+                existing
+                    .ProductionJobCode;
 
 
             viewModel.CustomerName =
@@ -1040,11 +1195,13 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             viewModel.CustomerPurchaseOrderCode =
-                existing.CustomerPurchaseOrderCode;
+                existing
+                    .CustomerPurchaseOrderCode;
 
 
             viewModel.CustomerPurchaseOrderNumber =
-                existing.CustomerPurchaseOrderNumber;
+                existing
+                    .CustomerPurchaseOrderNumber;
 
 
             viewModel.CustomerItemCode =
@@ -1072,25 +1229,32 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             viewModel.WorkshopDrawingNumber =
-                existing.WorkshopDrawingNumber;
+                existing
+                    .WorkshopDrawingNumber;
 
 
             viewModel.WorkshopDrawingRevision =
-                existing.WorkshopDrawingRevision;
+                existing
+                    .WorkshopDrawingRevision;
 
 
             viewModel.CustomerDrawingNumber =
-                existing.CustomerDrawingNumber;
+                existing
+                    .CustomerDrawingNumber;
 
 
             viewModel.CustomerDrawingRevision =
-                existing.CustomerDrawingRevision;
+                existing
+                    .CustomerDrawingRevision;
 
 
             viewModel.JobQuantity =
-                existing.ProductionJob?
-                    .JobQuantity
-                ?? 0;
+                existing
+                    .ProductionJobItem?
+                    .ProductionQuantity
+                ??
+                existing
+                    .InspectionQuantity;
 
             #endregion
 
@@ -1102,19 +1266,21 @@ namespace AjayIndustriesERP.Web.Controllers
                 viewModel.RemainingInspectionQuantity =
                     await _preDispatchInspectionService
                         .GetRemainingInspectionQuantityAsync(
-                            existing.ProductionJobId,
+                            existing
+                                .ProductionJobItemId,
                             existing.Id);
             }
             catch (BusinessException)
             {
                 viewModel.RemainingInspectionQuantity =
-                    existing.InspectionQuantity;
+                    existing
+                        .InspectionQuantity;
             }
 
             #endregion
 
 
-            #region Production Job Display Option
+            #region Production Source Display Option
 
             viewModel.ProductionJobs.Clear();
 
@@ -1124,12 +1290,12 @@ namespace AjayIndustriesERP.Web.Controllers
                 {
                     Value =
                         existing
-                            .ProductionJobId
+                            .ProductionJobItemId
                             .ToString(),
 
                     Text =
-                        existing
-                            .ProductionJobCode,
+                        BuildExistingProductionSourceText(
+                            existing),
 
                     Selected =
                         true
@@ -1141,7 +1307,7 @@ namespace AjayIndustriesERP.Web.Controllers
         #endregion
 
 
-        #region Production Job Dropdown
+        #region Production Source Dropdown
 
         private async Task LoadProductionJobsAsync(
             PreDispatchInspectionFormViewModel viewModel)
@@ -1151,44 +1317,156 @@ namespace AjayIndustriesERP.Web.Controllers
                     .GetProductionJobsForInspectionAsync();
 
 
-            viewModel.ProductionJobs =
-                productionJobs
-                    .Select(x =>
+            var options =
+                new List<SelectListItem>();
+
+
+            foreach (var productionJob
+                     in productionJobs
+                         .OrderByDescending(x =>
+                             x.Id))
+            {
+                var productionJobItems =
+                    productionJob
+                        .Items
+                        .Where(item =>
+                            !item.IsDeleted
+                            &&
+                            item.IsActive
+                            &&
+                            item.ProductionQuantity > 0m
+                            &&
+                            item.CompletedQuantity >=
+                                item.ProductionQuantity)
+                        .OrderBy(item =>
+                            item.Id)
+                        .ToList();
+
+
+                foreach (var productionJobItem
+                         in productionJobItems)
+                {
+                    decimal remainingQuantity;
+
+
+                    try
+                    {
+                        remainingQuantity =
+                            await _preDispatchInspectionService
+                                .GetRemainingInspectionQuantityAsync(
+                                    productionJobItem.Id);
+                    }
+                    catch (BusinessException)
+                    {
+                        continue;
+                    }
+
+
+                    if (remainingQuantity <= 0m)
+                    {
+                        continue;
+                    }
+
+
+                    options.Add(
                         new SelectListItem
                         {
                             Value =
-                                x.Id.ToString(),
+                                productionJobItem
+                                    .Id
+                                    .ToString(),
 
                             Text =
                                 BuildProductionJobOptionText(
-                                    x),
+                                    productionJob,
+                                    productionJobItem),
 
                             Selected =
-                                x.Id ==
+                                productionJobItem.Id ==
                                 viewModel
                                     .ProductionJobId
-                        })
-                    .ToList();
+                        });
+                }
+            }
+
+
+            viewModel.ProductionJobs =
+                options;
         }
 
 
         private static string
             BuildProductionJobOptionText(
-                ProductionJob productionJob)
+                ProductionJob productionJob,
+                ProductionJobItem productionJobItem)
         {
             var customerName =
-                productionJob
-                    .CustomerPurchaseOrderItem
-                    ?.CustomerPurchaseOrder
-                    ?.CustomerName
-                ?? string.Empty;
+    productionJob
+        .CustomerPurchaseOrder
+        ?.CustomerName
+    ??
+    string.Empty;
+
+
+            var unitText =
+                string.IsNullOrWhiteSpace(
+                    productionJobItem.UnitName)
+                    ? string.Empty
+                    : $" {productionJobItem.UnitName}";
 
 
             return
                 $"{productionJob.Code} | " +
                 $"{customerName} | " +
-                $"{productionJob.ItemCode} - " +
-                $"{productionJob.ItemName}";
+                $"{productionJobItem.ItemCode} - " +
+                $"{productionJobItem.ItemName} | " +
+                $"Qty {productionJobItem.ProductionQuantity:0.###}" +
+                unitText;
+        }
+
+
+        private static string
+            BuildExistingProductionSourceText(
+                PreDispatchInspection
+                    preDispatchInspection)
+        {
+            return
+                $"{preDispatchInspection.ProductionJobCode} | " +
+                $"{preDispatchInspection.CustomerName} | " +
+                $"{preDispatchInspection.ItemCode} - " +
+                $"{preDispatchInspection.ItemName}";
+        }
+
+        #endregion
+
+
+        #region Production Job Item Helper
+
+        private static ProductionJobItem
+            GetProductionJobItem(
+                ProductionJob productionJob,
+                int productionJobItemId)
+        {
+            var productionJobItem =
+                productionJob
+                    .Items
+                    .FirstOrDefault(item =>
+                        item.Id ==
+                            productionJobItemId
+                        &&
+                        !item.IsDeleted
+                        &&
+                        item.IsActive);
+
+
+            if (productionJobItem == null)
+            {
+                throw new BusinessException(
+                    "Production Item information is missing from Production Job.");
+            }
+
+
+            return productionJobItem;
         }
 
         #endregion
@@ -1221,9 +1499,20 @@ namespace AjayIndustriesERP.Web.Controllers
                         preDispatchInspection
                             .InspectionDate,
 
+
+                    /*
+                     * Compatibility:
+                     *
+                     * Form property is still named
+                     * ProductionJobId.
+                     *
+                     * Value = ProductionJobItemId.
+                     */
+
                     ProductionJobId =
                         preDispatchInspection
-                            .ProductionJobId,
+                            .ProductionJobItemId,
+
 
                     ProductionJobCode =
                         preDispatchInspection
@@ -1278,9 +1567,11 @@ namespace AjayIndustriesERP.Web.Controllers
 
                     JobQuantity =
                         preDispatchInspection
-                            .ProductionJob?
-                            .JobQuantity
-                        ?? 0,
+                            .ProductionJobItem?
+                            .ProductionQuantity
+                        ??
+                        preDispatchInspection
+                            .InspectionQuantity,
 
                     InspectionQuantity =
                         preDispatchInspection
@@ -1331,13 +1622,14 @@ namespace AjayIndustriesERP.Web.Controllers
             #region Lines
 
             foreach (var line
-                in preDispatchInspection
-                    .Lines
-                    .Where(x =>
-                        !x.IsDeleted &&
-                        x.IsActive)
-                    .OrderBy(x =>
-                        x.SequenceNumber))
+                     in preDispatchInspection
+                         .Lines
+                         .Where(x =>
+                             !x.IsDeleted
+                             &&
+                             x.IsActive)
+                         .OrderBy(x =>
+                             x.SequenceNumber))
             {
                 var lineViewModel =
                     new PreDispatchInspectionLineViewModel
@@ -1366,14 +1658,16 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 foreach (var observation
-                    in line.Observations
-                        .Where(x =>
-                            !x.IsDeleted &&
-                            x.IsActive)
-                        .OrderBy(x =>
-                            x.IsIntervalReading)
-                        .ThenBy(x =>
-                            x.SequenceNumber))
+                         in line
+                             .Observations
+                             .Where(x =>
+                                 !x.IsDeleted
+                                 &&
+                                 x.IsActive)
+                             .OrderBy(x =>
+                                 x.IsIntervalReading)
+                             .ThenBy(x =>
+                                 x.SequenceNumber))
                 {
                     lineViewModel
                         .Observations
@@ -1423,8 +1717,19 @@ namespace AjayIndustriesERP.Web.Controllers
                     Id =
                         viewModel.Id,
 
-                    ProductionJobId =
-                        viewModel.ProductionJobId,
+
+                    /*
+                     * Form ProductionJobId contains the
+                     * selected ProductionJobItemId.
+                     *
+                     * Actual parent ProductionJobId is
+                     * resolved again by Application Service.
+                     */
+
+                    ProductionJobItemId =
+                        viewModel
+                            .ProductionJobId,
+
 
                     InspectionDate =
                         viewModel.InspectionDate,
@@ -1471,7 +1776,7 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             foreach (var lineViewModel
-                in viewModel.Lines)
+                     in viewModel.Lines)
             {
                 var line =
                     new PreDispatchInspectionLine
@@ -1503,8 +1808,8 @@ namespace AjayIndustriesERP.Web.Controllers
                 #region Observations
 
                 foreach (var observationViewModel
-                    in lineViewModel
-                        .Observations)
+                         in lineViewModel
+                             .Observations)
                 {
                     line.Observations.Add(
                         new PreDispatchInspectionObservation
@@ -1521,7 +1826,8 @@ namespace AjayIndustriesERP.Web.Controllers
                                     .IsIntervalReading,
 
                             Value =
-                                observationViewModel.Value
+                                observationViewModel
+                                    .Value
                         });
                 }
 
@@ -1581,11 +1887,17 @@ namespace AjayIndustriesERP.Web.Controllers
                         preDispatchInspection
                             .ProductionJobCode,
 
+                    /*
+                     * Old JobQuantity equivalent is
+                     * ProductionJobItem.ProductionQuantity.
+                     */
+
                     JobQuantity =
                         preDispatchInspection
-                            .ProductionJob?
-                            .JobQuantity
-                        ?? preDispatchInspection
+                            .ProductionJobItem?
+                            .ProductionQuantity
+                        ??
+                        preDispatchInspection
                             .InspectionQuantity,
 
                     CustomerId =
@@ -1716,13 +2028,14 @@ namespace AjayIndustriesERP.Web.Controllers
             #region Lines
 
             foreach (var line
-                in preDispatchInspection
-                    .Lines
-                    .Where(x =>
-                        !x.IsDeleted &&
-                        x.IsActive)
-                    .OrderBy(x =>
-                        x.SequenceNumber))
+                     in preDispatchInspection
+                         .Lines
+                         .Where(x =>
+                             !x.IsDeleted
+                             &&
+                             x.IsActive)
+                         .OrderBy(x =>
+                             x.SequenceNumber))
             {
                 var lineViewModel =
                     new PreDispatchInspectionLineDetailsViewModel
@@ -1751,14 +2064,16 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
                 foreach (var observation
-                    in line.Observations
-                        .Where(x =>
-                            !x.IsDeleted &&
-                            x.IsActive)
-                        .OrderBy(x =>
-                            x.IsIntervalReading)
-                        .ThenBy(x =>
-                            x.SequenceNumber))
+                         in line
+                             .Observations
+                             .Where(x =>
+                                 !x.IsDeleted
+                                 &&
+                                 x.IsActive)
+                             .OrderBy(x =>
+                                 x.IsIntervalReading)
+                             .ThenBy(x =>
+                                 x.SequenceNumber))
                 {
                     lineViewModel
                         .Observations
@@ -1802,8 +2117,18 @@ namespace AjayIndustriesERP.Web.Controllers
                 PreDispatchInspectionFormViewModel viewModel,
                 PreDispatchInspection prepared)
         {
+            /*
+             * Form compatibility field.
+             */
+
+            viewModel.ProductionJobId =
+                prepared
+                    .ProductionJobItemId;
+
+
             viewModel.ProductionJobCode =
-                prepared.ProductionJobCode;
+                prepared
+                    .ProductionJobCode;
 
 
             viewModel.CustomerName =
@@ -1811,11 +2136,13 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             viewModel.CustomerPurchaseOrderCode =
-                prepared.CustomerPurchaseOrderCode;
+                prepared
+                    .CustomerPurchaseOrderCode;
 
 
             viewModel.CustomerPurchaseOrderNumber =
-                prepared.CustomerPurchaseOrderNumber;
+                prepared
+                    .CustomerPurchaseOrderNumber;
 
 
             viewModel.CustomerItemCode =
@@ -1843,19 +2170,23 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             viewModel.WorkshopDrawingNumber =
-                prepared.WorkshopDrawingNumber;
+                prepared
+                    .WorkshopDrawingNumber;
 
 
             viewModel.WorkshopDrawingRevision =
-                prepared.WorkshopDrawingRevision;
+                prepared
+                    .WorkshopDrawingRevision;
 
 
             viewModel.CustomerDrawingNumber =
-                prepared.CustomerDrawingNumber;
+                prepared
+                    .CustomerDrawingNumber;
 
 
             viewModel.CustomerDrawingRevision =
-                prepared.CustomerDrawingRevision;
+                prepared
+                    .CustomerDrawingRevision;
         }
 
         #endregion
@@ -1872,7 +2203,8 @@ namespace AjayIndustriesERP.Web.Controllers
                     .Select(x =>
                         x.ErrorMessage)
                     .Where(x =>
-                        !string.IsNullOrWhiteSpace(x))
+                        !string.IsNullOrWhiteSpace(
+                            x))
                     .Distinct()
                     .ToList();
 

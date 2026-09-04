@@ -5,11 +5,21 @@ File: PreDispatchInspectionService.cs
 Purpose:
 Implements Pre-Dispatch / Final Inspection business rules.
 
+Production Structure:
+
+Customer Purchase Order
+        ↓
+Production Job
+        ↓
+Production Job Item
+        ↓
+Pre-Dispatch Inspection
+
 Responsibilities:
 - Read and search PDI Reports.
-- Load eligible Completed Production Jobs.
-- Calculate remaining Inspection Quantity.
-- Prepare PDI Draft from Production Job.
+- Load Production Jobs containing completed Production Items.
+- Calculate remaining Inspection Quantity Item-wise.
+- Prepare PDI Draft from Production Job Item.
 - Auto-load Customer / PO / Item information.
 - Auto-load current Workshop Drawing.
 - Auto-load current Customer Drawing.
@@ -28,11 +38,13 @@ Example:
 AI/PDI/26-27/00001
 
 Important:
-- Production Job is the primary source.
-- Source Header information is trusted from ERP.
+- Production Job is the parent Production transaction.
+- Production Job Item is the actual PDI source.
+- PDI quantity allocation is ProductionJobItem-wise.
+- Source information is trusted from ERP.
 - Browser-posted Customer / Item / Drawing snapshot
   values are not trusted.
-- One Production Job may have multiple PDI Reports.
+- One Production Job Item may have multiple PDI Reports.
 - Finalized PDI Reports are locked.
 - Final Drawing snapshot is refreshed before finalization.
 ============================================================
@@ -99,7 +111,8 @@ namespace AjayIndustriesERP.Application.Services
 
 
             return await _repository
-                .GetByIdAsync(id);
+                .GetByIdAsync(
+                    id);
         }
 
 
@@ -134,7 +147,7 @@ namespace AjayIndustriesERP.Application.Services
         #endregion
 
 
-        #region Production Job Source
+        #region Production Source
 
         public async Task<List<ProductionJob>>
             GetProductionJobsForInspectionAsync()
@@ -149,27 +162,71 @@ namespace AjayIndustriesERP.Application.Services
 
 
             foreach (var productionJob
-                in productionJobs)
+                     in productionJobs)
             {
-                var allocatedQuantity =
-                    await _repository
-                        .GetAllocatedInspectionQuantityAsync(
-                            productionJob.Id);
-
-
-                var remainingQuantity =
-                    productionJob.JobQuantity -
-                    allocatedQuantity;
-
-
-                if (remainingQuantity <= 0)
+                if (
+                    productionJob.IsDeleted
+                    ||
+                    !productionJob.IsActive
+                    ||
+                    productionJob.Status ==
+                        ProductionJobStatus.Cancelled
+                )
                 {
                     continue;
                 }
 
 
-                availableJobs.Add(
-                    productionJob);
+                var eligibleItems =
+                    productionJob
+                        .Items
+                        .Where(item =>
+                            !item.IsDeleted
+                            &&
+                            item.IsActive
+                            &&
+                            item.ProductionQuantity > 0m
+                            &&
+                            item.CompletedQuantity >=
+                                item.ProductionQuantity)
+                        .ToList();
+
+
+                var hasAvailableQuantity =
+                    false;
+
+
+                foreach (var productionJobItem
+                         in eligibleItems)
+                {
+                    var allocatedQuantity =
+                        await _repository
+                            .GetAllocatedInspectionQuantityAsync(
+                                productionJobItem.Id);
+
+
+                    var remainingQuantity =
+                        productionJobItem
+                            .CompletedQuantity
+                        -
+                        allocatedQuantity;
+
+
+                    if (remainingQuantity > 0m)
+                    {
+                        hasAvailableQuantity =
+                            true;
+
+                        break;
+                    }
+                }
+
+
+                if (hasAvailableQuantity)
+                {
+                    availableJobs.Add(
+                        productionJob);
+                }
             }
 
 
@@ -177,11 +234,20 @@ namespace AjayIndustriesERP.Application.Services
         }
 
 
+        /*
+         * IMPORTANT:
+         *
+         * productionJobItemId is the actual source ID.
+         *
+         * Repository returns the parent ProductionJob
+         * containing that ProductionJobItem.
+         */
+
         public async Task<ProductionJob?>
             GetProductionJobForInspectionAsync(
-                int productionJobId)
+                int productionJobItemId)
         {
-            if (productionJobId <= 0)
+            if (productionJobItemId <= 0)
             {
                 return null;
             }
@@ -189,28 +255,39 @@ namespace AjayIndustriesERP.Application.Services
 
             return await _repository
                 .GetProductionJobForInspectionAsync(
-                    productionJobId);
+                    productionJobItemId);
         }
 
 
         public async Task<decimal>
             GetRemainingInspectionQuantityAsync(
-                int productionJobId,
+                int productionJobItemId,
                 int? excludePreDispatchInspectionId = null)
         {
-            #region Load Production Job
+            #region Load Production Source
 
             var productionJob =
                 await _repository
                     .GetProductionJobForInspectionAsync(
-                        productionJobId);
+                        productionJobItemId);
 
 
             if (productionJob == null)
             {
                 throw new BusinessException(
-                    "Completed Production Job is not available for Inspection.");
+                    "Production Item is not available for Inspection.");
             }
+
+
+            var productionJobItem =
+                GetProductionJobItem(
+                    productionJob,
+                    productionJobItemId);
+
+
+            ValidateProductionSource(
+                productionJob,
+                productionJobItem);
 
             #endregion
 
@@ -220,19 +297,21 @@ namespace AjayIndustriesERP.Application.Services
             var allocatedQuantity =
                 await _repository
                     .GetAllocatedInspectionQuantityAsync(
-                        productionJobId,
+                        productionJobItemId,
                         excludePreDispatchInspectionId);
 
 
             var remainingQuantity =
-                productionJob.JobQuantity -
+                productionJobItem
+                    .CompletedQuantity
+                -
                 allocatedQuantity;
 
             #endregion
 
 
-            return remainingQuantity < 0
-                ? 0
+            return remainingQuantity < 0m
+                ? 0m
                 : remainingQuantity;
         }
 
@@ -243,20 +322,31 @@ namespace AjayIndustriesERP.Application.Services
 
         public async Task<PreDispatchInspection?>
             PrepareDraftAsync(
-                int productionJobId)
+                int productionJobItemId)
         {
-            #region Load Production Job
+            #region Load Production Source
 
             var productionJob =
                 await _repository
                     .GetProductionJobForInspectionAsync(
-                        productionJobId);
+                        productionJobItemId);
 
 
             if (productionJob == null)
             {
                 return null;
             }
+
+
+            var productionJobItem =
+                GetProductionJobItem(
+                    productionJob,
+                    productionJobItemId);
+
+
+            ValidateProductionSource(
+                productionJob,
+                productionJobItem);
 
             #endregion
 
@@ -265,13 +355,13 @@ namespace AjayIndustriesERP.Application.Services
 
             var remainingQuantity =
                 await GetRemainingInspectionQuantityAsync(
-                    productionJobId);
+                    productionJobItemId);
 
 
-            if (remainingQuantity <= 0)
+            if (remainingQuantity <= 0m)
             {
                 throw new BusinessException(
-                    "The complete Production Job Quantity is already allocated to PDI Reports.");
+                    "The complete produced Quantity of this Item is already allocated to PDI Reports.");
             }
 
             #endregion
@@ -285,6 +375,9 @@ namespace AjayIndustriesERP.Application.Services
                     ProductionJobId =
                         productionJob.Id,
 
+                    ProductionJobItemId =
+                        productionJobItem.Id,
+
                     InspectionDate =
                         DateTime.Today,
 
@@ -292,13 +385,13 @@ namespace AjayIndustriesERP.Application.Services
                         remainingQuantity,
 
                     AcceptedQuantity =
-                        0,
+                        0m,
 
                     ReworkQuantity =
-                        0,
+                        0m,
 
                     RejectedQuantity =
-                        0,
+                        0m,
 
                     Status =
                         PreDispatchInspectionStatus.Draft,
@@ -316,7 +409,8 @@ namespace AjayIndustriesERP.Application.Services
 
             await ApplyTrustedSourceAsync(
                 preDispatchInspection,
-                productionJob);
+                productionJob,
+                productionJobItem);
 
             #endregion
 
@@ -325,7 +419,7 @@ namespace AjayIndustriesERP.Application.Services
 
             PrepareSpecificationLines(
                 preDispatchInspection,
-                productionJob);
+                productionJobItem);
 
             #endregion
 
@@ -352,10 +446,13 @@ namespace AjayIndustriesERP.Application.Services
             }
 
 
-            if (preDispatchInspection.ProductionJobId <= 0)
+            if (
+                preDispatchInspection
+                    .ProductionJobItemId <= 0
+            )
             {
                 throw new BusinessException(
-                    "Please select a Production Job.");
+                    "Please select a Production Item.");
             }
 
             #endregion
@@ -367,14 +464,26 @@ namespace AjayIndustriesERP.Application.Services
                 await _repository
                     .GetProductionJobForInspectionAsync(
                         preDispatchInspection
-                            .ProductionJobId);
+                            .ProductionJobItemId);
 
 
             if (productionJob == null)
             {
                 throw new BusinessException(
-                    "Selected Production Job is not available for Inspection.");
+                    "Selected Production Item is not available for Inspection.");
             }
+
+
+            var productionJobItem =
+                GetProductionJobItem(
+                    productionJob,
+                    preDispatchInspection
+                        .ProductionJobItemId);
+
+
+            ValidateProductionSource(
+                productionJob,
+                productionJobItem);
 
             #endregion
 
@@ -383,7 +492,7 @@ namespace AjayIndustriesERP.Application.Services
 
             var remainingQuantity =
                 await GetRemainingInspectionQuantityAsync(
-                    productionJob.Id);
+                    productionJobItem.Id);
 
 
             ValidateInspectionQuantity(
@@ -401,6 +510,9 @@ namespace AjayIndustriesERP.Application.Services
                 {
                     ProductionJobId =
                         productionJob.Id,
+
+                    ProductionJobItemId =
+                        productionJobItem.Id,
 
                     InspectionDate =
                         preDispatchInspection
@@ -477,7 +589,8 @@ namespace AjayIndustriesERP.Application.Services
 
             await ApplyTrustedSourceAsync(
                 prepared,
-                productionJob);
+                productionJob,
+                productionJobItem);
 
             #endregion
 
@@ -532,7 +645,8 @@ namespace AjayIndustriesERP.Application.Services
             #region Basic Validation
 
             if (
-                preDispatchInspection == null ||
+                preDispatchInspection == null
+                ||
                 preDispatchInspection.Id <= 0
             )
             {
@@ -558,29 +672,51 @@ namespace AjayIndustriesERP.Application.Services
             }
 
 
-            if (existing.Status !=
-                PreDispatchInspectionStatus.Draft)
+            if (
+                existing.Status !=
+                    PreDispatchInspectionStatus.Draft
+            )
             {
                 throw new BusinessException(
                     "Only Draft PDI Report can be edited.");
             }
 
+
+            if (existing.ProductionJobItemId <= 0)
+            {
+                throw new BusinessException(
+                    "Production Item reference is missing from PDI Report.");
+            }
+
             #endregion
 
 
-            #region Load Production Job
+            #region Load Production Source
 
             var productionJob =
                 await _repository
                     .GetProductionJobForInspectionAsync(
-                        existing.ProductionJobId);
+                        existing
+                            .ProductionJobItemId);
 
 
             if (productionJob == null)
             {
                 throw new BusinessException(
-                    "Source Production Job is not available for Inspection.");
+                    "Source Production Item is not available for Inspection.");
             }
+
+
+            var productionJobItem =
+                GetProductionJobItem(
+                    productionJob,
+                    existing
+                        .ProductionJobItemId);
+
+
+            ValidateProductionSource(
+                productionJob,
+                productionJobItem);
 
             #endregion
 
@@ -589,7 +725,8 @@ namespace AjayIndustriesERP.Application.Services
 
             var remainingQuantity =
                 await GetRemainingInspectionQuantityAsync(
-                    existing.ProductionJobId,
+                    existing
+                        .ProductionJobItemId,
                     existing.Id);
 
 
@@ -684,17 +821,10 @@ namespace AjayIndustriesERP.Application.Services
 
             #region Refresh Trusted Source
 
-            /*
-             * Draft PDI always shows current trusted
-             * source information.
-             *
-             * Finalization will refresh it one final time
-             * before locking the Report.
-             */
-
             await ApplyTrustedSourceAsync(
                 existing,
-                productionJob);
+                productionJob,
+                productionJobItem);
 
             #endregion
 
@@ -752,11 +882,23 @@ namespace AjayIndustriesERP.Application.Services
             }
 
 
-            if (preDispatchInspection.Status !=
-                PreDispatchInspectionStatus.Draft)
+            if (
+                preDispatchInspection.Status !=
+                    PreDispatchInspectionStatus.Draft
+            )
             {
                 throw new BusinessException(
                     "Only Draft PDI Report can be finalized.");
+            }
+
+
+            if (
+                preDispatchInspection
+                    .ProductionJobItemId <= 0
+            )
+            {
+                throw new BusinessException(
+                    "Production Item reference is missing from PDI Report.");
             }
 
             #endregion
@@ -768,19 +910,32 @@ namespace AjayIndustriesERP.Application.Services
                 await _repository
                     .GetProductionJobForInspectionAsync(
                         preDispatchInspection
-                            .ProductionJobId);
+                            .ProductionJobItemId);
 
 
             if (productionJob == null)
             {
                 throw new BusinessException(
-                    "Source Production Job is not available for Inspection.");
+                    "Source Production Item is not available for Inspection.");
             }
+
+
+            var productionJobItem =
+                GetProductionJobItem(
+                    productionJob,
+                    preDispatchInspection
+                        .ProductionJobItemId);
+
+
+            ValidateProductionSource(
+                productionJob,
+                productionJobItem);
 
 
             await ApplyTrustedSourceAsync(
                 preDispatchInspection,
-                productionJob);
+                productionJob,
+                productionJobItem);
 
             #endregion
 
@@ -873,7 +1028,7 @@ namespace AjayIndustriesERP.Application.Services
 
             if (
                 preDispatchInspection.Status !=
-                PreDispatchInspectionStatus.Finalized
+                    PreDispatchInspectionStatus.Finalized
             )
             {
                 throw new BusinessException(
@@ -884,19 +1039,6 @@ namespace AjayIndustriesERP.Application.Services
 
 
             #region Validate Document Number
-
-            /*
-             * Document Number is currently temporary.
-             *
-             * It is NOT stored in the PDI database.
-             *
-             * Current default from Web UI:
-             *
-             * AI / QA / 04
-             *
-             * Later this will come from
-             * Document Number Master.
-             */
 
             if (string.IsNullOrWhiteSpace(
                 documentNumber))
@@ -921,13 +1063,6 @@ namespace AjayIndustriesERP.Application.Services
 
             #region Generate PDF
 
-            /*
-             * PDF uses the saved Finalized PDI snapshot.
-             *
-             * Document Number is supplied separately
-             * only for PDF presentation.
-             */
-
             var pdfBytes =
                 _pdfGenerator
                     .Generate(
@@ -940,7 +1075,8 @@ namespace AjayIndustriesERP.Application.Services
             #region Validate PDF
 
             if (
-                pdfBytes == null ||
+                pdfBytes == null
+                ||
                 pdfBytes.Length == 0
             )
             {
@@ -981,13 +1117,10 @@ namespace AjayIndustriesERP.Application.Services
 
             #region Validate Delete
 
-            /*
-             * Finalized Inspection Reports are
-             * permanent audit documents.
-             */
-
-            if (preDispatchInspection.Status !=
-                PreDispatchInspectionStatus.Draft)
+            if (
+                preDispatchInspection.Status !=
+                    PreDispatchInspectionStatus.Draft
+            )
             {
                 throw new BusinessException(
                     "Finalized PDI Report cannot be deleted.");
@@ -1056,11 +1189,23 @@ namespace AjayIndustriesERP.Application.Services
 
             #region Validate Restore
 
-            if (preDispatchInspection.Status !=
-                PreDispatchInspectionStatus.Draft)
+            if (
+                preDispatchInspection.Status !=
+                    PreDispatchInspectionStatus.Draft
+            )
             {
                 throw new BusinessException(
                     "Only Draft PDI Report can be restored.");
+            }
+
+
+            if (
+                preDispatchInspection
+                    .ProductionJobItemId <= 0
+            )
+            {
+                throw new BusinessException(
+                    "Production Item reference is missing from PDI Report.");
             }
 
             #endregion
@@ -1072,30 +1217,52 @@ namespace AjayIndustriesERP.Application.Services
                 await _repository
                     .GetProductionJobForInspectionAsync(
                         preDispatchInspection
-                            .ProductionJobId);
+                            .ProductionJobItemId);
 
 
             if (productionJob == null)
             {
                 throw new BusinessException(
-                    "Source Production Job is not available for Inspection.");
+                    "Source Production Item is not available for Inspection.");
             }
+
+
+            var productionJobItem =
+                GetProductionJobItem(
+                    productionJob,
+                    preDispatchInspection
+                        .ProductionJobItemId);
+
+
+            ValidateProductionSource(
+                productionJob,
+                productionJobItem);
 
 
             var allocatedQuantity =
                 await _repository
                     .GetAllocatedInspectionQuantityAsync(
                         preDispatchInspection
-                            .ProductionJobId);
+                            .ProductionJobItemId);
 
 
             var remainingQuantity =
-                productionJob.JobQuantity -
+                productionJobItem
+                    .CompletedQuantity
+                -
                 allocatedQuantity;
 
 
+            if (remainingQuantity < 0m)
+            {
+                remainingQuantity =
+                    0m;
+            }
+
+
             if (
-                preDispatchInspection.InspectionQuantity >
+                preDispatchInspection
+                    .InspectionQuantity >
                 remainingQuantity
             )
             {
@@ -1137,27 +1304,129 @@ namespace AjayIndustriesERP.Application.Services
         #endregion
 
 
-        #region Trusted Source Mapping
+        #region Production Source Validation
 
-        private async Task ApplyTrustedSourceAsync(
-            PreDispatchInspection
-                preDispatchInspection,
-            ProductionJob productionJob)
+        private static ProductionJobItem
+            GetProductionJobItem(
+                ProductionJob productionJob,
+                int productionJobItemId)
         {
-            #region Validate Production Job
+            var productionJobItem =
+                productionJob
+                    .Items
+                    .FirstOrDefault(item =>
+                        item.Id ==
+                            productionJobItemId
+                        &&
+                        !item.IsDeleted
+                        &&
+                        item.IsActive);
+
+
+            if (productionJobItem == null)
+            {
+                throw new BusinessException(
+                    "Production Item information is missing from Production Job.");
+            }
+
+
+            return productionJobItem;
+        }
+
+
+        private static void
+            ValidateProductionSource(
+                ProductionJob productionJob,
+                ProductionJobItem productionJobItem)
+        {
+            #region Production Job
 
             if (
-                productionJob.Status !=
-                    ProductionJobStatus.Completed
-                ||
                 productionJob.IsDeleted
                 ||
                 !productionJob.IsActive
             )
             {
                 throw new BusinessException(
-                    "Only an active Completed Production Job can be used for PDI.");
+                    "Inactive Production Job cannot be used for PDI.");
             }
+
+
+            if (
+                productionJob.Status ==
+                    ProductionJobStatus.Cancelled
+            )
+            {
+                throw new BusinessException(
+                    "Cancelled Production Job cannot be used for PDI.");
+            }
+
+            #endregion
+
+
+            #region Production Job Item
+
+            if (
+                productionJobItem.IsDeleted
+                ||
+                !productionJobItem.IsActive
+            )
+            {
+                throw new BusinessException(
+                    "Inactive Production Item cannot be used for PDI.");
+            }
+
+
+            if (
+                productionJobItem
+                    .ProductionQuantity <= 0m
+            )
+            {
+                throw new BusinessException(
+                    "Production Quantity is not available for the selected Item.");
+            }
+
+
+            if (
+                productionJobItem
+                    .CompletedQuantity <
+                productionJobItem
+                    .ProductionQuantity
+            )
+            {
+                throw new BusinessException(
+                    "Current Production Quantity of the selected Item is not completed.");
+            }
+
+
+            if (
+                productionJobItem
+                    .CompletedQuantity <= 0m
+            )
+            {
+                throw new BusinessException(
+                    "Completed Production Quantity is not available for Inspection.");
+            }
+
+            #endregion
+        }
+
+        #endregion
+
+
+        #region Trusted Source Mapping
+
+        private async Task ApplyTrustedSourceAsync(
+            PreDispatchInspection
+                preDispatchInspection,
+            ProductionJob productionJob,
+            ProductionJobItem productionJobItem)
+        {
+            #region Validate Source
+
+            ValidateProductionSource(
+                productionJob,
+                productionJobItem);
 
             #endregion
 
@@ -1165,23 +1434,24 @@ namespace AjayIndustriesERP.Application.Services
             #region Source References
 
             var customerPoItem =
-                productionJob
+                productionJobItem
                     .CustomerPurchaseOrderItem;
 
 
             var customerPurchaseOrder =
-                customerPoItem
-                    ?.CustomerPurchaseOrder;
+                productionJob
+                    .CustomerPurchaseOrder;
 
 
             var item =
-                productionJob.Item;
+                productionJobItem
+                    .Item;
 
 
             if (customerPoItem == null)
             {
                 throw new BusinessException(
-                    "Customer PO Item information is missing from Production Job.");
+                    "Customer PO Item information is missing from Production Item.");
             }
 
 
@@ -1195,16 +1465,20 @@ namespace AjayIndustriesERP.Application.Services
             if (item == null)
             {
                 throw new BusinessException(
-                    "Item information is missing from Production Job.");
+                    "Item Master information is missing from Production Item.");
             }
 
             #endregion
 
 
-            #region Production Job Snapshot
+            #region Production Snapshot
 
             preDispatchInspection.ProductionJobId =
                 productionJob.Id;
+
+
+            preDispatchInspection.ProductionJobItemId =
+                productionJobItem.Id;
 
 
             preDispatchInspection.ProductionJobCode =
@@ -1256,20 +1530,21 @@ namespace AjayIndustriesERP.Application.Services
             #region Item Snapshot
 
             preDispatchInspection.ItemId =
-                productionJob.ItemId;
+                productionJobItem.ItemId;
 
 
             preDispatchInspection.ItemCode =
-                productionJob.ItemCode;
+                productionJobItem.ItemCode;
 
 
             preDispatchInspection.ItemName =
-                productionJob.ItemName;
+                productionJobItem.ItemName;
 
 
             preDispatchInspection.UnitName =
                 NormalizeOptional(
-                    productionJob.UnitName);
+                    productionJobItem
+                        .UnitName);
 
 
             /*
@@ -1289,7 +1564,8 @@ namespace AjayIndustriesERP.Application.Services
                     : !string.IsNullOrWhiteSpace(
                         item.PartNumber)
                         ? item.PartNumber.Trim()
-                        : productionJob.ItemCode;
+                        : productionJobItem
+                            .ItemCode;
 
             #endregion
 
@@ -1299,7 +1575,8 @@ namespace AjayIndustriesERP.Application.Services
             var currentWorkshopDrawing =
                 item.Drawings
                     .Where(x =>
-                        !x.IsDeleted &&
+                        !x.IsDeleted
+                        &&
                         x.IsActive)
                     .OrderByDescending(x =>
                         x.DrawingId)
@@ -1335,15 +1612,20 @@ namespace AjayIndustriesERP.Application.Services
 
 
             if (
-                customerPurchaseOrder.CustomerId > 0 &&
-                productionJob.ItemId > 0
+                customerPurchaseOrder
+                    .CustomerId > 0
+                &&
+                productionJobItem
+                    .ItemId > 0
             )
             {
                 currentCustomerDrawing =
                     await _customerDrawingService
                         .GetByCustomerAndItemAsync(
-                            customerPurchaseOrder.CustomerId,
-                            productionJob.ItemId);
+                            customerPurchaseOrder
+                                .CustomerId,
+                            productionJobItem
+                                .ItemId);
             }
 
 
@@ -1376,7 +1658,7 @@ namespace AjayIndustriesERP.Application.Services
         private static void PrepareSpecificationLines(
             PreDispatchInspection
                 preDispatchInspection,
-            ProductionJob productionJob)
+            ProductionJobItem productionJobItem)
         {
             #region Clear Existing Lines
 
@@ -1390,16 +1672,18 @@ namespace AjayIndustriesERP.Application.Services
             #region Load Item Specifications
 
             var specifications =
-                productionJob
+                productionJobItem
                     .Item?
                     .ItemSpecifications
                     .Where(x =>
-                        !x.IsDeleted &&
+                        !x.IsDeleted
+                        &&
                         x.IsActive)
                     .OrderBy(x =>
                         x.SortOrder)
                     .ToList()
-                ?? new List<ItemSpecification>();
+                ??
+                new List<ItemSpecification>();
 
             #endregion
 
@@ -1411,7 +1695,7 @@ namespace AjayIndustriesERP.Application.Services
 
 
             foreach (var itemSpecification
-                in specifications)
+                     in specifications)
             {
                 var parameter =
                     itemSpecification
@@ -1478,15 +1762,11 @@ namespace AjayIndustriesERP.Application.Services
 
             #region Blank Fallback Line
 
-            /*
-             * If Item Master has no Specifications,
-             * provide one blank row so Inspector can
-             * manually create the first Inspection Line.
-             */
-
-            if (preDispatchInspection
+            if (
+                preDispatchInspection
                     .Lines
-                    .Count == 0)
+                    .Count == 0
+            )
             {
                 var line =
                     new PreDispatchInspectionLine
@@ -1536,7 +1816,8 @@ namespace AjayIndustriesERP.Application.Services
             var submittedLines =
                 source.Lines
                     .Where(x =>
-                        !IsCompletelyBlankLine(x))
+                        !IsCompletelyBlankLine(
+                            x))
                     .ToList();
 
 
@@ -1545,7 +1826,7 @@ namespace AjayIndustriesERP.Application.Services
 
 
             foreach (var submittedLine
-                in submittedLines)
+                     in submittedLines)
             {
                 var line =
                     CreateLineFromSubmitted(
@@ -1638,7 +1919,8 @@ namespace AjayIndustriesERP.Application.Services
             var activeExistingLines =
                 existing.Lines
                     .Where(x =>
-                        !x.IsDeleted &&
+                        !x.IsDeleted
+                        &&
                         x.IsActive)
                     .ToList();
 
@@ -1650,8 +1932,10 @@ namespace AjayIndustriesERP.Application.Services
             var submittedExistingIds =
                 submitted.Lines
                     .Where(x =>
-                        x.Id > 0 &&
-                        !IsCompletelyBlankLine(x))
+                        x.Id > 0
+                        &&
+                        !IsCompletelyBlankLine(
+                            x))
                     .Select(x =>
                         x.Id)
                     .ToHashSet();
@@ -1662,10 +1946,13 @@ namespace AjayIndustriesERP.Application.Services
             #region Remove Missing Lines
 
             foreach (var existingLine
-                in activeExistingLines)
+                     in activeExistingLines)
             {
-                if (submittedExistingIds.Contains(
-                    existingLine.Id))
+                if (
+                    submittedExistingIds
+                        .Contains(
+                            existingLine.Id)
+                )
                 {
                     continue;
                 }
@@ -1688,9 +1975,10 @@ namespace AjayIndustriesERP.Application.Services
 
 
                 foreach (var observation
-                    in existingLine.Observations
-                        .Where(x =>
-                            !x.IsDeleted))
+                         in existingLine
+                             .Observations
+                             .Where(x =>
+                                 !x.IsDeleted))
                 {
                     observation.IsDeleted =
                         true;
@@ -1712,10 +2000,12 @@ namespace AjayIndustriesERP.Application.Services
             #region Update Existing Lines
 
             foreach (var submittedLine
-                in submitted.Lines
-                    .Where(x =>
-                        x.Id > 0 &&
-                        !IsCompletelyBlankLine(x)))
+                     in submitted.Lines
+                         .Where(x =>
+                             x.Id > 0
+                             &&
+                             !IsCompletelyBlankLine(
+                                 x)))
             {
                 var existingLine =
                     activeExistingLines
@@ -1780,14 +2070,17 @@ namespace AjayIndustriesERP.Application.Services
                     ? 1
                     : existing.Lines
                         .Max(x =>
-                            x.SequenceNumber) + 1;
+                            x.SequenceNumber)
+                      + 1;
 
 
             foreach (var submittedLine
-                in submitted.Lines
-                    .Where(x =>
-                        x.Id <= 0 &&
-                        !IsCompletelyBlankLine(x)))
+                     in submitted.Lines
+                         .Where(x =>
+                             x.Id <= 0
+                             &&
+                             !IsCompletelyBlankLine(
+                                 x)))
             {
                 var newLine =
                     CreateLineFromSubmitted(
@@ -1839,7 +2132,8 @@ namespace AjayIndustriesERP.Application.Services
             #region Default Observation Layout
 
             if (
-                normalObservations.Count == 0 &&
+                normalObservations.Count == 0
+                &&
                 intervalObservations.Count == 0
             )
             {
@@ -1859,7 +2153,7 @@ namespace AjayIndustriesERP.Application.Services
 
 
             foreach (var observation
-                in normalObservations)
+                     in normalObservations)
             {
                 target.Observations.Add(
                     CreateObservation(
@@ -1881,7 +2175,7 @@ namespace AjayIndustriesERP.Application.Services
 
 
             foreach (var observation
-                in intervalObservations)
+                     in intervalObservations)
             {
                 target.Observations.Add(
                     CreateObservation(
@@ -1907,7 +2201,8 @@ namespace AjayIndustriesERP.Application.Services
                 existingLine
                     .Observations
                     .Where(x =>
-                        !x.IsDeleted &&
+                        !x.IsDeleted
+                        &&
                         x.IsActive)
                     .ToList();
 
@@ -1931,10 +2226,12 @@ namespace AjayIndustriesERP.Application.Services
             #region Remove Missing Observations
 
             foreach (var existingObservation
-                in activeExisting)
+                     in activeExisting)
             {
-                if (submittedIds.Contains(
-                    existingObservation.Id))
+                if (
+                    submittedIds.Contains(
+                        existingObservation.Id)
+                )
                 {
                     continue;
                 }
@@ -1962,10 +2259,10 @@ namespace AjayIndustriesERP.Application.Services
             #region Update Existing Observations
 
             foreach (var submittedObservation
-                in submittedLine
-                    .Observations
-                    .Where(x =>
-                        x.Id > 0))
+                     in submittedLine
+                         .Observations
+                         .Where(x =>
+                             x.Id > 0))
             {
                 var existingObservation =
                     activeExisting
@@ -1980,11 +2277,6 @@ namespace AjayIndustriesERP.Application.Services
                         "Invalid PDI Observation.");
                 }
 
-
-                /*
-                 * Reading type and sequence are not changed
-                 * during normal Draft editing.
-                 */
 
                 existingObservation.Value =
                     NormalizeOptional(
@@ -2011,15 +2303,17 @@ namespace AjayIndustriesERP.Application.Services
                     .Select(x =>
                         x.SequenceNumber)
                     .DefaultIfEmpty(0)
-                    .Max() + 1;
+                    .Max()
+                + 1;
 
 
             foreach (var submittedObservation
-                in submittedLine
-                    .Observations
-                    .Where(x =>
-                        x.Id <= 0 &&
-                        !x.IsIntervalReading))
+                     in submittedLine
+                         .Observations
+                         .Where(x =>
+                             x.Id <= 0
+                             &&
+                             !x.IsIntervalReading))
             {
                 existingLine
                     .Observations
@@ -2045,15 +2339,17 @@ namespace AjayIndustriesERP.Application.Services
                     .Select(x =>
                         x.SequenceNumber)
                     .DefaultIfEmpty(0)
-                    .Max() + 1;
+                    .Max()
+                + 1;
 
 
             foreach (var submittedObservation
-                in submittedLine
-                    .Observations
-                    .Where(x =>
-                        x.Id <= 0 &&
-                        x.IsIntervalReading))
+                     in submittedLine
+                         .Observations
+                         .Where(x =>
+                             x.Id <= 0
+                             &&
+                             x.IsIntervalReading))
             {
                 existingLine
                     .Observations
@@ -2080,16 +2376,11 @@ namespace AjayIndustriesERP.Application.Services
         {
             #region Standard Observations
 
-            /*
-             * Frozen Final Inspection Report currently shows:
-             *
-             * Observation:
-             * 1 2 3 4 5 6 7
-             */
-
-            for (var sequenceNumber = 1;
-                 sequenceNumber <= 7;
-                 sequenceNumber++)
+            for (
+                var sequenceNumber = 1;
+                sequenceNumber <= 7;
+                sequenceNumber++
+            )
             {
                 line.Observations.Add(
                     CreateObservation(
@@ -2103,16 +2394,11 @@ namespace AjayIndustriesERP.Application.Services
 
             #region Interval Readings
 
-            /*
-             * Frozen Final Inspection Report currently shows:
-             *
-             * Reading At Interval:
-             * 1 2 3
-             */
-
-            for (var sequenceNumber = 1;
-                 sequenceNumber <= 3;
-                 sequenceNumber++)
+            for (
+                var sequenceNumber = 1;
+                sequenceNumber <= 3;
+                sequenceNumber++
+            )
             {
                 line.Observations.Add(
                     CreateObservation(
@@ -2169,9 +2455,11 @@ namespace AjayIndustriesERP.Application.Services
         {
             #region Inspection Date
 
-            if (preDispatchInspection
+            if (
+                preDispatchInspection
                     .InspectionDate ==
-                default)
+                default
+            )
             {
                 throw new BusinessException(
                     "Inspection Date is required.");
@@ -2182,32 +2470,40 @@ namespace AjayIndustriesERP.Application.Services
 
             #region Quantities
 
-            if (preDispatchInspection
-                    .InspectionQuantity <= 0)
+            if (
+                preDispatchInspection
+                    .InspectionQuantity <= 0m
+            )
             {
                 throw new BusinessException(
                     "Inspection Quantity must be greater than zero.");
             }
 
 
-            if (preDispatchInspection
-                    .AcceptedQuantity < 0)
+            if (
+                preDispatchInspection
+                    .AcceptedQuantity < 0m
+            )
             {
                 throw new BusinessException(
                     "Accepted Quantity cannot be negative.");
             }
 
 
-            if (preDispatchInspection
-                    .ReworkQuantity < 0)
+            if (
+                preDispatchInspection
+                    .ReworkQuantity < 0m
+            )
             {
                 throw new BusinessException(
                     "Rework Quantity cannot be negative.");
             }
 
 
-            if (preDispatchInspection
-                    .RejectedQuantity < 0)
+            if (
+                preDispatchInspection
+                    .RejectedQuantity < 0m
+            )
             {
                 throw new BusinessException(
                     "Rejected Quantity cannot be negative.");
@@ -2224,14 +2520,6 @@ namespace AjayIndustriesERP.Application.Services
                 preDispatchInspection
                     .RejectedQuantity;
 
-
-            /*
-             * Draft Report may be partially filled,
-             * therefore total can be LESS than
-             * Inspection Quantity.
-             *
-             * It can never exceed Inspection Quantity.
-             */
 
             if (
                 resultQuantity >
@@ -2250,10 +2538,12 @@ namespace AjayIndustriesERP.Application.Services
 
             if (
                 preDispatchInspection
-                    .InvoiceQuantity.HasValue
+                    .InvoiceQuantity
+                    .HasValue
                 &&
                 preDispatchInspection
-                    .InvoiceQuantity.Value < 0
+                    .InvoiceQuantity
+                    .Value < 0m
             )
             {
                 throw new BusinessException(
@@ -2261,9 +2551,11 @@ namespace AjayIndustriesERP.Application.Services
             }
 
 
-            if (preDispatchInspection
-                    .InvoiceNumber?.Length >
-                100)
+            if (
+                preDispatchInspection
+                    .InvoiceNumber?
+                    .Length > 100
+            )
             {
                 throw new BusinessException(
                     "Invoice Number cannot exceed 100 characters.");
@@ -2274,18 +2566,22 @@ namespace AjayIndustriesERP.Application.Services
 
             #region Remarks
 
-            if (preDispatchInspection
-                    .SupplierRemarks?.Length >
-                1000)
+            if (
+                preDispatchInspection
+                    .SupplierRemarks?
+                    .Length > 1000
+            )
             {
                 throw new BusinessException(
                     "Supplier Remarks cannot exceed 1000 characters.");
             }
 
 
-            if (preDispatchInspection
-                    .InspectionRemarks?.Length >
-                2000)
+            if (
+                preDispatchInspection
+                    .InspectionRemarks?
+                    .Length > 2000
+            )
             {
                 throw new BusinessException(
                     "Inspection Remarks cannot exceed 2000 characters.");
@@ -2296,18 +2592,22 @@ namespace AjayIndustriesERP.Application.Services
 
             #region Approval
 
-            if (preDispatchInspection
-                    .InspectedBy?.Length >
-                150)
+            if (
+                preDispatchInspection
+                    .InspectedBy?
+                    .Length > 150
+            )
             {
                 throw new BusinessException(
                     "Inspected By cannot exceed 150 characters.");
             }
 
 
-            if (preDispatchInspection
-                    .ReviewedBy?.Length >
-                150)
+            if (
+                preDispatchInspection
+                    .ReviewedBy?
+                    .Length > 150
+            )
             {
                 throw new BusinessException(
                     "Reviewed By cannot exceed 150 characters.");
@@ -2321,15 +2621,17 @@ namespace AjayIndustriesERP.Application.Services
             decimal inspectionQuantity,
             decimal remainingQuantity)
         {
-            if (inspectionQuantity <= 0)
+            if (inspectionQuantity <= 0m)
             {
                 throw new BusinessException(
                     "Inspection Quantity must be greater than zero.");
             }
 
 
-            if (inspectionQuantity >
-                remainingQuantity)
+            if (
+                inspectionQuantity >
+                remainingQuantity
+            )
             {
                 throw new BusinessException(
                     $"Inspection Quantity cannot exceed remaining quantity {remainingQuantity:0.###}.");
@@ -2377,7 +2679,8 @@ namespace AjayIndustriesERP.Application.Services
                 preDispatchInspection
                     .Lines
                     .Where(x =>
-                        !x.IsDeleted &&
+                        !x.IsDeleted
+                        &&
                         x.IsActive)
                     .OrderBy(x =>
                         x.SequenceNumber)
@@ -2392,7 +2695,7 @@ namespace AjayIndustriesERP.Application.Services
 
 
             foreach (var line
-                in activeLines)
+                     in activeLines)
             {
                 ValidateFinalLine(
                     line);
@@ -2406,15 +2709,17 @@ namespace AjayIndustriesERP.Application.Services
             var hasFailedLine =
                 activeLines.Any(x =>
                     x.Result ==
-                        PreDispatchInspectionLineResult.Fail);
+                    PreDispatchInspectionLineResult.Fail);
 
 
             if (
                 hasFailedLine
                 &&
-                preDispatchInspection.ReworkQuantity <= 0
+                preDispatchInspection
+                    .ReworkQuantity <= 0m
                 &&
-                preDispatchInspection.RejectedQuantity <= 0
+                preDispatchInspection
+                    .RejectedQuantity <= 0m
             )
             {
                 throw new BusinessException(
@@ -2426,18 +2731,22 @@ namespace AjayIndustriesERP.Application.Services
 
             #region Inspection Approval
 
-            if (string.IsNullOrWhiteSpace(
-                preDispatchInspection
-                    .InspectedBy))
+            if (
+                string.IsNullOrWhiteSpace(
+                    preDispatchInspection
+                        .InspectedBy)
+            )
             {
                 throw new BusinessException(
                     "Inspected By is required before Finalization.");
             }
 
 
-            if (string.IsNullOrWhiteSpace(
-                preDispatchInspection
-                    .ReviewedBy))
+            if (
+                string.IsNullOrWhiteSpace(
+                    preDispatchInspection
+                        .ReviewedBy)
+            )
             {
                 throw new BusinessException(
                     "Reviewed / Approved By is required before Finalization.");
@@ -2452,16 +2761,17 @@ namespace AjayIndustriesERP.Application.Services
         {
             #region Parameter
 
-            if (string.IsNullOrWhiteSpace(
-                line.Parameter))
+            if (
+                string.IsNullOrWhiteSpace(
+                    line.Parameter)
+            )
             {
                 throw new BusinessException(
                     $"Inspection Parameter is required for Sequence {line.SequenceNumber}.");
             }
 
 
-            if (line.Parameter.Length >
-                250)
+            if (line.Parameter.Length > 250)
             {
                 throw new BusinessException(
                     $"Inspection Parameter at Sequence {line.SequenceNumber} cannot exceed 250 characters.");
@@ -2472,16 +2782,17 @@ namespace AjayIndustriesERP.Application.Services
 
             #region Specification
 
-            if (string.IsNullOrWhiteSpace(
-                line.Specification))
+            if (
+                string.IsNullOrWhiteSpace(
+                    line.Specification)
+            )
             {
                 throw new BusinessException(
                     $"Specification is required for '{line.Parameter}'.");
             }
 
 
-            if (line.Specification.Length >
-                500)
+            if (line.Specification.Length > 500)
             {
                 throw new BusinessException(
                     $"Specification for '{line.Parameter}' cannot exceed 500 characters.");
@@ -2525,14 +2836,16 @@ namespace AjayIndustriesERP.Application.Services
 
             if (
                 line.Result !=
-                    PreDispatchInspectionLineResult.NotApplicable
+                PreDispatchInspectionLineResult.NotApplicable
             )
             {
                 var hasObservation =
                     line.Observations
                         .Any(x =>
-                            !x.IsDeleted &&
-                            x.IsActive &&
+                            !x.IsDeleted
+                            &&
+                            x.IsActive
+                            &&
                             !string.IsNullOrWhiteSpace(
                                 x.Value));
 
@@ -2560,12 +2873,16 @@ namespace AjayIndustriesERP.Application.Services
             #region Pass
 
             if (
-                preDispatchInspection.AcceptedQuantity ==
-                    preDispatchInspection.InspectionQuantity
+                preDispatchInspection
+                    .AcceptedQuantity ==
+                preDispatchInspection
+                    .InspectionQuantity
                 &&
-                preDispatchInspection.ReworkQuantity == 0
+                preDispatchInspection
+                    .ReworkQuantity == 0m
                 &&
-                preDispatchInspection.RejectedQuantity == 0
+                preDispatchInspection
+                    .RejectedQuantity == 0m
             )
             {
                 return
@@ -2577,8 +2894,10 @@ namespace AjayIndustriesERP.Application.Services
 
             #region Fail
 
-            if (preDispatchInspection
-                    .AcceptedQuantity <= 0)
+            if (
+                preDispatchInspection
+                    .AcceptedQuantity <= 0m
+            )
             {
                 return
                     PreDispatchInspectionResult.Fail;
@@ -2635,9 +2954,11 @@ namespace AjayIndustriesERP.Application.Services
                     prefix.Length);
 
 
-            if (!int.TryParse(
-                numberPart,
-                out var lastNumber))
+            if (
+                !int.TryParse(
+                    numberPart,
+                    out var lastNumber)
+            )
             {
                 throw new BusinessException(
                     "Unable to generate PDI Report Code.");
@@ -2679,7 +3000,8 @@ namespace AjayIndustriesERP.Application.Services
                 itemSpecification
                     .SpecificationValue?
                     .Trim()
-                ?? string.Empty;
+                ??
+                string.Empty;
 
 
             var uomName =
@@ -2788,8 +3110,10 @@ namespace AjayIndustriesERP.Application.Services
 
 
             if (
-                pageSize != 10 &&
-                pageSize != 25 &&
+                pageSize != 10
+                &&
+                pageSize != 25
+                &&
                 pageSize != 50
             )
             {

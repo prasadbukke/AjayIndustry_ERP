@@ -3,20 +3,37 @@
 File: ProductionJobPipelineEditViewModel.cs
 
 Purpose:
-Represents the editable Production Pipeline of a Draft
-Production Job.
+Represents the editable Production Pipeline of one
+Production Job Item.
+
+Production Structure:
+
+Customer Purchase Order
+        ↓
+Production Job
+        ↓
+Production Job Item
+        ↓
+Production Job Step
 
 Responsibilities:
 - Display Production Job reference information.
-- Display existing executable Production Job Steps.
+- Identify the selected Production Job Item.
+- Display Item information.
+- Display existing executable Item Pipeline Steps.
 - Allow Operation Add / Remove / Reorder.
 - Capture optional Pipeline Modification Reason.
 - Provide active Production Operations for selection.
 
 Important:
 - This ViewModel is used only in the Web layer.
-- Pipeline editing is allowed only while Job Status is Draft.
-- Saving this form modifies ProductionJobSteps only.
+- Pipeline belongs to ProductionJobItem.
+- Pipeline can be edited only before Production starts
+  for the selected Item.
+- Parent Job may already be InProgress because another Item
+  may have started Production.
+- Saving this form modifies only the selected
+  ProductionJobItem Steps.
 - Item Process Routing Master is never modified.
 - Sequence is normalized as 1, 2, 3, 4...
 ============================================================
@@ -32,12 +49,45 @@ namespace AjayIndustriesERP.Web.ViewModels.ProductionJob
     {
         #region Production Job
 
-        public int ProductionJobId { get; set; }
+        public int ProductionJobId
+        {
+            get;
+            set;
+        }
 
-        public string JobCode { get; set; } =
-            string.Empty;
 
-        public ProductionJobStatus Status { get; set; }
+        public string JobCode
+        {
+            get;
+            set;
+        } = string.Empty;
+
+
+        public ProductionJobStatus Status
+        {
+            get;
+            set;
+        }
+
+        #endregion
+
+
+        #region Production Job Item
+
+        /// <summary>
+        /// Identifies the ProductionJobItem whose
+        /// Pipeline is being edited.
+        /// </summary>
+        [Range(
+            1,
+            int.MaxValue,
+            ErrorMessage =
+                "Production Job Item is required.")]
+        public int ProductionJobItemId
+        {
+            get;
+            set;
+        }
 
         #endregion
 
@@ -50,6 +100,7 @@ namespace AjayIndustriesERP.Web.ViewModels.ProductionJob
             set;
         } = string.Empty;
 
+
         public string CustomerName
         {
             get;
@@ -61,11 +112,18 @@ namespace AjayIndustriesERP.Web.ViewModels.ProductionJob
 
         #region Item
 
-        public string ItemCode { get; set; } =
-            string.Empty;
+        public string ItemCode
+        {
+            get;
+            set;
+        } = string.Empty;
 
-        public string ItemName { get; set; } =
-            string.Empty;
+
+        public string ItemName
+        {
+            get;
+            set;
+        } = string.Empty;
 
         #endregion
 
@@ -77,7 +135,8 @@ namespace AjayIndustriesERP.Web.ViewModels.ProductionJob
             ErrorMessage =
                 "Pipeline Modification Reason cannot exceed 1000 characters.")]
         [Display(
-            Name = "Pipeline Modification Reason")]
+            Name =
+                "Pipeline Modification Reason")]
         public string? PipelineModificationReason
         {
             get;
@@ -112,18 +171,37 @@ namespace AjayIndustriesERP.Web.ViewModels.ProductionJob
     }
 
 
+    /*
+    ============================================================
+    Production Job Pipeline Step
+    ============================================================
+    */
+
     public class ProductionJobPipelineStepEditViewModel
     {
         #region Identification
 
-        public int Id { get; set; }
+        /// <summary>
+        /// Existing ProductionJobStep Id.
+        ///
+        /// Zero means a new Pipeline Step.
+        /// </summary>
+        public int Id
+        {
+            get;
+            set;
+        }
 
         #endregion
 
 
         #region Sequence
 
-        public int SequenceNumber { get; set; }
+        public int SequenceNumber
+        {
+            get;
+            set;
+        }
 
         #endregion
 
@@ -141,11 +219,13 @@ namespace AjayIndustriesERP.Web.ViewModels.ProductionJob
             set;
         }
 
+
         public string OperationCode
         {
             get;
             set;
         } = string.Empty;
+
 
         public string OperationName
         {

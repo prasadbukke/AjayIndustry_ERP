@@ -3,22 +3,39 @@
     File: Deleted.cshtml
 
     Purpose:
-    Displays soft-deleted Draft Production Jobs.
+    Displays soft-deleted Production Jobs.
+
+    Production Structure:
+
+    Customer Purchase Order
+            ↓
+    Production Job
+            ↓
+    Production Job Items
+            ↓
+    Production Job Steps
 
     Responsibilities:
-    - Keep deleted Jobs separate from main Production Index.
-    - Display Customer PO and Item information.
-    - Display Job Quantity and Routing.
-    - Restore deleted Draft Production Jobs.
+    - Keep deleted Production Jobs separate from main Index.
+    - Display Customer PO information.
+    - Display all Items under the deleted Production Job.
+    - Display Item production quantity summary.
+    - Display original Production Job Status.
+    - Restore deleted Production Jobs.
 
     Important:
-    - Only Draft Production Jobs can currently be deleted.
-    - Restore preserves original Job Code, Routing and Steps.
-    - Restore validates remaining Customer PO Quantity.
+    - Draft, Completed and Cancelled Jobs can be deleted.
+    - One Customer PO = One Production Job identity.
+    - Deleted Job must be restored instead of creating another
+      Production Job for the same Customer PO.
+    - Restore preserves original Job Code, Items,
+      Pipelines and execution history.
     ============================================================
 *@
 
 @model List<AjayIndustriesERP.Domain.Entities.ProductionJob>
+
+@using AjayIndustriesERP.Domain.Enums
 
 @{
     ViewData["Title"] =
@@ -44,7 +61,10 @@
         </h2>
 
         <p class="text-muted mb-0">
-            Restore previously deleted Draft Production Jobs.
+
+            Restore previously deleted
+            Production Jobs.
+
         </p>
 
     </div>
@@ -53,7 +73,10 @@
     <a asp-action="Index"
        class="btn btn-outline-secondary">
 
-        <i class="fa-solid fa-arrow-left me-1"></i>
+        <i class="fa-solid
+                  fa-arrow-left
+                  me-1">
+        </i>
 
         Back to Production Jobs
 
@@ -76,7 +99,7 @@
                           table-hover
                           align-middle
                           mb-0"
-                   style="min-width:1050px;">
+                   style="min-width:1100px;">
 
                 <thead class="table-light">
 
@@ -86,33 +109,37 @@
                             #
                         </th>
 
-                        <th>
+
+                        <th class="text-nowrap">
                             Job Code
                         </th>
 
-                        <th>
+
+                        <th style="min-width:190px;">
                             Customer PO
                         </th>
 
-                        <th>
-                            Item
+
+                        <th style="min-width:250px;">
+                            Production Items
                         </th>
 
-                        <th class="text-end">
-                            Job Qty
+
+                        <th class="text-center text-nowrap">
+                            Item Progress
                         </th>
 
-                        <th>
-                            Routing
+
+                        <th class="text-center text-nowrap">
+                            Original Status
                         </th>
 
-                        <th class="text-center">
-                            Status
-                        </th>
 
                         <th class="text-center"
                             style="width:130px;">
+
                             Action
+
                         </th>
 
                     </tr>
@@ -122,96 +149,263 @@
 
                 <tbody>
 
-                    @if (Model != null &&
-                                        Model.Any())
+                    @if (
+                        Model != null
+                        &&
+                        Model.Any())
                     {
                         var serialNumber = 1;
 
 
                         @foreach (var job in Model)
                         {
+                            /*
+                             * ProductionJobItems are also
+                             * soft-deleted together with the Job.
+                             *
+                             * Therefore do NOT filter IsDeleted here.
+                             */
+                            var jobItems =
+                                job.Items
+                                    .OrderBy(x =>
+                                        x.Id)
+                                    .ToList();
+
+
+                            var totalItems =
+                                jobItems.Count;
+
+
+                            var completedItems =
+                                jobItems.Count(x =>
+                                    x.IsProductionCompleted);
+
+
                             <tr>
+
+                                <!-- =================================
+                                     SERIAL NUMBER
+                                ================================== -->
 
                                 <td>
                                     @serialNumber
                                 </td>
 
 
-                                <td class="fw-semibold text-nowrap">
+                                <!-- =================================
+                                     JOB CODE
+                                ================================== -->
+
+                                <td class="fw-semibold
+                                           text-nowrap">
+
                                     @job.Code
+
                                 </td>
 
 
-                                <td>
-
-    <div class="fw-semibold">
-
-        @(
-            job.CustomerPurchaseOrderItem
-                ?.CustomerPurchaseOrder
-                ?.Code
-            ?? "-"
-        )
-
-    </div>
-
-
-    <div class="small text-muted">
-
-        @(
-            job.CustomerPurchaseOrderItem
-                ?.CustomerPurchaseOrder
-                ?.CustomerName
-            ?? "-"
-        )
-
-    </div>
-
-</td>
-
+                                <!-- =================================
+                                     CUSTOMER PO
+                                ================================== -->
 
                                 <td>
 
                                     <div class="fw-semibold">
-                                        @job.ItemCode
+
+                                        @(
+                                            job.CustomerPurchaseOrder
+                                                ?.CustomerPurchaseOrderNumber
+                                            ?? "-"
+                                        )
+
                                     </div>
+
 
                                     <div class="small text-muted">
-                                        @job.ItemName
+
+                                        @(
+                                            job.CustomerPurchaseOrder
+                                                ?.CustomerName
+                                            ?? "-"
+                                        )
+
                                     </div>
 
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        job.CustomerPurchaseOrder?.Code))
+                                    {
+                                        <div class="small text-muted">
+
+                                            @job.CustomerPurchaseOrder.Code
+
+                                        </div>
+                                    }
+
                                 </td>
 
 
-                                <td class="text-end text-nowrap">
-
-                                    @(job.JobQuantity.ToString("0.###"))
-                                    @job.UnitName
-
-                                </td>
-
+                                <!-- =================================
+                                     PRODUCTION ITEMS
+                                ================================== -->
 
                                 <td>
 
-                                    <div class="fw-semibold">
-                                        @job.RoutingCode
-                                    </div>
+                                    @if (jobItems.Any())
+                                    {
+                                        <div class="d-flex
+                                                    flex-column
+                                                    gap-1">
 
-                                    <div class="small text-muted">
-                                        Rev @job.RoutingRevisionNumber
-                                    </div>
+                                            @foreach (var item
+                                                in jobItems.Take(4))
+                                            {
+                                                <div>
+
+                                                    <span class="fw-semibold">
+
+                                                        @item.ItemCode
+
+                                                    </span>
+
+
+                                                    <span class="small
+                                                                 text-muted
+                                                                 ms-1">
+
+                                                        @item.CompletedQuantity
+                                                            .ToString("0.###")
+
+                                                        /
+
+                                                        @item.OrderedQuantity
+                                                            .ToString("0.###")
+
+                                                        @item.UnitName
+
+                                                    </span>
+
+                                                </div>
+                                            }
+
+
+                                            @if (jobItems.Count > 4)
+                                            {
+                                                <div class="small
+                                                            text-muted">
+
+                                                    +
+                                                    @(jobItems.Count - 4)
+                                                    more Item(s)
+
+                                                </div>
+                                            }
+
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
 
                                 </td>
 
+
+                                <!-- =================================
+                                     ITEM PROGRESS
+                                ================================== -->
 
                                 <td class="text-center">
 
-                                    <span class="badge bg-secondary">
-                                        Draft
-                                    </span>
+                                    @if (totalItems <= 0)
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <div class="fw-semibold">
+
+                                            @completedItems
+                                            /
+                                            @totalItems
+
+                                        </div>
+
+                                        <div class="small text-muted">
+                                            Full Complete
+                                        </div>
+                                    }
 
                                 </td>
 
+
+                                <!-- =================================
+                                     ORIGINAL STATUS
+                                ================================== -->
+
+                                <td class="text-center">
+
+                                    @switch (job.Status)
+                                    {
+                                        case ProductionJobStatus.Draft:
+
+                                            <span class="badge bg-secondary">
+                                                Draft
+                                            </span>
+
+                                            break;
+
+
+                                        case ProductionJobStatus.Ready:
+
+                                            <span class="badge bg-primary">
+                                                Ready
+                                            </span>
+
+                                            break;
+
+
+                                        case ProductionJobStatus.InProgress:
+
+                                            <span class="badge
+                                                         bg-warning
+                                                         text-dark">
+
+                                                In Progress
+
+                                            </span>
+
+                                            break;
+
+
+                                        case ProductionJobStatus.Completed:
+
+                                            <span class="badge bg-success">
+                                                Completed
+                                            </span>
+
+                                            break;
+
+
+                                        case ProductionJobStatus.Cancelled:
+
+                                            <span class="badge bg-danger">
+                                                Cancelled
+                                            </span>
+
+                                            break;
+                                    }
+
+                                </td>
+
+
+                                <!-- =================================
+                                     RESTORE
+                                ================================== -->
 
                                 <td class="text-center">
 
@@ -229,13 +423,13 @@
 
                                         <button type="submit"
                                                 class="btn
-                                                               btn-sm
-                                                               btn-outline-success"
+                                                       btn-sm
+                                                       btn-outline-success"
                                                 title="Restore Production Job">
 
                                             <i class="fa-solid
-                                                              fa-rotate-left
-                                                              me-1">
+                                                      fa-rotate-left
+                                                      me-1">
                                             </i>
 
                                             Restore
@@ -256,15 +450,15 @@
                     {
                         <tr>
 
-                            <td colspan="8"
+                            <td colspan="7"
                                 class="text-center
-                                           py-5
-                                           text-muted">
+                                       py-5
+                                       text-muted">
 
                                 <i class="fa-solid
-                                              fa-trash-can
-                                              fa-2x
-                                              mb-3">
+                                          fa-trash-can
+                                          fa-2x
+                                          mb-3">
                                 </i>
 
 
@@ -272,8 +466,12 @@
                                     No Deleted Production Jobs
                                 </div>
 
+
                                 <div class="small">
-                                    Deleted Draft Jobs will appear here.
+
+                                    Deleted Production Jobs
+                                    will appear here.
+
                                 </div>
 
                             </td>

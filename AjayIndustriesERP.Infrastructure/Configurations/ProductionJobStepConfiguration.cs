@@ -5,19 +5,29 @@ File: ProductionJobStepConfiguration.cs
 Purpose:
 Configures ProductionJobStep for Entity Framework Core.
 
+Production Structure:
+
+Production Job
+        ↓
+Production Job Item
+        ↓
+Production Job Step
+
 Responsibilities:
 - Map executable Production Job Steps.
-- Configure Production Job relationship.
+- Configure Production Job Item relationship.
 - Configure Production Operation relationship.
 - Configure Default Machine relationship.
 - Configure Actual Assigned Machine relationship.
 - Configure estimated time and quantity precision.
 - Configure Routing snapshot and execution fields.
-- Prevent duplicate active Sequence Numbers inside one Job.
+- Prevent duplicate active Sequence Numbers inside one
+  Production Job Item Pipeline.
 
 Important:
 - Same Production Operation may appear multiple times.
-- Sequence Number must be unique within one active Job Step set.
+- Sequence Number must be unique within one active
+  Production Job Item Step set.
 - Default Machine is copied from Routing.
 - Assigned Machine represents actual shop-floor execution.
 ============================================================
@@ -51,11 +61,21 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
             #endregion
 
 
-            #region Production Job Relationship
+            #region Production Job Item Relationship
 
             builder.Property(x =>
-                    x.ProductionJobId)
+                    x.ProductionJobItemId)
                 .IsRequired();
+
+
+            builder.HasOne(x =>
+                    x.ProductionJobItem)
+                .WithMany(x =>
+                    x.Steps)
+                .HasForeignKey(x =>
+                    x.ProductionJobItemId)
+                .OnDelete(
+                    DeleteBehavior.Cascade);
 
             #endregion
 
@@ -67,10 +87,26 @@ namespace AjayIndustriesERP.Infrastructure.Configurations
                 .IsRequired();
 
 
+            /*
+             * Sequence Number is unique only inside one
+             * Production Job Item Pipeline.
+             *
+             * Example:
+             *
+             * Item A:
+             * 10 Cutting
+             * 20 Drilling
+             *
+             * Item B:
+             * 10 Cutting
+             * 20 Turning
+             *
+             * Both Items may independently use Sequence 10.
+             */
             builder.HasIndex(x =>
                     new
                     {
-                        x.ProductionJobId,
+                        x.ProductionJobItemId,
                         x.SequenceNumber
                     })
                 .IsUnique()
