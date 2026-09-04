@@ -163,25 +163,195 @@ Important:
 
 
 @* =========================================================
-   FILTER CARD
+   FILTER CARD — STANDARD COMPACT ERP UI
    ========================================================= *@
 
-<div class="card shadow-sm border-0 mb-4">
+@{
+    var hasDateFilters =
+        Model.PurchaseOrderDateFrom.HasValue
+        || Model.PurchaseOrderDateTo.HasValue
+        || Model.DueDateFrom.HasValue
+        || Model.DueDateTo.HasValue
+        || Model.CompletionDateFrom.HasValue
+        || Model.CompletionDateTo.HasValue;
+}
 
-    <div class="card-header bg-white py-2">
 
-        <h6 class="fw-semibold mb-0">
+<style>
+    #trackingFilterCard {
+        border-radius: 14px;
+        overflow: visible;
+    }
 
-            <i class="fa-solid fa-filter me-2"></i>
+        #trackingFilterCard .tracking-filter-header {
+            border-bottom: 1px solid var(--bs-border-color);
+            border-radius: 14px 14px 0 0;
+        }
 
-            Search & Filters
+        #trackingFilterCard .tracking-filter-icon {
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: var(--bs-primary-bg-subtle);
+            color: var(--bs-primary);
+            flex-shrink: 0;
+        }
 
-        </h6>
+        #trackingFilterCard .tracking-filter-label {
+            font-size: .78rem;
+            font-weight: 600;
+            color: var(--bs-secondary-color);
+            margin-bottom: .35rem;
+        }
+
+        #trackingFilterCard .form-control,
+        #trackingFilterCard .form-select,
+        #trackingFilterCard .input-group-text {
+            min-height: 36px;
+            border-color: var(--bs-border-color);
+        }
+
+        #trackingFilterCard .form-control,
+        #trackingFilterCard .form-select {
+            border-radius: 8px;
+            transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+        }
+
+            #trackingFilterCard .form-control:focus,
+            #trackingFilterCard .form-select:focus {
+                border-color: var(--bs-primary);
+                box-shadow: 0 0 0 .18rem rgba(var(--bs-primary-rgb), .10);
+            }
+
+        #trackingFilterCard .input-group > .form-control {
+            border-radius: 0;
+        }
+
+            #trackingFilterCard .input-group > .form-control:first-child {
+                border-radius: 8px 0 0 8px;
+            }
+
+            #trackingFilterCard .input-group > .form-control:last-child {
+                border-radius: 0 8px 8px 0;
+            }
+
+        #trackingFilterCard .input-group-text {
+            background: var(--bs-tertiary-bg);
+            color: var(--bs-secondary-color);
+        }
+
+        #trackingFilterCard .tracking-date-panel {
+            background: var(--bs-tertiary-bg);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 10px;
+        }
+
+        #trackingFilterCard .tracking-action-bar {
+            border-top: 1px solid var(--bs-border-color);
+        }
+
+        #trackingFilterCard .btn {
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        #trackingFilterCard .tracking-date-toggle {
+            border-radius: 8px;
+        }
+</style>
+
+
+<div id="trackingFilterCard"
+     class="card border-0 shadow-sm mb-4">
+
+    @* =====================================================
+       HEADER
+       ===================================================== *@
+
+    <div class="card-header
+                bg-white
+                tracking-filter-header
+                px-4
+                py-3">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-3">
+
+            <div class="d-flex
+                        align-items-center
+                        gap-3">
+
+                <div class="tracking-filter-icon">
+
+                    <i class="fa-solid fa-filter"></i>
+
+                </div>
+
+
+                <div>
+
+                    <div class="fw-semibold">
+                        Search & Filters
+                    </div>
+
+                    <div class="small text-muted">
+                        Find Customer PO tracking records
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <button type="button"
+                    class="btn
+                           btn-sm
+                           btn-outline-secondary
+                           tracking-date-toggle"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#trackingDateFilters"
+                    aria-expanded="@(hasDateFilters ? "true" : "false")"
+                    aria-controls="trackingDateFilters">
+
+                <i class="fa-regular fa-calendar me-1"></i>
+
+                Date Filters
+
+                @if (hasDateFilters)
+                {
+                    <span class="badge
+                                     bg-primary
+                                     ms-1">
+
+                        Active
+
+                    </span>
+                }
+
+                <i class="fa-solid
+                          fa-chevron-down
+                          ms-1
+                          small">
+                </i>
+
+            </button>
+
+        </div>
 
     </div>
 
 
-    <div class="card-body py-3">
+    @* =====================================================
+       BODY
+       ===================================================== *@
+
+    <div class="card-body px-4 py-3">
 
         <form asp-action="Index"
               method="get"
@@ -210,19 +380,19 @@ Important:
 
 
             @* =================================================
-               ROW 1 — MAIN SEARCH
+               PRIMARY SEARCH ROW
                ================================================= *@
 
-            <div class="row g-3 mb-3">
+            <div class="row g-3">
 
                 @* ITEM *@
 
                 <div class="col-xl-4 col-lg-6">
 
                     <label asp-for="ItemSearchText"
-                           class="form-label small fw-semibold mb-1">
+                           class="tracking-filter-label">
 
-                        Item Name / Item Code
+                        Item Name / Code
 
                     </label>
 
@@ -231,7 +401,7 @@ Important:
 
                         <div class="input-group input-group-sm">
 
-                            <span class="input-group-text bg-white">
+                            <span class="input-group-text">
 
                                 <i class="fa-solid fa-box"></i>
 
@@ -242,7 +412,7 @@ Important:
                                    id="itemCustomerPOTrackingItemSearch"
                                    class="form-control"
                                    autocomplete="off"
-                                   placeholder="Type Item Name or Item Code" />
+                                   placeholder="Search item..." />
 
                         </div>
 
@@ -254,9 +424,9 @@ Important:
                                     shadow
                                     d-none"
                              style="
-                                z-index:1050;
-                                max-height:280px;
-                                overflow-y:auto;">
+                                 z-index:1050;
+                                 max-height:280px;
+                                 overflow-y:auto;">
                         </div>
 
                     </div>
@@ -269,7 +439,7 @@ Important:
                 <div class="col-xl-4 col-lg-6">
 
                     <label asp-for="PurchaseOrderNumber"
-                           class="form-label small fw-semibold mb-1">
+                           class="tracking-filter-label">
 
                         Customer PO Number
 
@@ -280,7 +450,7 @@ Important:
 
                         <div class="input-group input-group-sm">
 
-                            <span class="input-group-text bg-white">
+                            <span class="input-group-text">
 
                                 <i class="fa-solid fa-file-lines"></i>
 
@@ -291,7 +461,7 @@ Important:
                                    id="itemCustomerPOTrackingPOSearch"
                                    class="form-control"
                                    autocomplete="off"
-                                   placeholder="Type Customer PO Number" />
+                                   placeholder="Search PO..." />
 
                         </div>
 
@@ -303,9 +473,9 @@ Important:
                                     shadow
                                     d-none"
                              style="
-                                z-index:1050;
-                                max-height:280px;
-                                overflow-y:auto;">
+                                 z-index:1050;
+                                 max-height:280px;
+                                 overflow-y:auto;">
                         </div>
 
                     </div>
@@ -318,7 +488,7 @@ Important:
                 <div class="col-xl-4 col-lg-6">
 
                     <label asp-for="CustomerId"
-                           class="form-label small fw-semibold mb-1">
+                           class="tracking-filter-label">
 
                         Customer
 
@@ -332,21 +502,13 @@ Important:
 
                 </div>
 
-            </div>
-
-
-            @* =================================================
-               ROW 2 — STATUS FILTERS
-               ================================================= *@
-
-            <div class="row g-3 mb-3">
 
                 @* PRIORITY *@
 
                 <div class="col-xl-4 col-lg-6">
 
                     <label asp-for="Priority"
-                           class="form-label small fw-semibold mb-1">
+                           class="tracking-filter-label">
 
                         Priority
 
@@ -366,7 +528,7 @@ Important:
                 <div class="col-xl-4 col-lg-6">
 
                     <label asp-for="PurchaseOrderStatus"
-                           class="form-label small fw-semibold mb-1">
+                           class="tracking-filter-label">
 
                         PO Status
 
@@ -381,14 +543,14 @@ Important:
                 </div>
 
 
-                @* PRODUCTION PO STATUS *@
+                @* PRODUCTION STATUS *@
 
                 <div class="col-xl-4 col-lg-6">
 
                     <label asp-for="ProductionPOStatus"
-                           class="form-label small fw-semibold mb-1">
+                           class="tracking-filter-label">
 
-                        Production PO Status
+                        Production Status
 
                     </label>
 
@@ -404,152 +566,198 @@ Important:
 
 
             @* =================================================
-               ROW 3 — DATE RANGES + ACTIONS
+               DATE FILTERS
                ================================================= *@
 
-            <div class="row g-3 align-items-end">
+            <div id="trackingDateFilters"
+                 class="collapse @(hasDateFilters ? "show" : "")">
 
-                @* PO DATE RANGE *@
-
-                <div class="col-xl-3 col-lg-6">
-
-                    <label class="form-label small fw-semibold mb-1">
-                        PO Date
-                    </label>
-
-
-                    <div class="input-group input-group-sm">
-
-                        <input type="date"
-                               name="PurchaseOrderDateFrom"
-                               value="@FormatDateInput(Model.PurchaseOrderDateFrom)"
-                               class="form-control"
-                               title="PO Date From" />
-
-
-                        <span class="input-group-text">
-                            to
-                        </span>
-
-
-                        <input type="date"
-                               name="PurchaseOrderDateTo"
-                               value="@FormatDateInput(Model.PurchaseOrderDateTo)"
-                               class="form-control"
-                               title="PO Date To" />
-
-                    </div>
-
-                </div>
-
-
-                @* DUE DATE RANGE *@
-
-                <div class="col-xl-3 col-lg-6">
-
-                    <label class="form-label small fw-semibold mb-1">
-                        Due Date
-                    </label>
-
-
-                    <div class="input-group input-group-sm">
-
-                        <input type="date"
-                               name="DueDateFrom"
-                               value="@FormatDateInput(Model.DueDateFrom)"
-                               class="form-control"
-                               title="Due Date From" />
-
-
-                        <span class="input-group-text">
-                            to
-                        </span>
-
-
-                        <input type="date"
-                               name="DueDateTo"
-                               value="@FormatDateInput(Model.DueDateTo)"
-                               class="form-control"
-                               title="Due Date To" />
-
-                    </div>
-
-                </div>
-
-
-                @* COMPLETION DATE RANGE *@
-
-                <div class="col-xl-3 col-lg-6">
-
-                    <label class="form-label small fw-semibold mb-1">
-                        Completion Date
-                    </label>
-
-
-                    <div class="input-group input-group-sm">
-
-                        <input type="date"
-                               name="CompletionDateFrom"
-                               value="@FormatDateInput(Model.CompletionDateFrom)"
-                               class="form-control"
-                               title="Completion Date From" />
-
-
-                        <span class="input-group-text">
-                            to
-                        </span>
-
-
-                        <input type="date"
-                               name="CompletionDateTo"
-                               value="@FormatDateInput(Model.CompletionDateTo)"
-                               class="form-control"
-                               title="Completion Date To" />
-
-                    </div>
-
-                </div>
-
-
-                @* ACTIONS *@
-
-                <div class="col-xl-3 col-lg-6">
+                <div class="tracking-date-panel
+                            mt-3
+                            p-3">
 
                     <div class="d-flex
-                                justify-content-xl-end
-                                gap-2">
+                                align-items-center
+                                gap-2
+                                mb-3">
 
-                        <a asp-action="Index"
-                           class="btn
-                                  btn-sm
-                                  btn-outline-secondary">
+                        <i class="fa-regular
+                                  fa-calendar-days
+                                  text-primary">
+                        </i>
 
-                            <i class="fa-solid
-                                      fa-rotate-left
-                                      me-1">
-                            </i>
-
-                            Reset
-
-                        </a>
-
-
-                        <button type="submit"
-                                class="btn
-                                       btn-sm
-                                       btn-primary
-                                       px-4">
-
-                            <i class="fa-solid
-                                      fa-magnifying-glass
-                                      me-1">
-                            </i>
-
-                            Search
-
-                        </button>
+                        <span class="small fw-semibold">
+                            Date Range Filters
+                        </span>
 
                     </div>
+
+
+                    <div class="row g-3">
+
+                        @* PO DATE *@
+
+                        <div class="col-xl-4 col-lg-6">
+
+                            <label class="tracking-filter-label">
+                                PO Date
+                            </label>
+
+
+                            <div class="input-group input-group-sm">
+
+                                <input type="date"
+                                       name="PurchaseOrderDateFrom"
+                                       value="@FormatDateInput(Model.PurchaseOrderDateFrom)"
+                                       class="form-control"
+                                       title="PO Date From" />
+
+
+                                <span class="input-group-text">
+                                    to
+                                </span>
+
+
+                                <input type="date"
+                                       name="PurchaseOrderDateTo"
+                                       value="@FormatDateInput(Model.PurchaseOrderDateTo)"
+                                       class="form-control"
+                                       title="PO Date To" />
+
+                            </div>
+
+                        </div>
+
+
+                        @* DUE DATE *@
+
+                        <div class="col-xl-4 col-lg-6">
+
+                            <label class="tracking-filter-label">
+                                Due Date
+                            </label>
+
+
+                            <div class="input-group input-group-sm">
+
+                                <input type="date"
+                                       name="DueDateFrom"
+                                       value="@FormatDateInput(Model.DueDateFrom)"
+                                       class="form-control"
+                                       title="Due Date From" />
+
+
+                                <span class="input-group-text">
+                                    to
+                                </span>
+
+
+                                <input type="date"
+                                       name="DueDateTo"
+                                       value="@FormatDateInput(Model.DueDateTo)"
+                                       class="form-control"
+                                       title="Due Date To" />
+
+                            </div>
+
+                        </div>
+
+
+                        @* COMPLETION DATE *@
+
+                        <div class="col-xl-4 col-lg-6">
+
+                            <label class="tracking-filter-label">
+                                Completion Date
+                            </label>
+
+
+                            <div class="input-group input-group-sm">
+
+                                <input type="date"
+                                       name="CompletionDateFrom"
+                                       value="@FormatDateInput(Model.CompletionDateFrom)"
+                                       class="form-control"
+                                       title="Completion Date From" />
+
+
+                                <span class="input-group-text">
+                                    to
+                                </span>
+
+
+                                <input type="date"
+                                       name="CompletionDateTo"
+                                       value="@FormatDateInput(Model.CompletionDateTo)"
+                                       class="form-control"
+                                       title="Completion Date To" />
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            @* =================================================
+               ACTION BAR
+               ================================================= *@
+
+            <div class="tracking-action-bar
+                        d-flex
+                        justify-content-between
+                        align-items-center
+                        flex-wrap
+                        gap-2
+                        mt-3
+                        pt-3">
+
+                <div class="small text-muted">
+
+                    <i class="fa-solid fa-circle-info me-1"></i>
+
+                    Use filters to narrow tracking results.
+
+                </div>
+
+
+                <div class="d-flex gap-2">
+
+                    <a asp-action="Index"
+                       class="btn
+                              btn-sm
+                              btn-light
+                              border
+                              px-3">
+
+                        <i class="fa-solid
+                                  fa-rotate-left
+                                  me-1">
+                        </i>
+
+                        Reset
+
+                    </a>
+
+
+                    <button type="submit"
+                            class="btn
+                                   btn-sm
+                                   btn-primary
+                                   px-4">
+
+                        <i class="fa-solid
+                                  fa-magnifying-glass
+                                  me-1">
+                        </i>
+
+                        Search
+
+                    </button>
 
                 </div>
 
@@ -560,7 +768,6 @@ Important:
     </div>
 
 </div>
-
 
 @* =========================================================
    MAIN + PRIORITY SUMMARY

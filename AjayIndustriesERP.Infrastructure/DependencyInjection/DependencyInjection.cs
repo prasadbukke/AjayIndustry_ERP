@@ -1,5 +1,6 @@
 ﻿using AjayIndustriesERP.Application.Interfaces;
 using AjayIndustriesERP.Application.Services;
+using AjayIndustriesERP.Infrastructure.Exports;
 using AjayIndustriesERP.Infrastructure.Pdf;
 using AjayIndustriesERP.Infrastructure.Persistence;
 using AjayIndustriesERP.Infrastructure.Repositories;
@@ -409,6 +410,10 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
             services.AddScoped<
                 IItemCustomerPOTrackingService,
                 ItemCustomerPOTrackingService>();
+
+            services.AddScoped<
+    IItemCustomerPOTrackingExcelExporter,
+    ItemCustomerPOTrackingExcelExporter>();
 
             #endregion
 

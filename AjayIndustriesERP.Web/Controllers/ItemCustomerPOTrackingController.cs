@@ -79,19 +79,22 @@ namespace AjayIndustriesERP.Web.Controllers
         private readonly IItemCustomerPOTrackingService
             _service;
 
+        private readonly IItemCustomerPOTrackingExcelExporter
+            _excelExporter;
+
         #endregion
 
 
-        #region Constructor
-
         public ItemCustomerPOTrackingController(
-            IItemCustomerPOTrackingService service)
+    IItemCustomerPOTrackingService service,
+    IItemCustomerPOTrackingExcelExporter excelExporter)
         {
             _service =
                 service;
-        }
 
-        #endregion
+            _excelExporter =
+                excelExporter;
+        }
 
 
         #region Index
@@ -886,15 +889,24 @@ namespace AjayIndustriesERP.Web.Controllers
             #endregion
 
 
-            return Json(
-                new
-                {
-                    success =
-                        true,
+            #region Generate Excel
 
-                    totalRecords =
-                        rows.Count
-                });
+            var fileBytes =
+                _excelExporter.Export(
+                    rows);
+
+
+            var fileName =
+                $"Customer_PO_Tracking_" +
+                $"{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+
+            #endregion
+
+
+            return File(
+                fileBytes,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                fileName);
         }
 
         #endregion
