@@ -14,7 +14,8 @@ Tracking Information:
 - Item
 - Drawing
 - Ordered Quantity
-- Delivery Date
+- Due / Delivery Date
+- Actual Production Completion Date
 - Priority
 - PO Status
 
@@ -29,6 +30,8 @@ Production Tracking:
    In Progress
    Completed
 
+3. Production Completion Date
+
 Filters:
 - Item
 - Customer PO Number
@@ -37,6 +40,8 @@ Filters:
 - Customer PO Status
 - Production PO Status
 - PO Date From / To
+- Due Date From / To
+- Completion Date From / To
 
 Architecture:
 Controller
@@ -82,7 +87,8 @@ namespace AjayIndustriesERP.Web.Controllers
         public ItemCustomerPOTrackingController(
             IItemCustomerPOTrackingService service)
         {
-            _service = service;
+            _service =
+                service;
         }
 
         #endregion
@@ -102,6 +108,10 @@ namespace AjayIndustriesERP.Web.Controllers
             string? productionPOStatus,
             DateTime? purchaseOrderDateFrom,
             DateTime? purchaseOrderDateTo,
+            DateTime? dueDateFrom,
+            DateTime? dueDateTo,
+            DateTime? completionDateFrom,
+            DateTime? completionDateTo,
             int pageNumber = 1,
             int pageSize = 10)
         {
@@ -134,11 +144,27 @@ namespace AjayIndustriesERP.Web.Controllers
                     ProductionPOStatus =
                         productionPOStatus,
 
+
                     PurchaseOrderDateFrom =
                         purchaseOrderDateFrom,
 
                     PurchaseOrderDateTo =
                         purchaseOrderDateTo,
+
+
+                    DueDateFrom =
+                        dueDateFrom,
+
+                    DueDateTo =
+                        dueDateTo,
+
+
+                    CompletionDateFrom =
+                        completionDateFrom,
+
+                    CompletionDateTo =
+                        completionDateTo,
+
 
                     PageNumber =
                         pageNumber,
@@ -245,10 +271,18 @@ namespace AjayIndustriesERP.Web.Controllers
                             #endregion
 
 
-                            #region Delivery Date
+                            #region Due / Delivery Date
 
                             DeliveryDate =
                                 row.DeliveryDate,
+
+                            #endregion
+
+
+                            #region Completion Date
+
+                            CompletionDate =
+                                row.CompletionDate,
 
                             #endregion
 
@@ -350,14 +384,6 @@ namespace AjayIndustriesERP.Web.Controllers
 
 
             #region Priority Dropdown
-
-            /*
-             * Priority options come directly from
-             * CustomerPurchaseOrderPriority enum.
-             *
-             * Therefore Customer PO Entry and Tracking
-             * use the same source.
-             */
 
             var priorities =
                 new List<SelectListItem>
@@ -581,11 +607,26 @@ namespace AjayIndustriesERP.Web.Controllers
                     ProductionPOStatus =
                         report.ProductionPOStatus,
 
+
                     PurchaseOrderDateFrom =
                         report.PurchaseOrderDateFrom,
 
                     PurchaseOrderDateTo =
                         report.PurchaseOrderDateTo,
+
+
+                    DueDateFrom =
+                        report.DueDateFrom,
+
+                    DueDateTo =
+                        report.DueDateTo,
+
+
+                    CompletionDateFrom =
+                        report.CompletionDateFrom,
+
+                    CompletionDateTo =
+                        report.CompletionDateTo,
 
                     #endregion
 
@@ -759,7 +800,11 @@ namespace AjayIndustriesERP.Web.Controllers
             string? purchaseOrderStatus,
             string? productionPOStatus,
             DateTime? purchaseOrderDateFrom,
-            DateTime? purchaseOrderDateTo)
+            DateTime? purchaseOrderDateTo,
+            DateTime? dueDateFrom,
+            DateTime? dueDateTo,
+            DateTime? completionDateFrom,
+            DateTime? completionDateTo)
         {
             #region Build Filter
 
@@ -790,11 +835,27 @@ namespace AjayIndustriesERP.Web.Controllers
                     ProductionPOStatus =
                         productionPOStatus,
 
+
                     PurchaseOrderDateFrom =
                         purchaseOrderDateFrom,
 
                     PurchaseOrderDateTo =
                         purchaseOrderDateTo,
+
+
+                    DueDateFrom =
+                        dueDateFrom,
+
+                    DueDateTo =
+                        dueDateTo,
+
+
+                    CompletionDateFrom =
+                        completionDateFrom,
+
+                    CompletionDateTo =
+                        completionDateTo,
+
 
                     PageNumber =
                         1,
@@ -809,8 +870,9 @@ namespace AjayIndustriesERP.Web.Controllers
             #region Load ALL Matching Rows
 
             /*
-             * Export method receives ALL matching rows.
-             * It is not limited to current page.
+             * Export receives ALL matching rows.
+             *
+             * Repository export is not paginated.
              *
              * Actual XLSX generation will replace
              * this temporary JSON response later.

@@ -14,7 +14,8 @@ Tracking Information:
 - Item
 - Drawing
 - Ordered Quantity
-- Delivery Date
+- Due / Delivery Date
+- Actual Production Completion Date
 - Priority
 - PO Status
 
@@ -29,24 +30,21 @@ Production Tracking:
    In Progress
    Completed
 
-Production PO Status Rule:
+3. Production Completion Date
 
-Pending:
-- No active Production Jobs
-  OR
-- Jobs exist but none started/completed.
+Production Completion Date Rule:
 
-In Progress:
-- Some Jobs started/completed
-  but all Jobs are not Completed.
+Pending / In Progress
+    → null
 
-Completed:
-- ALL active non-cancelled Production Jobs
-  belonging to the Customer PO are Completed.
+Completed
+    → actual final Production completion date.
 
 Important:
 - Production Job Progress and Production PO Status
   are separate.
+- Due Date uses effective Delivery Date.
+- Completion Date uses actual Production completion date.
 - Read-only module.
 - No Entity.
 - No Table.
@@ -107,8 +105,10 @@ namespace AjayIndustriesERP.Web.ViewModels.ItemCustomerPOTracking
 
         public List<SelectListItem>
             PurchaseOrderStatuses
-        { get; set; }
-                = new();
+        {
+            get;
+            set;
+        } = new();
 
         #endregion
 
@@ -127,8 +127,10 @@ namespace AjayIndustriesERP.Web.ViewModels.ItemCustomerPOTracking
 
         public List<SelectListItem>
             ProductionPOStatuses
-        { get; set; }
-                = new();
+        {
+            get;
+            set;
+        } = new();
 
         #endregion
 
@@ -138,6 +140,30 @@ namespace AjayIndustriesERP.Web.ViewModels.ItemCustomerPOTracking
         public DateTime? PurchaseOrderDateFrom { get; set; }
 
         public DateTime? PurchaseOrderDateTo { get; set; }
+
+        #endregion
+
+
+        #region Due Date Filter
+
+        /// <summary>
+        /// Uses existing effective Delivery Date.
+        /// </summary>
+        public DateTime? DueDateFrom { get; set; }
+
+        public DateTime? DueDateTo { get; set; }
+
+        #endregion
+
+
+        #region Completion Date Filter
+
+        /// <summary>
+        /// Filters actual Production completion date.
+        /// </summary>
+        public DateTime? CompletionDateFrom { get; set; }
+
+        public DateTime? CompletionDateTo { get; set; }
 
         #endregion
 
@@ -179,8 +205,10 @@ namespace AjayIndustriesERP.Web.ViewModels.ItemCustomerPOTracking
 
         public PagedResult<ItemCustomerPOTrackingRowViewModel>
             Results
-        { get; set; }
-                = new();
+        {
+            get;
+            set;
+        } = new();
 
         #endregion
     }
@@ -248,9 +276,30 @@ namespace AjayIndustriesERP.Web.ViewModels.ItemCustomerPOTracking
         #endregion
 
 
-        #region Delivery Date
+        #region Due / Delivery Date
 
+        /// <summary>
+        /// Existing effective Delivery Date.
+        ///
+        /// Displayed to user as Due Date.
+        /// </summary>
         public DateTime DeliveryDate { get; set; }
+
+        #endregion
+
+
+        #region Production Completion Date
+
+        /// <summary>
+        /// Actual Production completion date.
+        ///
+        /// Pending / In Progress
+        ///     → null
+        ///
+        /// Completed
+        ///     → actual final Production completion date.
+        /// </summary>
+        public DateTime? CompletionDate { get; set; }
 
         #endregion
 

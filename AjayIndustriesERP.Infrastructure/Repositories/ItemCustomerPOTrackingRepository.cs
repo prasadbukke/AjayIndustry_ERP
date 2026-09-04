@@ -14,11 +14,12 @@ Tracking Information:
 - Item
 - Drawing
 - Ordered Quantity
-- Delivery Date
+- Due / Delivery Date
+- Actual Production Completion Date
 - Priority
 - PO Status
 
-Production Tracking is separated into:
+Production Tracking:
 
 1. Production Job Progress
    Example:
@@ -29,23 +30,16 @@ Production Tracking is separated into:
    In Progress
    Completed
 
-Production PO Status Rule:
+3. Production Completion Date
 
-Pending:
-- No active non-cancelled Production Jobs exist
-  OR
-- Production Jobs exist but none are
-  InProgress / Completed.
+Completion Date Rule:
 
-In Progress:
-- At least one Production Job has started
-  or completed,
-  BUT all Production Jobs are not Completed.
+Pending / In Progress
+    → null
 
-Completed:
-- ALL active non-cancelled Production Jobs
-  belonging to the complete Customer PO
-  are Completed.
+Completed
+    → latest actual CompletedOn date from all active,
+      non-cancelled Production Jobs belonging to the PO.
 
 Current Production Structure:
 
@@ -57,10 +51,13 @@ Production Job Items
 
 Important:
 - ProductionJob directly stores CustomerPurchaseOrderId.
-- Production PO calculation is CUSTOMER PO LEVEL.
-- It is NOT Customer PO Item level.
-- Item filter does not reduce Production Job count.
+- Production PO calculation is Customer PO level.
+- Item filter does NOT reduce Production Job count.
 - Cancelled Production Jobs are ignored.
+- Due Date filter uses effective Delivery Date:
+  Item RequiredDeliveryDate
+  otherwise PO RequiredDeliveryDate.
+- Completion Date filter uses actual ProductionJob.CompletedOn.
 - Read-only module.
 - No Entity.
 - No Table.
@@ -162,12 +159,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             GetExportRowsAsync(
                 ItemCustomerPOTrackingRepositoryFilter filter)
         {
-            /*
-             * Export is not paginated.
-             *
-             * ALL matching rows are returned.
-             */
-
             return await
                 GetFilteredRowsAsync(
                     filter);
@@ -219,14 +210,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
 
             #region Production PO Status Per PO
-
-            /*
-             * Every tracking row belonging to the same
-             * Customer PO already carries the SAME
-             * PO-level Production status.
-             *
-             * Therefore take one status per PO.
-             */
 
             var poProductionStatuses =
                 poGroups
@@ -323,8 +306,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 string searchText,
                 int maxResults = 10)
         {
-            #region Validation
-
             if (string.IsNullOrWhiteSpace(
                 searchText))
             {
@@ -341,10 +322,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 maxResults = 10;
             }
 
-            #endregion
-
-
-            #region Query
 
             var items =
                 await _context
@@ -382,8 +359,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     .Take(maxResults)
                     .ToListAsync();
 
-            #endregion
-
 
             return items
                 .Select(item =>
@@ -413,8 +388,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 string searchText,
                 int maxResults = 10)
         {
-            #region Validation
-
             if (string.IsNullOrWhiteSpace(
                 searchText))
             {
@@ -430,8 +403,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             {
                 maxResults = 10;
             }
-
-            #endregion
 
 
             return await _context
@@ -647,13 +618,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     true,
                     out var priorityFilter))
             {
-                /*
-                 * Same Priority source as Customer PO Entry.
-                 *
-                 * Item Priority when entered,
-                 * otherwise Header Priority.
-                 */
-
                 query =
                     query.Where(item =>
                         (
@@ -722,15 +686,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
 
             #region Load Matching Tracking Rows
-
-            /*
-             * These are the rows that will finally
-             * appear on screen after normal filters.
-             *
-             * IMPORTANT:
-             * Production Job count is NOT calculated
-             * only from these Item rows.
-             */
 
             var rawRows =
                 await query
@@ -828,6 +783,51 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             #endregion
 
 
+            #region Due Date From Filter
+
+            if (filter.DueDateFrom.HasValue)
+            {
+                var dueDateFrom =
+                    filter
+                        .DueDateFrom
+                        .Value
+                        .Date;
+
+
+                rawRows =
+                    rawRows
+                        .Where(row =>
+                            row.DeliveryDate >=
+                                dueDateFrom)
+                        .ToList();
+            }
+
+            #endregion
+
+
+            #region Due Date To Filter
+
+            if (filter.DueDateTo.HasValue)
+            {
+                var dueDateToExclusive =
+                    filter
+                        .DueDateTo
+                        .Value
+                        .Date
+                        .AddDays(1);
+
+
+                rawRows =
+                    rawRows
+                        .Where(row =>
+                            row.DeliveryDate <
+                                dueDateToExclusive)
+                        .ToList();
+            }
+
+            #endregion
+
+
             #region No Matching Rows
 
             if (rawRows.Count == 0)
@@ -853,22 +853,12 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             #region Load ALL Production Jobs For Matching POs
 
             /*
-             * CURRENT PRODUCTION ARCHITECTURE:
+             * IMPORTANT:
              *
-             * CustomerPurchaseOrder
-             *          ↓
-             * ProductionJob
+             * We load all active, non-cancelled Jobs for
+             * the matching complete Customer POs.
              *
-             * ProductionJob directly stores
-             * CustomerPurchaseOrderId.
-             *
-             * Therefore no Customer PO Item mapping
-             * is required here.
-             *
-             * Item filter still does NOT reduce
-             * Production Job count because we load Jobs
-             * for every complete Customer PO represented
-             * in rawRows.
+             * Item filtering does NOT reduce this Job list.
              */
 
             var productionJobs =
@@ -893,7 +883,10 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                                 job.CustomerPurchaseOrderId,
 
                             Status =
-                                job.Status
+                                job.Status,
+
+                            CompletedOn =
+                                job.CompletedOn
                         })
                     .ToListAsync();
 
@@ -953,7 +946,8 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     ItemCustomerPOTrackingRepositoryRow>();
 
 
-            foreach (var rawRow in rawRows)
+            foreach (var rawRow
+                     in rawRows)
             {
                 var productionSummary =
                     productionSummaryByPO[
@@ -1029,10 +1023,19 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                         #endregion
 
 
-                        #region Delivery Date
+                        #region Due / Delivery Date
 
                         DeliveryDate =
                             rawRow.DeliveryDate,
+
+                        #endregion
+
+
+                        #region Completion Date
+
+                        CompletionDate =
+                            productionSummary
+                                .CompletionDate,
 
                         #endregion
 
@@ -1101,6 +1104,55 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             #endregion
 
 
+            #region Completion Date From Filter
+
+            if (filter.CompletionDateFrom.HasValue)
+            {
+                var completionDateFrom =
+                    filter
+                        .CompletionDateFrom
+                        .Value
+                        .Date;
+
+
+                rows =
+                    rows
+                        .Where(row =>
+                            row.CompletionDate.HasValue
+                            &&
+                            row.CompletionDate.Value >=
+                                completionDateFrom)
+                        .ToList();
+            }
+
+            #endregion
+
+
+            #region Completion Date To Filter
+
+            if (filter.CompletionDateTo.HasValue)
+            {
+                var completionDateToExclusive =
+                    filter
+                        .CompletionDateTo
+                        .Value
+                        .Date
+                        .AddDays(1);
+
+
+                rows =
+                    rows
+                        .Where(row =>
+                            row.CompletionDate.HasValue
+                            &&
+                            row.CompletionDate.Value <
+                                completionDateToExclusive)
+                        .ToList();
+            }
+
+            #endregion
+
+
             #region Sorting
 
             rows =
@@ -1133,22 +1185,14 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             BuildProductionPOSummary(
                 List<ProductionJobTrackingRow> jobs)
         {
-            #region Total Jobs
-
             var totalJobs =
                 jobs.Count;
 
-            #endregion
-
-
-            #region Completed Jobs
 
             var completedJobs =
                 jobs.Count(job =>
                     job.Status ==
                         ProductionJobStatus.Completed);
-
-            #endregion
 
 
             #region No Jobs
@@ -1165,7 +1209,10 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                         0,
 
                     ProductionPOStatus =
-                        "Pending"
+                        "Pending",
+
+                    CompletionDate =
+                        null
                 };
             }
 
@@ -1174,14 +1221,27 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
             #region All Jobs Completed
 
-            /*
-             * This is the ONLY condition where
-             * Production PO becomes Completed.
-             */
-
             if (completedJobs ==
                 totalJobs)
             {
+                /*
+                 * Actual PO Production Completion Date
+                 * is the LAST actual Job completion.
+                 *
+                 * If CompletedOn is unexpectedly missing,
+                 * CompletionDate remains null instead of
+                 * inventing a date.
+                 */
+
+                var completionDate =
+                    jobs
+                        .Where(job =>
+                            job.CompletedOn.HasValue)
+                        .Select(job =>
+                            job.CompletedOn)
+                        .Max();
+
+
                 return new
                     ProductionPOSummaryRow
                 {
@@ -1192,7 +1252,10 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                         completedJobs,
 
                     ProductionPOStatus =
-                        "Completed"
+                        "Completed",
+
+                    CompletionDate =
+                        completionDate
                 };
             }
 
@@ -1200,15 +1263,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
 
             #region Production Has Started
-
-            /*
-             * Production is considered started when
-             * at least one Job is:
-             *
-             * InProgress
-             * OR
-             * Completed
-             */
 
             var hasStartedProduction =
                 jobs.Any(job =>
@@ -1235,7 +1289,10 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                         completedJobs,
 
                     ProductionPOStatus =
-                        "In Progress"
+                        "In Progress",
+
+                    CompletionDate =
+                        null
                 };
             }
 
@@ -1243,11 +1300,6 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
 
 
             #region Pending
-
-            /*
-             * Jobs exist, but they are only
-             * Draft / Ready.
-             */
 
             return new
                 ProductionPOSummaryRow
@@ -1259,7 +1311,10 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                     completedJobs,
 
                 ProductionPOStatus =
-                    "Pending"
+                    "Pending",
+
+                CompletionDate =
+                    null
             };
 
             #endregion
@@ -1564,7 +1619,7 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
             #endregion
 
 
-            #region Quantity / Delivery
+            #region Quantity / Due Date
 
             public decimal OrderedQuantity
             {
@@ -1613,6 +1668,13 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 get;
                 set;
             }
+
+
+            public DateTime? CompletedOn
+            {
+                get;
+                set;
+            }
         }
 
         #endregion
@@ -1641,6 +1703,13 @@ namespace AjayIndustriesERP.Infrastructure.Repositories
                 get;
                 set;
             } = "Pending";
+
+
+            public DateTime? CompletionDate
+            {
+                get;
+                set;
+            }
         }
 
         #endregion

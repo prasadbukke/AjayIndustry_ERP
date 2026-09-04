@@ -14,7 +14,8 @@ Tracking Information:
 - Item
 - Drawing
 - Ordered Quantity
-- Delivery Date
+- Due Date
+- Actual Production Completion Date
 - Priority
 - PO Status
 
@@ -29,9 +30,14 @@ Production Tracking:
    In Progress
    Completed
 
+3. Production Completion Date
+
 Important:
 - Production Job Progress and Production PO Status
   are displayed separately.
+- Due Date uses effective Delivery Date.
+- Completion Date is actual Production completion date.
+- Pending / In Progress Production PO has no Completion Date.
 - Read-only module.
 - Excel receives same active filters.
 - JavaScript remains in separate JS file.
@@ -41,14 +47,68 @@ Important:
 @model AjayIndustriesERP.Web.ViewModels.ItemCustomerPOTracking.ItemCustomerPOTrackingIndexViewModel
 
 @{
-    ViewData["Title"] = "Item Customer PO Tracking";
+    ViewData["Title"] =
+        "Item Customer PO Tracking";
 
-    var results = Model.Results;
+
+    var results =
+        Model.Results;
+
 
     var selectedPageSize =
         results.PageSize > 0
             ? results.PageSize
             : 10;
+
+
+    string FormatDate(
+        DateTime value)
+    {
+        return string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "{0:dd-MM-yyyy}",
+            value);
+    }
+
+
+    string FormatNullableDate(
+        DateTime? value)
+    {
+        if (!value.HasValue)
+        {
+            return "-";
+        }
+
+        return string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "{0:dd-MM-yyyy}",
+            value.Value);
+    }
+
+
+    string FormatDateInput(
+        DateTime? value)
+    {
+        if (!value.HasValue)
+        {
+            return string.Empty;
+        }
+
+        return string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "{0:yyyy-MM-dd}",
+            value.Value);
+    }
+
+
+    string FormatQuantity(
+    decimal value)
+    {
+        return string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "{0:N0}",
+            value);
+    }
 }
 
 
@@ -70,7 +130,7 @@ Important:
         </h2>
 
         <div class="text-muted">
-            Customer PO, Item, Drawing, Delivery and Production Tracking
+            Customer PO, Item, Due Date and Production Tracking
         </div>
 
     </div>
@@ -85,8 +145,12 @@ Important:
        asp-route-priority="@Model.Priority"
        asp-route-purchaseOrderStatus="@Model.PurchaseOrderStatus"
        asp-route-productionPOStatus="@Model.ProductionPOStatus"
-       asp-route-purchaseOrderDateFrom="@(Model.PurchaseOrderDateFrom?.ToString("yyyy-MM-dd"))"
-       asp-route-purchaseOrderDateTo="@(Model.PurchaseOrderDateTo?.ToString("yyyy-MM-dd"))"
+       asp-route-purchaseOrderDateFrom="@FormatDateInput(Model.PurchaseOrderDateFrom)"
+       asp-route-purchaseOrderDateTo="@FormatDateInput(Model.PurchaseOrderDateTo)"
+       asp-route-dueDateFrom="@FormatDateInput(Model.DueDateFrom)"
+       asp-route-dueDateTo="@FormatDateInput(Model.DueDateTo)"
+       asp-route-completionDateFrom="@FormatDateInput(Model.CompletionDateFrom)"
+       asp-route-completionDateTo="@FormatDateInput(Model.CompletionDateTo)"
        class="btn btn-success">
 
         <i class="fa-solid fa-file-excel me-1"></i>
@@ -104,20 +168,20 @@ Important:
 
 <div class="card shadow-sm border-0 mb-4">
 
-    <div class="card-header bg-white py-3">
+    <div class="card-header bg-white py-2">
 
-        <h5 class="fw-semibold mb-0">
+        <h6 class="fw-semibold mb-0">
 
             <i class="fa-solid fa-filter me-2"></i>
 
             Search & Filters
 
-        </h5>
+        </h6>
 
     </div>
 
 
-    <div class="card-body">
+    <div class="card-body py-3">
 
         <form asp-action="Index"
               method="get"
@@ -145,16 +209,18 @@ Important:
                    id="itemCustomerPOTrackingPOId" />
 
 
-            <div class="row g-3">
+            @* =================================================
+               ROW 1 — MAIN SEARCH
+               ================================================= *@
 
-                @* =================================================
-                   ITEM SEARCH
-                   ================================================= *@
+            <div class="row g-3 mb-3">
+
+                @* ITEM *@
 
                 <div class="col-xl-4 col-lg-6">
 
                     <label asp-for="ItemSearchText"
-                           class="form-label">
+                           class="form-label small fw-semibold mb-1">
 
                         Item Name / Item Code
 
@@ -163,7 +229,7 @@ Important:
 
                     <div class="position-relative">
 
-                        <div class="input-group">
+                        <div class="input-group input-group-sm">
 
                             <span class="input-group-text bg-white">
 
@@ -195,22 +261,15 @@ Important:
 
                     </div>
 
-
-                    <div class="form-text">
-                        Type at least 2 characters
-                    </div>
-
                 </div>
 
 
-                @* =================================================
-                   CUSTOMER PO NUMBER
-                   ================================================= *@
+                @* CUSTOMER PO *@
 
                 <div class="col-xl-4 col-lg-6">
 
                     <label asp-for="PurchaseOrderNumber"
-                           class="form-label">
+                           class="form-label small fw-semibold mb-1">
 
                         Customer PO Number
 
@@ -219,7 +278,7 @@ Important:
 
                     <div class="position-relative">
 
-                        <div class="input-group">
+                        <div class="input-group input-group-sm">
 
                             <span class="input-group-text bg-white">
 
@@ -251,22 +310,15 @@ Important:
 
                     </div>
 
-
-                    <div class="form-text">
-                        Type at least 2 characters
-                    </div>
-
                 </div>
 
 
-                @* =================================================
-                   CUSTOMER
-                   ================================================= *@
+                @* CUSTOMER *@
 
                 <div class="col-xl-4 col-lg-6">
 
                     <label asp-for="CustomerId"
-                           class="form-label">
+                           class="form-label small fw-semibold mb-1">
 
                         Customer
 
@@ -275,20 +327,26 @@ Important:
 
                     <select asp-for="CustomerId"
                             asp-items="Model.Customers"
-                            class="form-select">
+                            class="form-select form-select-sm">
                     </select>
 
                 </div>
 
+            </div>
 
-                @* =================================================
-                   PRIORITY
-                   ================================================= *@
 
-                <div class="col-xl-3 col-lg-6 col-md-6">
+            @* =================================================
+               ROW 2 — STATUS FILTERS
+               ================================================= *@
+
+            <div class="row g-3 mb-3">
+
+                @* PRIORITY *@
+
+                <div class="col-xl-4 col-lg-6">
 
                     <label asp-for="Priority"
-                           class="form-label">
+                           class="form-label small fw-semibold mb-1">
 
                         Priority
 
@@ -297,20 +355,18 @@ Important:
 
                     <select asp-for="Priority"
                             asp-items="Model.Priorities"
-                            class="form-select">
+                            class="form-select form-select-sm">
                     </select>
 
                 </div>
 
 
-                @* =================================================
-                   CUSTOMER PO STATUS
-                   ================================================= *@
+                @* PO STATUS *@
 
-                <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="col-xl-4 col-lg-6">
 
                     <label asp-for="PurchaseOrderStatus"
-                           class="form-label">
+                           class="form-label small fw-semibold mb-1">
 
                         PO Status
 
@@ -319,20 +375,18 @@ Important:
 
                     <select asp-for="PurchaseOrderStatus"
                             asp-items="Model.PurchaseOrderStatuses"
-                            class="form-select">
+                            class="form-select form-select-sm">
                     </select>
 
                 </div>
 
 
-                @* =================================================
-                   PRODUCTION PO STATUS
-                   ================================================= *@
+                @* PRODUCTION PO STATUS *@
 
-                <div class="col-xl-3 col-lg-6 col-md-6">
+                <div class="col-xl-4 col-lg-6">
 
                     <label asp-for="ProductionPOStatus"
-                           class="form-label">
+                           class="form-label small fw-semibold mb-1">
 
                         Production PO Status
 
@@ -341,86 +395,163 @@ Important:
 
                     <select asp-for="ProductionPOStatus"
                             asp-items="Model.ProductionPOStatuses"
-                            class="form-select">
+                            class="form-select form-select-sm">
                     </select>
-
-                </div>
-
-
-                @* =================================================
-                   PO DATE FROM
-                   ================================================= *@
-
-                <div class="col-xl-3 col-lg-6 col-md-6">
-
-                    <label asp-for="PurchaseOrderDateFrom"
-                           class="form-label">
-
-                        PO Date From
-
-                    </label>
-
-
-                    <input type="date"
-                           name="PurchaseOrderDateFrom"
-                           value="@(Model.PurchaseOrderDateFrom?.ToString("yyyy-MM-dd"))"
-                           class="form-control" />
-
-                </div>
-
-
-                @* =================================================
-                   PO DATE TO
-                   ================================================= *@
-
-                <div class="col-xl-3 col-lg-6 col-md-6">
-
-                    <label asp-for="PurchaseOrderDateTo"
-                           class="form-label">
-
-                        PO Date To
-
-                    </label>
-
-
-                    <input type="date"
-                           name="PurchaseOrderDateTo"
-                           value="@(Model.PurchaseOrderDateTo?.ToString("yyyy-MM-dd"))"
-                           class="form-control" />
 
                 </div>
 
             </div>
 
 
-            @* =====================================================
-               FILTER ACTIONS
-               ===================================================== *@
+            @* =================================================
+               ROW 3 — DATE RANGES + ACTIONS
+               ================================================= *@
 
-            <div class="d-flex
-                        justify-content-end
-                        flex-wrap
-                        gap-2
-                        mt-4">
+            <div class="row g-3 align-items-end">
 
-                <a asp-action="Index"
-                   class="btn btn-outline-secondary">
+                @* PO DATE RANGE *@
 
-                    <i class="fa-solid fa-rotate-left me-1"></i>
+                <div class="col-xl-3 col-lg-6">
 
-                    Reset
-
-                </a>
+                    <label class="form-label small fw-semibold mb-1">
+                        PO Date
+                    </label>
 
 
-                <button type="submit"
-                        class="btn btn-primary">
+                    <div class="input-group input-group-sm">
 
-                    <i class="fa-solid fa-magnifying-glass me-1"></i>
+                        <input type="date"
+                               name="PurchaseOrderDateFrom"
+                               value="@FormatDateInput(Model.PurchaseOrderDateFrom)"
+                               class="form-control"
+                               title="PO Date From" />
 
-                    Search
 
-                </button>
+                        <span class="input-group-text">
+                            to
+                        </span>
+
+
+                        <input type="date"
+                               name="PurchaseOrderDateTo"
+                               value="@FormatDateInput(Model.PurchaseOrderDateTo)"
+                               class="form-control"
+                               title="PO Date To" />
+
+                    </div>
+
+                </div>
+
+
+                @* DUE DATE RANGE *@
+
+                <div class="col-xl-3 col-lg-6">
+
+                    <label class="form-label small fw-semibold mb-1">
+                        Due Date
+                    </label>
+
+
+                    <div class="input-group input-group-sm">
+
+                        <input type="date"
+                               name="DueDateFrom"
+                               value="@FormatDateInput(Model.DueDateFrom)"
+                               class="form-control"
+                               title="Due Date From" />
+
+
+                        <span class="input-group-text">
+                            to
+                        </span>
+
+
+                        <input type="date"
+                               name="DueDateTo"
+                               value="@FormatDateInput(Model.DueDateTo)"
+                               class="form-control"
+                               title="Due Date To" />
+
+                    </div>
+
+                </div>
+
+
+                @* COMPLETION DATE RANGE *@
+
+                <div class="col-xl-3 col-lg-6">
+
+                    <label class="form-label small fw-semibold mb-1">
+                        Completion Date
+                    </label>
+
+
+                    <div class="input-group input-group-sm">
+
+                        <input type="date"
+                               name="CompletionDateFrom"
+                               value="@FormatDateInput(Model.CompletionDateFrom)"
+                               class="form-control"
+                               title="Completion Date From" />
+
+
+                        <span class="input-group-text">
+                            to
+                        </span>
+
+
+                        <input type="date"
+                               name="CompletionDateTo"
+                               value="@FormatDateInput(Model.CompletionDateTo)"
+                               class="form-control"
+                               title="Completion Date To" />
+
+                    </div>
+
+                </div>
+
+
+                @* ACTIONS *@
+
+                <div class="col-xl-3 col-lg-6">
+
+                    <div class="d-flex
+                                justify-content-xl-end
+                                gap-2">
+
+                        <a asp-action="Index"
+                           class="btn
+                                  btn-sm
+                                  btn-outline-secondary">
+
+                            <i class="fa-solid
+                                      fa-rotate-left
+                                      me-1">
+                            </i>
+
+                            Reset
+
+                        </a>
+
+
+                        <button type="submit"
+                                class="btn
+                                       btn-sm
+                                       btn-primary
+                                       px-4">
+
+                            <i class="fa-solid
+                                      fa-magnifying-glass
+                                      me-1">
+                            </i>
+
+                            Search
+
+                        </button>
+
+                    </div>
+
+                </div>
 
             </div>
 
@@ -469,9 +600,7 @@ Important:
                 </div>
 
                 <div class="fs-4 fw-bold">
-
-                    @(Model.TotalOrderedQuantity.ToString("N3"))
-
+                    @FormatQuantity(Model.TotalOrderedQuantity)
                 </div>
 
             </div>
@@ -492,9 +621,7 @@ Important:
                 </div>
 
                 <div class="fs-4 fw-bold text-danger">
-
                     @Model.CriticalPriorityPurchaseOrders
-
                 </div>
 
             </div>
@@ -515,9 +642,7 @@ Important:
                 </div>
 
                 <div class="fs-4 fw-bold text-warning">
-
                     @Model.UrgentPurchaseOrders
-
                 </div>
 
             </div>
@@ -538,9 +663,7 @@ Important:
                 </div>
 
                 <div class="fs-4 fw-bold">
-
                     @Model.HighPriorityPurchaseOrders
-
                 </div>
 
             </div>
@@ -561,9 +684,7 @@ Important:
                 </div>
 
                 <div class="fs-4 fw-bold">
-
                     @Model.NormalPriorityPurchaseOrders
-
                 </div>
 
             </div>
@@ -597,9 +718,7 @@ Important:
                     </div>
 
                     <div class="fs-4 fw-bold text-warning">
-
                         @Model.ProductionPendingPurchaseOrders
-
                     </div>
 
                 </div>
@@ -634,9 +753,7 @@ Important:
                     </div>
 
                     <div class="fs-4 fw-bold text-primary">
-
                         @Model.ProductionInProgressPurchaseOrders
-
                     </div>
 
                 </div>
@@ -671,9 +788,7 @@ Important:
                     </div>
 
                     <div class="fs-4 fw-bold text-success">
-
                         @Model.ProductionCompletedPurchaseOrders
-
                     </div>
 
                 </div>
@@ -778,8 +893,12 @@ Important:
                             Ordered Qty
                         </th>
 
-                        <th style="min-width:125px;">
-                            Delivery Date
+                        <th style="min-width:120px;">
+                            Due Date
+                        </th>
+
+                        <th style="min-width:140px;">
+                            Completion Date
                         </th>
 
                         <th class="text-center"
@@ -814,7 +933,7 @@ Important:
                     {
                         <tr>
 
-                            <td colspan="13"
+                            <td colspan="14"
                                 class="text-center
                                            text-muted
                                            py-5">
@@ -875,9 +994,7 @@ Important:
                                    ================================= *@
 
                                 <td class="text-nowrap">
-
-                                    @(item.PurchaseOrderDate.ToString("dd-MM-yyyy"))
-
+                                    @FormatDate(item.PurchaseOrderDate)
                                 </td>
 
 
@@ -887,7 +1004,8 @@ Important:
 
                                 <td>
 
-                                    @if (!string.IsNullOrWhiteSpace(item.ItemCode))
+                                    @if (!string.IsNullOrWhiteSpace(
+                                                                item.ItemCode))
                                     {
                                         @item.ItemCode
                                     }
@@ -920,7 +1038,8 @@ Important:
 
                                 <td>
 
-                                    @if (!string.IsNullOrWhiteSpace(item.DrawingNumber))
+                                    @if (!string.IsNullOrWhiteSpace(
+                                                                item.DrawingNumber))
                                     {
                                         <span class="fw-semibold">
                                             @item.DrawingNumber
@@ -942,7 +1061,8 @@ Important:
 
                                 <td class="text-center">
 
-                                    @if (!string.IsNullOrWhiteSpace(item.DrawingFilePath))
+                                    @if (!string.IsNullOrWhiteSpace(
+                                                                item.DrawingFilePath))
                                     {
                                         <a href="@item.DrawingFilePath"
                                            target="_blank"
@@ -975,18 +1095,45 @@ Important:
                                                    text-nowrap
                                                    fw-semibold">
 
-                                    @(item.OrderedQuantity.ToString("N3"))
+                                    @FormatQuantity(
+                                    item.OrderedQuantity)
 
-                                </td>
+                        </td>
 
 
-                                @* =================================
-                                   DELIVERY DATE
+                        @* =================================
+                                   DUE DATE
                                    ================================= *@
 
-                                <td class="text-nowrap">
+                        <td class="text-nowrap">
 
-                                    @(item.DeliveryDate.ToString("dd-MM-yyyy"))
+                            @FormatDate(
+                                                        item.DeliveryDate)
+
+                        </td>
+
+
+                        @* =================================
+                                   COMPLETION DATE
+                                   ================================= *@
+
+                        <td class="text-nowrap">
+
+                            @if (item.CompletionDate.HasValue)
+                                    {
+                                        <span class="fw-semibold text-success">
+
+                                            @FormatNullableDate(
+                                            item.CompletionDate)
+
+                            </span>
+                                                        }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
 
                                 </td>
 
@@ -1123,9 +1270,13 @@ Important:
                                         }
                                         else
                                         {
+                                            var remainingJobs =
+                                            item.TotalProductionJobs -
+                                            item.CompletedProductionJobs;
+
                                             <div class="small text-muted">
 
-                                                @(item.TotalProductionJobs - item.CompletedProductionJobs)
+                                                @remainingJobs
                                                 Remaining
 
                                             </div>
@@ -1265,8 +1416,12 @@ Important:
                                asp-route-priority="@Model.Priority"
                                asp-route-purchaseOrderStatus="@Model.PurchaseOrderStatus"
                                asp-route-productionPOStatus="@Model.ProductionPOStatus"
-                               asp-route-purchaseOrderDateFrom="@(Model.PurchaseOrderDateFrom?.ToString("yyyy-MM-dd"))"
-                               asp-route-purchaseOrderDateTo="@(Model.PurchaseOrderDateTo?.ToString("yyyy-MM-dd"))"
+                               asp-route-purchaseOrderDateFrom="@FormatDateInput(Model.PurchaseOrderDateFrom)"
+                               asp-route-purchaseOrderDateTo="@FormatDateInput(Model.PurchaseOrderDateTo)"
+                               asp-route-dueDateFrom="@FormatDateInput(Model.DueDateFrom)"
+                               asp-route-dueDateTo="@FormatDateInput(Model.DueDateTo)"
+                               asp-route-completionDateFrom="@FormatDateInput(Model.CompletionDateFrom)"
+                               asp-route-completionDateTo="@FormatDateInput(Model.CompletionDateTo)"
                                asp-route-pageNumber="@(results.PageNumber - 1)"
                                asp-route-pageSize="@selectedPageSize">
 
@@ -1295,29 +1450,35 @@ Important:
                                         pageNo++)
                         {
                             <li class="page-item
-                                                   @(pageNo == results.PageNumber ? "active" : "")">
+                                                   @(pageNo == results.PageNumber
+                                                                           ? "active"
+                                                                           : "")">
 
-                                <a class="page-link"
-                                   asp-action="Index"
-                                   asp-route-itemId="@Model.ItemId"
-                                   asp-route-itemSearchText="@Model.ItemSearchText"
-                                   asp-route-customerPurchaseOrderId="@Model.CustomerPurchaseOrderId"
-                                   asp-route-purchaseOrderNumber="@Model.PurchaseOrderNumber"
-                                   asp-route-customerId="@Model.CustomerId"
-                                   asp-route-priority="@Model.Priority"
-                                   asp-route-purchaseOrderStatus="@Model.PurchaseOrderStatus"
-                                   asp-route-productionPOStatus="@Model.ProductionPOStatus"
-                                   asp-route-purchaseOrderDateFrom="@(Model.PurchaseOrderDateFrom?.ToString("yyyy-MM-dd"))"
-                                   asp-route-purchaseOrderDateTo="@(Model.PurchaseOrderDateTo?.ToString("yyyy-MM-dd"))"
-                                   asp-route-pageNumber="@pageNo"
-                                   asp-route-pageSize="@selectedPageSize">
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-itemId="@Model.ItemId"
+                       asp-route-itemSearchText="@Model.ItemSearchText"
+                       asp-route-customerPurchaseOrderId="@Model.CustomerPurchaseOrderId"
+                       asp-route-purchaseOrderNumber="@Model.PurchaseOrderNumber"
+                       asp-route-customerId="@Model.CustomerId"
+                       asp-route-priority="@Model.Priority"
+                       asp-route-purchaseOrderStatus="@Model.PurchaseOrderStatus"
+                       asp-route-productionPOStatus="@Model.ProductionPOStatus"
+                       asp-route-purchaseOrderDateFrom="@FormatDateInput(Model.PurchaseOrderDateFrom)"
+                       asp-route-purchaseOrderDateTo="@FormatDateInput(Model.PurchaseOrderDateTo)"
+                       asp-route-dueDateFrom="@FormatDateInput(Model.DueDateFrom)"
+                       asp-route-dueDateTo="@FormatDateInput(Model.DueDateTo)"
+                       asp-route-completionDateFrom="@FormatDateInput(Model.CompletionDateFrom)"
+                       asp-route-completionDateTo="@FormatDateInput(Model.CompletionDateTo)"
+                       asp-route-pageNumber="@pageNo"
+                       asp-route-pageSize="@selectedPageSize">
 
                                     @pageNo
 
                                 </a>
 
                             </li>
-                        }
+                                }
 
 
                         @* =====================================
@@ -1337,8 +1498,12 @@ Important:
                                asp-route-priority="@Model.Priority"
                                asp-route-purchaseOrderStatus="@Model.PurchaseOrderStatus"
                                asp-route-productionPOStatus="@Model.ProductionPOStatus"
-                               asp-route-purchaseOrderDateFrom="@(Model.PurchaseOrderDateFrom?.ToString("yyyy-MM-dd"))"
-                               asp-route-purchaseOrderDateTo="@(Model.PurchaseOrderDateTo?.ToString("yyyy-MM-dd"))"
+                               asp-route-purchaseOrderDateFrom="@FormatDateInput(Model.PurchaseOrderDateFrom)"
+                               asp-route-purchaseOrderDateTo="@FormatDateInput(Model.PurchaseOrderDateTo)"
+                               asp-route-dueDateFrom="@FormatDateInput(Model.DueDateFrom)"
+                               asp-route-dueDateTo="@FormatDateInput(Model.DueDateTo)"
+                               asp-route-completionDateFrom="@FormatDateInput(Model.CompletionDateFrom)"
+                               asp-route-completionDateTo="@FormatDateInput(Model.CompletionDateTo)"
                                asp-route-pageNumber="@(results.PageNumber + 1)"
                                asp-route-pageSize="@selectedPageSize">
 
@@ -1398,11 +1563,27 @@ Important:
 
                 <input type="hidden"
                        name="purchaseOrderDateFrom"
-                       value="@(Model.PurchaseOrderDateFrom?.ToString("yyyy-MM-dd"))" />
+                       value="@FormatDateInput(Model.PurchaseOrderDateFrom)" />
 
                 <input type="hidden"
                        name="purchaseOrderDateTo"
-                       value="@(Model.PurchaseOrderDateTo?.ToString("yyyy-MM-dd"))" />
+                       value="@FormatDateInput(Model.PurchaseOrderDateTo)" />
+
+                <input type="hidden"
+                       name="dueDateFrom"
+                       value="@FormatDateInput(Model.DueDateFrom)" />
+
+                <input type="hidden"
+                       name="dueDateTo"
+                       value="@FormatDateInput(Model.DueDateTo)" />
+
+                <input type="hidden"
+                       name="completionDateFrom"
+                       value="@FormatDateInput(Model.CompletionDateFrom)" />
+
+                <input type="hidden"
+                       name="completionDateTo"
+                       value="@FormatDateInput(Model.CompletionDateTo)" />
 
                 <input type="hidden"
                        name="pageNumber"

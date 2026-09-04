@@ -15,39 +15,35 @@ Tracking Information:
 - Item
 - Drawing
 - Ordered Quantity
-- Delivery Date
+- Due / Delivery Date
+- Actual Production Completion Date
 - Priority
 - PO Status
 
 Production Tracking:
 
 1. Production Job Progress
-   Example:
-   5 / 10 Completed
 
 2. Production PO Status
    Pending
    In Progress
    Completed
 
-Production PO Status Rule:
+3. Production Completion Date
 
-Pending:
-- No active Production Jobs exist
-  OR
-- Jobs exist but none have started/completed.
+Production Completion Date Rule:
 
-In Progress:
-- Some Production Jobs have started/completed,
-  but ALL jobs are not Completed.
+Pending / In Progress
+    → null
 
-Completed:
-- ALL active non-cancelled Production Jobs
-  belonging to the Customer PO are Completed.
+Completed
+    → actual final Production completion date.
 
 Important:
 - Production Job Status and Production PO Status
   are separate concepts.
+- Due Date filter uses existing effective Delivery Date.
+- Completion Date filter uses actual Production completion date.
 - Read-only module.
 - No Entity.
 - No Table.
@@ -121,6 +117,7 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         public int? ItemId { get; set; }
 
+
         public string? ItemSearchText { get; set; }
 
         #endregion
@@ -129,6 +126,7 @@ namespace AjayIndustriesERP.Application.Interfaces
         #region Customer PO Filter
 
         public int? CustomerPurchaseOrderId { get; set; }
+
 
         public string? PurchaseOrderNumber { get; set; }
 
@@ -180,7 +178,44 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         public DateTime? PurchaseOrderDateFrom { get; set; }
 
+
         public DateTime? PurchaseOrderDateTo { get; set; }
+
+        #endregion
+
+
+        #region Due Date Filter
+
+        /// <summary>
+        /// User-facing filter name:
+        /// Due Date.
+        ///
+        /// Uses effective Delivery Date:
+        ///
+        /// Item Required Delivery Date
+        /// otherwise
+        /// Customer PO Required Delivery Date.
+        /// </summary>
+        public DateTime? DueDateFrom { get; set; }
+
+
+        public DateTime? DueDateTo { get; set; }
+
+        #endregion
+
+
+        #region Completion Date Filter
+
+        /// <summary>
+        /// Filters actual Production completion date.
+        ///
+        /// Pending / In Progress rows have no
+        /// Completion Date.
+        /// </summary>
+        public DateTime? CompletionDateFrom { get; set; }
+
+
+        public DateTime? CompletionDateTo { get; set; }
 
         #endregion
 
@@ -188,6 +223,7 @@ namespace AjayIndustriesERP.Application.Interfaces
         #region Pagination
 
         public int PageNumber { get; set; } = 1;
+
 
         public int PageSize { get; set; } = 10;
 
@@ -205,23 +241,44 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         public int? ItemId { get; set; }
 
+
         public string? ItemSearchText { get; set; }
+
 
         public int? CustomerPurchaseOrderId { get; set; }
 
+
         public string? PurchaseOrderNumber { get; set; }
+
 
         public int? CustomerId { get; set; }
 
+
         public string? Priority { get; set; }
+
 
         public string? PurchaseOrderStatus { get; set; }
 
+
         public string? ProductionPOStatus { get; set; }
+
 
         public DateTime? PurchaseOrderDateFrom { get; set; }
 
+
         public DateTime? PurchaseOrderDateTo { get; set; }
+
+
+        public DateTime? DueDateFrom { get; set; }
+
+
+        public DateTime? DueDateTo { get; set; }
+
+
+        public DateTime? CompletionDateFrom { get; set; }
+
+
+        public DateTime? CompletionDateTo { get; set; }
 
         #endregion
 
@@ -229,6 +286,7 @@ namespace AjayIndustriesERP.Application.Interfaces
         #region Main Summary
 
         public int TotalPurchaseOrders { get; set; }
+
 
         public decimal TotalOrderedQuantity { get; set; }
 
@@ -239,9 +297,12 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         public int CriticalPriorityPurchaseOrders { get; set; }
 
+
         public int UrgentPurchaseOrders { get; set; }
 
+
         public int HighPriorityPurchaseOrders { get; set; }
+
 
         public int NormalPriorityPurchaseOrders { get; set; }
 
@@ -252,7 +313,9 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         public int ProductionPendingPurchaseOrders { get; set; }
 
+
         public int ProductionInProgressPurchaseOrders { get; set; }
+
 
         public int ProductionCompletedPurchaseOrders { get; set; }
 
@@ -263,8 +326,10 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         public PagedResult<ItemCustomerPOTrackingResultRow>
             Results
-        { get; set; }
-                = new();
+        {
+            get;
+            set;
+        } = new();
 
         #endregion
     }
@@ -280,10 +345,13 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         public int CustomerPurchaseOrderId { get; set; }
 
+
         public string PurchaseOrderNumber { get; set; }
             = string.Empty;
 
+
         public DateTime PurchaseOrderDate { get; set; }
+
 
         public string PurchaseOrderStatus { get; set; }
             = string.Empty;
@@ -295,6 +363,7 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         public int CustomerId { get; set; }
 
+
         public string CustomerName { get; set; }
             = string.Empty;
 
@@ -305,8 +374,10 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         public int ItemId { get; set; }
 
+
         public string ItemCode { get; set; }
             = string.Empty;
+
 
         public string ItemName { get; set; }
             = string.Empty;
@@ -318,7 +389,9 @@ namespace AjayIndustriesERP.Application.Interfaces
 
         public int? DrawingId { get; set; }
 
+
         public string? DrawingNumber { get; set; }
+
 
         public string? DrawingFilePath { get; set; }
 
@@ -332,9 +405,30 @@ namespace AjayIndustriesERP.Application.Interfaces
         #endregion
 
 
-        #region Delivery Date
+        #region Due / Delivery Date
 
+        /// <summary>
+        /// Existing effective Delivery Date.
+        ///
+        /// This is displayed to the user as Due Date.
+        /// </summary>
         public DateTime DeliveryDate { get; set; }
+
+        #endregion
+
+
+        #region Production Completion Date
+
+        /// <summary>
+        /// Actual Production completion date.
+        ///
+        /// Pending / In Progress:
+        /// null
+        ///
+        /// Completed:
+        /// actual final Production completion date.
+        /// </summary>
+        public DateTime? CompletionDate { get; set; }
 
         #endregion
 
@@ -389,11 +483,14 @@ namespace AjayIndustriesERP.Application.Interfaces
     {
         public int ItemId { get; set; }
 
+
         public string ItemCode { get; set; }
             = string.Empty;
 
+
         public string ItemName { get; set; }
             = string.Empty;
+
 
         public string DisplayText { get; set; }
             = string.Empty;
@@ -408,11 +505,14 @@ namespace AjayIndustriesERP.Application.Interfaces
     {
         public int CustomerPurchaseOrderId { get; set; }
 
+
         public string PurchaseOrderNumber { get; set; }
             = string.Empty;
 
+
         public string CustomerName { get; set; }
             = string.Empty;
+
 
         public string DisplayText { get; set; }
             = string.Empty;
@@ -426,6 +526,7 @@ namespace AjayIndustriesERP.Application.Interfaces
     public class ItemCustomerPOTrackingCustomerOptionResult
     {
         public int CustomerId { get; set; }
+
 
         public string CustomerName { get; set; }
             = string.Empty;

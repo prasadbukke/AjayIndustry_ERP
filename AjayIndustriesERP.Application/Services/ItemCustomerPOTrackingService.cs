@@ -14,7 +14,8 @@ Tracking Information:
 - Item
 - Drawing
 - Ordered Quantity
-- Delivery Date
+- Due / Delivery Date
+- Actual Production Completion Date
 - Priority
 - PO Status
 
@@ -28,6 +29,8 @@ Production Tracking:
    Pending
    In Progress
    Completed
+
+3. Production Completion Date
 
 Architecture:
 Controller
@@ -43,6 +46,10 @@ Infrastructure Repository
 Important:
 - Production Job Status and Production PO Status
   are kept separate.
+- Due Date uses effective Delivery Date.
+- Completion Date uses actual Production completion date.
+- All date ranges are normalized to date-only values.
+- Reversed date ranges are automatically corrected.
 - Read-only module.
 - No DbContext access in Service.
 - No Entity.
@@ -81,7 +88,8 @@ namespace AjayIndustriesERP.Application.Services
         public ItemCustomerPOTrackingService(
             IItemCustomerPOTrackingRepository repository)
         {
-            _repository = repository;
+            _repository =
+                repository;
         }
 
         #endregion
@@ -131,7 +139,8 @@ namespace AjayIndustriesERP.Application.Services
 
             var mappedRows =
                 pagedRows.Items
-                    .Select(MapRow)
+                    .Select(
+                        MapRow)
                     .ToList();
 
             #endregion
@@ -167,34 +176,49 @@ namespace AjayIndustriesERP.Application.Services
                 #region Filters
 
                 ItemId =
-                        filter.ItemId,
+                    filter.ItemId,
 
                 ItemSearchText =
-                        filter.ItemSearchText,
+                    filter.ItemSearchText,
 
                 CustomerPurchaseOrderId =
-                        filter.CustomerPurchaseOrderId,
+                    filter.CustomerPurchaseOrderId,
 
                 PurchaseOrderNumber =
-                        filter.PurchaseOrderNumber,
+                    filter.PurchaseOrderNumber,
 
                 CustomerId =
-                        filter.CustomerId,
+                    filter.CustomerId,
 
                 Priority =
-                        filter.Priority,
+                    filter.Priority,
 
                 PurchaseOrderStatus =
-                        filter.PurchaseOrderStatus,
+                    filter.PurchaseOrderStatus,
 
                 ProductionPOStatus =
-                        filter.ProductionPOStatus,
+                    filter.ProductionPOStatus,
+
 
                 PurchaseOrderDateFrom =
-                        filter.PurchaseOrderDateFrom,
+                    filter.PurchaseOrderDateFrom,
 
                 PurchaseOrderDateTo =
-                        filter.PurchaseOrderDateTo,
+                    filter.PurchaseOrderDateTo,
+
+
+                DueDateFrom =
+                    filter.DueDateFrom,
+
+                DueDateTo =
+                    filter.DueDateTo,
+
+
+                CompletionDateFrom =
+                    filter.CompletionDateFrom,
+
+                CompletionDateTo =
+                    filter.CompletionDateTo,
 
                 #endregion
 
@@ -202,10 +226,10 @@ namespace AjayIndustriesERP.Application.Services
                 #region Main Summary
 
                 TotalPurchaseOrders =
-                        summary.TotalPurchaseOrders,
+                    summary.TotalPurchaseOrders,
 
                 TotalOrderedQuantity =
-                        summary.TotalOrderedQuantity,
+                    summary.TotalOrderedQuantity,
 
                 #endregion
 
@@ -213,16 +237,16 @@ namespace AjayIndustriesERP.Application.Services
                 #region Priority Summary
 
                 CriticalPriorityPurchaseOrders =
-                        summary.CriticalPriorityPurchaseOrders,
+                    summary.CriticalPriorityPurchaseOrders,
 
                 UrgentPurchaseOrders =
-                        summary.UrgentPurchaseOrders,
+                    summary.UrgentPurchaseOrders,
 
                 HighPriorityPurchaseOrders =
-                        summary.HighPriorityPurchaseOrders,
+                    summary.HighPriorityPurchaseOrders,
 
                 NormalPriorityPurchaseOrders =
-                        summary.NormalPriorityPurchaseOrders,
+                    summary.NormalPriorityPurchaseOrders,
 
                 #endregion
 
@@ -230,13 +254,13 @@ namespace AjayIndustriesERP.Application.Services
                 #region Production PO Summary
 
                 ProductionPendingPurchaseOrders =
-                        summary.ProductionPendingPurchaseOrders,
+                    summary.ProductionPendingPurchaseOrders,
 
                 ProductionInProgressPurchaseOrders =
-                        summary.ProductionInProgressPurchaseOrders,
+                    summary.ProductionInProgressPurchaseOrders,
 
                 ProductionCompletedPurchaseOrders =
-                        summary.ProductionCompletedPurchaseOrders,
+                    summary.ProductionCompletedPurchaseOrders,
 
                 #endregion
 
@@ -244,7 +268,7 @@ namespace AjayIndustriesERP.Application.Services
                 #region Results
 
                 Results =
-                        resultRows
+                    resultRows
 
                 #endregion
             };
@@ -285,8 +309,8 @@ namespace AjayIndustriesERP.Application.Services
             /*
              * Repository Export method is not paginated.
              *
-             * Excel Export therefore receives ALL rows
-             * matching current filters.
+             * Excel Export receives ALL rows matching
+             * the same current filters used on screen.
              */
 
             var rows =
@@ -300,7 +324,8 @@ namespace AjayIndustriesERP.Application.Services
             #region Map Rows
 
             return rows
-                .Select(MapRow)
+                .Select(
+                    MapRow)
                 .ToList();
 
             #endregion
@@ -514,10 +539,10 @@ namespace AjayIndustriesERP.Application.Services
                 #region Item
 
                 ItemId =
-                        filter.ItemId,
+                    filter.ItemId,
 
                 ItemSearchText =
-                        filter.ItemSearchText,
+                    filter.ItemSearchText,
 
                 #endregion
 
@@ -525,10 +550,10 @@ namespace AjayIndustriesERP.Application.Services
                 #region Customer PO
 
                 CustomerPurchaseOrderId =
-                        filter.CustomerPurchaseOrderId,
+                    filter.CustomerPurchaseOrderId,
 
                 PurchaseOrderNumber =
-                        filter.PurchaseOrderNumber,
+                    filter.PurchaseOrderNumber,
 
                 #endregion
 
@@ -536,7 +561,7 @@ namespace AjayIndustriesERP.Application.Services
                 #region Customer
 
                 CustomerId =
-                        filter.CustomerId,
+                    filter.CustomerId,
 
                 #endregion
 
@@ -544,7 +569,7 @@ namespace AjayIndustriesERP.Application.Services
                 #region Priority
 
                 Priority =
-                        filter.Priority,
+                    filter.Priority,
 
                 #endregion
 
@@ -552,7 +577,7 @@ namespace AjayIndustriesERP.Application.Services
                 #region Customer PO Status
 
                 PurchaseOrderStatus =
-                        filter.PurchaseOrderStatus,
+                    filter.PurchaseOrderStatus,
 
                 #endregion
 
@@ -560,18 +585,40 @@ namespace AjayIndustriesERP.Application.Services
                 #region Production PO Status
 
                 ProductionPOStatus =
-                        filter.ProductionPOStatus,
+                    filter.ProductionPOStatus,
 
                 #endregion
 
 
-                #region Dates
+                #region PO Date
 
                 PurchaseOrderDateFrom =
-                        filter.PurchaseOrderDateFrom,
+                    filter.PurchaseOrderDateFrom,
 
                 PurchaseOrderDateTo =
-                        filter.PurchaseOrderDateTo,
+                    filter.PurchaseOrderDateTo,
+
+                #endregion
+
+
+                #region Due Date
+
+                DueDateFrom =
+                    filter.DueDateFrom,
+
+                DueDateTo =
+                    filter.DueDateTo,
+
+                #endregion
+
+
+                #region Completion Date
+
+                CompletionDateFrom =
+                    filter.CompletionDateFrom,
+
+                CompletionDateTo =
+                    filter.CompletionDateTo,
 
                 #endregion
 
@@ -579,10 +626,10 @@ namespace AjayIndustriesERP.Application.Services
                 #region Pagination
 
                 PageNumber =
-                        filter.PageNumber,
+                    filter.PageNumber,
 
                 PageSize =
-                        filter.PageSize
+                    filter.PageSize
 
                 #endregion
             };
@@ -604,16 +651,16 @@ namespace AjayIndustriesERP.Application.Services
                 #region Customer PO
 
                 CustomerPurchaseOrderId =
-                        row.CustomerPurchaseOrderId,
+                    row.CustomerPurchaseOrderId,
 
                 PurchaseOrderNumber =
-                        row.PurchaseOrderNumber,
+                    row.PurchaseOrderNumber,
 
                 PurchaseOrderDate =
-                        row.PurchaseOrderDate,
+                    row.PurchaseOrderDate,
 
                 PurchaseOrderStatus =
-                        row.PurchaseOrderStatus,
+                    row.PurchaseOrderStatus,
 
                 #endregion
 
@@ -621,10 +668,10 @@ namespace AjayIndustriesERP.Application.Services
                 #region Customer
 
                 CustomerId =
-                        row.CustomerId,
+                    row.CustomerId,
 
                 CustomerName =
-                        row.CustomerName,
+                    row.CustomerName,
 
                 #endregion
 
@@ -632,13 +679,13 @@ namespace AjayIndustriesERP.Application.Services
                 #region Item
 
                 ItemId =
-                        row.ItemId,
+                    row.ItemId,
 
                 ItemCode =
-                        row.ItemCode,
+                    row.ItemCode,
 
                 ItemName =
-                        row.ItemName,
+                    row.ItemName,
 
                 #endregion
 
@@ -646,13 +693,13 @@ namespace AjayIndustriesERP.Application.Services
                 #region Drawing
 
                 DrawingId =
-                        row.DrawingId,
+                    row.DrawingId,
 
                 DrawingNumber =
-                        row.DrawingNumber,
+                    row.DrawingNumber,
 
                 DrawingFilePath =
-                        row.DrawingFilePath,
+                    row.DrawingFilePath,
 
                 #endregion
 
@@ -660,15 +707,23 @@ namespace AjayIndustriesERP.Application.Services
                 #region Quantity
 
                 OrderedQuantity =
-                        row.OrderedQuantity,
+                    row.OrderedQuantity,
 
                 #endregion
 
 
-                #region Delivery Date
+                #region Due / Delivery Date
 
                 DeliveryDate =
-                        row.DeliveryDate,
+                    row.DeliveryDate,
+
+                #endregion
+
+
+                #region Completion Date
+
+                CompletionDate =
+                    row.CompletionDate,
 
                 #endregion
 
@@ -676,7 +731,7 @@ namespace AjayIndustriesERP.Application.Services
                 #region Priority
 
                 Priority =
-                        row.Priority,
+                    row.Priority,
 
                 #endregion
 
@@ -684,10 +739,10 @@ namespace AjayIndustriesERP.Application.Services
                 #region Production Job Progress
 
                 TotalProductionJobs =
-                        row.TotalProductionJobs,
+                    row.TotalProductionJobs,
 
                 CompletedProductionJobs =
-                        row.CompletedProductionJobs,
+                    row.CompletedProductionJobs,
 
                 #endregion
 
@@ -695,7 +750,7 @@ namespace AjayIndustriesERP.Application.Services
                 #region Production PO Status
 
                 ProductionPOStatus =
-                        row.ProductionPOStatus
+                    row.ProductionPOStatus
 
                 #endregion
             };
@@ -720,21 +775,24 @@ namespace AjayIndustriesERP.Application.Services
             if (filter.ItemId.HasValue &&
                 filter.ItemId.Value <= 0)
             {
-                filter.ItemId = null;
+                filter.ItemId =
+                    null;
             }
 
 
             if (filter.CustomerPurchaseOrderId.HasValue &&
                 filter.CustomerPurchaseOrderId.Value <= 0)
             {
-                filter.CustomerPurchaseOrderId = null;
+                filter.CustomerPurchaseOrderId =
+                    null;
             }
 
 
             if (filter.CustomerId.HasValue &&
                 filter.CustomerId.Value <= 0)
             {
-                filter.CustomerId = null;
+                filter.CustomerId =
+                    null;
             }
 
             #endregion
@@ -771,42 +829,48 @@ namespace AjayIndustriesERP.Application.Services
 
             #region PO Date Range
 
-            if (filter.PurchaseOrderDateFrom.HasValue)
-            {
-                filter.PurchaseOrderDateFrom =
-                    filter
-                        .PurchaseOrderDateFrom
-                        .Value
-                        .Date;
-            }
+            var purchaseOrderDateRange =
+                NormalizeDateRange(
+                    filter.PurchaseOrderDateFrom,
+                    filter.PurchaseOrderDateTo);
+
+            filter.PurchaseOrderDateFrom =
+                purchaseOrderDateRange.FromDate;
+
+            filter.PurchaseOrderDateTo =
+                purchaseOrderDateRange.ToDate;
+
+            #endregion
 
 
-            if (filter.PurchaseOrderDateTo.HasValue)
-            {
-                filter.PurchaseOrderDateTo =
-                    filter
-                        .PurchaseOrderDateTo
-                        .Value
-                        .Date;
-            }
+            #region Due Date Range
+
+            var dueDateRange =
+                NormalizeDateRange(
+                    filter.DueDateFrom,
+                    filter.DueDateTo);
+
+            filter.DueDateFrom =
+                dueDateRange.FromDate;
+
+            filter.DueDateTo =
+                dueDateRange.ToDate;
+
+            #endregion
 
 
-            if (filter.PurchaseOrderDateFrom.HasValue &&
-                filter.PurchaseOrderDateTo.HasValue &&
-                filter.PurchaseOrderDateFrom.Value >
-                filter.PurchaseOrderDateTo.Value)
-            {
-                var temporaryDate =
-                    filter.PurchaseOrderDateFrom;
+            #region Completion Date Range
 
+            var completionDateRange =
+                NormalizeDateRange(
+                    filter.CompletionDateFrom,
+                    filter.CompletionDateTo);
 
-                filter.PurchaseOrderDateFrom =
-                    filter.PurchaseOrderDateTo;
+            filter.CompletionDateFrom =
+                completionDateRange.FromDate;
 
-
-                filter.PurchaseOrderDateTo =
-                    temporaryDate;
-            }
+            filter.CompletionDateTo =
+                completionDateRange.ToDate;
 
             #endregion
 
@@ -815,7 +879,8 @@ namespace AjayIndustriesERP.Application.Services
 
             if (filter.PageNumber < 1)
             {
-                filter.PageNumber = 1;
+                filter.PageNumber =
+                    1;
             }
 
 
@@ -827,6 +892,57 @@ namespace AjayIndustriesERP.Application.Services
 
 
             return filter;
+        }
+
+        #endregion
+
+
+        #region Normalize Date Range
+
+        private static (
+            DateTime? FromDate,
+            DateTime? ToDate)
+            NormalizeDateRange(
+                DateTime? fromDate,
+                DateTime? toDate)
+        {
+            if (fromDate.HasValue)
+            {
+                fromDate =
+                    fromDate.Value.Date;
+            }
+
+
+            if (toDate.HasValue)
+            {
+                toDate =
+                    toDate.Value.Date;
+            }
+
+
+            if (
+                fromDate.HasValue
+                &&
+                toDate.HasValue
+                &&
+                fromDate.Value >
+                    toDate.Value
+            )
+            {
+                var temporaryDate =
+                    fromDate;
+
+                fromDate =
+                    toDate;
+
+                toDate =
+                    temporaryDate;
+            }
+
+
+            return (
+                FromDate: fromDate,
+                ToDate: toDate);
         }
 
         #endregion
