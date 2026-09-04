@@ -117,7 +117,7 @@ namespace AjayIndustriesERP.Infrastructure.Exports
 
 
             titleRange.Value =
-                "Item Customer PO Tracking";
+    "AJAY INDUSTRIES";
 
 
             titleRange.Style.Font.Bold =
@@ -129,7 +129,7 @@ namespace AjayIndustriesERP.Infrastructure.Exports
 
 
             titleRange.Style.Alignment.Horizontal =
-                XLAlignmentHorizontalValues.Left;
+     XLAlignmentHorizontalValues.Center;
 
 
             titleRange.Style.Alignment.Vertical =
@@ -168,8 +168,9 @@ namespace AjayIndustriesERP.Infrastructure.Exports
 
 
             infoRange.Value =
-                $"Generated: {DateTime.Now:dd-MM-yyyy HH:mm} | " +
-                $"Total Records: {rows.Count}";
+    $"Item Customer PO Tracking | " +
+    $"Generated: {DateTime.Now:dd-MM-yyyy HH:mm} | " +
+    $"Total Records: {rows.Count}";
 
 
             infoRange.Style.Font.FontSize =
