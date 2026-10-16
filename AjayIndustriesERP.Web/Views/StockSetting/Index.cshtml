@@ -1,0 +1,294 @@
+﻿@model List<AjayIndustriesERP.Domain.Entities.ItemStockSetting>
+
+@*
+==============================================================
+
+File : Index.cshtml
+Module : Inventory / Stock Management
+
+Purpose :
+Displays Item + Warehouse Stock Settings.
+
+Features :
+- Minimum Stock
+- Reorder Level
+- Maximum Stock
+- Reorder Quantity
+- Edit Stock Setting
+
+==============================================================
+*@
+
+@{
+    ViewData["Title"] = "Stock Settings";
+}
+
+
+<!-- =========================================================
+     PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Stock Settings
+        </h2>
+
+        <p class="text-muted mb-0">
+            Configure Item and Warehouse wise stock control levels.
+        </p>
+
+    </div>
+
+
+    <div class="d-flex gap-2">
+
+        <a asp-controller="Inventory"
+           asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid fa-arrow-left me-1"></i>
+
+            Current Stock
+
+        </a>
+
+
+        <a asp-action="Create"
+           class="btn btn-primary">
+
+            <i class="fa-solid fa-plus me-1"></i>
+
+            Add Stock Setting
+
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     STOCK SETTINGS LIST
+========================================================== -->
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th>
+                            #
+                        </th>
+
+                        <th>
+                            Item
+                        </th>
+
+                        <th>
+                            Warehouse
+                        </th>
+
+                        <th class="text-end">
+                            Minimum
+                        </th>
+
+                        <th class="text-end">
+                            Reorder Level
+                        </th>
+
+                        <th class="text-end">
+                            Maximum
+                        </th>
+
+                        <th class="text-end">
+                            Reorder Qty
+                        </th>
+
+                        <th class="text-center">
+                            Actions
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model.Any())
+                    {
+                        var serialNumber = 1;
+
+
+                        foreach (var setting in Model)
+                        {
+                            <tr>
+
+
+                                <!-- SERIAL -->
+
+                                <td>
+                                    @serialNumber
+                                </td>
+
+
+                                <!-- ITEM -->
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        @(setting.Item?.ItemName ?? "-")
+                                    </div>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        setting.Item?.ItemCode))
+                                    {
+                                        <div class="small text-muted">
+
+                                            @setting.Item.ItemCode
+
+                                        </div>
+                                    }
+
+                                </td>
+
+
+                                <!-- WAREHOUSE -->
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        @(setting.Warehouse?.WarehouseName ?? "-")
+                                    </div>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        setting.Warehouse?.WarehouseCode))
+                                    {
+                                        <div class="small text-muted">
+
+                                            @setting.Warehouse.WarehouseCode
+
+                                        </div>
+                                    }
+
+                                </td>
+
+
+                                <!-- MINIMUM -->
+
+                                <td class="text-end text-nowrap">
+
+                                    @(setting.MinimumStock
+                                        .ToString("0.###"))
+
+                                </td>
+
+
+                                <!-- REORDER -->
+
+                                <td class="text-end text-nowrap">
+
+                                    @(setting.ReorderLevel
+                                        .ToString("0.###"))
+
+                                </td>
+
+
+                                <!-- MAXIMUM -->
+
+                                <td class="text-end text-nowrap">
+
+                                    @(setting.MaximumStock
+                                        .ToString("0.###"))
+
+                                </td>
+
+
+                                <!-- REORDER QTY -->
+
+                                <td class="text-end text-nowrap">
+
+                                    @(setting.ReorderQuantity
+                                        .ToString("0.###"))
+
+                                </td>
+
+
+                                <!-- ACTION -->
+
+                                <td class="text-center">
+
+                                    <a asp-action="Edit"
+                                       asp-route-id="@setting.Id"
+                                       class="btn
+                                              btn-sm
+                                              btn-outline-warning"
+                                       title="Edit">
+
+                                        <i class="fa-solid fa-pen"></i>
+
+                                    </a>
+
+                                </td>
+
+                            </tr>
+
+
+                            serialNumber++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="8"
+                                class="text-center
+                                       text-muted
+                                       py-5">
+
+                                <i class="fa-solid
+                                          fa-sliders
+                                          fa-2x
+                                          mb-2">
+                                </i>
+
+                                <div class="fw-semibold">
+                                    No Stock Settings found.
+                                </div>
+
+                                <div class="small mt-1">
+                                    Add Item and Warehouse wise stock levels.
+                                </div>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>

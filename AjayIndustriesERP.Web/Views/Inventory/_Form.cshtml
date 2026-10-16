@@ -1,0 +1,653 @@
+﻿@*
+    ============================================================
+    File: _Form.cshtml
+    Module: Inventory / Stock Management
+
+    Purpose:
+    Shared Opening Stock form content.
+
+    Responsibilities:
+    - Capture Opening Stock Date.
+    - Capture transaction remarks.
+    - Display multiple Item + Warehouse stock rows.
+    - Capture Quantity.
+    - Capture optional Rate.
+    - Display calculated Amount for UI convenience.
+    - Capture line remarks.
+    - Provide Add / Remove row controls.
+
+    Important:
+    - JavaScript is maintained separately in:
+      wwwroot/js/inventory/inventory-form.js
+
+    - No Inventory business logic exists in this View.
+    - Final validation and Amount calculation remain in
+      InventoryService.
+    - Amount displayed here is only for UI convenience.
+    ============================================================
+*@
+
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@model AjayIndustriesERP.Web.ViewModels.Inventory.OpeningStockCreateViewModel
+
+@{
+    var itemOptions =
+        (ViewBag.Items as IEnumerable<SelectListItem>)
+        ?.ToList()
+        ?? new List<SelectListItem>();
+
+    var warehouseOptions =
+        (ViewBag.Warehouses as IEnumerable<SelectListItem>)
+        ?.ToList()
+        ?? new List<SelectListItem>();
+}
+
+
+<!-- =========================================================
+     REGION 1 — OPENING STOCK INFORMATION
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-white py-3">
+
+        <h5 class="fw-bold mb-0">
+
+            <i class="fa-solid fa-boxes-stacked me-2"></i>
+
+            Opening Stock Information
+
+        </h5>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <div class="row g-3">
+
+
+            <!-- =================================================
+                 TRANSACTION DATE
+            ================================================== -->
+
+            <div class="col-md-4">
+
+                <label asp-for="TransactionDate"
+                       class="form-label fw-semibold">
+                </label>
+
+                <input asp-for="TransactionDate"
+                       type="date"
+                       class="form-control" />
+
+                <span asp-validation-for="TransactionDate"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+            <!-- =================================================
+                 REMARKS
+            ================================================== -->
+
+            <div class="col-md-8">
+
+                <label asp-for="Remarks"
+                       class="form-label fw-semibold">
+                </label>
+
+                <input asp-for="Remarks"
+                       class="form-control"
+                       placeholder="Optional opening stock remarks" />
+
+                <span asp-validation-for="Remarks"
+                      class="text-danger small">
+                </span>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 2 — OPENING STOCK ITEMS
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-white py-3">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    gap-3">
+
+            <div>
+
+                <h5 class="fw-bold mb-1">
+
+                    <i class="fa-solid fa-box-open me-2"></i>
+
+                    Opening Stock Items
+
+                </h5>
+
+                <small class="text-muted">
+                    Add Item, Warehouse, Quantity and optional Rate.
+                </small>
+
+            </div>
+
+
+            <div class="d-flex
+                        align-items-center
+                        gap-2">
+
+                <span id="openingStockItemCount"
+                      class="badge bg-secondary">
+
+                    @Model.Items.Count
+                    @(Model.Items.Count == 1 ? "Item" : "Items")
+
+                </span>
+
+
+                <button type="button"
+                        class="btn btn-outline-primary"
+                        id="addOpeningStockRow">
+
+                    <i class="fa-solid fa-plus me-1"></i>
+
+                    Add Item
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body">
+
+
+        <!-- =====================================================
+             EMPTY STATE
+        ====================================================== -->
+
+        <div id="openingStockEmptyState"
+             class="text-center text-muted py-5
+                    @(Model.Items.Count > 0 ? "d-none" : "")">
+
+            <i class="fa-solid
+                      fa-box-open
+                      fa-2x
+                      mb-3">
+            </i>
+
+            <div class="fw-semibold">
+                No Items Added
+            </div>
+
+            <small>
+                Click Add Item to enter Opening Stock.
+            </small>
+
+        </div>
+
+
+        <!-- =====================================================
+             ITEM TABLE
+        ====================================================== -->
+
+        <div id="openingStockTableContainer"
+             class="table-responsive
+                    @(Model.Items.Count == 0 ? "d-none" : "")">
+
+            <table class="table
+                          table-bordered
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th class="text-center">
+                            #
+                        </th>
+
+                        <th>
+                            Item
+                        </th>
+
+                        <th>
+                            Warehouse
+                        </th>
+
+                        <th>
+                            Quantity
+                        </th>
+
+                        <th>
+                            Rate
+                        </th>
+
+                        <th>
+                            Amount
+                        </th>
+
+                        <th>
+                            Remarks
+                        </th>
+
+                        <th class="text-center">
+                            Action
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="openingStockItemsBody">
+
+                    @for (var i = 0;
+                                        i < Model.Items.Count;
+                                        i++)
+                    {
+                        var row =
+                        Model.Items[i];
+
+                        var amount =
+                        row.Rate.HasValue
+                        ? row.Quantity *
+                        row.Rate.Value
+                        : (decimal?)null;
+
+
+                        <tr class="opening-stock-row"
+                            data-index="@i">
+
+
+                            <!-- =====================================
+                                 ROW NUMBER
+                            ====================================== -->
+
+                            <td class="text-center fw-semibold">
+
+                                <span class="row-number">
+                                    @(i + 1)
+                                </span>
+
+                            </td>
+
+
+                            <!-- =====================================
+                                 ITEM
+                            ====================================== -->
+
+                            <td>
+
+                                <select name="Items[@i].ItemId"
+                                        class="form-select item-select"
+                                        required>
+
+                                    <option value="">
+                                        -- Select Item --
+                                    </option>
+
+                                    @foreach (var option
+                                                                    in itemOptions)
+                                    {
+                                        if (option.Value ==
+                                        row.ItemId.ToString())
+                                        {
+                                            <option value="@option.Value"
+                                                    selected>
+                                                @option.Text
+                                            </option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@option.Value">
+                                                @option.Text
+                                            </option>
+                                        }
+                                    }
+
+                                </select>
+
+                            </td>
+
+
+                            <!-- =====================================
+                                 WAREHOUSE
+                            ====================================== -->
+
+                            <td>
+
+                                <select name="Items[@i].WarehouseId"
+                                        class="form-select warehouse-select"
+                                        required>
+
+                                    <option value="">
+                                        -- Select Warehouse --
+                                    </option>
+
+                                    @foreach (var option
+                                                                    in warehouseOptions)
+                                    {
+                                        if (option.Value ==
+                                        row.WarehouseId.ToString())
+                                        {
+                                            <option value="@option.Value"
+                                                    selected>
+                                                @option.Text
+                                            </option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@option.Value">
+                                                @option.Text
+                                            </option>
+                                        }
+                                    }
+
+                                </select>
+
+                            </td>
+
+
+                            <!-- =====================================
+                                 QUANTITY
+                            ====================================== -->
+
+                            <td>
+
+                                <input type="number"
+                                       name="Items[@i].Quantity"
+                                       class="form-control quantity-input"
+                                       min="0.001"
+                                       step="0.001"
+                                       value="@row.Quantity.ToString("0.###")"
+                                       placeholder="0.000"
+                                       required />
+
+                            </td>
+
+
+                            <!-- =====================================
+                                 RATE
+                            ====================================== -->
+
+                            <td>
+
+                                <input type="number"
+                                       name="Items[@i].Rate"
+                                       class="form-control rate-input"
+                                       min="0.0001"
+                                       step="0.0001"
+                                       value="@(row.Rate?.ToString("0.####") ?? string.Empty)"
+                                       placeholder="Optional" />
+
+                            </td>
+
+
+                            <!-- =====================================
+                                 AMOUNT
+                            ====================================== -->
+
+                            <td>
+
+                                <input type="text"
+                                       class="form-control
+                                                  bg-light
+                                                  amount-display"
+                                       value="@(amount?.ToString("0.00") ?? string.Empty)"
+                                       placeholder="0.00"
+                                       readonly
+                                       tabindex="-1" />
+
+                            </td>
+
+
+                            <!-- =====================================
+                                 LINE REMARKS
+                            ====================================== -->
+
+                            <td>
+
+                                <input type="text"
+                                       name="Items[@i].Remarks"
+                                       class="form-control"
+                                       maxlength="1000"
+                                       value="@row.Remarks"
+                                       placeholder="Optional remarks" />
+
+                            </td>
+
+
+                            <!-- =====================================
+                                 REMOVE
+                            ====================================== -->
+
+                            <td class="text-center">
+
+                                <button type="button"
+                                        class="btn
+                                                   btn-outline-danger
+                                                   btn-sm
+                                                   remove-opening-stock-row"
+                                        title="Remove Item">
+
+                                    <i class="fa-solid fa-trash"></i>
+
+                                </button>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGION 3 — ACTION BUTTONS
+========================================================== -->
+
+<div class="d-flex justify-content-end gap-2 mb-4">
+
+    <a asp-action="Index"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid fa-xmark me-1"></i>
+
+        Cancel
+
+    </a>
+
+
+    <button type="submit"
+            class="btn btn-primary"
+            id="saveOpeningStockButton">
+
+        <i class="fa-solid fa-floppy-disk me-1"></i>
+
+        Save Opening Stock
+
+    </button>
+
+</div>
+
+
+<!-- =========================================================
+     DYNAMIC ROW TEMPLATE
+
+     Important:
+     JavaScript replaces __index__ with the actual collection
+     index before adding the row to the table.
+========================================================== -->
+
+<template id="openingStockRowTemplate">
+
+    <tr class="opening-stock-row"
+        data-index="__index__">
+
+
+        <!-- ROW NUMBER -->
+
+        <td class="text-center fw-semibold">
+
+            <span class="row-number">
+                __rowNumber__
+            </span>
+
+        </td>
+
+
+        <!-- ITEM -->
+
+        <td>
+
+            <select name="Items[__index__].ItemId"
+                    class="form-select item-select"
+                    required>
+
+                <option value="">
+                    -- Select Item --
+                </option>
+
+                @foreach (var option
+                                in itemOptions)
+                {
+                    <option value="@option.Value">
+                        @option.Text
+                    </option>
+                }
+
+            </select>
+
+        </td>
+
+
+        <!-- WAREHOUSE -->
+
+        <td>
+
+            <select name="Items[__index__].WarehouseId"
+                    class="form-select warehouse-select"
+                    required>
+
+                <option value="">
+                    -- Select Warehouse --
+                </option>
+
+                @foreach (var option
+                                in warehouseOptions)
+                {
+                    <option value="@option.Value">
+                        @option.Text
+                    </option>
+                }
+
+            </select>
+
+        </td>
+
+
+        <!-- QUANTITY -->
+
+        <td>
+
+            <input type="number"
+                   name="Items[__index__].Quantity"
+                   class="form-control quantity-input"
+                   min="0.001"
+                   step="0.001"
+                   placeholder="0.000"
+                   required />
+
+        </td>
+
+
+        <!-- RATE -->
+
+        <td>
+
+            <input type="number"
+                   name="Items[__index__].Rate"
+                   class="form-control rate-input"
+                   min="0.0001"
+                   step="0.0001"
+                   placeholder="Optional" />
+
+        </td>
+
+
+        <!-- AMOUNT -->
+
+        <td>
+
+            <input type="text"
+                   class="form-control
+                          bg-light
+                          amount-display"
+                   placeholder="0.00"
+                   readonly
+                   tabindex="-1" />
+
+        </td>
+
+
+        <!-- REMARKS -->
+
+        <td>
+
+            <input type="text"
+                   name="Items[__index__].Remarks"
+                   class="form-control"
+                   maxlength="1000"
+                   placeholder="Optional remarks" />
+
+        </td>
+
+
+        <!-- REMOVE -->
+
+        <td class="text-center">
+
+            <button type="button"
+                    class="btn
+                           btn-outline-danger
+                           btn-sm
+                           remove-opening-stock-row"
+                    title="Remove Item">
+
+                <i class="fa-solid fa-trash"></i>
+
+            </button>
+
+        </td>
+
+    </tr>
+
+</template>

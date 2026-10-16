@@ -1,0 +1,615 @@
+﻿@*
+    ============================================================
+    File: Ledger.cshtml
+    Module: Inventory / Stock Management
+
+    Purpose:
+    Displays Item wise / Warehouse wise Stock Ledger.
+
+    Responsibilities:
+    - Select Item.
+    - Optionally select Warehouse.
+    - Display chronological Stock IN / OUT movements.
+    - Display running stock balance.
+    - Display transaction reference.
+    - Open Stock Transaction Details.
+
+    Important:
+    - Ledger values come from InventoryService.
+    - Running Balance is prepared by Controller from ordered rows.
+    - No Inventory business logic exists in this View.
+    - No inline JavaScript or CSS is used.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.Inventory.StockLedgerViewModel
+
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    ViewData["Title"] = "Stock Ledger";
+}
+
+
+<!-- =========================================================
+     PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Stock Ledger
+        </h2>
+
+        <p class="text-muted mb-0">
+            View Item and Warehouse wise stock movement history.
+        </p>
+
+    </div>
+
+
+    <div class="d-flex gap-2">
+
+        <a asp-action="Index"
+           class="btn btn-outline-secondary">
+
+            <i class="fa-solid
+                      fa-arrow-left
+                      me-1">
+            </i>
+
+            Current Stock
+
+        </a>
+
+
+        <a asp-action="Create"
+           class="btn btn-primary">
+
+            <i class="fa-solid
+                      fa-plus
+                      me-1">
+            </i>
+
+            Opening Stock
+
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     FILTER
+========================================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-header bg-white py-3">
+
+        <h5 class="fw-bold mb-0">
+
+            <i class="fa-solid
+                      fa-filter
+                      me-2">
+            </i>
+
+            Ledger Filter
+
+        </h5>
+
+    </div>
+
+
+    <div class="card-body">
+
+        <form asp-action="Ledger"
+              method="get">
+
+            <div class="row g-3 align-items-end">
+
+
+                <!-- ITEM -->
+
+                <div class="col-lg-5 col-md-6">
+
+                    <label asp-for="ItemId"
+                           class="form-label fw-semibold">
+                    </label>
+
+                    <select asp-for="ItemId"
+                            asp-items="ViewBag.LedgerItems"
+                            class="form-select"
+                            required>
+
+                        <option value="">
+                            -- Select Item --
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- WAREHOUSE -->
+
+                <div class="col-lg-4 col-md-6">
+
+                    <label asp-for="WarehouseId"
+                           class="form-label fw-semibold">
+                    </label>
+
+                    <select asp-for="WarehouseId"
+                            asp-items="ViewBag.LedgerWarehouses"
+                            class="form-select">
+
+                        <option value="">
+                            -- All Warehouses --
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- ACTION -->
+
+                <div class="col-lg-3">
+
+                    <div class="d-flex gap-2">
+
+                        <button type="submit"
+                                class="btn btn-primary">
+
+                            <i class="fa-solid
+                                      fa-magnifying-glass
+                                      me-1">
+                            </i>
+
+                            View Ledger
+
+                        </button>
+
+
+                        <a asp-action="Ledger"
+                           class="btn btn-outline-secondary">
+
+                            Reset
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     LEDGER
+========================================================== -->
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-header bg-light">
+
+        <div class="d-flex
+                    justify-content-between
+                    align-items-center
+                    flex-wrap
+                    gap-2">
+
+            <span class="fw-semibold">
+
+                <i class="fa-solid
+                          fa-book
+                          me-1">
+                </i>
+
+                Stock Movement
+
+            </span>
+
+
+            @if (Model.ItemId.HasValue)
+            {
+                <span class="badge bg-secondary">
+
+                    @Model.Entries.Count
+                    @(Model.Entries.Count == 1
+                        ? "Entry"
+                        : "Entries")
+
+                </span>
+            }
+
+        </div>
+
+    </div>
+
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th>
+                            #
+                        </th>
+
+                        <th>
+                            Date
+                        </th>
+
+                        <th>
+                            Transaction
+                        </th>
+
+                        <th>
+                            Type
+                        </th>
+
+                        <th>
+                            Warehouse
+                        </th>
+
+                        <th class="text-end">
+                            Stock In
+                        </th>
+
+                        <th class="text-end">
+                            Stock Out
+                        </th>
+
+                        <th class="text-end">
+                            Balance
+                        </th>
+
+                        <th class="text-end">
+                            Rate
+                        </th>
+
+                        <th class="text-end">
+                            Amount
+                        </th>
+
+                        <th>
+                            Reference
+                        </th>
+
+                        <th>
+                            Remarks
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (!Model.ItemId.HasValue)
+                    {
+                        <tr>
+
+                            <td colspan="12"
+                                class="text-center
+                                       text-muted
+                                       py-5">
+
+                                <i class="fa-solid
+                                          fa-filter
+                                          fa-2x
+                                          mb-2">
+                                </i>
+
+                                <div class="fw-semibold">
+                                    Select an Item
+                                </div>
+
+                                <div class="small mt-1">
+                                    Select an Item to view its Stock Ledger.
+                                </div>
+
+                            </td>
+
+                        </tr>
+                    }
+                    else if (Model.Entries.Any())
+                    {
+                        var serialNumber =
+                            1;
+
+
+                        foreach (var entry in Model.Entries)
+                        {
+                            <tr>
+
+
+                                <!-- SERIAL NUMBER -->
+
+                                <td>
+                                    @serialNumber
+                                </td>
+
+
+                                <!-- DATE -->
+
+                                <td class="text-nowrap">
+
+                                    @(entry.TransactionDate
+                                        .ToString("dd-MM-yyyy"))
+
+                                </td>
+
+
+                                <!-- TRANSACTION -->
+
+                                <td class="text-nowrap">
+
+                                    <a asp-action="Details"
+                                       asp-route-id="@entry.TransactionId"
+                                       class="text-decoration-none
+                                              fw-semibold">
+
+                                        @entry.TransactionCode
+
+                                    </a>
+
+                                </td>
+
+
+                                <!-- TYPE -->
+
+                                <td>
+
+                                    <span class="badge
+                                                 bg-light
+                                                 text-dark
+                                                 border
+                                                 fw-normal">
+
+                                        @entry.TransactionType
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- WAREHOUSE -->
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        @entry.WarehouseName
+                                    </div>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        entry.WarehouseCode))
+                                    {
+                                        <div class="small text-muted">
+
+                                            @entry.WarehouseCode
+
+                                        </div>
+                                    }
+
+                                </td>
+
+
+                                <!-- STOCK IN -->
+
+                                <td class="text-end text-nowrap">
+
+                                    @if (entry.QuantityIn > 0)
+                                    {
+                                        <span class="fw-semibold">
+
+                                            @(entry.QuantityIn
+                                                .ToString("0.###"))
+
+                                        </span>
+
+                                        @if (!string.IsNullOrWhiteSpace(
+                                            entry.UnitName))
+                                        {
+                                            @: @entry.UnitName
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- STOCK OUT -->
+
+                                <td class="text-end text-nowrap">
+
+                                    @if (entry.QuantityOut > 0)
+                                    {
+                                        <span class="fw-semibold">
+
+                                            @(entry.QuantityOut
+                                                .ToString("0.###"))
+
+                                        </span>
+
+                                        @if (!string.IsNullOrWhiteSpace(
+                                            entry.UnitName))
+                                        {
+                                            @: @entry.UnitName
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- RUNNING BALANCE -->
+
+                                <td class="text-end text-nowrap">
+
+                                    <span class="fw-bold">
+
+                                        @(entry.RunningBalance
+                                            .ToString("0.###"))
+
+                                    </span>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        entry.UnitName))
+                                    {
+                                        @: @entry.UnitName
+                                    }
+
+                                </td>
+
+
+                                <!-- RATE -->
+
+                                <td class="text-end text-nowrap">
+
+                                    @if (entry.Rate.HasValue)
+                                    {
+                                        @(entry.Rate.Value.ToString("0.####"))
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- AMOUNT -->
+
+                                <td class="text-end text-nowrap">
+
+                                    @if (entry.Amount.HasValue)
+                                    {
+                                        @(entry.Amount.Value.ToString("0.00"))
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- REFERENCE -->
+
+                                <td>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        entry.ReferenceNumber))
+                                    {
+                                        @entry.ReferenceNumber
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- REMARKS -->
+
+                                <td>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        entry.Remarks))
+                                    {
+                                        @entry.Remarks
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+                            </tr>
+
+
+                            serialNumber++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="12"
+                                class="text-center
+                                       text-muted
+                                       py-5">
+
+                                <i class="fa-solid
+                                          fa-book-open
+                                          fa-2x
+                                          mb-2">
+                                </i>
+
+                                <div class="fw-semibold">
+                                    No Stock Ledger entries found.
+                                </div>
+
+                                <div class="small mt-1">
+                                    No stock movements exist for the selected filter.
+                                </div>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>

@@ -417,6 +417,17 @@ namespace AjayIndustriesERP.Infrastructure.DependencyInjection
 
             #endregion
 
+            #region Inventory / Stock Management
+
+            services.AddScoped<
+                IInventoryRepository,
+                InventoryRepository>();
+
+            services.AddScoped<
+                IInventoryService,
+                InventoryService>();
+
+            #endregion
 
             return services;
 

@@ -2108,6 +2108,67 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                     b.ToTable("ItemSpecifications", (string)null);
                 });
 
+            modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.ItemStockSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("MaximumStock")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("MinimumStock")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ModifiedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("ReorderLevel")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("ReorderQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("WarehouseId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("WarehouseId");
+
+                    b.HasIndex("ItemId", "WarehouseId")
+                        .IsUnique();
+
+                    b.ToTable("ItemStockSettings", (string)null);
+                });
+
             modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.Machine", b =>
                 {
                     b.Property<int>("Id")
@@ -3689,6 +3750,145 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                     b.ToTable("Specifications", (string)null);
                 });
 
+            modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.StockTransaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ModifiedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReferenceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReferenceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("ReferenceType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("TransactionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TransactionType")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("ReferenceId");
+
+                    b.HasIndex("ReferenceType");
+
+                    b.HasIndex("TransactionDate");
+
+                    b.HasIndex("TransactionType");
+
+                    b.HasIndex("ReferenceType", "ReferenceId");
+
+                    b.ToTable("StockTransactions", (string)null);
+                });
+
+            modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.StockTransactionLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ModifiedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("QuantityIn")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("QuantityOut")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal?>("Rate")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("StockTransactionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WarehouseId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("StockTransactionId");
+
+                    b.HasIndex("WarehouseId");
+
+                    b.HasIndex("ItemId", "WarehouseId");
+
+                    b.ToTable("StockTransactionLines", (string)null);
+                });
+
             modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.Supplier", b =>
                 {
                     b.Property<int>("SupplierId")
@@ -4313,6 +4513,25 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                     b.Navigation("Uom");
                 });
 
+            modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.ItemStockSetting", b =>
+                {
+                    b.HasOne("AjayIndustriesERP.Domain.Entities.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AjayIndustriesERP.Domain.Entities.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Item");
+
+                    b.Navigation("Warehouse");
+                });
+
             modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.PreDispatchInspection", b =>
                 {
                     b.HasOne("AjayIndustriesERP.Domain.Entities.ProductionJob", "ProductionJob")
@@ -4559,6 +4778,33 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                     b.Navigation("PurchaseOrder");
                 });
 
+            modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.StockTransactionLine", b =>
+                {
+                    b.HasOne("AjayIndustriesERP.Domain.Entities.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AjayIndustriesERP.Domain.Entities.StockTransaction", "StockTransaction")
+                        .WithMany("Items")
+                        .HasForeignKey("StockTransactionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AjayIndustriesERP.Domain.Entities.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Item");
+
+                    b.Navigation("StockTransaction");
+
+                    b.Navigation("Warehouse");
+                });
+
             modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.SupplierPayment", b =>
                 {
                     b.HasOne("AjayIndustriesERP.Domain.Entities.Company", "Company")
@@ -4665,6 +4911,11 @@ namespace AjayIndustriesERP.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.PurchaseOrder", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("AjayIndustriesERP.Domain.Entities.StockTransaction", b =>
                 {
                     b.Navigation("Items");
                 });

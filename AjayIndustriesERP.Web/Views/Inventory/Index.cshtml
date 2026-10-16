@@ -1,0 +1,365 @@
+﻿@model List<AjayIndustriesERP.Application.Features.Inventory.CurrentStockResult>
+
+@*
+==============================================================
+
+File : Index.cshtml
+Module : Inventory / Stock Management
+
+Purpose :
+Displays Item + Warehouse wise Current Stock.
+
+Features :
+- Current Stock
+- UOM
+- Warehouse
+- Minimum Stock
+- Reorder Level
+- Maximum Stock
+- Reorder Quantity
+- Opening Stock action
+
+Important :
+- Current Stock is calculated from Stock Transactions.
+- No stock quantity is stored directly on Item.
+- No Inventory business calculations belong in this View.
+
+==============================================================
+*@
+
+@{
+    ViewData["Title"] = "Current Stock";
+}
+
+
+<!-- =========================================================
+     PAGE HEADER
+========================================================== -->
+
+<div class="d-flex
+            justify-content-between
+            align-items-center
+            flex-wrap
+            gap-3
+            mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Current Stock
+        </h2>
+
+        <p class="text-muted mb-0">
+            View Item and Warehouse wise stock position.
+        </p>
+
+    </div>
+
+
+  <div class="d-flex gap-2">
+
+    <a asp-controller="StockSetting"
+       asp-action="Index"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid fa-sliders me-1"></i>
+
+        Stock Settings
+
+    </a>
+
+
+    <a asp-action="Ledger"
+       class="btn btn-outline-primary">
+
+        <i class="fa-solid fa-book me-1"></i>
+
+        Stock Ledger
+
+    </a>
+
+
+    <a asp-action="Create"
+       class="btn btn-primary">
+
+        <i class="fa-solid fa-plus me-1"></i>
+
+        Opening Stock
+
+    </a>
+
+</div>
+
+</div>
+
+
+<!-- =========================================================
+     CURRENT STOCK LIST
+========================================================== -->
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table
+                          table-hover
+                          align-middle
+                          mb-0">
+
+                <thead class="table-light">
+
+                    <tr>
+
+                        <th>
+                            #
+                        </th>
+
+                        <th>
+                            Item Code
+                        </th>
+
+                        <th style="min-width:180px;">
+                            Item Name
+                        </th>
+
+                        <th>
+                            UOM
+                        </th>
+
+                        <th style="min-width:180px;">
+                            Warehouse
+                        </th>
+
+                        <th class="text-end">
+                            Current Stock
+                        </th>
+
+                        <th class="text-end">
+                            Minimum
+                        </th>
+
+                        <th class="text-end">
+                            Reorder Level
+                        </th>
+
+                        <th class="text-end">
+                            Maximum
+                        </th>
+
+                        <th class="text-end">
+                            Reorder Qty
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    @if (Model.Any())
+                    {
+                        var serialNumber = 1;
+
+
+                        foreach (var item in Model)
+                        {
+                            <tr>
+
+                                <!-- SERIAL NUMBER -->
+
+                                <td>
+                                    @serialNumber
+                                </td>
+
+
+                                <!-- ITEM CODE -->
+
+                                <td>
+
+                                    <span class="fw-semibold">
+                                        @item.ItemCode
+                                    </span>
+
+                                </td>
+
+
+                                <!-- ITEM NAME -->
+
+                                <td>
+
+                                    <span class="fw-semibold">
+                                        @item.ItemName
+                                    </span>
+
+                                </td>
+
+
+                                <!-- UOM -->
+
+                                <td>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        item.UnitName))
+                                    {
+                                        @item.UnitName
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- WAREHOUSE -->
+
+                                <td>
+
+                                    <div class="fw-semibold">
+                                        @item.WarehouseName
+                                    </div>
+
+                                    @if (!string.IsNullOrWhiteSpace(
+                                        item.WarehouseCode))
+                                    {
+                                        <div class="small text-muted">
+
+                                            Code:
+                                            @item.WarehouseCode
+
+                                        </div>
+                                    }
+
+                                </td>
+
+
+                                <!-- CURRENT STOCK -->
+
+                                <td class="text-end text-nowrap">
+
+                                    <span class="fw-semibold">
+                                        @item.CurrentStock.ToString("0.###")
+                                    </span>
+
+                                </td>
+
+
+                                <!-- MINIMUM STOCK -->
+
+                                <td class="text-end text-nowrap">
+
+                                    @if (item.MinimumStock.HasValue)
+                                    {
+                                        @item.MinimumStock.Value.ToString("0.###")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- REORDER LEVEL -->
+
+                                <td class="text-end text-nowrap">
+
+                                    @if (item.ReorderLevel.HasValue)
+                                    {
+                                        @item.ReorderLevel.Value.ToString("0.###")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- MAXIMUM STOCK -->
+
+                                <td class="text-end text-nowrap">
+
+                                    @if (item.MaximumStock.HasValue)
+                                    {
+                                        @item.MaximumStock.Value.ToString("0.###")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+
+                                <!-- REORDER QUANTITY -->
+
+                                <td class="text-end text-nowrap">
+
+                                    @if (item.ReorderQuantity.HasValue)
+                                    {
+                                        @(item.ReorderQuantity.Value.ToString("0.###"))
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">
+                                            -
+                                        </span>
+                                    }
+
+                                </td>
+
+                            </tr>
+
+
+                            serialNumber++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+
+                            <td colspan="10"
+                                class="text-center
+                                       text-muted
+                                       py-5">
+
+                                <i class="fa-solid
+                                          fa-box-open
+                                          fa-2x
+                                          mb-2">
+                                </i>
+
+                                <div class="fw-semibold">
+                                    No Current Stock records found.
+                                </div>
+
+                                <div class="small mt-1">
+                                    Create Opening Stock to begin stock tracking.
+                                </div>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>

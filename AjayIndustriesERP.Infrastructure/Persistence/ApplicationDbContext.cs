@@ -162,6 +162,28 @@ namespace AjayIndustriesERP.Infrastructure.Persistence
 
         #endregion
 
+        #region Inventory / Stock Management
+
+        public DbSet<StockTransaction> StockTransactions
+        {
+            get;
+            set;
+        }
+
+        public DbSet<StockTransactionLine> StockTransactionLines
+        {
+            get;
+            set;
+        }
+
+        public DbSet<ItemStockSetting> ItemStockSettings
+        {
+            get;
+            set;
+        }
+
+        #endregion
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

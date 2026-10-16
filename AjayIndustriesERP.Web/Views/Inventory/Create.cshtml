@@ -1,0 +1,83 @@
+﻿@*
+    ============================================================
+    File: Create.cshtml
+    Module: Inventory / Stock Management
+
+    Purpose:
+    Displays the Create Opening Stock page.
+
+    Responsibilities:
+    - Owns the HTML form.
+    - Displays page header/navigation.
+    - Displays validation summary for Web validation.
+    - Renders reusable _Form.cshtml.
+    - Loads client-side validation scripts.
+    - Loads Inventory form JavaScript from separate file.
+
+    Important:
+    Business validation errors are shown through the project's
+    shared Toast Notification component.
+
+    Actual Opening Stock fields and dynamic Item rows are
+    maintained inside _Form.cshtml.
+
+    No inline JavaScript or CSS is maintained in this View.
+    ============================================================
+*@
+
+@model AjayIndustriesERP.Web.ViewModels.Inventory.OpeningStockCreateViewModel
+
+@{
+    ViewData["Title"] = "Opening Stock";
+}
+
+
+<div class="d-flex justify-content-between
+            align-items-center mb-4">
+
+    <div>
+
+        <h2 class="fw-bold mb-1">
+            Opening Stock
+        </h2>
+
+        <p class="text-muted mb-0">
+            Enter opening stock for Items and Warehouses.
+        </p>
+
+    </div>
+
+
+    <a asp-action="Index"
+       class="btn btn-outline-secondary">
+
+        <i class="fa-solid fa-arrow-left me-1"></i>
+        Back
+
+    </a>
+
+</div>
+
+
+<form asp-action="Create"
+      method="post"
+      id="inventoryForm">
+
+    <div asp-validation-summary="ModelOnly"
+         class="text-danger mb-3">
+    </div>
+
+    <partial name="_Form"
+             model="Model" />
+
+</form>
+
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="~/js/inventory/inventory-form.js"
+            asp-append-version="true">
+    </script>
+}

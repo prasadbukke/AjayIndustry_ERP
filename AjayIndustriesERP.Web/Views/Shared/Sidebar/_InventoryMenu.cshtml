@@ -10,13 +10,55 @@
 
     </div>
 
+
     <ul class="erp-submenu">
 
-        <li><a href="#">Stock</a></li>
-        <li><a href="#">Stock Adjustment</a></li>
-        <li><a href="#">Stock Transfer</a></li>
-        <li><a href="#">Warehouse Stock</a></li>
-        <li><a href="#">Stock Ledger</a></li>
+        <!-- CURRENT STOCK -->
+
+        <li>
+            <a asp-controller="Inventory"
+               asp-action="Index">
+
+                Current Stock
+
+            </a>
+        </li>
+
+
+        <!-- OPENING STOCK -->
+
+        <li>
+            <a asp-controller="Inventory"
+               asp-action="Create">
+
+                Opening Stock
+
+            </a>
+        </li>
+
+
+        <!-- STOCK LEDGER -->
+
+        <li>
+            <a asp-controller="Inventory"
+               asp-action="Ledger">
+
+                Stock Ledger
+
+            </a>
+        </li>
+
+
+        <!-- STOCK SETTINGS -->
+
+        <li>
+            <a asp-controller="StockSetting"
+               asp-action="Index">
+
+                Stock Settings
+
+            </a>
+        </li>
 
     </ul>
 
